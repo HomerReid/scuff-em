@@ -94,6 +94,7 @@ void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...)
 /***************************************************************/
 /* this routine is called by ProcessOptions() to process a     */
 /* single option and its arguments.                            */
+/*                                                             */
 /* returns 0 on success, nonzero on failure. in the latter     */
 /* case, ErrMsg is filled in with an error string.             */
 /***************************************************************/
@@ -193,9 +194,12 @@ int ProcessOption(char *Option, char *Args[], int NumArgs,
 }
 
 /***************************************************************/
+/* if ZeroArgs==true, any arguments in Args[] that were        */
+/* successfully processed are replaced in Args by zero         */
+/* pointers.                                                   */
 /***************************************************************/
-/***************************************************************/
-void ProcessOptions(int argc, char *argv[], OptStruct *OSArray)
+void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
+                    bool AbortOnUnknown, bool ZeroArgs)
 {
   /***************************************************************/
   /***************************************************************/
@@ -237,17 +241,7 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray)
   if (argc==1)
    return;
 
-  /* make sure the first thing on the command line is an argument */
-  int nargFirst=1;
-  while ( argv[nargFirst]==0 )
-   { nargFirst++;
-     if (nargFirst==argc) return; // no non-NULL arguments
-   };
-  if ( strncmp(argv[nargFirst],"--",2) )
-   OSUsage(argv[0], OSArray,"unknown option %s",argv[1]);
-  
-  int nt, narg;
-  for(narg=nargFirst; narg<argc; narg++)
+  for(int narg=1; narg<argc; narg++)
    { 
      /*--------------------------------------------------------------*/
      /*- this line allows ProcessOptions() to be preceded by other   */
@@ -258,17 +252,32 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray)
      if (argv[narg]==0) continue;
 
      /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (strncmp(argv[narg],"--",2))
+      { if (AbortOnUnknown) 
+         OSUsage(argv[0], OSArray,"unknown option %s",argv[1]);
+        continue;
+      };
+
+     /*--------------------------------------------------------------*/
      /*- collect all successive arguments that do not begin with     */
      /*- '--' as parameters for the current option                   */
      /*--------------------------------------------------------------*/
-     for(nt=NumTokens=0; nt<MAXTOK && argv[narg+nt+1] && (narg+nt+1)<argc; nt++)
+     for(int nt=NumTokens=0; nt<MAXTOK && argv[narg+nt+1] && (narg+nt+1)<argc; nt++)
       { if ( !strncmp(argv[narg+nt+1],"--",2) )
          break;
         Tokens[NumTokens]=argv[narg+nt+1];
         NumTokens++;
       };
-     if (ProcessOption(argv[narg]+2, Tokens, NumTokens, OSArray, ErrMsg))
+     int Status=ProcessOption(argv[narg]+2, Tokens, NumTokens, OSArray, ErrMsg);
+
+     if (Status!=0 && AbortOnUnknown==true)
       OSUsage(argv[0], OSArray, ErrMsg);
+
+     if (Status==0 && ZeroArgs==true)
+      for(int nt=0; nt<NumTokens; nt++)
+       argv[narg+nt]=0;
 
      narg+=NumTokens;
 

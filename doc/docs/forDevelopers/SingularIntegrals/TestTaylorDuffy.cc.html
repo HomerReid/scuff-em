@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/work/scuff-em/doc/docs/forDevelopers/SingularIntegrals/TestTaylorDuffy.cc.html</title>
+<meta name="Generator" content="Vim/7.4">
+<meta name="plugin-version" content="vim7.4_v1">
+<meta name="syntax" content="cpp">
+<meta name="settings" content="use_css,no_foldcolumn,prevent_copy=">
+<meta name="colorscheme" content="elflord">
+<style type="text/css">
+<!--
+pre { font-family: monospace; color: #00ffff; background-color: #000000; }
+body { font-family: monospace; color: #00ffff; background-color: #000000; }
+* { font-size: 1em; }
+.Repeat { color: #ffffff; }
+.Type { color: #60ff60; font-weight: bold; }
+.Statement { color: #aa4444; font-weight: bold; }
+.PreProc { color: #ff80ff; }
+.Constant { color: #ff00ff; }
+.Special { color: #ff0000; }
+.Comment { color: #80a0ff; }
+-->
+</style>
+
+<script type='text/javascript'>
+<!--
+
+-->
+</script>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="PreProc">#include </span><span class="Constant">&quot;TaylorDuffy.h&quot;</span>
+<span class="Statement">using</span> <span class="Type">namespace</span> scuff;
+
+<span class="Type">int</span> main(<span class="Type">int</span> argc, <span class="Type">char</span> *argv[])
+{
+  <span class="Comment">/*</span><span class="Comment"> panel vertices </span><span class="Comment">*/</span>
+  <span class="Type">int</span> WhichCase = <span class="Constant">2</span>; <span class="Comment">// 2 common vertices</span>
+  <span class="Type">double</span> V1[<span class="Constant">3</span>]  =  { <span class="Constant">0.0</span>,  <span class="Constant">0.0</span>,  <span class="Constant">0.0</span> };
+  <span class="Type">double</span> V2[<span class="Constant">3</span>]  =  { <span class="Constant">0.1</span>,  <span class="Constant">0.0</span>,  <span class="Constant">0.0</span> };
+  <span class="Type">double</span> V3[<span class="Constant">3</span>]  =  { <span class="Constant">0.05</span>, <span class="Constant">0.1</span>,  <span class="Constant">0.0</span> };
+  <span class="Type">double</span> V3P[<span class="Constant">3</span>] =  { <span class="Constant">0.07</span>, -<span class="Constant">0.08</span>, <span class="Constant">0.03</span> };
+
+  <span class="Type">double</span> *Q     = V3;  <span class="Comment">// source/sink vertex, triangle 1</span>
+  <span class="Type">double</span> *QP    = V3P; <span class="Comment">// source/sink vertex, triangle 2</span>
+
+  <span class="Comment">/*</span><span class="Comment"> specification of which integrals we want </span><span class="Comment">*/</span>
+  <span class="Type">int</span> NumPKs        = <span class="Constant">2</span>;
+  <span class="Type">int</span> PIndex[<span class="Constant">2</span>]     = {TD_UNITY, TD_PMCHWC};
+  <span class="Type">int</span> KIndex[<span class="Constant">2</span>]     = {TD_RP,    TD_RP};
+  cdouble KParam[<span class="Constant">2</span>] = {-<span class="Constant">1.0</span>,    -<span class="Constant">3.0</span>};
+
+  <span class="Comment">/*</span><span class="Comment"> output buffers </span><span class="Comment">*/</span>
+  cdouble Result[<span class="Constant">2</span>], Error[<span class="Constant">2</span>];
+
+  <span class="Comment">/*</span><span class="Comment"> fill in argument structure with problem description </span><span class="Comment">*/</span>
+  TaylorDuffyArgStruct MyTDArgs, *TDArgs=&amp;MyTDArgs;
+  InitTaylorDuffyArgs(TDArgs);
+  TDArgs-&gt;WhichCase = WhichCase;
+  TDArgs-&gt;V1        = V1;
+  TDArgs-&gt;V2        = V2;
+  TDArgs-&gt;V3        = V3;
+  TDArgs-&gt;V3P       = V3P;
+  TDArgs-&gt;Q         = Q;
+  TDArgs-&gt;QP        = QP;
+  TDArgs-&gt;NumPKs    = NumPKs;
+  TDArgs-&gt;PIndex    = PIndex;
+  TDArgs-&gt;KIndex    = KIndex;
+  TDArgs-&gt;KParam    = KParam;
+  TDArgs-&gt;Result    = Result;
+  TDArgs-&gt;Error     = Error;
+
+  <span class="Comment">/*</span><span class="Comment"> specify desired error tolerance </span><span class="Comment">*/</span>
+  TDArgs-&gt;RelTol    = <span class="Constant">1.0e-10</span>;   <span class="Comment">// request 10-digit accuracy</span>
+  TDArgs-&gt;MaxEval   = <span class="Constant">25</span>;        <span class="Comment">// upper limit on integrand samples</span>
+
+  <span class="Comment">/*</span><span class="Comment"> calculate the integral </span><span class="Comment">*/</span>
+  TaylorDuffy( TDArgs );
+
+  <span class="Comment">/*</span><span class="Comment"> print the results </span><span class="Comment">*/</span>
+  printf(<span class="Constant">&quot;Integrand sampled at </span><span class="Special">%i</span><span class="Constant"> points.</span><span class="Special">\n</span><span class="Constant">&quot;</span>,TDArgs-&gt;nCalls);
+  printf(<span class="Constant">&quot;Integral 1: {</span><span class="Special">%+.8e</span><span class="Constant">, </span><span class="Special">%+.8e</span><span class="Constant">} (etimated error {</span><span class="Special">%.1e</span><span class="Constant">.,</span><span class="Special">%.1e</span><span class="Constant">}) </span><span class="Special">\n</span><span class="Constant">&quot;</span>,
+          real(Result[<span class="Constant">0</span>]),imag(Result[<span class="Constant">0</span>]),real(Error[<span class="Constant">0</span>]),imag(Error[<span class="Constant">0</span>]));
+  printf(<span class="Constant">&quot;Integral 2: {</span><span class="Special">%+.8e</span><span class="Constant">, </span><span class="Special">%+.8e</span><span class="Constant">} (esimated error {</span><span class="Special">%.1e</span><span class="Constant">.,</span><span class="Special">%.1e</span><span class="Constant">}) </span><span class="Special">\n</span><span class="Constant">&quot;</span>,
+          real(Result[<span class="Constant">1</span>]),imag(Result[<span class="Constant">1</span>]),real(Error[<span class="Constant">1</span>]),imag(Error[<span class="Constant">1</span>]));
+
+  <span class="Comment">/*</span><span class="Comment"> uncomment the following line to report computation time </span><span class="Comment">*/</span>
+<span class="Comment">//#define MEASURE_RUNTIME</span>
+<span class="PreProc">#ifdef MEASURE_RUNTIME</span>
+<span class="PreProc">#define REPETITIONS </span><span class="Constant">100</span>
+  Tic();
+  <span class="Repeat">for</span>(<span class="Type">int</span> n=<span class="Constant">0</span>; n&lt;REPETITIONS; n++)
+   TaylorDuffy( TDArgs );
+  <span class="Type">double</span> TimeElapsed = Toc() / REPETITIONS;
+  printf(<span class="Constant">&quot;Computation time: </span><span class="Special">%e</span><span class="Constant"> microseconds</span><span class="Special">\n</span><span class="Constant">&quot;</span>,<span class="Constant">1.0e6</span>*TimeElapsed);
+<span class="PreProc">#endif</span>
+
+}
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

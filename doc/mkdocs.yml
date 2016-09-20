@@ -72,6 +72,7 @@ pages:
 - API reference:  
     - 'libscuff':              'API/libscuff.md'
 - For developers:
-    - 'Implementation':        'forDevelopers/Implementation.md'
-    - 'Data Structures':       'forDevelopers/DataStructures.md'
-    - 'Documentation':         'forDevelopers/Documentation.md'
+    - 'Implementation':                        'forDevelopers/Implementation.md'
+    - 'Data Structures':                       'forDevelopers/DataStructures.md'
+    - 'Documentation':                         'forDevelopers/Documentation.md'
+    - 'Code for computing singular integrals': 'forDevelopers/SingularIntegrals.md'

@@ -24,32 +24,27 @@
  *
  * more specifically: 
  *
- *  a) consider two points in space x, xp (which we think of as the 
- *     centers of two source distributions).
+ *  a) consider two points in space xSource, xOrigin (which we think of as the
+ *     center of a source distribution and the origin of a spherical 
+ *     coordinate system in which we will express the fields of this 
+ *     distribution as an expansion in spherical waves).
  *
- *  b) put Xij = x - xp, the vector pointing from xp to x.
+ *  b) put Xij = xSource - xOrigin.
  *
- *  c) now consider a third point xpp that lies closer to xp than to x.
+ *  c) now consider a third point xDest that lies closer to xOrigin than to xSource.
  *
- *  d) let Phi_{lm}(xpp-x) be the value of an EXTERIOR helmholtz 
- *     solution at xpp as reckoned from a coordinate system whose origin
- *     lies at x. 
+ *  d) let Phi_{lm}(xDest-xSource) be the value at xDest of an outgoing
+ *     wave emitted by the source at xSource
  *
- *     (for real frequencies, Phi_{lm}(R) = h_l(kr) Y_{lm}(theta, phi);
- *      for imag frequencies, Phi_{lm}(R) = k_l(kr) Y_{lm}(theta, phi))
+ *  e) let Psi_{lm}(xDest-xOrigin) be the value of an INTERIOR helmholtz
+ *     solution at xDest as reckoned using a coordinate system with
+ *     origin xOrigin.
  *
- *  e) similarly, let Psi_{lm}(xpp-xp) be the value of an INTERIOR helmholtz 
- *     solution at xpp as reckoned from a coordinate system whose origin
- *     lies at xp. 
+ *  e) then the translation matrix expresses a single Phi_{lm} as a 
+ *     linear combination of Psi_{lm}s: 
  *
- *     (for real frequencies, Psi_{lm}(R) = j_l(kr) Y_{lm}(theta, phi);
- *      for imag frequencies, Psi_{lm}(R) = i_l(kr) Y_{lm}(theta, phi))
- *     
- *  e) then the translation matrix expresses Phi_{lm}(xpp-x) in terms
- *     of Psi_{lm}(xpp-xp), as follows:
- *
- *      Phi_{Alpha}(xpp-x)
- *        = \sum_{AlphaP} A_{Alpha,AlphaP} Psi_{AlphaP}(xpp-xp) 
+ *      Phi_{Alpha}(xDest-xSource)
+ *        = \sum_{AlphaP} A_{Alpha,AlphaP} Psi_{AlphaP}(xDest-xOrigin)
  *
  * where Alpha=(lm), AlphaP=(lp,mp) are compound indices, and 
  * where A is the matrix computed by GetTranslationMatrices below.
@@ -57,16 +52,16 @@
  * Similarly, B and C are the matrices that relate M-type vector solutions
  * about xp to M- and N-type vector solutions about x: we have 
  * 
- * [M^{exterior}(xpp-x)]     = [ B   C ]         [ M^{interior}(xpp-xp) ]
- * [N^{exterior}(xpp-x)]_{A} = [ -C  B ]_{A, AP} [ N^{interior}(xpp-xp) ]_{AP}
+ * [M^{ext}(xDest-xSource)]     = [ B   C ]         [ M^{regular}(xDest-xOrigin) ]
+ * [N^{ext}(xDest-xSource)]_{A} = [ -C  B ]_{A, AP} [ N^{regular}(xDest-xOrigin) ]_{AP}
  *
- * This calculation follows Chew, Fields and Waves in Inhomogeneous Media,
- * Appendix D, with the difference that my vector-N function is equal to 
- * i times Chews's vector-N function, and thus my 'C' matrix coefficient 
- * is equal to -i times Chew's 'C' matrix coefficient. (My convention agrees 
- * with Jackson's.)
+ * This calculation follows Wittmann, 'Spherical Wave Operators and the
+ * Translation Formulas,' IEEE Transactions on Antennas and Propagation *36* 1078
+ * (1988), with the distinction that my N function differs from Wittmann's by 
+ * a factor of I. In Wittmann's convention one has N = \curl M / k, whereas 
+ * in my convention one has N = \curl M / (-ik).
  *
- * homer reid               -- 4/2005 -- 4/2011
+ * homer reid               -- 4/2005 -- 8/2016
  */
 
 #include <stdio.h>
@@ -74,6 +69,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "libhrutil.h"
 #include "libhmat.h"
 #include "libSpherical.h"
 
@@ -112,17 +108,23 @@ double ThreeJSymbol(double L1, double L2, double L3,
 }   
 
 /***************************************************************/
-/* Compute the translation matrices that relate scalar and     */
-/* vector Helmholtz solutions about different origins, as      */
-/* described in detail above.                                  */
+/* Compute the translation matrices that express outgoing      */
+/* Helmholtz solutions emanating from a source point xSource   */
+/* as linear combinations of regular solutions in a spherical  */
+/* coordinate system centered at the origin xOrigin            */
+/*                                                             */
+/* Scalar waves:                                               */
+/*  PsiOut_a(xDest-XSource)                                    */
+/*   = \sum A_{ab}(XSource) PsiReg_b(xDest)                    */
+/*                                                             */
 /*                                                             */
 /* inputs:                                                     */
 /*                                                             */
-/*  Xij = difference vector                                    */ 
+/*  Xij = difference vector xSource - xOrigin                  */ 
 /*                                                             */
 /*    k     = wavenumber that enters into exponent e^{ikr}     */ 
 /*                                                             */
-/*     lMax = maximum l-value of translation matrix entry      */
+/*  LMax    = maximum \Ell-value of translation matrix entry   */
 /*            computed                                         */
 /*                                                             */
 /* Outputs:                                                    */
@@ -132,85 +134,89 @@ double ThreeJSymbol(double L1, double L2, double L3,
 /* Note: on entry, A, B, C must point to HMatrices that have   */
 /* been preallocated like this:                                */
 /*                                                             */
-/* int nAlpha=(lMax+1)*(lMax+1);                               */
+/* int NAlpha=(LMax+1)*(LMax+1);                               */
 /*                                                             */
-/* A=new HMatrix(nAlpha, nAlpha, LHM_COMPLEX);                 */
-/* B=new HMatrix(nAlpha, nAlpha, LHM_COMPLEX);                 */
-/* C=new HMatrix(nAlpha, nAlpha, LHM_COMPLEX);                 */
+/* A=new HMatrix(NAlpha, NAlpha, LHM_COMCLEX);                 */
+/* B=new HMatrix(NAlpha, NAlpha, LHM_COMCLEX);                 */
+/* C=new HMatrix(NAlpha, NAlpha, LHM_COMCLEX);                 */
 /***************************************************************/
-void GetTranslationMatrices(double Xij[3], cdouble k,
-                            int lMax, HMatrix *A, HMatrix *B, HMatrix *C)
+void GetTranslationMatrices(double Xij[3], cdouble k, int LMax,
+                            HMatrix *A, HMatrix *B, HMatrix *C)
 {
-  int l, m, Alpha;
-  int lP, mP, AlphaP;
-  int lPP, mPP, AlphaPP;
-  double r, Theta, Phi, Sign;
-  cdouble ik, Factor, AA, BB, CC, F1, F2, F3;
+  A->Zero();
+  B->Zero();
+  C->Zero();
+  if ( abs(k)*VecNorm(Xij) < 1.0e-6 )
+   { for(int Alpha=0; Alpha<(LMax+1)*(LMax+1); Alpha++)
+      { A->SetEntry(Alpha,Alpha,1.0);
+        B->SetEntry(Alpha,Alpha,1.0);
+      };
+     return;
+   };
 
-  int lPPMax=2*lMax;
-  cdouble *R = new cdouble[lPPMax+2];
-  cdouble *Ylm = new cdouble[(lPPMax+1)*(lPPMax+1)];
+  cdouble ik = II*k;
+  int LCMax=2*LMax;
+  cdouble *R = new cdouble[LCMax+2];
+  cdouble *Ylm = new cdouble[(LCMax+1)*(LCMax+1)];
 
   /***************************************************************/
   /* get all spherical bessel functions and spherical harmonics **/
   /* that we will need for this computation                     **/
   /***************************************************************/
+  double r, Theta, Phi;
   CoordinateC2S(Xij, &r, &Theta, &Phi);
-  GetRadialFunctions(lPPMax, k, r, LS_OUTGOING, R, 0);
-  GetYlmArray(lPPMax, Theta, Phi, Ylm);
-
-  ik = II*k;
+  GetRadialFunctions(LCMax, k, r, LS_OUTGOING, R, 0);
+  GetYlmArray(LCMax, Theta, Phi, Ylm);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  A->Zero();
-  B->Zero();
-  C->Zero();
-  for(Alpha=l=0; l<=lMax; l++)
-   for(m=-l; m<=l; m++, Alpha++)
-    for(AlphaP=lP=0; lP<=lMax; lP++)
-     for(mP=-lP; mP<=lP; mP++, AlphaP++)
+  for(int Alpha=0, LA=0; LA<=LMax; LA++)
+   for(int MA=-LA; MA<=LA; MA++, Alpha++)
+    for(int Beta=0, LB=0; LB<=LMax; LB++)
+     for(int MB=-LB; MB<=LB; MB++, Beta++)
       { 
-        mPP=m-mP;
-        for(AA=BB=0.0, lPP=abs(l-lP); lPP<=l+lP; lPP++)
-         { AlphaPP=LM2ALPHA(lPP, mPP);
- 
-           cdouble IIPow = IIPOW(lP + lPP - l);
-
-           Factor= 4.0*M_PI*IIPow*M1POW(m)
-                   *sqrt((2*l+1)*(2*lP+1)*(2*lPP+1)/(4.0*M_PI))
-                   *ThreeJSymbol(l,lP,lPP,0,0,0)*ThreeJSymbol(l,lP,lPP,-m,mP,mPP)
-                   *R[lPP]*Ylm[AlphaPP];
+        int MC = MA-MB;
+        cdouble AA=0.0, BB=0.0;
+        for(int LC=abs(LA-LB); LC<=LA+LB; LC++)
+         { 
+           cdouble Factor= 4.0*M_PI*M1POW(MA)*IIPOW(LA-LB+LC)
+                          *sqrt((2*LA+1)*(2*LB+1)*(2*LC+1)/(4.0*M_PI))
+                          *ThreeJSymbol(LA,LB,LC,0,0,0)
+                          *ThreeJSymbol(LA,LB,LC,-MA,MB,MC)
+                          *R[LC]*Ylm[LM2ALPHA(LC,MC)];
            AA+=Factor;
-           if (l>0 && lP>0)
-            BB += (double)((l+1) + lP*(lP+1) - lPP*(lPP+1)) * Factor;
+           if (LA>0 && LB>0)
+            BB += (double)( LA*(LA+1.0) + LB*(LB+1.0) - LC*(LC+1.0)) * Factor;
          };
-        A->SetEntry(Alpha,AlphaP,AA);
-        if (lP>0) B->SetEntry(Alpha,AlphaP,BB/(2.0*lP*(lP+1)));
+        A->SetEntry(Alpha,Beta,AA);
+        if (LB>0)
+         B->SetEntry(Alpha,Beta,BB/(2.0*sqrt(LA*(LA+1.0)*LB*(LB+1.0))));
       };
 
   /***************************************************************/
-  /* compute the C matrix using the A matrix *********************/
+  /* compute the C matrix using the A matrix                     */
+  /* Note: My N function = i*Wittman's N function.               */
+  /* Thus, my C coefficient = ittman's N function.               */
   /***************************************************************/
-  cdouble krC = k*r*cos(Theta); // in Chew these have a prefactor of II 
-  cdouble krS = k*r*sin(Theta); // (not here bc different convention)
-  cdouble epiP  = exp(+II*Phi); 
-  cdouble emiP  = exp(-II*Phi);
-  for(Alpha=l=1; l<=lMax; l++)
-   for(m=-l; m<=l; m++, Alpha++)
-    for(AlphaP=lP=1; lP<=lMax; lP++)
-     for(mP=-lP; mP<=lP; mP++, AlphaP++)
+  for(int Alpha=1, LA=1; LA<=LMax; LA++)
+   for(int MA=-LA; MA<=LA; MA++, Alpha++)
+    for(int Beta=1, LB=1; LB<=LMax; LB++)
+     for(int MB=-LB; MB<=LB; MB++, Beta++)
       { 
-        cdouble CC = krC*(2.0*mP)*A->GetEntry(Alpha,AlphaP);
+        cdouble CC = Xij[2]*MA*A->GetEntry(Alpha,Beta);
 
-        if (mP<lP) 
-         CC+= krS*epiP*sqrt((lP-mP)*(lP+mP+1) )*A->GetEntry(Alpha, LM2ALPHA(lP,mP+1));
+        if (MA<LA) 
+         CC += 0.5*(Xij[0] - II*Xij[1])
+                  *sqrt((LA-MA)*(LA+MA+1.0))
+                  *A->GetEntry(LM2ALPHA(LA,MA+1), Beta);
 
-        if (mP>(-lP)) 
-         CC+= krS*emiP*sqrt((lP+mP)*(lP-mP+1) )*A->GetEntry(Alpha, LM2ALPHA(lP,mP-1));
+        if (MA>(-LA)) 
+         CC += 0.5*(Xij[0] + II*Xij[1])
+                  *sqrt((LA+MA)*(LA-MA+1.0))
+                  *A->GetEntry(LM2ALPHA(LA,MA-1), Beta);
 
-        C->SetEntry(Alpha, AlphaP, CC / ((double)(2*lP*(lP+1))));
+        C->SetEntry(Alpha, Beta, -k*CC / sqrt( LA*(LA+1.0)*LB*(LB+1.0) ) );
       };
 
   delete[] R;

@@ -1,4 +1,4 @@
-<h1>Capacitance of parallel-plate and two-sphere capacitors</h1>
+# Capacitance of parallel-plate and two-sphere capacitors
 
 In this example, we exploit [[scuff-em]]'s
 [electrostatics module][scuff-static]

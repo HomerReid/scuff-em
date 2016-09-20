@@ -259,7 +259,8 @@ typedef struct OptStruct
 
 void AppendOSUsageMessage(const char *Message);
 void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...);
-void ProcessOptions(int argc, char *argv[], OptStruct *OSArray);
+void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
+                    bool AbortOnUnknown=true, bool ZeroArgs=false);
 void ProcessOptions(const char *ArgString, OptStruct *OSArray);
 
 #endif

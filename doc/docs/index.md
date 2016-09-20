@@ -85,9 +85,10 @@
 
 ## Developer reference
 
-* [Implementation][Implementation] - how [[scuff-em]] works
-* [DataStructures][DataStructures] - data structures and methods inside the [[scuff-em]] core library
-* [Documentation][Documentation]   - about the [[scuff-em]] documentation
+* [Implementation][Implementation]        - how [[scuff-em]] works
+* [DataStructures][DataStructures]        - data structures and methods inside the [[scuff-em]] core library
+* [Documentation][Documentation]          - about the [[scuff-em]] documentation
+* [Singular integrals][SingularIntegrals] - [[scuff-em]]'s code for computing singular triangle-product integrals
 
 ## FAQ
 
@@ -119,5 +120,6 @@
 [Implementation]:     forDevelopers/Implementation.md
 [DataStructures]:     forDevelopers/DataStructures.md
 [Documentation]:      forDevelopers/Documentation.md
+[SingularIntegrals]:  forDevelopers/SingularIntegrals.md
 [GitHub]:             https://github.com/HomerReid/scuff-em/
 [FAQ]:                reference/FAQ.md

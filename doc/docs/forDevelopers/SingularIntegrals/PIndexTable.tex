@@ -1,0 +1,47 @@
+$$\renewcommand{\arraystretch}{2.0}$$
+\begin{array}{|c|c|}\hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{PIndex}       & P(\vb x, \vb x^\prime)  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\\\hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_UNITY}
+ & 
+1
+\\ \hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_RNORMAL}
+ &
+\vbhat{n} \cdot (\vb x - \vb x^\prime)
+\\ \hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_PMCHWG}
+ &
+ \left(\vb x - \vb Q) \cdot (\vb x-\vb Q^\prime)\right)
+\\ \hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_PMCHWC}
+ & 
+ \Big[   (\vb x-\vb x^\prime) \cdot (\vb Q \times \vb Q^\prime)
+       + (\vb x \times \vb x^\prime) \cdot (\vb Q - \vb Q^\prime)
+ \Big]
+\\ \hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_NMULLERG1} 
+ & 
+ \Big( \wt{\vb x}-\wt{\vb Q}\Big)\cdot\Big(\vb x^\prime - \vb Q^\prime\Big)
+\\ \hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_NMULLERG2}
+ & 
+ 2\Big(\wt{\vb x}-\wt{\vb Q}\Big)\cdot\Big(\vb x- \vb x^\prime\Big)
+\\ \hline
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{TD\_NMULLERC}
+ & 
+ \big(\wt{\vb x}-\wt{\vb Q}\big)\cdot
+ \Big[ \big(\vb x- \vb x^\prime\big) \times 
+       \big(\vb x^\prime - \vb Q^\prime\big)
+ \Big]
+\\ \hline
+\end{array}
