@@ -256,7 +256,7 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
      /*--------------------------------------------------------------*/
      if (strncmp(argv[narg],"--",2))
       { if (AbortOnUnknown) 
-         OSUsage(argv[0], OSArray,"unknown option %s",argv[1]);
+         OSUsage(argv[0], OSArray,"unknown option %s",argv[narg]);
         continue;
       };
 
@@ -276,7 +276,7 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
       OSUsage(argv[0], OSArray, ErrMsg);
 
      if (Status==0 && ZeroArgs==true)
-      for(int nt=0; nt<NumTokens; nt++)
+      for(int nt=0; nt<=NumTokens; nt++)
        argv[narg+nt]=0;
 
      narg+=NumTokens;
