@@ -41,7 +41,7 @@
 /***************************************************************/
 /* initialization of the static FreqUnit class variable ********/
 /***************************************************************/
-double MatProp::FreqUnit=1.0;
+double MatProp::FreqUnit=2.99792458e14; // c / (1 micron)
 
 /***************************************************************/
 /* MPDP is an internally maintained list of pointers to        */
