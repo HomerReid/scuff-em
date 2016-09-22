@@ -185,7 +185,9 @@ void DetectDuplicates(char *FileName, double *V, int Length)
 /***************************************************************/
 int main(int argc, char *argv[])
 { 
+#ifndef __APPLE__
   feenableexcept(FE_INVALID | FE_OVERFLOW);
+#endif
 
   /***************************************************************/
   /* process command-line arguments ******************************/

@@ -23,6 +23,8 @@
  * 
  * homer reid    -- 4/2015
  */
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -31,9 +33,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef HAVE_CXX11
+#include <unordered_map>
+#elif defined(HAVE_TR1)
 #include <tr1/unordered_map>
+#endif
+#ifdef USE_PTHREAD
 #include <pthread.h> // needed for rwlock
+#endif
+#ifdef USE_OPENMP
 #include <omp.h> // needed for rwlock
+#endif
 
 #include <libhrutil.h>
 #include "libscuff.h"
@@ -103,10 +113,17 @@ typedef struct
 
  } KeyCmp;
 
+#ifdef HAVE_CXX11
+typedef std::unordered_map< KeyStruct,
+                            DataStruct,
+                            KeyHash,
+                            KeyCmp> KDMap;
+#elif defined(HAVE_TR1)
 typedef std::tr1::unordered_map< KeyStruct,
                                  DataStruct,
                                  KeyHash,
                                  KeyCmp> KDMap;
+#endif
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
