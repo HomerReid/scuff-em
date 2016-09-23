@@ -199,7 +199,6 @@ int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators)
   // included above.
   #define strtok_r(s,d,p) strtok_r_PublicDomain(s,d,p)
 #endif
-
 // (cram all extra tokens into the last token)
   for(NumTokens=0; NumTokens<MaxTokens-1; NumTokens++)
    { Token=strtok_r(NumTokens==0 ? s : 0, Separators, &saveptr);

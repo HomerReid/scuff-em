@@ -33,7 +33,11 @@
 #include <libMatProp.h>
 #include <libMDInterp.h>
 #include <libhrutil.h>
+#if HAVE_CXX11
+#include <unordered_map>
+#elif HAVE_TR1
 #include <tr1/unordered_map>
+#endif
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -85,7 +89,11 @@ typedef struct StaticSSIDataRecord
 /*- for efficient retrieval.                                   */
 /***************************************************************/
 //typedef google::dense_hash_map <unsigned long, StaticSSIDataRecord*> StaticSSIDataMap;
+#if HAVE_CXX11
+typedef std::unordered_map <unsigned long, StaticSSIDataRecord*> StaticSSIDataMap;
+#elif HAVE_TR1
 typedef std::tr1::unordered_map <unsigned long, StaticSSIDataRecord*> StaticSSIDataMap;
+#endif
 typedef struct StaticSSIDataTable
  { 
     StaticSSIDataMap *Map;
