@@ -508,7 +508,7 @@ void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
      HMatrix *PhiE;
      if (PhiExt)
       ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
-     if ( ConstFieldDirection!=1 )
+     if ( ConstFieldDirection!=-1 )
       PhiE = SSS->GetFields(PhiEConstant, &ConstFieldDirection, Sigma, X, 0);
      else
       PhiE = SSS->GetFields(0, 0, Sigma, X, 0);

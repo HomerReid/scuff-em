@@ -102,6 +102,7 @@
 * [Computation of Green's Functions and LDOS in <span class="SC">scuff-em</span>](tex/scuff-ldos.pdf) - a technical memo describing the implementation of the [<span class="SC">scuff-ldos</span>](applications/scuff-ldos) code for computing dyadic Green's functions and local photonic densities of states
 * [Computation of reflection and transmission coefficients in <span class="SC">scuff-em</span>](tex/scuff-transmission.pdf) - a technical memo describing the implementation of the [<span class="SC">scuff-transmission</span>](applications/scuff-transmission) code for computing plane-wave transmission and reflection coefficients
 * [<span class=SC>scuff-static:</span> Pure electrostatics in <span class=SC>scuff-em</span>](tex/scuff-static.pdf) -- a technical memo describing the implementation of the [<span class=SC>scuff-static</span>](applications/scuff-static) code for electrostatics
+* [Electromagnetism in the vector-spherical-wave (VSW) basis](tex/scuffSpherical.pdf) -- a technical memo collecting results of various classical electromagnetism calculations in the vector-spherical-wave basis
 
 [scuffEMLogo]:        img/scuffEMLogo.png
 [GeneralReference]:   applications/GeneralReference.md
