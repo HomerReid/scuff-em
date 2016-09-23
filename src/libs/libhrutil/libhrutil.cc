@@ -1001,7 +1001,7 @@ void InstallHRSignalHandler()
   sigaction(SIGFPE,  &sa, 0);
   sigaction(SIGTRAP, &sa, 0);
   sigaction(SIGABRT, &sa, 0);
-  sigaction(SIGCHLD, &sa, 0);
+  //sigaction(SIGCHLD, &sa, 0);
 
   CodeMarker[0]=0;
 #endif

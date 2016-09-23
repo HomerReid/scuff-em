@@ -108,7 +108,6 @@ int main(int argc, char *argv[])
    { Log("Reading material definitions from geometry file %s.\n",G->GeoFileName);
      MatProp::SetFreqUnit(1.0);
    };
-   
 
   /***************************************************************/
   /* try to create a MatProp for the specified material          */
@@ -131,7 +130,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   cdouble Eps; 
   cdouble Mu;
-  double Omega, OmegaMult=pow(10.0, 1.0 / PTS_PER_DECADE);
+  double OmegaMult=pow(10.0, 1.0 / PTS_PER_DECADE);
   FILE *f=vfopen("%s.epsmu","w",MP->Name);
   if (!f) ErrExit("could not create file %s.epsmu",MP->Name);
   fprintf(f,"# scuff-plotEpsMu ran on %s (%s)\n",GetHostName(),GetTimeString());
@@ -143,9 +142,12 @@ int main(int argc, char *argv[])
   fprintf(f,"# 5 im Mu(omega)   \n");
   fprintf(f,"# 6 Eps (i*omega)  \n");
   fprintf(f,"# 7 Mu  (i*omega)  \n");
-  for(Omega=OmegaMin; Omega<=OmegaMax; Omega*=OmegaMult)
+  double FreqUnit = MatProp::FreqUnit;
+  OmegaMin /= FreqUnit;
+  OmegaMax /= FreqUnit;
+  for(double Omega=OmegaMin; Omega<=OmegaMax; Omega*=OmegaMult)
    { 
-      fprintf(f,"%e ",Omega);
+      fprintf(f,"%e ",Omega*FreqUnit);
 
       if (HaveRealFreqData)
        MP->GetEpsMu( cdouble(Omega,0.0), &Eps, &Mu);
