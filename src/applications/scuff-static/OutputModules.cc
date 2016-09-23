@@ -425,7 +425,7 @@ void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
      LineNum++;
 
      char *Tokens[3];
-     int NumTokens=Tokenize(Line, Tokens, 3," ");
+     int NumTokens=Tokenize(Line, Tokens, 3);
 
      if (NumTokens==0 || Tokens[0][0]=='#') 
       continue; // skip blank lines and comments

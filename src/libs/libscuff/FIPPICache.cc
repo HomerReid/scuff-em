@@ -22,6 +22,8 @@
  * 
  * homer reid    -- 11/2005 -- 1/2012
  */
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -30,7 +32,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef HAVE_CXX11
+#include <unordered_map>
+#elif defined(HAVE_TR1)
 #include <tr1/unordered_map>
+#endif
 
 #include <libhrutil.h>
 
@@ -90,10 +96,17 @@ typedef struct
 
  } KeyCmp;
 
+#ifdef HAVE_CXX11
+typedef std::unordered_map< KeyStruct,
+                            QIFIPPIData *,
+                            KeyHash,
+                            KeyCmp> KeyValueMap;
+#elif defined(HAVE_TR1)
 typedef std::tr1::unordered_map< KeyStruct,
                                  QIFIPPIData *, 
                                  KeyHash, 
                                  KeyCmp> KeyValueMap;
+#endif
 
 /*--------------------------------------------------------------*/
 /*- class constructor ------------------------------------------*/
@@ -417,4 +430,3 @@ void StoreCache(const char *FileName)
 
 
 } // namespace scuff
-
