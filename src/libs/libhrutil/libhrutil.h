@@ -158,6 +158,13 @@ cdouble *VecSub(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
 cdouble *VecAdd(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
 
 /***************************************************************/
+/* finite-difference derivatives *******************************/
+/***************************************************************/
+typedef void (*VVFunction) (void *UserData, double X[3], cdouble V[3]);
+cdouble GetDivCurl(VVFunction VVFun, void *UserData, int Order,
+                   double X[3], double Delta, cdouble CurlF[3]);
+
+/***************************************************************/
 /* single-precision comparisons of double-precision numbers    */
 /***************************************************************/
 bool EqualFloat(const double a, const double b);

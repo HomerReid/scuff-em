@@ -164,6 +164,58 @@ cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const double *v2, int N)
 }
 
 /***************************************************************/
+/* finite-difference derivatives of vector-valued functions    */
+/***************************************************************/
+cdouble GetDivCurl(VVFunction VVFun, void *UserData, int Order,
+                   double X[3], double Delta, cdouble CurlF[3])
+{
+  bool SecondOrder = (Order==2);
+
+  // dV[Mu][Nu] = d_\mu F_\nu
+  cdouble V0[3], dV[3][3];
+  
+  if (!SecondOrder)
+   VVFun(UserData, X, V0);
+
+  for(int Mu=0; Mu<3; Mu++)
+   { 
+     double XP[3];
+     XP[0]=X[0];
+     XP[1]=X[1];
+     XP[2]=X[2];
+
+     double DX = (X[Mu]==0.0) ? Delta : Delta*fabs(X[Mu]);
+
+     cdouble dVP[3];
+     XP[Mu] += DX;
+     VVFun(UserData, XP, dVP);
+
+     cdouble dVMBuffer[3], *dVM, Denom;
+     if (SecondOrder)
+      { XP[Mu] -= 2.0*DX;
+        VVFun(UserData, XP, dVMBuffer);
+        dVM=dVMBuffer;
+        Denom = 2.0*DX;
+      }
+     else
+      { dVM=V0;
+        Denom=1.0*DX;
+      };
+     
+     dV[Mu][0] = (dVP[0] - dVM[0]) / Denom;
+     dV[Mu][1] = (dVP[1] - dVM[1]) / Denom;
+     dV[Mu][2] = (dVP[2] - dVM[2]) / Denom;
+
+   };
+
+  CurlF[0] = dV[1][2] - dV[2][1];
+  CurlF[1] = dV[2][0] - dV[0][2];
+  CurlF[2] = dV[0][1] - dV[1][0];
+
+  return dV[0][0] + dV[1][1] + dV[2][2];
+}
+
+/***************************************************************/
 /* matrix arithmetic *******************************************/
 /***************************************************************/
 bool Matrix2x2_Inverse(double *a[2], double ainv[2][2])

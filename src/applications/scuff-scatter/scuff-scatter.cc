@@ -144,6 +144,7 @@ int main(int argc, char *argv[])
   char *TransFile=0;                 
 //
   char *EPFiles[MAXEPF];             int nEPFiles;
+  char *FileBase=0;
 //
   char *FVMeshes[MAXFVM];            int nFVMeshes;
 //
@@ -197,6 +198,7 @@ int main(int argc, char *argv[])
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformations"},
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EPFile output"},
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
 /**/
@@ -333,6 +335,7 @@ int main(int argc, char *argv[])
   SSD->IF             = 0;
   SSD->TransformLabel = 0;
   SSD->IFLabel        = 0;
+  SSD->FileBase       = FileBase;
 
   char GeoFileBase[MAXSTR];
   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
@@ -519,7 +522,7 @@ int main(int argc, char *argv[])
         /***************************************************************/
         for(int nIF=0; nIF<IFList->NumIFs; nIF++)
          { 
-           IncField *IF = SSD->IF = IFList->IFs[nIF];
+           IF = SSD->IF = IFList->IFs[nIF];
            SSD->IFLabel = IFFile ? IFList->Labels[nIF] : 0;
            if (SSD->IFLabel)
             Log("  Processing incident field %s...",SSD->IFLabel);

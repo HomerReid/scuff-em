@@ -46,6 +46,7 @@ typedef struct SSData
    double *kBloch;
    IncField *IF;
    char *TransformLabel, *IFLabel;
+   char *FileBase;
  } SSData;
  
 

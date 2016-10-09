@@ -149,10 +149,11 @@ I also define the shorthand symbols
 %====================================================================%
 $$ \RBar_\ell(kr)
    \equiv 
-   \frac{1}{kr}\left|R_\ell(x) + \frac{d}{dx}R_\ell(x)\right|_{x=kr}
+   \frac{1}{kr}R_\ell(kr) + R^\prime_\ell(kr)
    \qquad
-   \RSlash_\ell(kr) = -\frac{\sqrt{l(l+1)}}{kr} R_\ell(kr).
+   \RSlash_\ell(kr) = -\frac{\sqrt{l(l+1)}}{kr} R_\ell(kr)
 $$
+where $R^\prime_\ell = \frac{d}{dz}R_\ell.$
 %====================================================================%
 
 \paragraph{Vector spherical wave functions}
@@ -531,6 +532,7 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Spherical-wave expansion of incident fields}
+\label{IncidentFieldSection}
 
 \subsection{Plane waves}
 \label{PlaneWaveSection}
@@ -1236,6 +1238,261 @@ the $\mb T$-matrix would not be diagonal and the double sums
 would become triple sums, but such a representation might
 nonetheless be useful in some cases.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{VSWVIE: Volume-integral-equation approach to scattering with vector spherical waves as volume-current basis functions}
+
+\subsection{Review of the standard VIE formalism}
+
+Consider a material body with
+spatially-varying relative permittivity tensor $\vbEps(\vb x)$
+illuminated by incident radiation with
+electric field $\vb E\sups{inc}(\vb x)$
+at frequency $\omega=kc$ in vacuum.
+In the usual volume-integral-equation formulation of the
+scattering problem, the scattered field $\vb E\sups{scat}(\vb x)$
+is understood to arise from an induced volume current
+distribution $\vb J(\vb x)$, which is itself proportional
+to the local total (incident+scattered) field at each 
+point:
+%====================================================================%
+$$
+ \vb E\sups{scat} = ikZ_0 \mb G_0 \star \vb J,
+ \qquad
+ \vb J=-\frac{ik}{Z_0}(\vbEps-\vb 1)
+         \Big(\vb E\sups{inc} + \vb E\sups{scat}\Big)
+$$
+Combining these yields
+%====================================================================%
+\numeq{VIE0}
+{\Big[ \vb 1 + \mb V \mb G\Big]
+\vb J(\vb x) =-\frac{i}{kZ_0}\mb V\vb E\sups{inc}
+}
+%====================================================================%
+where $\mb V\equiv -k^2 \Big(\vbEps-\vb 1\Big)$ is the
+``potential.''
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Vector spherical waves as volume-current basis functions}
+
+For a compact material body confined within a sphere of radius $R$,
+I use the regular vector spherical waves to define an orthonormal 
+basis of volume-current basis functions:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{mbBDef}
+{
+ \mb B_{P\ell m}(\vb x) =
+ \begin{dcases}
+   0, \qquad &|\vb x| > R 
+   \\
+  \frac{1}{\sqrt{S_{M\ell}(R)}} \vb M_{\ell m}\sups{reg}(\vb x),
+       \qquad &|\vb x|\le R, P=M \\
+  \frac{1}{\sqrt{S_{N\ell}(R)}} \vb N_{\ell m}\sups{reg}(\vb x),
+       \qquad &|\vb x|\le R, P=N \\
+ \end{dcases}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ S_{M\ell}(R) 
+&\equiv \int_0^R \Big |\vb M\sups{reg}_{\ell m}(\vb x)\Big |^2 \, d\vb x
+= \int_0^R\, dr \, r^2 \, \int_0^R \, dr^\prime \, r^{\prime 2}
+   \Big[ j_\ell(kr) j_\ell(kr^\prime) \Big]
+\\
+ S_{N\ell}(R) 
+&\equiv \int_0^R \Big |\vb N\sups{reg}_{\ell m}(\vb x)\Big |^2 \, d\vb x
+= \int_0^R\, dr \, r^2 \, \int_0^R \, dr^\prime \, r^{\prime 2}
+   \Big[  \overline{j}_\ell(kr) \overline{j}_\ell(kr^\prime) 
+         +\jslash_\ell(kr) \jslash_\ell(kr^\prime) \Big].
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I use these basis functions to expand currents and fields in 
+(\ref{VIE0}):
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{JEVSWExpansion}
+{ \vb J(\vb x) = \sum j_\alpha \mb B_\alpha, \qquad
+   \vb E\sups{inc}(\vb x) = \sum e_\alpha \mb B_\alpha.
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Note that the $e_\alpha$ coefficients have dimensions of
+[electric field strength/length$^{3/2}$]; they are the $P,Q$
+coefficients in (\ref{SourcesOutsideSection}) or Section
+\ref{IncidentFieldSection} divided by
+factors of $\sqrt{S_\alpha}.$
+
+The normalization factors in the $\ell=1$ sector are $(a=kR)$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*} 
+ S_{M1}
+&=R^3\left[\frac{a\sin(2a) + 2[\cos(2a) - 1 + a^2]}{4a^4}\right]
+\\
+&=R^3\left[\frac{a^2}{45} - \frac{a^4}{315} + O(a^6)\cdots\right]
+\\
+ S_{N1}
+&=R^3\left[\frac{a(4-a^2)\sin(2a) +
+           2[a^4 - a^2 - 1 - (a^2-1)\cos(2a)]}{4a^6}\right]
+\\
+&=R^3\left[\frac{2}{9} -\frac{2a^2}{45} + \frac{a^4}{225} + O(a^6)\right]
+\end{align*} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Solution of VIE equation in VSW basis}
+
+Inserting (\ref{JEVSWExpansion}) into (\ref{VIE0}) yields
+a relation between the vectors of volume-current expansion
+coefficients and incident-field expansion coefficients:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{VSWVIE}
+{
+\vb j = -\frac{i}{kZ_0} \Big[ 1 + \vb V \vb G\Big]^{-1} \vb V \vb e
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the elements of the $\vb V, \vb G$ matrices are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ V_{\alpha\beta} = 
+   -k^2 \int_0^R \mb B_\alpha^*(\vb x)
+   \Big[\vbEps(\vb x) - 1 \Big]\mb B_\beta(\vb x)\,d\vb x,
+   \qquad
+   G_{\alpha\beta} = 
+   \int_0^R \, \int_0^R \, \mb B_\alpha^*(\vb x)
+   \mb G(\vb x, \vb x^\prime)\mb B_\beta(\vb x^\prime)\,d\vb x\,d\vb x^\prime.
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The convenient thing about the VSW basis is that the $\vb G$ matrix
+is diagonal (and $m$-independent) in this basis, with elements that
+may be computed in closed form:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ G_{P\ell m; P^\prime \ell^\prime m^\prime}
+ &=\delta_{PP^\prime}
+   \delta_{\ell \ell^\prime}
+   \delta_{mm^\prime}
+   \left[ -\frac{1}{3k^2} + i\mc G_{P\ell} \right]
+\\
+\mc G_{P\ell}
+&= \frac{2k}{\mc S_{P\ell}(R)}
+     \int_0^R \mc S_{P\ell}(r) \mc R_{P\ell}(r) \, r^2 \, dr
+\\
+&=\begin{dcases}
+   \frac{2k}{\mc S_{M\ell}(R)}
+     \int_0^R r^2 \Big[ j_\ell(kr)^2\Big]  \, dr,
+   \qquad &P=M 
+\\
+   \frac{2k}{\mc S_{N\ell}(R)}
+     \int_0^R r^2 \Big[ \overline{j}_\ell(kr)^2 + \jslash_\ell(kr)^2
+                  \Big]  \, dr,
+   \qquad &P=N.
+   \end{dcases}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In the $\ell=1$ sector one finds
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ k^2 G_{M1m,M1m}
+&=-\frac{1}{3}
+  +\frac{i}{4a}\Big[-2 + 2\cos(2a) + 2a^2 + a\sin(2a)\Big]
+\\[3pt]
+%--------------------------------------------------------------------%
+&=-\frac{1}{3}
+  + \frac{i}{45}a^5
+  - \frac{i}{315}a^7 + O\big( a^9 \big)
+\\[6pt]
+%--------------------------------------------------------------------%
+ k^2 G_{N1m,N1m}
+&=-\frac{1}{3}
+  +\frac{i}{4a^3}
+   \Big[   2 \big(a^4-a^2-1\big) 
+          -a \big(a^2-4\big) \sin (2 a)
+          -2 \big(a^2-1\big) \cos (2 a)
+   \Big]
+\\[3pt]
+%--------------------------------------------------------------------%
+&=-\frac{1}{3} + \frac{2i}{9}a^3 - \frac{2i}{45}a^5 + O(a^7) \cdots  
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{An explicit example}
+
+Consider a homogeneous dielectric sphere irradiated by an incident
+field consisting of a single regular spherical wave, i.e. exactly
+one the $\{P,Q\}$ coefficients is nonzero in
+(\ref{EHIncOutsideExpansion}).
+
+\subsubsection*{Mode-matching solution}
+
+From the discussion of Section \ref{SourcesOutsideSection}
+with $P_\alpha=1$, the total fields in the two regions are
+%====================================================================%
+$$
+ \vb E\sups{tot}
+ =
+\begin{dcases}
+  A_\alpha M_\alpha\sups{reg}(nk_0; \vb r), \qquad &|\vb r|<R\\
+  M_\alpha\sups{reg}(k_0; \vb r)
+    + C_\alpha M_\alpha\sups{out}(k_0; \vb r), \qquad &|\vb r|>R
+\end{dcases}
+$$
+%====================================================================%
+
+\subsubsection*{VSWVIE solution}
+
+Now I solve the same problem using the VSWVIE formalism of equation
+(\ref{VSWVIE}). The RHS vector $\vb e_\alpha$ in (\ref{VSWVIE})
+contains a single nonzero entry: 
+%====================================================================%
+$$ e_\alpha=\sqrt{S_{\alpha}} $$
+%====================================================================%
+For a homogeneous sphere, the $\vb V$ matrix is
+proportional to the identity matrix,
+$\vb V=-k^2\left(\epsilon-1\right)\vb 1$,
+and since $\vb G$ is also always diagonal in the VSW basis
+it follows that the entirety of equation (\ref{VSWVIE}) is
+diagonal, so we have only a single nonzero volume-current coefficient,
+%====================================================================%
+$$ j_\alpha =
+    \frac{ik}{Z_0}\frac{(\epsilon-1)\sqrt{S_\alpha}}
+                       {1-k^2(\epsilon-1)G_{\alpha\alpha}}
+$$
+%====================================================================%
+The scattered field is
+%====================================================================%
+\begin{align*}
+ \vb E\sups{scat} 
+    &= i k Z_0 \mb G \star \vb J 
+\\
+    &= i k Z_0 j_\alpha \mb G \star \mb B_\alpha
+\\
+    &= 
+ -\left[\frac{k^2 (\epsilon-1)}{1-k^2(\epsilon-1)G_{\alpha\alpha}}\right]
+  \bigg[  C_\alpha\sups{reg} \vb M\sups{reg}(k_0; \vb r)
+          +D_\alpha\sups{out} \vb M\sups{out}(k_0; \vb r)
+  \bigg]
+\\
+C_\alpha &= 
+  \begin{dcases}
+   -\frac{1}{3k^2}
+   + ik \int_r^R R\sups{out}_\alpha(kr^\prime) R\sups{reg}(kr^\prime) 
+                    r^{\prime 2}\,dr^\prime 
+   , \qquad &r<R
+   \\
+   0, \qquad &r>R
+  \end{dcases}
+\\
+D_\alpha &= 
+  ik\int_0^{\text{min}(r,R)}
+    \Big[ R\sups{reg}_\alpha(kr^\prime) \Big]^2 r^{\prime 2}\,dr^\prime
+\end{align*}
+%====================================================================%
+
+ 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
