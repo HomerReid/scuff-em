@@ -32,8 +32,8 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteFilePreamble(char *FileName, int FileType, int LDim,  
-                       bool TwoPointDGF)
+void WriteFilePreamble(char *FileName, int FileType, int LDim,
+                       bool HaveGTCList, bool TwoPointDGF)
 {
   FILE *f=fopen(FileName,"a");
 
@@ -55,10 +55,11 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim,
   fprintf(f,"# %i %i : real(Omega) imag(Omega)\n",nc,nc+1);
   nc+=2;
 
+  if (HaveGTCList) 
+   fprintf(f,"# %i: transform label ",nc++);
+
   if (FileType==FILETYPE_BYK && LDim==1)
-   { fprintf(f,"# %i: kx\n",nc);
-     nc+=1;
-   }
+   fprintf(f,"# %i: kx\n",nc++);
   else if (FileType==FILETYPE_BYK && LDim==2)
    { fprintf(f,"# %i,%i: kx ky\n",nc,nc+1);
      nc+=2;
@@ -91,7 +92,8 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
+SLDData *CreateSLDData(char *GeoFile, char *TransFile,
+                       char **EPFiles, int nEPFiles)
 {
   SetDefaultCD2SFormat("%.8e %.8e");
 
@@ -109,11 +111,48 @@ SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
   Data->M = G->AllocateBEMMatrix();
 
   /***************************************************************/
+  /* read in geometrical transformation file if any **************/
+  /***************************************************************/
+  Data->GTCList=0;
+  Data->NumTransforms = 1;
+  if (TransFile)
+   { Data->GTCList=ReadTransFile(TransFile, &(Data->NumTransforms));
+     char *ErrMsg=G->CheckGTCList(Data->GTCList, Data->NumTransforms);
+     if (ErrMsg)
+      ErrExit("file %s: %s",TransFile,ErrMsg);
+   };
+  bool HaveGTCList = (Data->GTCList!=0);
+
+  Data->TBlocks=Data->UBlocks=0;
+  if (HaveGTCList)
+   { int NS=G->NumSurfaces;
+     int NADB = NS*(NS-1)/2; // number of above-diagonal blocks
+     HMatrix **TBlocks = Data->TBlocks = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+     HMatrix **UBlocks = Data->UBlocks = (HMatrix **)mallocEC(NADB*sizeof(HMatrix *));
+     for(int ns=0, nb=0; ns<NS; ns++)
+      { 
+        int nsMate = G->Mate[ns];
+        if ( nsMate!=-1 )
+         TBlocks[ns] = TBlocks[nsMate];
+        else
+         { int NBF=G->Surfaces[ns]->NumBFs;
+           TBlocks[ns] = new HMatrix(NBF, NBF, Data->M->RealComplex);
+         };
+
+        for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+         { int NBF=G->Surfaces[ns]->NumBFs;
+           int NBFp=G->Surfaces[nsp]->NumBFs;
+           UBlocks[nb] = new HMatrix(NBF, NBFp, Data->M->RealComplex);
+         };
+      };
+   };
+
+  /***************************************************************/
   /* read in lists of evaluation points **************************/
   /***************************************************************/
-  HMatrix **XMatrices=0, **GMatrices=0;
+  HMatrix **XMatrices=0;
   char **EPFileBases=0;
-  int NumXGMatrices=0, TotalEvalPoints=0;
+  int NumXMatrices=0, TotalEvalPoints=0;
   for(int n=0; n<nEPFiles; n++)
    { 
      HMatrix *XMatrix = new HMatrix(EPFiles[n]);
@@ -123,30 +162,40 @@ SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
       };
      int NX = XMatrix->NR;
 
-     XMatrices = (HMatrix **)reallocEC(XMatrices, (NumXGMatrices+1)*sizeof(HMatrix *));
-     GMatrices = (HMatrix **)reallocEC(GMatrices, (NumXGMatrices+1)*sizeof(HMatrix *));
-     EPFileBases = (char **)reallocEC(EPFileBases, (NumXGMatrices+1)*sizeof(char *));
+     XMatrices = (HMatrix **)reallocEC(XMatrices, (NumXMatrices+1)*sizeof(HMatrix *));
+     EPFileBases = (char **)reallocEC(EPFileBases, (NumXMatrices+1)*sizeof(char *));
 
-     XMatrices[NumXGMatrices]   = XMatrix;
-     GMatrices[NumXGMatrices]   = new HMatrix(NX, 18, LHM_COMPLEX);
-     EPFileBases[NumXGMatrices] = strdup(GetFileBase(EPFiles[n]));
+     XMatrices[NumXMatrices]   = XMatrix;
+     EPFileBases[NumXMatrices] = strdup(GetFileBase(EPFiles[n]));
    
-     NumXGMatrices++;
+     NumXMatrices++;
      TotalEvalPoints+=NX;
      
      Log("Read %i evaluation points from file %s.",NX,EPFiles[n]);
    };
-  Log("%i total evaluation points from %i files.",TotalEvalPoints,NumXGMatrices);
+  Log("%i total evaluation points from %i files.",TotalEvalPoints,NumXMatrices);
   Data->XMatrices       = XMatrices;
-  Data->GMatrices       = GMatrices;
   Data->EPFileBases     = EPFileBases;
-  Data->NumXGMatrices   = NumXGMatrices;
+  Data->NumXMatrices    = NumXMatrices;
   Data->TotalEvalPoints = TotalEvalPoints;
 
-  Data->WrotePreamble[0] = (bool *)mallocEC(NumXGMatrices*sizeof(bool));
-  Data->WrotePreamble[1] = (bool *)mallocEC(NumXGMatrices*sizeof(bool));
-  for(int nm=0; nm<NumXGMatrices; nm++)
+  Data->WrotePreamble[0] = (bool *)mallocEC(NumXMatrices*sizeof(bool));
+  Data->WrotePreamble[1] = (bool *)mallocEC(NumXMatrices*sizeof(bool));
+  for(int nm=0; nm<NumXMatrices; nm++)
    Data->WrotePreamble[0][nm]=Data->WrotePreamble[1][nm]=false;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NumTransforms = Data->NumTransforms;
+  int NumGMatrices = NumXMatrices * NumTransforms;
+  HMatrix **GMatrices = 
+   (HMatrix **)mallocEC(NumGMatrices*sizeof(HMatrix *));
+  for(int nt=0; nt<NumTransforms; nt++)
+   for(int nm=0; nm<NumXMatrices; nm++)
+    GMatrices[nt*NumXMatrices + nm]
+     = new HMatrix(XMatrices[nm]->NR, 18, LHM_COMPLEX);
+  Data->GMatrices = GMatrices;
 
   /***************************************************************/
   /* For PBC geometries we need to do some preliminary setup     */
@@ -161,7 +210,6 @@ SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        Data->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
    };
-
 
   /***************************************************************/
   /***************************************************************/

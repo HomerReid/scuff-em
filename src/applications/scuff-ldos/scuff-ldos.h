@@ -50,8 +50,13 @@ typedef struct SLDData
    HMatrix **XMatrices, **GMatrices;
    char **EPFileBases;
    bool *WrotePreamble[2];
-   int NumXGMatrices;
+   int NumXMatrices;
    int TotalEvalPoints;
+
+   // fields relevant for geometrical transformations
+   HMatrix **TBlocks, **UBlocks;
+   GTComplex **GTCList;
+   int NumTransforms;
 
    // fields relevant for periodic geometries
    void **ABMBCache;
@@ -76,12 +81,14 @@ typedef struct SLDData
 /***************************************************************/
 
 // CreateLDOSData.cc
-void WriteFilePreamble(char *FileName, int FileType, int LDim, bool TwoPointDGF);
-SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles);
+void WriteFilePreamble(char *FileName, int FileType, int LDim, 
+                       bool HaveGTCList, bool TwoPointDGF);
+SLDData *CreateSLDData(char *GeoFile, char *TransFile,
+                       char **EPFiles, int nEPFiles);
 
 // GetLDOS.cc
 void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
-               int FileType, int WhichMatrix, 
+               int FileType, int WhichTransform, int WhichMatrix,
                double *Result, double *Error);
 void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
                int FileType, double *Result, double *Error);

@@ -61,6 +61,8 @@ int main(int argc, char *argv[])
 /**/
   char *EPFiles[MAXEPFILES];   int nEPFiles=0;
 /**/
+  char *TransFile=0;
+/**/
   bool GroundPlane=false;
   char *HalfSpace=0;
   bool SkipBZIntegration=false;
@@ -82,6 +84,8 @@ int main(int argc, char *argv[])
      {"SkipBZIntegration", PA_BOOL,  1, 1, (void *)&SkipBZIntegration, 0,  "bypass BZ integration for analytical half-space/ground-plane calculation"},
 //
      {"EPFile",      PA_STRING,  1, MAXEPFILES, (void *)EPFiles, &nEPFiles,  "list of evaluation points"},
+//
+     {"TransFile",   PA_STRING,  1, 1, (void *)&TransFile,    0,  "list of geometrical transformations"},
 //
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
@@ -157,7 +161,8 @@ int main(int argc, char *argv[])
   /* create the SLDData structure that will be passed to all     */
   /* computational routines                                      */
   /***************************************************************/
-  SLDData *Data     = CreateSLDData(GeoFile, EPFiles, nEPFiles);
+  SLDData *Data     = CreateSLDData(GeoFile, TransFile, 
+                                    EPFiles, nEPFiles);
   Data->RelTol      = RelTol;
   Data->AbsTol      = AbsTol;
   Data->MaxEvals    = MaxEvals;
