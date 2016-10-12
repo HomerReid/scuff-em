@@ -850,22 +850,31 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                      Interior ? "Interior" : "Exterior", G->Surfaces[nsa]->Label, EMTPFTIMethod);
            fprintf(f,"# columns: \n");
            fprintf(f,"# 1 frequency \n");
-           fprintf(f,"# 2 destination surface label \n");
-           fprintf(f,"# 03-10 PAbs, PScat, Fxyz, Txyz (total)\n");
-           fprintf(f,"# 11-21 PAbs, PScat, Fxyz, T1xyz, T2xyz (extinction)\n");
-           int nc=22;
-           for(int nsb=0; nsb<NS; nsb++, nc+=NUMPFTT)
-            fprintf(f,"# %i-%i PAbs, PScat, Fxyz, Txyz (surface %s)\n",nc,nc+NUMPFTT-1,G->Surfaces[nsb]->Label);
+           fprintf(f,"# 2 source (0=total, -1=extinction, +n=object #n scattered)\n");
+           fprintf(f,"# 3,4      PAbs, PScat\n");
+           fprintf(f,"# 5,6,7    Fx, Fy, Fz\n");
+           fprintf(f,"# 8,9,10   Tx, Ty, Tz (term 1)\n");
+           fprintf(f,"# 11,12,13 Tx, Ty, Tz (term 2)\n");
          };
-        fprintf(f,"%e %s ",real(Omega),G->Surfaces[nsa]->Label);
+
+        fprintf(f,"%e 00 ",real(Omega));
         for(int nq=0; nq<NUMPFT; nq++)
-         fprintf(f,"%e ",PFTMatrix->GetEntryD(nsa,nq));
-        for(int nq=0; nq<NUMPFTT; nq++)
-         fprintf(f,"%e ",ExtinctionPFTT->GetEntryD(nsa,nq));
-        for(int nsb=0; nsb<NS; nsb++)
-         for(int nq=0; nq<NUMPFTT; nq++)
-          fprintf(f,"%e ",ScatteredPFTT[nsb]->GetEntryD(nsa,nq));
+         fprintf(f,"%+e ",PFTMatrix->GetEntryD(nsa,nq));
         fprintf(f,"\n");
+
+        if (IF)
+         { fprintf(f,"%e -1 ",real(Omega));
+           for(int nq=0; nq<NUMPFTT; nq++)
+            fprintf(f,"%+e ",ExtinctionPFTT->GetEntryD(nsa,nq));
+           fprintf(f,"\n");
+         };
+
+        for(int nsb=0; nsb<NS; nsb++)
+         { fprintf(f,"%e %02i ",real(Omega),nsb+1);
+            for(int nq=0; nq<NUMPFTT; nq++)
+             fprintf(f,"%+e ",ScatteredPFTT[nsb]->GetEntryD(nsa,nq));
+           fprintf(f,"\n");
+         };
         fclose(f);
       };
      WrotePreamble=true;
