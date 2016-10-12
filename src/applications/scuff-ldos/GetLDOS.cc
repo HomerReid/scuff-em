@@ -242,7 +242,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   for(int nt=0; nt<NumTransforms; nt++)
    for(int nm=0; nm<NumXMatrices; nm++)
     { 
-      HMatrix *XMatrix = Data->XMatrices[nt*NumXMatrices + nm];
+      HMatrix *XMatrix = Data->XMatrices[nm];
       HMatrix *GMatrix = Data->GMatrices[nt*NumXMatrices + nm];
       for(int nx=0; nx<XMatrix->NR; nx++)
        { cdouble GE[3][3], GM[3][3];
