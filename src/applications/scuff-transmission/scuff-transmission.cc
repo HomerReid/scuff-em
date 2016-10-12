@@ -93,6 +93,7 @@ void WriteFilePreamble(FILE *f)
   fprintf(f,"# 4:      downward flux / vacuum plane-wave flux (TE)\n");
   fprintf(f,"# 5:      upward   flux / vacuum plane-wave flux (TM)\n");
   fprintf(f,"# 6:      downward flux / vacuum plane-wave flux (TM)\n");
+  fprintf(f,"# \n");
   fprintf(f,"# 7,8:    mag, phase a_Upper(TE -> TE)\n");
   fprintf(f,"# 9,10:   mag, phase a_Upper(TM -> TM)\n");
   fprintf(f,"# 11,12:  mag, phase a_Lower(TE -> TE)\n");
@@ -101,7 +102,78 @@ void WriteFilePreamble(FILE *f)
   fprintf(f,"# 17,18   mag, phase a_Upper(TM -> TE)\n");
   fprintf(f,"# 19,20   mag, phase a_Lower(TE -> TM)\n");
   fprintf(f,"# 20,21   mag, phase a_Lower(TM -> TE)\n");
+  fprintf(f,"# \n");
+  fprintf(f,"# 22,23   mag, phase tTETE\n");
+  fprintf(f,"# 24,25   mag, phase tTETM\n");
+  fprintf(f,"# 26,27   mag, phase tTMTE\n");
+  fprintf(f,"# 28,29   mag, phase tTMTM\n");
+  fprintf(f,"# 30,31   mag, phase tTETE\n");
+  fprintf(f,"# 32,33   mag, phase tTETM\n");
+  fprintf(f,"# 34,35   mag, phase tTMTE\n");
+  fprintf(f,"# 36,37   mag, phase tTMTM\n");
   fflush(f);
+  fflush(f);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void UpdateStandardPWs(cdouble Omega, double Theta, bool FromAbove,
+                       MatProp *SourceMP, MatProp *DestMP,
+                       PlaneWave *IncidentPW[2],
+                       PlaneWave *ReflectedPW[2],
+                       PlaneWave *TransmittedPW[2])
+{
+  cdouble IndexRatio
+   = SourceMP->GetRefractiveIndex(Omega) / DestMP->GetRefractiveIndex(Omega);
+
+  double SinTheta  = sin(Theta);
+  double CosTheta  = cos(Theta);
+  double CosThetaT = real(sqrt(1.0 - IndexRatio*IndexRatio*SinTheta*SinTheta));
+
+  double nHat[3];
+  nHat[0] = SinTheta;
+  nHat[1] = 0.0;
+
+  cdouble E0TE[3]={0.0, 1.0, 0.0};
+  cdouble E0TM[3]={0.0, 0.0, 0.0};
+  E0TM[2] = SinTheta;
+
+  // incident
+  nHat[2] = (FromAbove ? -1.0 : 1.0) * CosTheta;
+  E0TM[0] = -nHat[2]; 
+
+  IncidentPW[POL_TE]->SetE0(E0TE);
+  IncidentPW[POL_TE]->SetnHat(nHat);
+  IncidentPW[POL_TE]->SetFrequency(Omega);
+
+  IncidentPW[POL_TM]->SetE0(E0TM);
+  IncidentPW[POL_TM]->SetnHat(nHat);
+  IncidentPW[POL_TM]->SetFrequency(Omega);
+
+  // reflected
+  nHat[2] = (FromAbove ? +1.0 : -1.0) * CosTheta;
+  E0TM[0] = -nHat[2];
+
+  ReflectedPW[POL_TE]->SetE0(E0TE);
+  ReflectedPW[POL_TE]->SetnHat(nHat);
+  ReflectedPW[POL_TE]->SetFrequency(Omega);
+
+  ReflectedPW[POL_TM]->SetE0(E0TM);
+  ReflectedPW[POL_TM]->SetnHat(nHat);
+  ReflectedPW[POL_TM]->SetFrequency(Omega);
+
+  // transmitted
+  nHat[2] = (FromAbove ? -1.0 : 1.0) * CosThetaT;
+  E0TM[0] = -nHat[2];
+
+  TransmittedPW[POL_TE]->SetE0(E0TE);
+  TransmittedPW[POL_TE]->SetnHat(nHat);
+  TransmittedPW[POL_TE]->SetFrequency(Omega);
+
+  TransmittedPW[POL_TM]->SetE0(E0TM);
+  TransmittedPW[POL_TM]->SetnHat(nHat);
+  TransmittedPW[POL_TM]->SetFrequency(Omega);
 }
 
 /***************************************************************/
@@ -268,6 +340,15 @@ int main(int argc, char *argv[])
   HMatrix *M   = G->AllocateBEMMatrix();
   HVector *KN  = G->AllocateRHSVector();
 
+  PlaneWave *IncidentPW[2];
+  PlaneWave *ReflectedPW[2];
+  PlaneWave *TransmittedPW[2];
+  for(int np=0; np<NUMPOLS; np++)
+   { IncidentPW[np] = new PlaneWave(E0, nHat, G->RegionLabels[SourceRegionIndex]);
+     ReflectedPW[np] = new PlaneWave(E0, nHat, G->RegionLabels[SourceRegionIndex]);
+     TransmittedPW[np] = new PlaneWave(E0, nHat, G->RegionLabels[DestRegionIndex]);
+   };
+
   /*******************************************************************/
   /* set up output files *********************************************/
   /*******************************************************************/
@@ -277,11 +358,6 @@ int main(int argc, char *argv[])
   f=vfopen("%s.transmission","a",FileBase);
   if (!f) ErrExit("could not open file %s",f);
   WriteFilePreamble(f);
-
-  double RAbove[3]={0.0, 0.0, 0.0};
-  double RBelow[3]={0.0, 0.0, 0.0};
-  RAbove[2] = ZAbove;
-  RBelow[2] = ZBelow;
 
   /*******************************************************************/
   /* loop over frequencies and incident angles   *********************/
@@ -297,6 +373,9 @@ int main(int argc, char *argv[])
       double SinTheta=sin(Theta);
       double CosTheta=cos(Theta);
       Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
+
+      UpdateStandardPWs(Omega, Theta, FromAbove, SourceMP, DestMP,
+                        IncidentPW, ReflectedPW, TransmittedPW);
 
       /*--------------------------------------------------------------*/
       /* set bloch wavevector and assemble BEM matrix                 */
@@ -328,6 +407,8 @@ int main(int argc, char *argv[])
       /*--------------------------------------------------------------*/
       double UpperFluxRatio[NUMPOLS], LowerFluxRatio[NUMPOLS];
       cdouble UpperAmplitude[NUMPOLS][NUMPOLS], LowerAmplitude[NUMPOLS][NUMPOLS];
+      cdouble tIntegral[NUMPOLS][NUMPOLS], rIntegral[NUMPOLS][NUMPOLS];
+      
       for(int IncPol = POL_TE; IncPol<=POL_TM; IncPol++)
        { 
          E0[0]=EpsVectors[IncPol][0];
@@ -338,7 +419,10 @@ int main(int argc, char *argv[])
          M->LUSolve(KN);
 
          double Flux[NUMREGIONS];
-         GetFlux(G, &PW, KN, Omega, kBloch, NQPoints, ZAbove, ZBelow, Flux);
+         GetFlux(G, &PW, KN, Omega, kBloch, NQPoints, 
+                 ZAbove, ZBelow, FromAbove,
+                 ReflectedPW, TransmittedPW, 
+                 Flux, tIntegral[IncPol], rIntegral[IncPol]);
          UpperFluxRatio[IncPol] = Flux[REGION_UPPER];
          LowerFluxRatio[IncPol] = Flux[REGION_LOWER];
 
@@ -354,8 +438,10 @@ int main(int argc, char *argv[])
 
       // write results to file
       fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
+
       fprintf(f,"%e %e ", UpperFluxRatio[POL_TE], LowerFluxRatio[POL_TE]);
       fprintf(f,"%e %e ", UpperFluxRatio[POL_TM], LowerFluxRatio[POL_TM]);
+
       fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TE][POL_TE]), arg(UpperAmplitude[POL_TE][POL_TE]));
       fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TM]), arg(UpperAmplitude[POL_TM][POL_TM]));
       fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TE]), arg(LowerAmplitude[POL_TE][POL_TE]));
@@ -364,6 +450,16 @@ int main(int argc, char *argv[])
       fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TE]), arg(UpperAmplitude[POL_TM][POL_TE]));
       fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TM]), arg(LowerAmplitude[POL_TE][POL_TM]));
       fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TM][POL_TE]), arg(LowerAmplitude[POL_TM][POL_TE]));
+
+      fprintf(f,"%e %e ", abs(tIntegral[POL_TE][POL_TE]), arg(tIntegral[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(tIntegral[POL_TM][POL_TM]), arg(tIntegral[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(rIntegral[POL_TE][POL_TE]), arg(rIntegral[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TM]), arg(rIntegral[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(tIntegral[POL_TE][POL_TM]), arg(tIntegral[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(tIntegral[POL_TM][POL_TE]), arg(tIntegral[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(rIntegral[POL_TE][POL_TM]), arg(rIntegral[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TE]), arg(rIntegral[POL_TM][POL_TE]));
+
       fprintf(f,"\n");
       fflush(f);
 

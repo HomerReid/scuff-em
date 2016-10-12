@@ -77,10 +77,17 @@ double SCR9[]={
 /*                                                                 */
 /* Return values: Flux[0] = upward-traveling flux at ZAbove        */
 /*                Flux[1] = downward-traveling flux at ZBelow      */
+/*                                                                 */
 /*******************************************************************/
 void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
              cdouble Omega, double *kBloch, int NQPoints,
-             double ZAbove, double ZBelow, double *Flux)
+             double ZAbove, double ZBelow, bool FromAbove,
+             PlaneWave *ReflectedPW[NUMPOLS], 
+             PlaneWave *TransmittedPW[2],
+             double *Flux,
+             cdouble tIntegral[NUMPOLS],
+             cdouble rIntegral[NUMPOLS])
+             
 {
   double *SCR=SCR9;
 
@@ -163,6 +170,9 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
   /*       which is what we want to do anyway.                   */
   /***************************************************************/
   double PAbove=0.0, PBelow=0.0;
+  cdouble rDenominator[2]={0.0, 0.0};
+  cdouble tDenominator[2]={0.0, 0.0};
+  tIntegral[0]=tIntegral[1]=rIntegral[0]=rIntegral[1]=0.0;
   for(int ncp=0; ncp<NCP; ncp++)
    {
      double w;
@@ -184,6 +194,37 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
      Hy=FMatrixBelow->GetEntry(ncp, 4);
      PBelow -= 0.5*w*real( Ex*conj(Hy) - Ey*conj(Hx) );
 
+     double XSource[3],  XDest[3];
+     cdouble EHSource[6], EHDest[6];
+     cdouble EHTE[6], EHTM[6];
+
+     if (FromAbove)
+      { XMatrixAbove->GetEntriesD(ncp,"0:2",XSource);
+        FMatrixAbove->GetEntries(ncp,"0:5",EHSource);
+        XMatrixBelow->GetEntriesD(ncp,"0:2",XDest);
+        FMatrixBelow->GetEntries(ncp,"0:5",EHDest);
+      }
+     else
+      { XMatrixBelow->GetEntriesD(ncp,"0:2",XSource);
+        FMatrixBelow->GetEntries(ncp,"0:5",EHSource);
+        XMatrixAbove->GetEntriesD(ncp,"0:2",XDest);
+        FMatrixAbove->GetEntries(ncp,"0:5",EHDest);
+      };
+      
+     ReflectedPW[POL_TE]->GetFields(XSource, EHTE);
+     ReflectedPW[POL_TM]->GetFields(XSource, EHTM);
+     rIntegral[POL_TE]    += w*VecHDot(EHSource,  EHTE, 3);
+     rIntegral[POL_TM]    += w*VecHDot(EHSource,  EHTM, 3);
+     rDenominator[POL_TE] += w*VecHDot(EHTE, EHTE, 3);
+     rDenominator[POL_TM] += w*VecHDot(EHTM, EHTM, 3);
+      
+     TransmittedPW[POL_TE]->GetFields(XDest, EHTE);
+     TransmittedPW[POL_TM]->GetFields(XDest, EHTM);
+     tIntegral[POL_TE]    += w*VecHDot(EHDest,  EHTE, 3);
+     tIntegral[POL_TM]    += w*VecHDot(EHDest,  EHTM, 3);
+     tDenominator[POL_TE] += w*VecHDot(EHTE, EHTE, 3);
+     tDenominator[POL_TM] += w*VecHDot(EHTM, EHTM, 3);
+
    };
 
   /***************************************************************/
@@ -191,5 +232,9 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
   /***************************************************************/
   Flux[0]=PAbove / PWFLUX;
   Flux[1]=PBelow / PWFLUX;
+  rIntegral[POL_TE] /= rDenominator[POL_TE];
+  rIntegral[POL_TM] /= rDenominator[POL_TM];
+  tIntegral[POL_TE] /= tDenominator[POL_TE];
+  tIntegral[POL_TM] /= tDenominator[POL_TM];
 
 }

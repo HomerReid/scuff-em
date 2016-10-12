@@ -156,6 +156,7 @@ cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const cdouble *v2, int N=3);
 cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const double *v2, int N=3);
 cdouble *VecSub(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
 cdouble *VecAdd(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
+cdouble VecHDot(const cdouble *v1, const cdouble *v2, int N=3);
 
 /***************************************************************/
 /* finite-difference derivatives *******************************/

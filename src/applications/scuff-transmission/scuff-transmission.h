@@ -45,13 +45,15 @@ using namespace scuff;
 // in GetFlux.cc
 void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
              cdouble Omega, double *kBloch, int NQPoints,
-             double ZAbove, double ZBelow, double *Flux);
+             double ZAbove, double ZBelow, bool FromAbove,
+             PlaneWave *ReflectedPW[2], PlaneWave *TransmittedPW[2],
+             double *Flux, cdouble tIntegral[2], cdouble rIntegral[2]);
+             
 
 // in GetAmplitudes.cc
 void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
                             cdouble Omega, double *kBloch,
                             int WhichRegion, bool IsUpper,
                             cdouble TETM[2], bool WriteByKNFile=false);
-
 
 #endif // SCUFFTRANSMISSION_H

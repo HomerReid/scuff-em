@@ -33,6 +33,7 @@
 * [LDOS and dyadic Green functions above an infinite aluminum half-space](examples/HalfSpaceLDOS/HalfSpaceLDOS.md)
 * [Electrostatic polarizability of platonic solids](examples/PlatonicSolids/PlatonicSolids.md)
 * [Capacitance of two-body capacitors](examples/TwoBodyCapacitors/TwoBodyCapacitors.md)
+* [Examples for BU Photonics Symposium, 10/25/2016](examples/BUSymposium/BUSymposium.md)
 
 # Command-line application reference
 

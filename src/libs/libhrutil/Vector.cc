@@ -163,6 +163,13 @@ cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const double *v2, int N)
   return v1;
 }
 
+cdouble VecHDot(const cdouble *v1, const cdouble *v2, int N)
+{ cdouble HDot=0.0;
+  for(int n=0; n<N; n++)
+   HDot+=conj(v1[n])*v2[n];
+  return HDot;
+}
+
 /***************************************************************/
 /* finite-difference derivatives of vector-valued functions    */
 /***************************************************************/
