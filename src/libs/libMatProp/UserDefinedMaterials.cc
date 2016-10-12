@@ -67,6 +67,17 @@ void MatProp::CreateUserDefinedMaterial(const char *MatPropFileName,
      status=ReadMaterialFromFile(FileName, MaterialName);
    };
   if (status==0)
+   { char *s=getenv("SCUFF_MATPROP_PATH");
+     if (s)
+      { char FullFileName[MAXSTR];
+        snprintf(FullFileName,MAXSTR,"%s/%s",s,FileName);
+        status=ReadMaterialFromFile(FullFileName, MaterialName);
+        if (status==1)
+         Log("Found material %s in file %s.",MaterialName,FullFileName);
+        return;
+      };
+   };
+  if (status==0)
    { snprintf(FileName,MAXSTR,"%s/.matprop.dat",getenv("HOME"));
      status=ReadMaterialFromFile(FileName, MaterialName);
    };

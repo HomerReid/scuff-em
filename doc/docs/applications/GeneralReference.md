@@ -363,12 +363,19 @@ Here are some environment-variable settings that
 affect the behavior of [[scuff-em]].
 
 ````bash
+% export SCUFF_GEO_PATH=/path/to/scuffgeo/files
 % export SCUFF_MESH_PATH=/path/to/msh/files
+% export SCUFF_MATPROP_PATH=/path/to/matprop/files
 ````
 
-> Specifies a directory in which to look for mesh files
-> (such as `.msh` files produced by [[gmsh]]) 
-> referred to by `.scuffgeo` files.
+> These environment variables may be used to specify
+> colon-separated lists of directories in which
+> <span class=SC>scuff-em</span> will look for
+> various types of input files:
+> [`.scuffgeo` geometry files][Geometries] (`SCUFF_GEO_PATH`),
+> `.msh` surface-mesh files (`SCUFF_MESH_PATH`),
+> and
+> [material-property files][Materials](`SCUFF_MATPROP_PATH`).
 
 ````bash
 % export SCUFF_LOGLEVEL="NONE"

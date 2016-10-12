@@ -82,10 +82,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   const char *Ext[2]={"scattered","total"};
   for(int ST=0; ST<2; ST++)
    { char OutFileName[MAXSTR];
-     if (FileBase)
-      snprintf(OutFileName,MAXSTR,"%s.%s.%s",FileBase,GetFileBase(EPFileName),Ext[ST]);
-     else
-      snprintf(OutFileName,MAXSTR,"%s.%s",GetFileBase(EPFileName),Ext[ST]);
+     snprintf(OutFileName,MAXSTR,"%s.%s.%s",FileBase,GetFileBase(EPFileName),Ext[ST]);
      FILE *f=fopen(OutFileName,"a");
      fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
      fprintf(f,"# columns: \n");
@@ -143,12 +140,14 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*- try to open output file ------------------------------------*/
   /*--------------------------------------------------------------*/
-  char GeoFileBase[100], PPFileName[100];
-  strncpy(GeoFileBase,GetFileBase(SSD->G->GeoFileName),100);
-  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,GetFileBase(MeshFileName));
+  char *FileBase=SSD->FileBase; 
+  char PPFileName[100];
+  snprintf(PPFileName,100,"%s.%s.pp",FileBase,GetFileBase(MeshFileName));
   FILE *f=fopen(PPFileName,"a");
   if (!f) 
-   ErrExit("could not open field visualization file %s",PPFileName);
+   { Warn("could not open field visualization file %s",PPFileName);
+     return;
+   };
   
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/

@@ -366,9 +366,12 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   if (ProcessSpecialSCUFFGeoFileName(GeoFileName))
    GeoFileName=vstrappend(GeoFileName,".scuffgeo");
-  FILE *f=fopen(GeoFileName,"r");
+  char *Dir; 
+  FILE *f=fopenPath(getenv("SCUFF_GEO_PATH"),GeoFileName,"r",&Dir);
   if (!f)
    ErrExit("could not open %s",GeoFileName);
+  if (strcmp(Dir,"."))
+   Log("Found file %s in directory %s",GeoFileName,Dir);
 
   /***************************************************************/
   /* read and process lines from input file one at a time        */

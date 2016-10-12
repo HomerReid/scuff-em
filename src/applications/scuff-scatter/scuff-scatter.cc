@@ -236,6 +236,9 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
+  if (FileBase==0) 
+   FileBase=vstrdup(GetFileBase(GeoFile));
+
   /*******************************************************************/
   /* process frequency-related options                               */
   /*******************************************************************/
@@ -337,8 +340,6 @@ int main(int argc, char *argv[])
   SSD->IFLabel        = 0;
   SSD->FileBase       = FileBase;
 
-  char GeoFileBase[MAXSTR];
-  strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
   if (LogLevel) G->SetLogLevel(LogLevel);
 
   /*--------------------------------------------------------------*/
@@ -594,7 +595,7 @@ int main(int argc, char *argv[])
            /*- surface current visualization-------------------------------*/
            /*--------------------------------------------------------------*/
            if (PlotSurfaceCurrents)
-            G->PlotSurfaceCurrents(KN, Omega, SSD->kBloch, "%s.pp",GetFileBase(GeoFile));
+            G->PlotSurfaceCurrents(KN, Omega, SSD->kBloch, "%s.pp", FileBase);
       
            /*--------------------------------------------------------------*/
            /*- field visualization meshes ---------------------------------*/

@@ -36,7 +36,7 @@
 #include "cmatheval.h"
 
 #define MAXCONSTANTS 25
-#define MAXSTRING    100
+#define MAXSTR       100
 
 /***************************************************************/
 /* initialization of the static FreqUnit class variable ********/
@@ -296,7 +296,9 @@ void MatProp::InitMatProp(const char *MaterialName, const char *MatPropFileName)
   /*-  b) the file specified by the SCUFF_MATPROPFILE environment */
   /*-     variable                                                */
   /*-  c) matprop.dat in the current working directory            */
-  /*-  d) .matprop.dat in the user's home directory               */
+  /*-  d) matprop.dat in the directory specified by the           */
+  /*-     SCUFF_MATPROP_PATH environment variable                 */
+  /*-  e) .matprop.dat in the user's home directory               */
   /*--------------------------------------------------------------*/
     Type=MP_PARSED;
     Name=strdupEC(p);
@@ -334,9 +336,18 @@ void MatProp::ReadInterpolationTable(const char *FileName)
   /***************************************************************/
   /* attempt to read in the data file as a big matrix            */
   /***************************************************************/
-  HMatrix *Data = new HMatrix(FileName, LHM_TEXT, "--strict");
+  char *Dir=0;
+  FILE *f=fopenPath(getenv("SCUFF_MATPROP_PATH"), FileName, "r", &Dir);
+  if (!f) 
+   ErrExit("could not open file %s",FileName);
+  fclose(f);
+  char FullFileName[MAXSTR];
+  snprintf(FullFileName,MAXSTR,"%s/%s",Dir,FileName);
+  Log("Found material data file %s in directory %s.",FileName,Dir);
+  HMatrix *Data = new HMatrix(FullFileName, LHM_TEXT, "--strict");
   if (Data->ErrMsg)
    ErrExit(Data->ErrMsg);
+
   if (Data->NC != 2 && Data->NC != 3)
     ErrExit("interpolation data must have either two or three columns");
 
