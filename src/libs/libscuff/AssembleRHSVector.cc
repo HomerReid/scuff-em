@@ -415,6 +415,9 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, double *kBloch,
    };
 #endif
 
+  if (UseHRWGFunctions && NumMMJs>0 )
+   ApplyMMJTransformation(0, RHS);
+
   return RHS;
 }
 

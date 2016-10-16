@@ -101,16 +101,16 @@ void WriteFilePreamble(FILE *f)
   fprintf(f,"# 15,16   mag, phase a_Upper(TE -> TM)\n");
   fprintf(f,"# 17,18   mag, phase a_Upper(TM -> TE)\n");
   fprintf(f,"# 19,20   mag, phase a_Lower(TE -> TM)\n");
-  fprintf(f,"# 20,21   mag, phase a_Lower(TM -> TE)\n");
+  fprintf(f,"# 21,22   mag, phase a_Lower(TM -> TE)\n");
   fprintf(f,"# \n");
-  fprintf(f,"# 22,23   mag, phase tTETE\n");
-  fprintf(f,"# 24,25   mag, phase tTETM\n");
-  fprintf(f,"# 26,27   mag, phase tTMTE\n");
-  fprintf(f,"# 28,29   mag, phase tTMTM\n");
-  fprintf(f,"# 30,31   mag, phase tTETE\n");
-  fprintf(f,"# 32,33   mag, phase tTETM\n");
-  fprintf(f,"# 34,35   mag, phase tTMTE\n");
-  fprintf(f,"# 36,37   mag, phase tTMTM\n");
+  fprintf(f,"# 23,24   mag, phase tTETE\n");
+  fprintf(f,"# 25,26   mag, phase tTETM\n");
+  fprintf(f,"# 27,28   mag, phase tTMTE\n");
+  fprintf(f,"# 29,30   mag, phase tTMTM\n");
+  fprintf(f,"# 31,32   mag, phase tTETE\n");
+  fprintf(f,"# 33,34   mag, phase tTETM\n");
+  fprintf(f,"# 35,36   mag, phase tTMTE\n");
+  fprintf(f,"# 37,38   mag, phase tTMTM\n");
   fflush(f);
   fflush(f);
 }
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*- create the RWGGeometry                                        -*/
   /*******************************************************************/
-  RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
+  RWGGeometry::UseHRWGFunctions=false;
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->LDim!=2)
    ErrExit("%s: geometry must have two-dimensional lattice periodicity",GeoFileName);

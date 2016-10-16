@@ -391,7 +391,7 @@ void RWGSurface::InitRWGSurface()
   /*- the exception of the Index field.) The edges remain in    */
   /*- place within the ExteriorEdges array.                     */
   /*------------------------------------------------------------*/
-  if ( !IsObject && RWGGeometry::AssignBasisFunctionsToExteriorEdges )
+  if ( !IsObject && RWGGeometry::UseHRWGFunctions )
    { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
      memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
      for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
@@ -413,7 +413,7 @@ void RWGSurface::InitRWGSurface()
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
    };
-  if ( !(RWGGeometry::AssignBasisFunctionsToExteriorEdges) )
+  if ( !(RWGGeometry::UseHRWGFunctions) )
    { 
      for(int ne=0; ne<NumExteriorEdges; ne++)
       { RWGEdge *E=ExteriorEdges[ne];
@@ -498,7 +498,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
-  if (RWGGeometry::AssignBasisFunctionsToExteriorEdges)
+  if (RWGGeometry::UseHRWGFunctions)
    { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
      memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
      for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
@@ -520,7 +520,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
    };
-  if ( !(RWGGeometry::AssignBasisFunctionsToExteriorEdges) )
+  if ( !(RWGGeometry::UseHRWGFunctions) )
    { 
      for(int ne=0; ne<NumExteriorEdges; ne++)
       { RWGEdge *E=ExteriorEdges[ne];

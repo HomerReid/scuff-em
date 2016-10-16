@@ -622,6 +622,97 @@ done:
 }
 
 /***************************************************************/
+/* determine whether or not edge #ne on surface #ns is part of */
+/* a multi-material junction.                                  */
+/* if not, return false.                                       */
+/* if so, return true and set                                  */
+/*  *pnMMJ           = index of MMJ                            */
+/*  *pnEdgeWithinMMJ = index of edge within MMJ                */
+/***************************************************************/
+bool EdgeInMMJ(RWGGeometry *G, MMJData **MMJs, int NumMMJs, int ns, int ne, int *pnMMJ, int *pnEdgeWithinMMJ)
+{
+  for(int nMMJ=0; nMMJ<G->NumMMJs; nMMJ++)
+   { MMJData *MMJ = G->MultiMaterialJunctions[nMMJ];
+     int MMJSize         = MMJ->NumEdges;
+     int *SurfaceIndices = MMJ->SurfaceIndices;
+     int *EdgeIndices    = MMJ->EdgeIndices;   
+
+     for(int n=0; n < MMJSize; n++)
+      if ( SurfaceIndices[n]==ns && EdgeIndices[n]==ne )
+       { if (pnMMJ) *pnMMJ=nMMJ; 
+         if (pnEdgeWithinMMJ) *pnEdgeWithinMMJ=n;
+         return true;
+       };
+   };
+  return false;
+   
+}
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::ApplyMMJTransformation(HMatrix *M, HVector *RHS)
+{
+  for(int nMMJ=0; nMMJ<NumMMJs; nMMJ++)
+   { 
+     MMJData *Data       = MultiMaterialJunctions[nMMJ];
+     int MMJSize         = Data->NumEdges;
+     int *SurfaceIndices = Data->SurfaceIndices;
+     int *EdgeIndices    = Data->EdgeIndices;
+
+     int ns0             = SurfaceIndices[0];
+     int ne0             = EdgeIndices[0];
+     bool IsPEC          = Surfaces[ns0]->IsPEC;
+     int iBF0            = BFIndexOffset[ns0] + (IsPEC ? 1 : 2)*ne0;
+     
+     // subtract BEM system row #iBF0 from rows #iBF1...#iBFN
+     for(int n=1; n<MMJSize; n++)
+      { 
+        int nsN     = SurfaceIndices[n];
+        int neN     = EdgeIndices[n];
+        int iBFN    = BFIndexOffset[nsN] + (IsPEC ? 1 : 2)*neN;
+
+        if (M)
+         for(int nc=0; nc<M->NC; nc++)
+          { M->AddEntry(iBFN, nc, -1.0*M->GetEntry(iBF0, nc));
+            if (!IsPEC)
+             M->AddEntry(iBFN+1, nc, -1.0*M->GetEntry(iBF0+1, nc));
+          };
+        if (RHS)
+         { RHS->AddEntry(iBFN, -1.0*RHS->GetEntry(iBF0));
+           if ( !IsPEC )
+            RHS->AddEntry(iBFN+1, -1.0*RHS->GetEntry(iBF0+1));
+         };
+      }; // for(int n=1; n<MMJSize; n++)
+
+
+     // replace BEM system row #iBF0 with condition \sum K_n = 0
+     if (M)
+      { for(int nc=0; nc<M->NC; nc++)
+         { M->SetEntry(iBF0, nc, 0.0);
+           if (!IsPEC) M->SetEntry(iBF0+1, nc, 0.0);
+         };
+        for(int n=0; n<MMJSize; n++)
+         { 
+           int ns  = SurfaceIndices[n];
+           int ne  = EdgeIndices[n];
+           int iBF = BFIndexOffset[ns] + (IsPEC ? 1 : 2)*ne;
+           M->SetEntry(iBF0, iBF, 1.0);
+           if (!IsPEC) 
+            M->SetEntry(iBF0+1, iBF+1, 1.0);
+         };
+      }; 
+
+     if (RHS)
+      { RHS->SetEntry(iBF0, 0.0);
+        if (!IsPEC) 
+         RHS->SetEntry(iBF0+1,0.0);
+      };
+
+   }; // for(int nMMJ=0; nMMJ<NumMMJs; nMMJ++)
+
+}
+
+/***************************************************************/
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
 /* AssembleBEMMatrixBlock() to do all the dirty work.          */
@@ -692,6 +783,9 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
       for(int nc=0; nc<nr; nc++)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
+
+  if (UseHRWGFunctions && NumMMJs>0 )
+   ApplyMMJTransformation(M, 0);
 
   return M;
 

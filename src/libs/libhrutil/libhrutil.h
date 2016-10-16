@@ -84,8 +84,9 @@ int vsystem(const char *format, ...);
 void vsetenv(const char *VariableName, const char *format, ...);
 char *vstrdup(const char *format, ...);
 char *vstrappend(char *s, const char *format, ...);
+void vstrncat(char *s, size_t n, const char *format, ...);
 void ErrExit(const char *format, ...);
-void Warn(const char *format, ...); 
+void Warn(const char *format, ...);
 
 /***************************************************************/
 /* General-purpose status logging ******************************/

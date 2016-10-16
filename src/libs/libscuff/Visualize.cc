@@ -770,7 +770,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   va_start(ap,format);
   vsnprintfEC(FileName,MAXSTR,format,ap);
   va_end(ap);
-  FILE *f=fopen(FileName,"w");
+  FILE *f=fopen(FileName,"a");
   if (!f) return;
 
   /***************************************************************/
@@ -792,7 +792,21 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n","Electric Charge Density");
+  char Tag[100];
+  if (SurfaceLabel)
+   snprintf(Tag,100,"{%s, Omega=%s",SurfaceLabel,z2s(Omega));
+  else
+   snprintf(Tag,100,"{Omega=%s",z2s(Omega));
+  if (LDim > 0 && kBloch==0 )
+   ErrExit("%s:%i: missing kBloch for PBC geometry",__FILE__,__LINE__);
+  if (LDim>=1) vstrncat(Tag,100,",kx=_%g",kBloch[0]);
+  if (LDim>=2) vstrncat(Tag,100,",ky=_%g",kBloch[1]);
+  vstrncat(Tag,100,"}");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"Electric charge %s\" {\n",Tag);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
@@ -820,7 +834,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   /* plot electric current densities at centroids of all panels  */
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n","Electric Current");
+  fprintf(f,"View \"Electric current %s\" {\n",Tag);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
@@ -864,7 +878,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   /* plot magnetic charge densities at centroids of all panels   */
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n","Magnetic Charge Density");
+  fprintf(f,"View \"Magnetic charge %s\" {\n",Tag);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
@@ -892,7 +906,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   /* plot magnetic current densities at centroids of all panels  */
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n","Magnetic Current");
+  fprintf(f,"View \"Magnetic current %s\" {\n",Tag);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
@@ -917,7 +931,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n","Normal Poynting Flux");
+  fprintf(f,"View \"Poynting flux%s\" {\n",Tag);
   for(int ns=0; ns<NumSurfaces; ns++)
    {
      RWGSurface *S=Surfaces[ns];
@@ -962,7 +976,12 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
   vsnprintfEC(FileName,MAXSTR,format,ap);
   va_end(ap);
   
-  PlotSurfaceCurrents(0, KN, Omega, kBloch, FileName);
+  char *s=getenv("SCUFF_ITEMIZE_CURRENTS");
+  if (s && s[0]=='1')
+   for(int ns=0; ns<NumSurfaces; ns++)
+    PlotSurfaceCurrents(Surfaces[ns]->Label, KN, Omega, kBloch, FileName);
+  else 
+   PlotSurfaceCurrents(0, KN, Omega, kBloch, FileName);
 }
 
 /***************************************************************/

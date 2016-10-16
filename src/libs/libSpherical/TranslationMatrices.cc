@@ -154,7 +154,6 @@ void GetTranslationMatrices(double Xij[3], cdouble k, int LMax,
      return;
    };
 
-  cdouble ik = II*k;
   int LCMax=2*LMax;
   cdouble *R = new cdouble[LCMax+2];
   cdouble *Ylm = new cdouble[(LCMax+1)*(LCMax+1)];

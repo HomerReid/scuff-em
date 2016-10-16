@@ -40,11 +40,12 @@ namespace scuff {
 
 #define MAXSTR 1000
 #define MAXTOK 50
+#define MAXMMJ 10
 
 /***************************************************************/
 /* initialization of static class variables                    */
 /***************************************************************/
-bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
+bool RWGGeometry::UseHRWGFunctions=false;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 bool RWGGeometry::UseGetFieldsV2P0=false;
@@ -272,6 +273,99 @@ bool ProcessSpecialSCUFFGeoFileName(const char *GeoFileName)
 
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define MMJTHRESH 1.0e-4
+void RWGGeometry::DetectMultiMaterialJunctions()
+{
+  NumMMJs=0;
+  MultiMaterialJunctions=0;
+
+  // loop over all edges on all surfaces
+  for(int ns=0; ns<NumSurfaces; ns++)
+   for(int ne=0; ne<Surfaces[ns]->NumEdges; ne++)
+    { 
+      RWGSurface *S = Surfaces[ns];
+      RWGEdge *E    = S->Edges[ne];
+      if (E->iQM!=-1) continue;
+
+      // check that this edge not already part of an MMJ
+      bool InMMJ=false;
+      if (ns>0)
+       for(int nMMJ=0; !InMMJ && nMMJ<NumMMJs; nMMJ++)
+        { MMJData *MMJ=MultiMaterialJunctions[nMMJ];
+          for(int n=1; !InMMJ && n<MMJ->NumEdges; n++)
+           if ( ns==MMJ->SurfaceIndices[n] && ne==MMJ->EdgeIndices[n])
+            InMMJ=true;
+        };
+      if (InMMJ) continue;
+
+      // count number of edges on other surfaces that coincide with this edge
+      double *V1    = S->Vertices + 3*E->iV1;
+      double *V2    = S->Vertices + 3*E->iV2;
+      double Length = E->Length;
+      int NumEdges=0;
+      int SurfaceIndices[MAXMMJ];
+      int EdgeIndices[MAXMMJ];
+      for(int nsp=ns+1; nsp<NumSurfaces; nsp++)
+       for(int nep=0; nep<Surfaces[nsp]->NumEdges; nep++)
+        { 
+          RWGSurface *SP = Surfaces[nsp];
+          RWGEdge *EP    = SP->Edges[nep];
+          if (EP->iQM!=-1) continue;
+
+          double *V1P   = SP->Vertices + 3*EP->iV1;
+          double *V2P   = SP->Vertices + 3*EP->iV2;
+   
+          bool Match1  = (     ( VecDistance(V1,V1P)<MMJTHRESH*Length )
+                            && ( VecDistance(V2,V2P)<MMJTHRESH*Length )
+                         );
+          bool Match2  = (     ( VecDistance(V1,V2P)<MMJTHRESH*Length )
+                            && ( VecDistance(V2,V1P)<MMJTHRESH*Length )
+                         );
+          if (Match1==false && Match2==false) continue;
+
+          if (NumEdges==MAXMMJ)
+           ErrExit("Surface %i edge %i: too many surfaces meeting at multi-material junction",ns,ne);
+
+          if ( S->IsPEC != SP->IsPEC)
+           ErrExit("surfaces in a MMJ must be all PEC or all non-PEC "
+                   "{surface %s edge %i <> surface %s edge %i}",
+                   S->Label,ne,SP->Label,nep);
+
+          if (NumEdges==0)
+           { SurfaceIndices[NumEdges] = ns;
+             EdgeIndices[NumEdges++]  =ne;
+           };
+          SurfaceIndices[NumEdges] = nsp;
+          EdgeIndices[NumEdges++]  = nep;
+
+        };
+      if (NumEdges==0) continue;
+
+      // we have detected a new multi-material junction
+      MMJData *Data = (MMJData *)mallocEC(sizeof(MMJData));
+      Data->NumEdges       = NumEdges;
+      Data->SurfaceIndices = (int *)memdup(SurfaceIndices, NumEdges*sizeof(int));
+      Data->EdgeIndices    = (int *)memdup(EdgeIndices, NumEdges*sizeof(int));
+
+      MultiMaterialJunctions =
+       (MMJData **)reallocEC(MultiMaterialJunctions, (NumMMJs+1) * sizeof(MMJData *));
+      MultiMaterialJunctions[NumMMJs++] = Data;
+
+      if (LogLevel>=SCUFF_VERBOSE2)
+       { Log(" MMJ #03i: ",NumMMJs);
+         for(int n=0; n<NumEdges; n++)
+          LogC(" {%i,%04i} ",SurfaceIndices[n],EdgeIndices[n]);
+       };
+
+    };
+
+  Log("Detected %i multi-material junctions.",NumMMJs);
+
+}
+
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
@@ -343,7 +437,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
   if ( (s= getenv("SCUFF_HALF_RWG")) && (s[0]=='1') )
    { Log("Assigning half-RWG basis functions to exterior edges.");
-     RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
+     RWGGeometry::UseHRWGFunctions=true;
    };
 
   if ( (s=getenv("SCUFF_ABORT_ON_FPE")) && (s[0]=='1') )
@@ -427,7 +521,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      else if ( !StrCaseCmp(Tokens[0],"LATTICE") )
       { 
         ProcessLATTICESection(f,GeoFileName,&LineNum);
-        AssignBasisFunctionsToExteriorEdges=false;
+        //UseHRWGFunctions=false;
       }
      else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
@@ -730,6 +824,14 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* the transformation.                                         */
   /***************************************************************/
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  NumMMJs=0;
+  MultiMaterialJunctions=0;
+  if (UseHRWGFunctions)
+   DetectMultiMaterialJunctions();
 
   /***************************************************************/
   /***************************************************************/

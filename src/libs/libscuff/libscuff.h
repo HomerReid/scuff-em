@@ -303,6 +303,10 @@ class RWGSurface
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
+typedef struct MMJData
+ { int NumEdges;
+   int *SurfaceIndices, *EdgeIndices;
+ } MMJData;
 
 /*************************** ***********************************/
 /* an RWGGeometry is a collection of regions with interfaces   */
@@ -441,6 +445,7 @@ class RWGGeometry
    void ProcessLATTICESection(FILE *f, char *FileName, int *LineNum);
    void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
    void InitPBCData();
+   void DetectMultiMaterialJunctions();
 
    // helper functions for AssembleBEMMatrix
    void UpdateCachedEpsMuValues(cdouble Omega);
@@ -453,6 +458,7 @@ class RWGGeometry
    void *CreateABMBAccelerator(int nsa, int nsb, bool PureImagFreq=false,
                                bool NeedZDerivative=false);
    void DestroyABMBAccelerator(void *Accelerator);
+   void ApplyMMJTransformation(HMatrix *M, HVector *RHS);
 
    // helper function for GetFields, GetDyadicGFs, GetSRFluxTrace
    HMatrix *GetRFMatrix(cdouble Omega, double *kBloch, HMatrix *XMatrix,
@@ -560,11 +566,16 @@ class RWGGeometry
    /* SurfaceMoved[i] = 1 if surface #i was moved on the most   */
    /* recent call to Transform(). Otherwise SurfaceMoved[i]=0.  */
    int *SurfaceMoved;
+
+   /* Each MMJData structure describes a single triangle edge */
+   /* at which two or more distinct surfaces meet.            */
+   MMJData **MultiMaterialJunctions;
+   int NumMMJs;
   
    int LogLevel; 
    const char *TBlockCacheNameAddendum;
    
-   static bool AssignBasisFunctionsToExteriorEdges;
+   static bool UseHRWGFunctions;
    static bool UseHighKTaylorDuffy;
    static bool UseGetFieldsV2P0;
    static bool UseTaylorDuffyV2P0;

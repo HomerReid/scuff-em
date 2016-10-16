@@ -761,7 +761,7 @@ void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Ph
      return;
    };
 
-  cdouble kr=k*r, kr2=kr*kr, kr3=kr2*kr, kr4=kr2*kr2;
+  cdouble kr=k*r, kr2=kr*kr, kr3=kr2*kr;
   cdouble ikr=II*k*r, ikr2=ikr*ikr, ikr3=ikr2*ikr;
   cdouble ExpFac = (WaveType == LS_OUTGOING) ? exp( ikr) :
                    (WaveType == LS_INCOMING) ? exp(-ikr) : cos(kr);

@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
   SetLogFileName("scuff-analyze.log");
   if (MeshFile)
    {
-     RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
+     RWGGeometry::UseHRWGFunctions=false;
      S=new RWGSurface(MeshFile, PhysicalRegion);
      AnalyzeSurface(S);
 

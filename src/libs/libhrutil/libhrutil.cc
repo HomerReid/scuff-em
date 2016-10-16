@@ -332,6 +332,29 @@ int vsystem(const char *format, ...)
   return RetVal;
 }
 
+// note: unlike the usual strncat, the parameter buflen here is the 
+// total number of bytes that will be written to s, *including* what
+// is already present in s, and also including the trailing 0.
+// Example: 
+//  s="hello" + trailing 0
+//  buflen=10;
+//  format + ...  evaluates to "world"
+// --> on return, s="helloworl" + trailing 0
+//
+void vstrncat(char *s, size_t n, const char *format, ...)
+{
+  va_list ap;
+  char buffer[MAXSTR];
+
+  va_start(ap,format);
+  vsnprintfEC(buffer,MAXSTR,format,ap);
+  va_end(ap);
+
+  size_t OldLength = strlen(s) + 1;
+  if (OldLength>=n) return;
+  strncat(s, buffer, n - OldLength);
+}
+
 char *vstrappend(char *s, const char *format, ...)
 {
   va_list ap;
