@@ -266,28 +266,22 @@ void GetBFCubature(RWGGeometry *G, int ns, int ne,
                    cdouble Omega, HVector *KN,
                    double *Result)
 {
-  double *ResultP = new double[IDim];
-  double *ResultM = new double[IDim];
 
   RWGEdge *E = G->Surfaces[ns]->Edges[ne];
 
   GetPanelCubature(G, ns, E->iPPanel, Integrand, UserData, 
                    IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
-                   E->PIndex, +1.0, ResultP);
+                   E->PIndex, +1.0, Result);
 
-  GetPanelCubature(G, ns, E->iMPanel, Integrand, UserData, 
-                   IDim, MaxEvals, RelTol, AbsTol, Omega, KN,
-                   E->MIndex, -1.0, ResultM);
+  if (E->iMPanel!=-1)
+   { double *ResultM = new double[IDim];
+     GetPanelCubature(G, ns, E->iMPanel, Integrand, UserData, 
+                      IDim, MaxEvals, RelTol, AbsTol, Omega, KN,
+                      E->MIndex, -1.0, ResultM);
+     VecPlusEquals(Result, 1.0, ResultM, IDim);
+     delete[] ResultM;
+   };
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  for(int n=0; n<IDim; n++)
-   Result[n] = ResultP[n] + ResultM[n];
-
-  delete[] ResultP;
-  delete[] ResultM;
-  
 }
 
 /***************************************************************/

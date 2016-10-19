@@ -33,6 +33,7 @@
 #include <libhmat.h>
 
 #include "libscuff.h"
+#include "PanelCubature.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -45,30 +46,108 @@
 
 namespace scuff {
 
+void KNProjectionIntegrand(double x[3], double b[3], double Divb,
+                           void *UserData, double Weight, double *Integral)
+{
+  (void )Divb;
+
+  IncField *IF = (IncField *)UserData;
+  cdouble EH[6];
+  IF->GetFields(x,EH);
+  cdouble *zIntegral=(cdouble *)Integral;
+  zIntegral[0] += Weight*(b[0]*EH[0] + b[1]*EH[1] + b[2]*EH[2]);
+  zIntegral[1] += Weight*(b[0]*EH[3] + b[1]*EH[4] + b[2]*EH[5]);
+}
+
+void EHProjectionIntegrand(double *x, PCData *PCD,
+                           void *UserData, double *Integral)
+{
+  IncField *IF = (IncField *)UserData;
+
+  cdouble EH[6], *E=EH+0, *H=EH+3;
+  IF->GetFields(x,EH);
+
+  cdouble *b   = PCD->K;
+  double *nHat = PCD->nHat;
+
+  cdouble K[3], N[3];
+  K[0] = nHat[1]*H[2] - nHat[2]*H[1];
+  K[1] = nHat[2]*H[0] - nHat[0]*H[2];
+  K[2] = nHat[0]*H[1] - nHat[1]*H[0];
+
+  N[0] = -(nHat[1]*E[2] - nHat[2]*E[1]);
+  N[1] = -(nHat[2]*E[0] - nHat[0]*E[2]);
+  N[2] = -(nHat[0]*E[1] - nHat[1]*E[0]);
+
+  N[0] *= (-1.0/ZVAC);
+  N[1] *= (-1.0/ZVAC);
+  N[2] *= (-1.0/ZVAC);
+
+  cdouble *zIntegral=(cdouble *)Integral;
+  zIntegral[0] = b[0]*K[0] + b[1]*K[1] + b[2]*K[2];
+  zIntegral[1] = b[0]*N[0] + b[1]*N[1] + b[2]*N[2];
+}
+
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
-                                            HVector *KNVec,
-                                            cdouble Omega)
+                                            HVector *KNVector,
+                                            cdouble Omega,
+                                            bool IsEHField)
 { 
-  if (KNVec->ZV==0)
+  if (KNVector->ZV==0)
    ErrExit("%s:%i: internal error");
 
-  Log("ExpandCD: Assembling RHS");
-  AssembleRHSVector(Omega, IF, KNVec);
-
   /***************************************************************/
+  /* project user's current distribution onto the RWG basis      */
+  /* using AssembleRHSVector. Note we then need to               */
   /* undo the factors of -1/ZVAC and ZVAC that AssembleRHSVector */
   /* automatically puts into the KNVector                        */
   /***************************************************************/
+  Log("ExpandCD: Assembling RHS");
+#if 0
+  AssembleRHSVector(Omega, IF, KNVector);
   for(int ns=0; ns<NumSurfaces; ns++)
    { RWGSurface *S = Surfaces[ns];
      for(int ne=0, nbf=0; ne<S->NumEdges; ne++)
-      { KNVec->ZV[nbf++] *= -1.0*ZVAC;
-        if(!S->IsPEC) KNVec->ZV[nbf++] /= ZVAC;
+      { KNVector->ZV[nbf++] *= -1.0*ZVAC;
+        if(!S->IsPEC) KNVector->ZV[nbf++] /= ZVAC;
       };
    };
+#endif
+
+  Log("Computing projection of current onto RWG basis");
+#ifdef USE_OPENMP
+  int NumThreads=GetNumThreads();
+  LogC(" (%i threads)",NumThreads);
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+ for(int neFull=0; neFull<TotalEdges; neFull++)
+  {
+    int ns, ne, KNIndex;
+    ResolveEdge(neFull, &ns, &ne, &KNIndex);
+    cdouble KNProjections[2];
+    int IDim=2*2;
+    int Order=9;
+    int MaxEvals=21;
+    if (IsEHField)
+     GetBFCubature(this, ns, ne,
+                   EHProjectionIntegrand, (void *)IF, IDim,
+                   MaxEvals, 0.0, 0.0, Omega,
+                   0, (double *)KNProjections);
+                   
+    else
+     GetBFCubature2(this, ns, ne,
+                    KNProjectionIntegrand, (void *)IF, IDim,
+                    Order, (double *)KNProjections);
+
+    KNVector->SetEntry(KNIndex,KNProjections[0]);
+    if ( !(Surfaces[ns]->IsPEC) )
+     KNVector->SetEntry(KNIndex+1,KNProjections[1]);
+  };
+     
 
   /***************************************************************/
   /***************************************************************/
@@ -110,7 +189,7 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
       Log("ExpandCD: LU factorizing");
       M.LUFactorize();
 
-      HVector PartialKN(NBF, LHM_COMPLEX, (void *)(KNVec->ZV + Offset) );
+      HVector PartialKN(NBF, LHM_COMPLEX, (void *)(KNVector->ZV + Offset) );
       Log("ExpandCD: LU solving");
       M.LUSolve(&PartialKN);
    };
@@ -201,7 +280,7 @@ int InsideTriangle(const double *X,
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::EvalCurrentDistribution(const double X[3],
-                                          HVector *KNVec,
+                                          HVector *KNVector,
                                           double *kBloch,
                                           cdouble KN[6])
 { 
@@ -300,12 +379,12 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
 
       cdouble KAlpha, NAlpha;
       if ( S->IsPEC )
-       { KAlpha = KNVec->GetEntry( Offset + ne );
+       { KAlpha = KNVector->GetEntry( Offset + ne );
          NAlpha = 0.0;
        }
       else
-       { KAlpha = KNVec->GetEntry( Offset + 2*ne);
-         NAlpha = -1.0*ZVAC*KNVec->GetEntry( Offset + 2*ne+1);
+       { KAlpha = KNVector->GetEntry( Offset + 2*ne);
+         NAlpha = -1.0*ZVAC*KNVector->GetEntry( Offset + 2*ne+1);
        };
       KAlpha *= BlochPhase * StraddlerPhase;
       NAlpha *= BlochPhase * StraddlerPhase;
@@ -324,10 +403,10 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::EvalCurrentDistribution(const double X[3], 
-                                          HVector *KNVec, 
+                                          HVector *KNVector, 
                                           cdouble KN[6])
 {
-  EvalCurrentDistribution(X, KNVec, 0, KN);
+  EvalCurrentDistribution(X, KNVector, 0, KN);
 }
 
 } // namespace scuff

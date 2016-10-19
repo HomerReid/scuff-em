@@ -392,7 +392,7 @@ class RWGGeometry
 
    /* expansion coefficients in the RWG expansion of an arbitrary */
    /* user-supplied surface-tangential vector field               */
-   void ExpandCurrentDistribution(IncField *IF, HVector *KN, cdouble Omega=1.0);
+   void ExpandCurrentDistribution(IncField *IF, HVector *KN, cdouble Omega=1.0, bool IsEHField=false);
 
    /* surface currents at a given point X on an object */
    void EvalCurrentDistribution(const double X[3], HVector *KNVec, double *kBloch, cdouble KN[6]);
