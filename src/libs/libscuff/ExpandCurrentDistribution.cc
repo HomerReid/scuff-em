@@ -90,7 +90,8 @@ void EHProjectionIntegrand(double *x, PCData *PCD,
 
 
 /***************************************************************/
-/***************************************************************/
+/* If IsEHField is true, the current distribution expanded is  */
+/* K=nxH, N=-nxE where E,H are the fields computed by IF.      */
 /***************************************************************/
 void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
                                             HVector *KNVector,
@@ -101,23 +102,8 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
    ErrExit("%s:%i: internal error");
 
   /***************************************************************/
-  /* project user's current distribution onto the RWG basis      */
-  /* using AssembleRHSVector. Note we then need to               */
-  /* undo the factors of -1/ZVAC and ZVAC that AssembleRHSVector */
-  /* automatically puts into the KNVector                        */
+  /* project user's current distribution onto the RWG basis.     */
   /***************************************************************/
-  Log("ExpandCD: Assembling RHS");
-#if 0
-  AssembleRHSVector(Omega, IF, KNVector);
-  for(int ns=0; ns<NumSurfaces; ns++)
-   { RWGSurface *S = Surfaces[ns];
-     for(int ne=0, nbf=0; ne<S->NumEdges; ne++)
-      { KNVector->ZV[nbf++] *= -1.0*ZVAC;
-        if(!S->IsPEC) KNVector->ZV[nbf++] /= ZVAC;
-      };
-   };
-#endif
-
   Log("Computing projection of current onto RWG basis");
 #ifdef USE_OPENMP
   int NumThreads=GetNumThreads();
@@ -170,6 +156,7 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
 
      Log("ExpandCD: Assembling M%i",ns);
      HMatrix M(NBF, NBF, LHM_COMPLEX, LHM_NORMAL, (void *)MBuffer);
+     M.Zero();
      for(int ne=0; ne<NE; ne++)
       for(int nep=ne; nep<NE; nep++)
        { 
@@ -189,8 +176,8 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
       Log("ExpandCD: LU factorizing");
       M.LUFactorize();
 
-      HVector PartialKN(NBF, LHM_COMPLEX, (void *)(KNVector->ZV + Offset) );
       Log("ExpandCD: LU solving");
+      HVector PartialKN(NBF, LHM_COMPLEX, (void *)(KNVector->ZV + Offset) );
       M.LUSolve(&PartialKN);
    };
   Log("ExpandCD: done ");
