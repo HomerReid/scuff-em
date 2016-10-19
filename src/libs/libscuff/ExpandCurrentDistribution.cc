@@ -48,58 +48,74 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec, cdouble Omega)
+void RWGGeometry::ExpandCurrentDistribution(IncField *IF,
+                                            HVector *KNVec,
+                                            cdouble Omega)
 { 
-  int n, ne, nep;
-  RWGSurface *S;
-  HMatrix *M;
-  double OVLP;
-
-  /* FIXME */
-  if (NumSurfaces>1)
-   ErrExit("%s:%i: ExpandCurrentDistribution only implemented for single-object geometries");
-  S=Surfaces[0];
+  if (KNVec->ZV==0)
+   ErrExit("%s:%i: internal error");
 
   Log("ExpandCD: Assembling RHS");
   AssembleRHSVector(Omega, IF, KNVec);
-  // undo the factors of -1/ZVAC and ZVAC that AssembleRHSVector
-  // automatically puts into the the KNVector
-  if (KNVec->RealComplex==LHM_COMPLEX)
-   { for(n=0; n<(KNVec->N)/2; n++)
-      { KNVec->ZV[2*n] *= -1.0*ZVAC;
-        KNVec->ZV[2*n+1] /= ZVAC;
-      };
-   }
-  else
-   { for(n=0; n<(KNVec->N)/2; n++)
-      { KNVec->DV[2*n] *= -1.0*ZVAC;
-        KNVec->DV[2*n+1] /= ZVAC;
+
+  /***************************************************************/
+  /* undo the factors of -1/ZVAC and ZVAC that AssembleRHSVector */
+  /* automatically puts into the KNVector                        */
+  /***************************************************************/
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { RWGSurface *S = Surfaces[ns];
+     for(int ne=0, nbf=0; ne<S->NumEdges; ne++)
+      { KNVec->ZV[nbf++] *= -1.0*ZVAC;
+        if(!S->IsPEC) KNVec->ZV[nbf++] /= ZVAC;
       };
    };
 
-  M=new HMatrix(2*S->NumEdges, 2*S->NumEdges, KNVec->RealComplex);
-  M->Zero();
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int MaxBFs = Surfaces[0]->NumBFs;
+  for(int ns=1; ns<NumSurfaces; ns++)
+   if (Surfaces[ns]->NumBFs > MaxBFs)
+    MaxBFs = Surfaces[ns]->NumBFs;
+  cdouble *MBuffer = (cdouble *)mallocEC(MaxBFs*MaxBFs*sizeof(cdouble));
 
-  Log("ExpandCD: Assembling M");
-  for(ne=0; ne<S->NumEdges; ne++)
-   for(nep=ne; nep<S->NumEdges; nep++)
-    { 
-      OVLP=S->GetOverlap(ne, nep);
-      M->SetEntry( 2*ne, 2*nep, OVLP);
-      M->SetEntry( 2*nep, 2*ne, OVLP);
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S = Surfaces[ns];
+     int Offset    = BFIndexOffset[ns];
+     int NE        = S->NumEdges;
+     int NBF       = S->NumBFs;
 
-      M->SetEntry( 2*ne+1, 2*nep+1, OVLP);
-      M->SetEntry( 2*nep+1, 2*ne+1, OVLP);
-    };
+     Log("ExpandCD: Assembling M%i",ns);
+     HMatrix M(NBF, NBF, LHM_COMPLEX, LHM_NORMAL, (void *)MBuffer);
+     for(int ne=0; ne<NE; ne++)
+      for(int nep=ne; nep<NE; nep++)
+       { 
+         double OVLP=S->GetOverlap(ne, nep);
+         if (S->IsPEC)
+          { M.SetEntry(ne, nep, OVLP);
+            M.SetEntry(nep, ne, OVLP);
+          }
+         else
+          { M.SetEntry( 2*ne, 2*nep, OVLP);
+            M.SetEntry( 2*nep, 2*ne, OVLP);
+            M.SetEntry( 2*ne+1, 2*nep+1, OVLP);
+            M.SetEntry( 2*nep+1, 2*ne+1, OVLP);
+          };
+       };
 
-  Log("ExpandCD: LU factorizing");
-  M->LUFactorize();
+      Log("ExpandCD: LU factorizing");
+      M.LUFactorize();
 
-  Log("ExpandCD: LU solving");
-  M->LUSolve(KNVec);
-  
+      HVector PartialKN(NBF, LHM_COMPLEX, (void *)(KNVec->ZV + Offset) );
+      Log("ExpandCD: LU solving");
+      M.LUSolve(&PartialKN);
+   };
   Log("ExpandCD: done ");
-  delete M;
+  free(MBuffer);
 
 }
 
