@@ -5,7 +5,6 @@ EXTRA_DIST=			\
  SquareCoil_79.args		\
  SquareCoil_79.msh		\
  SquareCoil_79.ports		\
- SquareCoil_79.pp		\
  SquareCoil_79.scuffgeo		\
  SquareCoil.geo
 
