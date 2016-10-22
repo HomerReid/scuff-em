@@ -1289,15 +1289,16 @@ basis of volume-current basis functions:
  \begin{dcases}
    0, \qquad &|\vb x| > R 
    \\
-  \frac{1}{\sqrt{S_{M\ell}(R)}} \vb M_{\ell m}\sups{reg}(\vb x),
+  \mc N_{M\ell} \vb M_{\ell m}\sups{reg}(\vb x),
        \qquad &|\vb x|\le R, P=M \\
-  \frac{1}{\sqrt{S_{N\ell}(R)}} \vb N_{\ell m}\sups{reg}(\vb x),
+  \mc N_{N\ell} \vb N_{\ell m}\sups{reg}(\vb x),
        \qquad &|\vb x|\le R, P=N \\
  \end{dcases}
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where 
+where the normalization factors are
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \mc N_{P\ell}(R) \equiv \frac{1}{\sqrt{S_{P\ell}(R)}} $$
 \begin{align*}
  S_{M\ell}(R) 
 &\equiv \int_0^R \Big |\vb M\sups{reg}_{\ell m}(\vb x)\Big |^2 \, d\vb x
@@ -1360,7 +1361,18 @@ $$ V_{\alpha\beta} =
    \qquad
    G_{\alpha\beta} = 
    \int_0^R \, \int_0^R \, \mb B_\alpha^*(\vb x)
-   \mb G(\vb x, \vb x^\prime)\mb B_\beta(\vb x^\prime)\,d\vb x\,d\vb x^\prime.
+   \mb G(\vb x, \vb x^\prime)\mb B_\beta(\vb x^\prime)\,d\vb x\,d\vb x^\prime
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and $\vb e$ is the vector of incident-field projections onto the
+$\{\mb B_\alpha\}$ basis. If $\vb e$ is expressed as an expansion in 
+the usual (non-normalized) regular VSWs, as in equation 
+(\ref{EIncExpansion}), then the entries of $\vb e$ are proportional
+to the $P,Q$ coefficients in that equation:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \vb e_{M_\ell m} = \frac{1}{\mc N_{M\ell}}P_{\ell m}, 
+   \qquad
+   \vb e_{N_\ell m} = \frac{1}{\mc N_{N\ell}}Q_{\ell m}.
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The convenient thing about the VSW basis is that the $\vb G$ matrix
@@ -1372,7 +1384,7 @@ may be computed in closed form:
  &=\delta_{PP^\prime}
    \delta_{\ell \ell^\prime}
    \delta_{mm^\prime}
-   \left[ -\frac{1}{3k^2} + i\mc G_{P\ell} \right]
+   \left[ -\frac{\delta_{PN}}{3k^2} + i\mc G_{P\ell} \right]
 \\
 \mc G_{P\ell}
 &= \frac{2k}{\mc S_{P\ell}(R)}
@@ -1416,15 +1428,65 @@ In the $\ell=1$ sector one finds
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{An explicit example}
+\subsection{Scattered fields}
 
-Consider a homogeneous dielectric sphere irradiated by an incident
-field consisting of a single regular spherical wave, i.e. exactly
-one the $\{P,Q\}$ coefficients is nonzero in
-(\ref{EHIncOutsideExpansion}).
+Once the expansion coefficients in (\ref{VSWVIE}) are known,
+I compute the scattered fields in different ways depending
+on whether the evaluation point lies inside or outside the 
+body.
+
+\paragraph{Inside the body} In this case I compute the
+total field according to
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*} 
+ \vb E\sups{tot}(\vb x)
+&= ikZ_0 \mb V^{-1} \vb J(\vb x) 
+\\
+&= ikZ_0 \mb V^{-1} \sum j_\alpha \mb B_\alpha(\vb x).
+\end{align*} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{Outside the body} In this case I compute the scattered
+field by noting
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*} 
+ \vb E\sups{scat}
+&= ikZ_0 \underbrace{\mb G}_{ik\sum \wh{\bmc B}_\alpha \bmc B_\alpha^*} \cdot \vb J
+\\
+&= -k^2 Z_0 \sum_{\alpha} \frac{1}{\mc N_\alpha} j_\alpha \wh{\bmc B}_\alpha
+\end{align*} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Homogeneous dielectric sphere}
+
+For a homogeneous dielectric sphere irradiated by a incident
+field of the form (\ref{EIncExpansion}), the solution of
+(\ref{VSWVIE}) is
+%====================================================================%
+$$ \vb j_\alpha = -\pf{i}{kZ_0}
+   \left[ \frac{-k^2 (\epsilon-1)}{1-k^2 (\epsilon-1)G_{\alpha\alpha}}
+   \right]\frac{1}{\mc N_\alpha}\{PQ\}_\alpha
+$$
+%====================================================================%
+Total fields inside:
+%====================================================================%
+$$ \vb E\sups{tot}(\vb x) =
+    \sum_\alpha \left[ \frac{1}{1-k^2(\epsilon-1)G_{\alpha\alpha}}\right]
+                \{P,Q\}_{\alpha} \{\vb M,\vb N\}\sups{reg}_\alpha(\vb x)
+$$
+%====================================================================%
+Scattered fields outside:
+%====================================================================%
+$$ \vb E\sups{scat}(\vb x) =
+    \sum_\alpha 
+    \left[ \frac{ik^3(\epsilon-1)}{1-k^2(\epsilon-1)G_{\alpha\alpha}}\right]
+           S_\alpha \{P,Q\}_{\alpha} \{\vb M,\vb N\}\sups{out}_\alpha(\vb x)
+$$
+%====================================================================%
 
 \subsubsection*{Mode-matching solution}
 

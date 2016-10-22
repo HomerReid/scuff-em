@@ -1035,6 +1035,35 @@ RWGSurface *RWGGeometry::ResolveEdge(int neFull, int *pns, int *pne, int *pKNInd
 }
 
 /***************************************************************/
+/* like the previous routine, except the input is an index into*/
+/* the overall BEM system.                                     */
+/***************************************************************/
+RWGSurface *RWGGeometry::ResolveBF(int nbfFull, int *pns, int *pne, bool *pIsMagnetic)
+{
+  int ns=0, NSm1=NumSurfaces - 1;
+  while( (ns < NSm1) && (nbfFull >= BFIndexOffset[ns+1]) )
+   ns++;
+
+  int nbf  = nbfFull - BFIndexOffset[ns];
+  
+  bool IsMagnetic=false;
+  int ne=0;
+  if (Surfaces[ns]->IsPEC)
+   { ne = nbf;
+     IsMagnetic=false;
+   }
+  else
+   { ne = nbf/2;
+     IsMagnetic = (nbf%2)==1;
+   };
+
+  if (pns) *pns=ns;
+  if (pne) *pne=ne;
+  if (pIsMagnetic) *pIsMagnetic=IsMagnetic;
+  return Surfaces[ns];
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::SetLogLevel(int NewLogLevel)

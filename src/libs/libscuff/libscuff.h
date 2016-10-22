@@ -46,7 +46,6 @@
 #include <libIncField.h>
 
 #include "GTransformation.h"
-#include "FieldGrid.h"
 #include "GBarAccelerator.h"
 #include "PFTOptions.h"
 
@@ -482,7 +481,8 @@ class RWGGeometry
 
    void GetKNCoefficients(HVector *KN, int ns, int ne,
                           cdouble *KAlpha, cdouble *NAlpha=0);
-   RWGSurface *ResolveEdge(int neFull, int *pns, int *pne, int *pKNIndex);
+   RWGSurface *ResolveEdge(int neFull, int *pns=0, int *pne=0, int *pKNIndex=0);
+   RWGSurface *ResolveBF(int nbfFull, int *pns=0, int *pne=0, bool *pIsMagnetic=0);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;

@@ -653,47 +653,23 @@ bool EdgeInMMJ(RWGGeometry *G, int ns, int ne, int *pnMMJ, int *pnEdgeWithinMMJ)
 #define MMJALG_NONE  0
 #define MMJALG_MINUS 1
 #define MMJALG_PLUS  2
-#define MMJALG_CONT  3
-#define MMJALG_SHUFFLE 4
 void RWGGeometry::ApplyMMJTransformation(HMatrix *M, HVector *RHS)
 {
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  int Method=MMJALG_MINUS;
+  int Method=MMJALG_NONE;
+
   char *s=getenv("SCUFF_MMJ_ALGORITHM");
   if (s)
    Method = s[0] - '0';
-  if (Method<0 || Method>4) ErrExit("invalid MMJ algorithm %i",Method);
-Log("Using MMJ algorithm %i.",Method);
+  if (Method<0 || Method>2)
+   { Warn("invalid MMJ algorithm %s (skipping)",s);
+     return;
+   };
 
   if (Method==MMJALG_NONE) return;
 
-  double Sign = (Method==MMJALG_MINUS) ? -1.0 :
-                (Method==MMJALG_PLUS)  ? +1.0 :
-                                          0.0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  Log("Applying MMJ transformation via algorithm %i.",Method);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-static bool Init=false;
-if (!Init && Method==MMJALG_SHUFFLE)
- { Init=true; 
-   for(int nMMJ=0; nMMJ<NumMMJs; nMMJ++)
-     { MMJData *Data       = MultiMaterialJunctions[nMMJ];
-       int MMJSize         = Data->NumEdges;
-       int *SurfaceIndices = Data->SurfaceIndices;
-       int *EdgeIndices    = Data->EdgeIndices;
-       int Temp;
-
-       Temp = SurfaceIndices[0];
-       SurfaceIndices[0] = SurfaceIndices[MMJSize-1];
-       SurfaceIndices[MMJSize-1]=Temp;
-
-       Temp = EdgeIndices[0];
-       EdgeIndices[0] = EdgeIndices[MMJSize-1];
-       EdgeIndices[MMJSize-1]=Temp;
-     };
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+  double Sign = (Method==MMJALG_MINUS) ? -1.0 : 1.0;
   for(int nMMJ=0; nMMJ<NumMMJs; nMMJ++)
    { 
      MMJData *Data       = MultiMaterialJunctions[nMMJ];
@@ -706,32 +682,25 @@ if (!Init && Method==MMJALG_SHUFFLE)
      bool IsPEC          = Surfaces[ns0]->IsPEC;
      int iBF0            = BFIndexOffset[ns0] + (IsPEC ? 1 : 2)*ne0;
      
-     // subtract BEM system row #iBF0 from rows #iBF1...#iBFN
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-    if (Method==MMJALG_MINUS || Method==MMJALG_PLUS)
-{
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     // subtract/add BEM system row #iBF0 from rows #iBF1...#iBFN
      for(int n=1; n<MMJSize; n++)
       { 
-        int nsN     = SurfaceIndices[n];
-        int neN     = EdgeIndices[n];
-        int iBFN    = BFIndexOffset[nsN] + (IsPEC ? 1 : 2)*neN;
+         int nsN     = SurfaceIndices[n];
+         int neN     = EdgeIndices[n];
+         int iBFN    = BFIndexOffset[nsN] + (IsPEC ? 1 : 2)*neN;
 
-        if (M)
-         for(int nc=0; nc<M->NC; nc++)
-          { M->AddEntry(iBFN, nc, Sign*M->GetEntry(iBF0, nc));
-            if (!IsPEC)
-             M->AddEntry(iBFN+1, nc, Sign*M->GetEntry(iBF0+1, nc));
+         if (M)
+          for(int nc=0; nc<M->NC; nc++)
+           { M->AddEntry(iBFN, nc, Sign*M->GetEntry(iBF0, nc));
+             if (!IsPEC)
+              M->AddEntry(iBFN+1, nc, Sign*M->GetEntry(iBF0+1, nc));
+           };
+         if (RHS)
+          { RHS->AddEntry(iBFN, Sign*RHS->GetEntry(iBF0));
+            if ( !IsPEC )
+             RHS->AddEntry(iBFN+1, Sign*RHS->GetEntry(iBF0+1));
           };
-        if (RHS)
-         { RHS->AddEntry(iBFN, Sign*RHS->GetEntry(iBF0));
-           if ( !IsPEC )
-            RHS->AddEntry(iBFN+1, Sign*RHS->GetEntry(iBF0+1));
-         };
       }; // for(int n=1; n<MMJSize; n++)
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-};
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      // replace BEM system row #iBF0 with condition \sum K_n = 0
      if (M)
