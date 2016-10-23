@@ -127,13 +127,13 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
 /***************************************************************/
 /***************************************************************/
 static const char *FieldTitles[]=
- {"|Ex|", "|Ey|", "|Ez|", "|E|",
-  "|Hx|", "|Hy|", "|Hz|", "|H|",
+ {"Ex", "Ey", "Ez", "|E|",
+  "Hx", "Hy", "Hz", "|H|",
  };
 
 #define NUMFIELDFUNCS 8
 
-void WriteFVMesh(SSData *SSD, RWGSurface *S, FILE *f)
+void WriteFVMesh(SSData *SSD, RWGSurface *S, FILE *f, char *FuncString)
 {
   /*--------------------------------------------------------------*/
   /*- create an Nx3 HMatrix whose columns are the coordinates of  */
@@ -176,6 +176,8 @@ void WriteFVMesh(SSData *SSD, RWGSurface *S, FILE *f)
   char *TransformLabel=SSD->TransformLabel, *IFLabel=SSD->IFLabel;
   for(int nff=0; nff<NUMFIELDFUNCS; nff++)
    { 
+     if (FuncString && !strcasestr(FuncString,FieldTitles[nff]))
+      continue;
      fprintf(f,"View \"%s(%s)",FieldTitles[nff],z2s(SSD->Omega));
      if (TransformLabel)
       fprintf(f,"(%s)",TransformLabel);
@@ -229,7 +231,7 @@ void WriteFVMesh(SSData *SSD, RWGSurface *S, FILE *f)
 /* fields on a user-specified surface mesh for visualization   */
 /* in GMSH.                                                    */
 /***************************************************************/
-void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile)
+void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile, char *FuncList)
 { 
   int NumFVMeshTransforms;
   GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
@@ -261,7 +263,7 @@ void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile)
       };
 
      S->Transform(FVMeshGTCList[nt]->GT);
-     WriteFVMesh(SSD, S, f);
+     WriteFVMesh(SSD, S, f, FuncList);
      S->UnTransform();
 
      fclose(f);

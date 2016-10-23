@@ -87,7 +87,9 @@ int main(int argc, char *argv[])
 //
   char *FVMeshes[MAXFVM];            int nFVMeshes;
   char *FVMeshTransFiles[MAXFVM];    int nFVMeshTransFiles;
+  char *FVFuncs[MAXFVM];             int nFVFuncs;
   memset(FVMeshTransFiles, 0, MAXFVM*sizeof(char *));
+  memset(FVFuncs,          0, MAXFVM*sizeof(char *));
 //
   char *PFTFile=0;
   char *OPFTFile=0;
@@ -116,35 +118,36 @@ int main(int argc, char *argv[])
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
-     {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+     {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file\n"},
 /**/
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  0,             "file listing angular frequencies"},
      {"Lambda",         PA_CDOUBLE, 1, MAXFREQ, (void *)LambdaVals,  &nLambdaVals,  "wavelength"},
-     {"LambdaFile",     PA_STRING,  1, 1,       (void *)&LambdaFile, 0,             "file listing wavelengths"},
+     {"LambdaFile",     PA_STRING,  1, 1,       (void *)&LambdaFile, 0,             "file listing wavelengths\n"},
 /**/
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,       &npwDir,       "plane wave direction"},
-     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,       &npwPol,       "plane wave polarization"},
+     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,       &npwPol,       "plane wave polarization\n"},
 /**/
      {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,       &ngbDir,       "gaussian beam direction"},
      {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,       &ngbPol,       "gaussian beam polarization"},
      {"gbCenter",       PA_DOUBLE,  3, MAXGB,   (void *)gbCenter,    &ngbCenter,    "gaussian beam center"},
-     {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,     &ngbWaist,     "gaussian beam waist"},
+     {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,     &ngbWaist,     "gaussian beam waist\n"},
 /**/
      {"psLocation",     PA_DOUBLE,  3, MAXPS,   (void *)psLoc,       &npsLoc,       "point source location"},
-     {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength,  &npsStrength,  "point source strength"},
+     {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength,  &npsStrength,  "point source strength\n"},
 /**/
-     {"IFFile",         PA_STRING,  1, 1,       (void *)&IFFile,     0,             "list of incident fields"},
+     {"IFFile",         PA_STRING,  1, 1,       (void *)&IFFile,     0,             "list of incident fields\n"},
 /**/
-     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformations"},
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformations\n"},
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
-     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EPFile output"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EPFile output\n\n"},
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
      {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh"},
+     {"FVFunctions",    PA_STRING,  1, MAXFVM,  (void *)FVFuncs,     &nFVFuncs,     "comma-separated list of field functions to visualize\n"},
 /**/
-     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file\n"},
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
      {"MomentPFTFile",  PA_STRING,  1, 1,       (void *)&MomentPFTFile,   0,        "name of multipole-moment PFT output file"},
@@ -154,18 +157,18 @@ int main(int argc, char *argv[])
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
      {"DSIPoints2",     PA_INT,     1, 1,       (void *)&DSIPoints2, 0,             "number of quadrature points for DSIPFT second opinion"},
-     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField, 0,            "retain only far-field contributions to DSIPFT"},
+     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField, 0,            "retain only far-field contributions to DSIPFT\n"},
 /**/
      {"GetRegionPFTs",  PA_BOOL,    0, 1,       (void *)&GetRegionPFTs,   0,          "report PFTs for each region"},
-     {"PlotPFTFlux",    PA_BOOL,    0, 1,       (void *)&PlotPFTFlux,   0,          "generate plots of spatially-resolved PFT flux"},
+     {"PlotPFTFlux",    PA_BOOL,    0, 1,       (void *)&PlotPFTFlux,   0,          "generate plots of spatially-resolved PFT flux\n"},
 /**/
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
-     {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,   "generate surface current visualization files"},
+     {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,   "generate surface current visualization files\n"},
 /**/
-     {"HDF5File",       PA_STRING,  1, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
+     {"HDF5File",       PA_STRING,  1, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export\n"},
 /**/
-     {"LogLevel",       PA_STRING,  1, 1,       (void *)&LogLevel,   0,             "none | terse | verbose | verbose2"},
+     {"LogLevel",       PA_STRING,  1, 1,       (void *)&LogLevel,   0,             "none | terse | verbose | verbose2\n"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -256,7 +259,8 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   if (nFVMeshTransFiles!=0 && nFVMeshes!=nFVMeshTransFiles)
    ErrExit("--FVMeshTransFile must be specified for every --FVMesh");
-
+  if (nFVFuncs!=0 && nFVMeshes!=nFVFuncs)
+   ErrExit("--FVFuncs must be specified for every --FVMesh");
 
   /*******************************************************************/
   /* PFT options *****************************************************/
@@ -551,7 +555,7 @@ int main(int argc, char *argv[])
            /*--------------------------------------------------------------*/
            int nfm;
            for(nfm=0; nfm<nFVMeshes; nfm++)
-            VisualizeFields(SSD, FVMeshes[nfm], FVMeshTransFiles[nfm]);
+            VisualizeFields(SSD, FVMeshes[nfm], FVMeshTransFiles[nfm], FVFuncs[nfm]);
 
          }; // for(int nIF=0; nIF<IFList->NumIFs; nIF++
       
