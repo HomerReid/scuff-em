@@ -599,4 +599,21 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
 
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void DestroyGTCList(GTComplex **GTCList, int Length)
+{
+  for(int nt=0; nt<Length; nt++)
+   { GTComplex *GTC=GTCList[nt];
+     free(GTC->Tag);
+     for(int ns=0; ns<GTC->NumSurfacesAffected; ns++)
+      { free(GTC->SurfaceLabel[ns]);
+        free(GTC->GT);
+      };
+     free(GTC);
+   };
+  free(GTCList);
+}
+
 } // namespace scuff

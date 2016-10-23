@@ -59,6 +59,6 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
-void VisualizeFields(SSData *SSData, char *MeshFileName);
+void VisualizeFields(SSData *SSData, char *FVMesh, char *FVMeshTransFile);
 
 #endif

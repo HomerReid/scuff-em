@@ -119,6 +119,8 @@ GTComplex *CreateDefaultGTComplex();
 // and returns an array of GTComplex structures.
 GTComplex **ReadTransFile(char *FileName, int *NumGTComplices);
 
+void DestroyGTCList(GTComplex **GTCList, int Length);
+
 } // namespace scuff
 
 #endif // #ifndef GTRANSFORMATION_H

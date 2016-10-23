@@ -758,6 +758,16 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
      M=AllocateBEMMatrix();
    };
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (LDim==0)
+   Log("Assembling BEM matrix at Omega=%s",z2s(Omega));
+  else if (LDim==1)
+   Log("Assembling BEM matrix at {Omega,kx}={%s,%g}",z2s(Omega),kBloch[0]);
+  else if (LDim==2)
+   Log("Assembling BEM matrix at {Omega,kx,ky}={%s,%g,%g}",z2s(Omega),kBloch[0],kBloch[1]);
+
   // the overall BEM matrix is symmetric as long as we 
   // don't have a nonzero bloch wavevector.
   bool MatrixIsSymmetric = ( !kBloch || (kBloch[0]==0.0 && kBloch[1]==0.0) );

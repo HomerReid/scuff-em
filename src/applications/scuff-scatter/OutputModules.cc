@@ -105,8 +105,8 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
         XMatrix->GetEntriesD(nr,":",X);
         SFMatrix->GetEntries(nr,":",EH);
         if (ST==1) 
-         for(int nc=0; nc<6; nc++) 
-          EH[nc]+=IFMatrix->GetEntry(nr,nc);
+         for(int n=0; n<6; n++) 
+          EH[n]+=IFMatrix->GetEntry(nr,n);
         fprintf(f,"%+.8e %+.8e %+.8e ",X[0],X[1],X[2]);
         fprintf(f,"%s ",OmegaStr);
         if (TransformLabel) fprintf(f,"%s ",TransformLabel);
@@ -124,9 +124,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
 }
 
 /***************************************************************/
-/* VisualizeFields() produces a color plot of the E and H      */
-/* fields on a user-specified surface mesh for visualization   */
-/* in GMSH.                                                    */
+/***************************************************************/
 /***************************************************************/
 static const char *FieldTitles[]=
  {"|Ex|", "|Ey|", "|Ez|", "|E|",
@@ -135,27 +133,8 @@ static const char *FieldTitles[]=
 
 #define NUMFIELDFUNCS 8
 
-void VisualizeFields(SSData *SSD, char *MeshFileName)
-{ 
-  /*--------------------------------------------------------------*/
-  /*- try to open output file ------------------------------------*/
-  /*--------------------------------------------------------------*/
-  char *FileBase=SSD->FileBase; 
-  char PPFileName[100];
-  snprintf(PPFileName,100,"%s.%s.pp",FileBase,GetFileBase(MeshFileName));
-  FILE *f=fopen(PPFileName,"a");
-  if (!f) 
-   { Warn("could not open field visualization file %s",PPFileName);
-     return;
-   };
-  
-  /*--------------------------------------------------------------*/
-  /*- try to open user's mesh file -------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S=new RWGSurface(MeshFileName);
-
-  Log("Creating flux plot for surface %s...",MeshFileName);
-
+void WriteFVMesh(SSData *SSD, RWGSurface *S, FILE *f)
+{
   /*--------------------------------------------------------------*/
   /*- create an Nx3 HMatrix whose columns are the coordinates of  */
   /*- the flux mesh panel vertices                                */
@@ -178,17 +157,9 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
          ) VertexUsed=true;
 
      if (!VertexUsed)
-      { 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-        printf("Replacing %i:{%.2e,%.2e,%.2e} with %i: {%.2e,%.2e,%.2e}\n",
-                nv,XMatrix->GetEntryD(nv,0), 
-                   XMatrix->GetEntryD(nv,1),
-                   XMatrix->GetEntryD(nv,2),
-                nvRef,S->Vertices[3*nvRef+0],
-                      S->Vertices[3*nvRef+1],
-                      S->Vertices[3*nvRef+2]);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+      { printf("Replacing %i:{%.2e,%.2e,%.2e} with %i: {%.2e,%.2e,%.2e}\n",
+                nv,XMatrix->GetEntryD(nv,0), XMatrix->GetEntryD(nv,1), XMatrix->GetEntryD(nv,2),
+                nvRef,S->Vertices[3*nvRef+0], S->Vertices[3*nvRef+1], S->Vertices[3*nvRef+2]);
         XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nvRef);
       };
    };
@@ -240,19 +211,64 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
                    V[1][0], V[1][1], V[1][2],
                    V[2][0], V[2][1], V[2][2],
                    Q[0], Q[1], Q[2]);
-      };
+      }; // for(int np=0; np<S->NumPanels; np++)
 
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
      fprintf(f,"};\n\n");
-   };
-  fclose(f);
 
+   };  // for(int nff=0; nff<NUMFIELDFUNCS; nff++)
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   delete FMatrix;
   delete XMatrix;
+}
+
+/***************************************************************/
+/* VisualizeFields() produces a color plot of the E and H      */
+/* fields on a user-specified surface mesh for visualization   */
+/* in GMSH.                                                    */
+/***************************************************************/
+void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile)
+{ 
+  int NumFVMeshTransforms;
+  GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
+  
+  /*--------------------------------------------------------------*/
+  /*- try to open user's mesh file -------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S=new RWGSurface(FVMesh);
+
+  char *GeoFileBase=SSD->FileBase; 
+  char *FVMFileBase=GetFileBase(FVMesh);
+  for(int nt=0; nt<NumFVMeshTransforms; nt++)
+   {
+     char *Tag = FVMeshGTCList[nt]->Tag;
+     char PPFileName[100];
+     if (NumFVMeshTransforms>1)
+      { 
+        snprintf(PPFileName,100,"%s.%s.%s.pp",GeoFileBase,FVMFileBase,Tag);
+        Log("Creating flux plot for surface %s, transform %s...",FVMesh,Tag);
+      }
+     else
+      {  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,FVMFileBase);
+         Log("Creating flux plot for surface %s...",FVMesh);
+      };
+     FILE *f=fopen(PPFileName,"a");
+     if (!f) 
+      { Warn("could not open field visualization file %s",PPFileName);
+       continue;
+      };
+
+     S->Transform(FVMeshGTCList[nt]->GT);
+     WriteFVMesh(SSD, S, f);
+     S->UnTransform();
+
+     fclose(f);
+   };
 
   delete S;
+  DestroyGTCList(FVMeshGTCList,NumFVMeshTransforms);
 
 }
 
@@ -506,3 +522,4 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
   fclose(f);
 
 }
+

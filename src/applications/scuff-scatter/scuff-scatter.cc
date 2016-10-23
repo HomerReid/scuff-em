@@ -86,6 +86,8 @@ int main(int argc, char *argv[])
   char *FileBase=0;
 //
   char *FVMeshes[MAXFVM];            int nFVMeshes;
+  char *FVMeshTransFiles[MAXFVM];    int nFVMeshTransFiles;
+  memset(FVMeshTransFiles, 0, MAXFVM*sizeof(char *));
 //
   char *PFTFile=0;
   char *OPFTFile=0;
@@ -140,6 +142,7 @@ int main(int argc, char *argv[])
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EPFile output"},
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
+     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh"},
 /**/
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file"},
 /**/
@@ -247,6 +250,13 @@ int main(int argc, char *argv[])
                            );
   if ( NeedIncidentField && IFList==0 )
    ErrExit("you must specify at least one incident field source");
+
+  /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  if (nFVMeshTransFiles!=0 && nFVMeshes!=nFVMeshTransFiles)
+   ErrExit("--FVMeshTransFile must be specified for every --FVMesh");
+
 
   /*******************************************************************/
   /* PFT options *****************************************************/
@@ -541,7 +551,7 @@ int main(int argc, char *argv[])
            /*--------------------------------------------------------------*/
            int nfm;
            for(nfm=0; nfm<nFVMeshes; nfm++)
-            VisualizeFields(SSD, FVMeshes[nfm]);
+            VisualizeFields(SSD, FVMeshes[nfm], FVMeshTransFiles[nfm]);
 
          }; // for(int nIF=0; nIF<IFList->NumIFs; nIF++
       
