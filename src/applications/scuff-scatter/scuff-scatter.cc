@@ -47,67 +47,6 @@
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define MAXSTR   1000
- 
-/***************************************************************/
-/* helper routine to process frequency-related options to      */
-/* construct a list of frequencies at which to run calculations*/
-/***************************************************************/
-HVector *GetOmegaList(char *OmegaFile,  cdouble *OmegaVals,  int nOmegaVals,
-                      char *LambdaFile, cdouble *LambdaVals, int nLambdaVals)
-{
-  HVector *OmegaList=0;
-  int TotalFreqs=0;
-
-  HVector *OmegaList1=0, *OmegaList2=0, *LambdaList1=0, *LambdaList2=0;
-  if (OmegaFile) // process --OmegaFile option if present
-   { 
-     OmegaList1=new HVector(OmegaFile,LHM_TEXT);
-     if (OmegaList1->ErrMsg)
-      ErrExit(OmegaList1->ErrMsg);
-     TotalFreqs += OmegaList1->N;
-   };
-  if (nOmegaVals>0) // process -- Omega options if present
-   {
-     OmegaList2=new HVector(nOmegaVals, LHM_COMPLEX);
-     for(int n=0; n<nOmegaVals; n++)
-      OmegaList2->SetEntry(n,OmegaVals[n]);
-     TotalFreqs += OmegaList2->N;
-   };
-  if (LambdaFile) // process --LambdaFile option if present
-   { 
-     LambdaList1=new HVector(LambdaFile,LHM_TEXT);
-     if (LambdaList1->ErrMsg)
-      ErrExit(LambdaList1->ErrMsg);
-     TotalFreqs += LambdaList1->N;
-   };
-  if (nLambdaVals>0) // process -- Lambda options if present
-   {
-     LambdaList2=new HVector(nLambdaVals, LHM_COMPLEX);
-     for(int n=0; n<nLambdaVals; n++)
-      LambdaList2->SetEntry(n,LambdaVals[n]);
-     TotalFreqs += LambdaList2->N;
-   };
-
-  if (TotalFreqs==0)
-   return 0;
-
-  OmegaList = new HVector(TotalFreqs, LHM_COMPLEX);
-  int nOmega=0;
-  if ( OmegaList1 )
-   for(int n=0; n<OmegaList1->N; n++)
-    OmegaList->SetEntry(nOmega++, OmegaList1->GetEntry(n));
-  if ( OmegaList2 )
-   for(int n=0; n<OmegaList2->N; n++)
-    OmegaList->SetEntry(nOmega++, OmegaList2->GetEntry(n));
-  if ( LambdaList1 )
-   for(int n=0; n<LambdaList1->N; n++)
-    OmegaList->SetEntry(nOmega++, 2.0*M_PI / (LambdaList1->GetEntry(n)));
-  if ( LambdaList2 )
-   for(int n=0; n<LambdaList2->N; n++)
-    OmegaList->SetEntry(nOmega++, 2.0*M_PI / (LambdaList2->GetEntry(n)));
-
-  return OmegaList;
-}
 
 /***************************************************************/
 /***************************************************************/
@@ -356,8 +295,8 @@ int main(int argc, char *argv[])
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
   /*******************************************************************/
-  /* sanity check: for now (20120924), calculations involving        */
-  /* extended geometries must have only a single incident field      */
+  /* for periodic geometries, all incident field sources that are    */
+  /* active at a given time must involve  single incident field      */
   /* source, which must be a plane wave, and the bloch wavevector    */
   /* is extracted from the plane wave direction                      */
   /*******************************************************************/

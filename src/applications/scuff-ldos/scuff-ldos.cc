@@ -33,6 +33,7 @@
 
 #define II cdouble(0.0,1.0)
 #define MAXEPFILES 100
+#define MAXFREQ    10
 
 using namespace scuff;
 
@@ -55,8 +56,9 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile;
 /**/
-  cdouble Omega=0.0;   int nOmega=0;
+  cdouble OmegaVals[MAXFREQ];	int nOmegaVals;   int nLambdaVals;
   char *OmegaFile=0;
+  char *LambdaFile=0;
   char *OkBFile=0;
 /**/
   char *EPFiles[MAXEPFILES];   int nEPFiles=0;
@@ -87,8 +89,10 @@ int main(int argc, char *argv[])
 //
      {"TransFile",   PA_STRING,  1, 1, (void *)&TransFile,    0,  "list of geometrical transformations"},
 //
-     {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
+     {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "angular frequency"},
+     {"Lambda",      PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nLambdaVals, "(free-space) wavelength"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
+     {"LambdaFile",  PA_STRING,  1, 1,       (void *)&LambdaFile,   0,       "list of (free-space) wavelengths"},
      {"OmegakBlochFile",   PA_STRING,  1, 1, (void *)&OkBFile,    0,  "list of (omega,kBloch) points "},
 //
      {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,        0,  "relative tolerance"},
@@ -121,28 +125,16 @@ int main(int argc, char *argv[])
   /***************************************************************/
   HVector *OmegaPoints=0;
   HMatrix *OkBPoints=0;
-  if ( nOmega!=0 )
-   { if (OmegaFile)
-      ErrExit("--Omega and --OmegaFile are incompatible");
-     if (OkBFile)
-      ErrExit("--Omega and --OmegakBlochFile are incompatible");
-     OmegaPoints=new HVector(1, LHM_COMPLEX);
-     OmegaPoints->SetEntry(0,Omega);
-   }
-  else if (OmegaFile)
-   { if (OkBFile)
-      ErrExit("--OmegaFile and --OmegakBlochFile are incompatible");
-     OmegaPoints = new HVector(OmegaFile);
-     if (OmegaPoints->ErrMsg)
-      ErrExit(OmegaPoints->ErrMsg);
-   }
-  else if (OkBFile)
+  if (OkBFile)
    { OkBPoints = new HMatrix(OkBFile);
      if (OkBPoints->ErrMsg)
       ErrExit(OkBPoints->ErrMsg);
    }
   else
-   ErrExit("you must specify at least one frequency");
+   { OmegaPoints=GetOmegaList(OmegaFile, OmegaVals, nOmegaVals, LambdaFile, OmegaVals, nLambdaVals);
+     if (!OmegaPoints)
+      ErrExit("you must specify at least one frequency");
+   };
 
   /***************************************************************/
   /***************************************************************/
@@ -219,7 +211,7 @@ int main(int argc, char *argv[])
    {  
      for(int nokb=0; nokb<OkBPoints->NR; nokb++)
       { 
-        Omega=OkBPoints->GetEntry(nokb,0);
+        cdouble Omega=OkBPoints->GetEntry(nokb,0);
 
         double kBloch[3]={0.0, 0.0, 0.0};
         for(int d=0; d<LDim; d++)
@@ -247,7 +239,7 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /***************************************************************/
      for(int no=0; no<OmegaPoints->N; no++)
-      { Omega=OmegaPoints->GetEntry(no);
+      { cdouble Omega=OmegaPoints->GetEntry(no);
         Log("Evaluating Brillouin-zone integral at omega=%s",z2s(Omega));
         GetBZIntegral(BZIArgs, Omega, Result);
         WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, BZIArgs->BZIError);

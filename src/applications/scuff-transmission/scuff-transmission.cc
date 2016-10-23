@@ -188,7 +188,8 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   char *GeoFileName=0;
-  cdouble OmegaVals[MAXFREQ];	int nOmegaVals;   int nLambdaVals;
+  cdouble OmegaVals[MAXFREQ];	int nOmegaVals;
+  cdouble LambdaVals[MAXFREQ];	int nLambdaVals;
   char *OmegaFile=0;
   char *LambdaFile=0;
   double Theta=0.0;
@@ -207,8 +208,8 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFileName,  0,       ".scuffgeo file"},
 /**/
-     {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals,  "(angular) frequency"},
-     {"Lambda",      PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nLambdaVals, "(free-space) wavelength"},
+     {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals, "(angular) frequency"},
+     {"Lambda",      PA_CDOUBLE, 1, MAXFREQ, (void *)LambdaVals,     &nLambdaVals, "(free-space) wavelength"},
      {"OmegaFile",   PA_STRING,  1, 1,       (void *)&OmegaFile,    0,       "list of (angular) frequencies"},
      {"LambdaFile",  PA_STRING,  1, 1,       (void *)&LambdaFile,   0,       "list of (free-space) wavelengths"},
 /**/
@@ -268,25 +269,8 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* process frequency/wavelength options to construct a list of     */
   /* frequencies at which to run calculations.                       */
-  /* we assume the user specifies frequencies (--OmegaFile and/or    */
-  /* --Omega) *OR* wavelengths (--LambdaFile and/or --Lambda) but    */
-  /* not both.                                                       */
   /*******************************************************************/
-  HVector *OmegaVector=0;
-  if (OmegaFile || LambdaFile)
-   { if (OmegaFile && LambdaFile)
-      ErrExit("--OmegaFile and --LambdaFile are incompatible");
-     OmegaVector=new HVector(OmegaFile ? OmegaFile : LambdaFile, LHM_TEXT);
-     if (OmegaVector->ErrMsg)
-      ErrExit(OmegaVector->ErrMsg);
-   };
-  if (nOmegaVals>0 || nLambdaVals>0)
-   OmegaVector=Concat(OmegaVector, new HVector(nOmegaVals, LHM_REAL, OmegaVals));
-
-  if (LambdaFile || nLambdaVals) // convert wavelengths to angular frequencies
-   for(int nf=0; nf<OmegaVector->N; nf++)
-    OmegaVector->SetEntry(nf, 2.0*M_PI/OmegaVector->GetEntryD(nf));
-
+  HVector *OmegaVector=GetOmegaList(OmegaFile, OmegaVals, nOmegaVals, LambdaFile, LambdaVals, nLambdaVals);
   if ( !OmegaVector || OmegaVector->N==0)
    OSUsage(argv[0], OSArray, "you must specify at least one frequency");
 

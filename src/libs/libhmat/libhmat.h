@@ -148,6 +148,10 @@ class HVector
 HVector *LinSpace(double Min, double Max, int Num);
 HVector *LogSpace(double Min, double Max, int Num);
 HVector *Concat(HVector *V1, HVector *V2);
+HVector *GetOmegaList(char *OmegaFile,
+                      cdouble *OmegaVals,  int nOmegaVals,
+                      char *LambdaFile,
+                      cdouble *LambdaVals, int nLambdaVals);
 
 /***************************************************************/
 /* HMatrix class definition ************************************/
