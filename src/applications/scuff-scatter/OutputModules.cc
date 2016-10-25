@@ -82,7 +82,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   const char *Ext[2]={"scattered","total"};
   for(int ST=0; ST<2; ST++)
    { char OutFileName[MAXSTR];
-     snprintf(OutFileName,MAXSTR,"%s.%s.%s",FileBase,GetFileBase(EPFileName),Ext[ST]);
+     snprintf(OutFileName,MAXSTR,"%s.%s.%s",FileBase,EPFileName,Ext[ST]);
      FILE *f=fopen(OutFileName,"a");
      fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
      fprintf(f,"# columns: \n");
