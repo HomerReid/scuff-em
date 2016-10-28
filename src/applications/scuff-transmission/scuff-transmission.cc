@@ -95,22 +95,22 @@ void WriteFilePreamble(FILE *f)
   fprintf(f,"# 6:      downward flux / vacuum plane-wave flux (TM)\n");
   fprintf(f,"# \n");
   fprintf(f,"# 7,8:    mag, phase a_Upper(TE -> TE)\n");
-  fprintf(f,"# 9,10:   mag, phase a_Upper(TM -> TM)\n");
-  fprintf(f,"# 11,12:  mag, phase a_Lower(TE -> TE)\n");
-  fprintf(f,"# 13,14:  mag, phase a_Lower(TM -> TM)\n");
-  fprintf(f,"# 15,16   mag, phase a_Upper(TE -> TM)\n");
-  fprintf(f,"# 17,18   mag, phase a_Upper(TM -> TE)\n");
-  fprintf(f,"# 19,20   mag, phase a_Lower(TE -> TM)\n");
-  fprintf(f,"# 21,22   mag, phase a_Lower(TM -> TE)\n");
+  fprintf(f,"# 9,10:   mag, phase a_Upper(TE -> TM)\n");
+  fprintf(f,"# 11,12   mag, phase a_Upper(TM -> TE)\n");
+  fprintf(f,"# 13,14   mag, phase a_Upper(TM -> TM)\n");
+  fprintf(f,"# 15,16   mag, phase a_Lower(TE -> TE)\n");
+  fprintf(f,"# 17,18   mag, phase a_Lower(TE -> TM)\n");
+  fprintf(f,"# 19,20   mag, phase a_Lower(TM -> TE)\n");
+  fprintf(f,"# 21,22   mag, phase a_Lower(TM -> TM)\n");
   fprintf(f,"# \n");
   fprintf(f,"# 23,24   mag, phase tTETE\n");
   fprintf(f,"# 25,26   mag, phase tTETM\n");
   fprintf(f,"# 27,28   mag, phase tTMTE\n");
   fprintf(f,"# 29,30   mag, phase tTMTM\n");
-  fprintf(f,"# 31,32   mag, phase tTETE\n");
-  fprintf(f,"# 33,34   mag, phase tTETM\n");
-  fprintf(f,"# 35,36   mag, phase tTMTE\n");
-  fprintf(f,"# 37,38   mag, phase tTMTM\n");
+  fprintf(f,"# 31,32   mag, phase rTETE\n");
+  fprintf(f,"# 33,34   mag, phase rTETM\n");
+  fprintf(f,"# 35,36   mag, phase rTMTE\n");
+  fprintf(f,"# 37,38   mag, phase rTMTM\n");
   fflush(f);
   fflush(f);
 }
@@ -427,22 +427,22 @@ int main(int argc, char *argv[])
       fprintf(f,"%e %e ", UpperFluxRatio[POL_TM], LowerFluxRatio[POL_TM]);
 
       fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TE][POL_TE]), arg(UpperAmplitude[POL_TE][POL_TE]));
-      fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TM]), arg(UpperAmplitude[POL_TM][POL_TM]));
-      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TE]), arg(LowerAmplitude[POL_TE][POL_TE]));
-      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TM][POL_TM]), arg(LowerAmplitude[POL_TM][POL_TM]));
       fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TE][POL_TM]), arg(UpperAmplitude[POL_TE][POL_TM]));
       fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TE]), arg(UpperAmplitude[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TM]), arg(UpperAmplitude[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TE]), arg(LowerAmplitude[POL_TE][POL_TE]));
       fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TM]), arg(LowerAmplitude[POL_TE][POL_TM]));
       fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TM][POL_TE]), arg(LowerAmplitude[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TM][POL_TM]), arg(LowerAmplitude[POL_TM][POL_TM]));
 
       fprintf(f,"%e %e ", abs(tIntegral[POL_TE][POL_TE]), arg(tIntegral[POL_TE][POL_TE]));
-      fprintf(f,"%e %e ", abs(tIntegral[POL_TM][POL_TM]), arg(tIntegral[POL_TM][POL_TM]));
-      fprintf(f,"%e %e ", abs(rIntegral[POL_TE][POL_TE]), arg(rIntegral[POL_TE][POL_TE]));
-      fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TM]), arg(rIntegral[POL_TM][POL_TM]));
       fprintf(f,"%e %e ", abs(tIntegral[POL_TE][POL_TM]), arg(tIntegral[POL_TE][POL_TM]));
       fprintf(f,"%e %e ", abs(tIntegral[POL_TM][POL_TE]), arg(tIntegral[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(tIntegral[POL_TM][POL_TM]), arg(tIntegral[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(rIntegral[POL_TE][POL_TE]), arg(rIntegral[POL_TE][POL_TE]));
       fprintf(f,"%e %e ", abs(rIntegral[POL_TE][POL_TM]), arg(rIntegral[POL_TE][POL_TM]));
       fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TE]), arg(rIntegral[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TM]), arg(rIntegral[POL_TM][POL_TM]));
 
       fprintf(f,"\n");
       fflush(f);
