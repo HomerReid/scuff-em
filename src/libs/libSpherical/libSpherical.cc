@@ -745,13 +745,13 @@ void GetMNlmArray(int lMax, cdouble k,
        N[3*Alpha + 2]= -dm*PreFac*(ROverR + dRdr[l])*Ylm[Alpha]/SinTheta;
 
        if (LL)
-        { LL[3*Alpha + 0] = dRdr[l] * Ylm[Alpha];
-          LL[3*Alpha + 1] = ROverR*dYlmdTheta[Alpha];
-          LL[3*Alpha + 2] = II*dm*ROverR * Ylm[Alpha] / (SinTheta);
+        { LL[3*Alpha + 0] = dRdr[l] * Ylm[Alpha] / k;
+          LL[3*Alpha + 1] = ROverR*dYlmdTheta[Alpha] / k;
+          LL[3*Alpha + 2] = II*dm*ROverR * Ylm[Alpha] / (k*SinTheta);
         };
 
        if (DivLL)
-        DivLL[Alpha] = -k*k*R[l]*Ylm[Alpha];
+        DivLL[Alpha] = -k*R[l]*Ylm[Alpha];
 
     };
 

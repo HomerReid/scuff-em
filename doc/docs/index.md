@@ -21,19 +21,33 @@
 
 # Tutorial Examples
 
+### Photonics, imaging 
+
 * [Mie scattering](examples/MieScattering/MieScattering.md)
 * [Electrostatics of a spherical dielectric shell](examples/DielectricShell/DielectricShell.md)
+* [LDOS and polarization-sensitive response in plasmonic bowtie antennas](http://homerreid.github.io/SCUFFEMTutorialSymposium/BowtieAntennas/)
+* [LDOS and dyadic Green functions above an infinite aluminum half-space](examples/HalfSpaceLDOS/HalfSpaceLDOS.md)
 * [Spatially-resolved study of plane-wave transmission through an infinite-area thin dielectric film](examples/ThinFilm/ThinFilm.md)
+* [Plane-wave transmission with rotation of polarization: Chiral metasurface rotator](http://homerreid.github.io/SCUFFEMTutorialSymposium/ChiralMetasurfaceRotator)
 * [Imaging diffraction patterns of discs, disc arrays, and hole arrays in metal screens](examples/DiffractionPatterns/DiffractionPatterns.md)
+* [Imaging diffraction patterns of aperiodic arrays: Vogel spirals](http://homerreid.github.io/SCUFFEMTutorialSymposium/SpiralArrays/)
+
+### Fluctuation-induced phenomena
+
 * [Casimir forces in a compact geometry](examples/CubeTorus.md)
 * [Casimir forces in a 1D extended geometry](examples/SiliconBeams/SiliconBeams.md)
 * [Casimir forces in a 2D extended geometry](examples/SiliconSlabs/SiliconSlabs.md)
 * [Thermal radiation, heat transfer, and non-equilibrium Casimir forces between silicon dioxide spheres](examples/SiO2Spheres/SiO2Spheres.md)
 * [Spatial distribution of heat flux from a warm tip over a cold substrate](examples/TipSubstrate/TipSubstrate.md)
-* [LDOS and dyadic Green functions above an infinite aluminum half-space](examples/HalfSpaceLDOS/HalfSpaceLDOS.md)
+
+### Pure electrostatics
+
 * [Electrostatic polarizability of platonic solids](examples/PlatonicSolids/PlatonicSolids.md)
 * [Capacitance of two-body capacitors](examples/TwoBodyCapacitors/TwoBodyCapacitors.md)
-* [Examples for BU Photonics Symposium, 10/25/2016](examples/BUSymposium/BUSymposium.md)
+
+### BU Symposium on Open-Source CAD Tools for Photonic Design Modeling
+
+* [BU Symposium on Open-Source CAD tools: <span class=SC>scuff-em</span> for photonics](http://homerreid.github.io/SCUFFEMTutorialSymposium/)
 
 # Command-line application reference
 
