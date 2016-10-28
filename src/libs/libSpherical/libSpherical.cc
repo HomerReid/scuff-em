@@ -686,7 +686,8 @@ void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X)
 void GetMNlmArray(int lMax, cdouble k,
                   double r, double Theta, double Phi,
                   int WaveType, cdouble *M, cdouble *N,
-                  double *Workspace)
+                  double *Workspace, 
+                  cdouble *LL, cdouble *DivLL)
 {  
   int NAlpha=(lMax+1)*(lMax+1);
   int Alpha, l, m;
@@ -718,6 +719,8 @@ void GetMNlmArray(int lMax, cdouble k,
   /***************************************************************/
   memset(M,0,3*sizeof(cdouble));  /* zero out the l==0 functions */
   memset(N,0,3*sizeof(cdouble));
+  if (LL) LL[0]=LL[1]=LL[2]=0.0;
+  if (DivLL) DivLL[0]=0.0;
   nik=-II*k;
   for (Alpha=l=1; l<=lMax; l++)
    for (m=-l; m<=l; m++, Alpha++)
@@ -740,6 +743,15 @@ void GetMNlmArray(int lMax, cdouble k,
        N[3*Alpha + 0]= -sqrt(dl*(dl+1.0))*ROverR*Ylm[Alpha]/k;
        N[3*Alpha + 1]= II*PreFac*(ROverR + dRdr[l])*dYlmdTheta[Alpha];
        N[3*Alpha + 2]= -dm*PreFac*(ROverR + dRdr[l])*Ylm[Alpha]/SinTheta;
+
+       if (LL)
+        { LL[3*Alpha + 0] = dRdr[l] * Ylm[Alpha];
+          LL[3*Alpha + 1] = ROverR*dYlmdTheta[Alpha];
+          LL[3*Alpha + 2] = II*dm*ROverR * Ylm[Alpha] / (SinTheta);
+        };
+
+       if (DivLL)
+        DivLL[Alpha] = -k*k*R[l]*Ylm[Alpha];
 
     };
 

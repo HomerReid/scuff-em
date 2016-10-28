@@ -102,7 +102,7 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
                         cdouble *R, cdouble *dRdr, double *Workspace=0);
 
 void GetRadialFunction(int l, cdouble k, double r, int WaveType,
-                       cdouble *R, cdouble *dRdr, cdouble *RlSlash=0);
+                       cdouble *R, cdouble *dRdr=0, cdouble *RlSlash=0);
 
 /***************************************************************/
 /* scalar helmholtz solutions **********************************/
@@ -126,7 +126,7 @@ void GetMNlm(int l, int m, cdouble k, double r, double Theta, double Phi,
 void GetMNlmArray(int lMax, cdouble k,
                   double r, double Theta, double Phi,
                   int WaveType, cdouble *M, cdouble *N, 
-                  double *Workspace=0);
+                  double *Workspace=0, cdouble *LL=0, cdouble *DivLL=0);
 
 /***************************************************************/
 /***************************************************************/
