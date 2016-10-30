@@ -1,5 +1,7 @@
 \documentclass{article} 
-\input{scufftex}
+\usepackage{array}
+\input{HRCommands}
+\newcommand{\BG}{\vbGamma}
 
 \graphicspath{{figures/}}
 
@@ -204,5 +206,92 @@ My alternative SIE formulation for IPEC bodies goes like this:
             +\zeta Z_0 \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
        \end{align*}
 \end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Example 1: Dielectric interface}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}[h]
+\resizebox{\textwidth}{!}{\includegraphics{TwoFilmTransmission.pdf}}
+\caption{Transmission through a two-layer film. Eventually I will take
+layer C to be thin and highly conductive and will try to model it 
+by an infinitesimally thin surface-impedance layer.}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+
+Figure 1 shows a transmission problem in which a plane wave from 
+infinite dielectric medium A impinges on a two-layer film 
+and is transmitted into region D.
+The input parameters are the frequency $\omega$, incidence
+angle $\theta\supt{A}$, and incident $\vb E$-field
+polarization $\vbVarEps\supt{A}$. I define coordinates
+so that the incident wavevector lives in the $xz$ plane.
+The propagation and 
+polarization vectors in each region ($R=\{A,B,C,D\}$)
+are then determined by
+%====================================================================%
+$$\begin{array}{>{\displaystyle}lc>{\displaystyle}lc>{\displaystyle}lc>{\displaystyle}l}
+\vb k\subt{R}
+&=& n\subt{R} k_0 \Big(\sin \theta\subt{R} \vbhat{x} + \cos\theta\subt{R} \vbhat{z}\Big)
+&\qquad&
+\overline{\vb k}\subt{R}
+&=& n\subt{R} k_0 \Big(\sin \theta\subt{R} \vbhat{x} - \cos\theta\subt{R} \vbhat{z}\Big)
+\\[5pt]
+%--------------------------------------------------------------------%
+ \vbVarEps\subt{R}\supt{TE}
+&=&\vbhat{y}
+&\qquad&
+ \overline{\vbVarEps}\subt{R}\supt{TE}
+&=&\vbhat{y}
+\\[5pt]
+%--------------------------------------------------------------------%
+ \vbVarEps\subt{R}\supt{TM}
+&=&\cos\theta\subt{R}\vbhat{x}-\sin\theta\subt{R}\vbhat{z}
+&\qquad&
+ \overline{\vbVarEps}\subt{R}\supt{TM}
+&=&-\cos\theta\subt{R}\vbhat{x}+\sin\theta\subt{R}\vbhat{z}
+\\[5pt]
+%--------------------------------------------------------------------%
+ \vbEta\subt{R}
+&=&\vbhat{k}\subt{R} \times \vbVarEps\subt{R}
+&\qquad&
+ \overline{\vbEta}\subt{R}
+&=&\wh{\overline{\vb k}}\subt{R} \times \overline{\vbVarEps}\subt{R}
+\end{array}
+$$
+%====================================================================%
+$$\theta\subt{R}=\sin^{-1}\left[\frac{n\subt{A}}{n\subt{R}}\sin\theta\subt{A}\right]$$
+%====================================================================%
+with
+%====================================================================%
+$$ k_0=\frac{\omega}{c},
+   \qquad n\subt{R}=\sqrt{\epsilon\subt{R} \mu\subt{R}},
+   \qquad Z\subt{R}=Z_0\sqrt\frac{\mu\subt{R}}{\epsilon\subt{R}}.
+$$
+%====================================================================%
+
+%====================================================================%
+TE:
+$$
+\left(\begin{array}{cccccc}
+1 & 
+\end{array}\right)
+%--------------------------------------------------------------------%
+\left(\begin{array}{c}r \\ p\subt{B} \\ \overline{p}\subt{B} \\
+                           p\subt{C} \\ \overline{p}\subt{C} \\ t
+\end{array}\right)
+=
+%--------------------------------------------------------------------%
+\left(\begin{array}{c}-1 \\ -1 \\ 0 \\ 0 \\ 0 \\ 0 
+\end{array}\right)
+$$
+%====================================================================%
 
 \end{document}

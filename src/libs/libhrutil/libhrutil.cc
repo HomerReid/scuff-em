@@ -247,10 +247,11 @@ int vsnprintfEC(char *str, size_t size, const char *format, va_list ap)
 
 /***************************************************************/
 /* extension of fopen that accepts an optional colon-separated */
-/* search path                                                 */
+/* search path.                                                */
+/* If Path is null this reduces to just the usual fopen.       */
 /* if WhichDir is non-null, then on return *WhichDir points to */
 /* a static buffer containing the directory in which the file  */
-/* as found                                                    */
+/* was found.                                                  */
 /***************************************************************/
 FILE *fopenPath(const char *Path, const char *FileName,
                 const char *Mode, char **WhichDir)
@@ -734,7 +735,7 @@ double RD(cdouble x, cdouble y)
   cdouble z=x-y;
   double zMag2=norm(z);
 
-  if ( z == cdouble(0,0) )
+  if ( z == cdouble(0.0,0.0) )
    return 0.0;
   return 2.0*sqrt(zMag2 / (xMag2+yMag2) );
 }
