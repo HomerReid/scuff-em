@@ -211,7 +211,9 @@ My alternative SIE formulation for IPEC bodies goes like this:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Example 1: Dielectric interface}
+\section{Example 1: Dielectric film with thin conductive coating layer}
+
+\subsection{Exact solution}
 
 %####################################################################%
 %####################################################################%
@@ -220,21 +222,29 @@ My alternative SIE formulation for IPEC bodies goes like this:
 \resizebox{\textwidth}{!}{\includegraphics{TwoFilmTransmission.pdf}}
 \caption{Transmission through a two-layer film. Eventually I will take
 layer C to be thin and highly conductive and will try to model it 
-by an infinitesimally thin surface-impedance layer.}
+by an infinitesimally thin surface-impedance layer. 
+Subscripts: I=initial/incident/interior, D=dielectric, C=conducting, E=exit/exterior.
+}
+\label{TwoFilmFigure}
 \end{figure}
 %####################################################################%
 %####################################################################%
 %####################################################################%
 
-Figure 1 shows a transmission problem in which a plane wave from 
-infinite dielectric medium A impinges on a two-layer film 
-and is transmitted into region D.
+Figure 1 shows a transmission problem in which a plane wave 
+emanating from infinite dielectric medium I (for ``initial''
+or ``incident'') impinges on a
+two-layer film (consisting of a dielectric layer D 
+and a conductive layer C with thicknesses 
+$T\subt{D,C}$ and relative material properties 
+$\{\epsilon,\mu\}\subt{D,C}$)
+and is transmitted into region E (for ``exit'' or ``exterior'').
 The input parameters are the frequency $\omega$, incidence
-angle $\theta\supt{A}$, and incident $\vb E$-field
-polarization $\vbVarEps\supt{A}$. I define coordinates
+angle $\theta\subt{A}$, and incident $\vb E$-field
+polarization $\vbVarEps\subt{A}$. I define coordinates
 so that the incident wavevector lives in the $xz$ plane.
 The propagation and 
-polarization vectors in each region ($R=\{A,B,C,D\}$)
+polarization vectors in each region ($R=\{I,D,C,E\}$)
 are then determined by
 %====================================================================%
 $$\begin{array}{>{\displaystyle}lc>{\displaystyle}lc>{\displaystyle}lc>{\displaystyle}l}
@@ -267,7 +277,7 @@ $$\begin{array}{>{\displaystyle}lc>{\displaystyle}lc>{\displaystyle}lc>{\display
 \end{array}
 $$
 %====================================================================%
-$$\theta\subt{R}=\sin^{-1}\left[\frac{n\subt{A}}{n\subt{R}}\sin\theta\subt{A}\right]$$
+$$\theta\subt{R}=\sin^{-1}\left[\frac{n\subt{I}}{n\subt{R}}\sin\theta\subt{I}\right]$$
 %====================================================================%
 with
 %====================================================================%
@@ -276,22 +286,157 @@ $$ k_0=\frac{\omega}{c},
    \qquad Z\subt{R}=Z_0\sqrt\frac{\mu\subt{R}}{\epsilon\subt{R}}.
 $$
 %====================================================================%
+For pure-TE or pure-TM polarization, each of the
+$\vb E$ and $\vb H$ fields has precisely one nonzero tangential
+component.
 
+Matching tangential $\vb E$ and $\vb H$ fields at each of the three
+interfaces then yields a linear system of 6 equations 
+in the six unknown field-expansion coefficients.
+For example, the two equations contributed by the lowermost 
+interface read
 %====================================================================%
-TE:
-$$
-\left(\begin{array}{cccccc}
-1 & 
+$$\begin{array}{>{\displaystyle}l>{\displaystyle}l>{\displaystyle}l>{\displaystyle}c>{\displaystyle}l}
+  -r\overline{\vbVarEps}\subt{I$\parallel$}
+ &+p\subt{D}\vbVarEps\subt{D$\parallel$}
+ &+\overline{p}\subt{D}\overline{\vbVarEps}\subt{D$\parallel$}
+ &=
+ & \vbVarEps\subt{I$\parallel$} 
+\\[5pt]
+  -\frac{r}{Z\subt{I}}\overline{\vbEta}\subt{I$\parallel$}
+ &+\frac{p}{Z\subt{D}}\vbEta\subt{D$\parallel$}
+ &+\frac{\overline{p}\subt{D}}{Z\subt{D}}\overline{\vbEta}\subt{D$\parallel$}
+ &=
+ & \frac{1}{Z\subt{I}}\vbEta\subt{I$\parallel$} 
+\end{array}$$
+%====================================================================%
+Assembling the equations for all interfaces gives a 6$\times$6
+linear system of the form
+%====================================================================%
+\numeq{TwoFilmSystem}
+{
+\left(\begin{array}{p{0.1in}cp{0.1in}}
+ &
+ \vphantom{ \left(\begin{array}{c} 
+                           r \\ p\subt{D} \\ \overline{p}\subt{D} \\
+                           p\subt{C} \\ \overline{p}\subt{C} \\ t
+                  \end{array}\right)}
+  \vb M 
+ &
 \end{array}\right)
 %--------------------------------------------------------------------%
-\left(\begin{array}{c}r \\ p\subt{B} \\ \overline{p}\subt{B} \\
+\left(\begin{array}{c}r \\ p\subt{D} \\ \overline{p}\subt{D} \\
                            p\subt{C} \\ \overline{p}\subt{C} \\ t
 \end{array}\right)
 =
 %--------------------------------------------------------------------%
-\left(\begin{array}{c}-1 \\ -1 \\ 0 \\ 0 \\ 0 \\ 0 
+\left(\begin{array}{c}
+  \vbVarEps\subt{I$\parallel$}          \\
+  \frac{1}{Z_I}\vbEta\subt{I$\parallel$} \\ 
+  0 \\ 0 \\ 0 \\ 0 
 \end{array}\right)
+}
+%====================================================================%
+that we solve for the field-expansion coefficients.
+
+\newpage
+\subsection{IBC solution}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}[h]
+\resizebox{\textwidth}{!}{\includegraphics{IBCFilmTransmission.pdf}}
+\caption{The two-layer film of the previous section with the 
+upper layer modeled as an IBC layer.}
+\label{IBCFilmFigure}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+I now consider modeling layer $C$ in Figure \ref{TwoFilmFigure}
+as an infinitesimally thin sheet with surface impedance
+$\sigma\subt{S}\equiv \frac{1}{Z_0 Z\subt{S}}$
+(with $Z\subt{S}$ the dimensionless relative surface impedance),
+as shown in Figure \ref{IBCFilmFigure}.
+The impedance boundary conditions relate the discontinuity
+in the tangential $\vb H$ field across the sheet to the
+average $\vb E$-field above and below the sheet:
+%####################################################################%
+\begin{align}
+\vb E\left(z=T\subt{D}^+\right) - \vb E\left(z=T\subt{D}^-\right)
+ &=0
+\\
+\vb H\left(z=T\subt{D}^+\right) - \vb H\left(z=T\subt{D}^-\right)
+ &=-\frac{\sigma\subt{S}}{2}\vbhat{z}\times\Big[
+  \vb E\left(z=T\subt{D}^+\right) + \vb E\left(z=T\subt{D}^-\right)\Big],
+\end{align}
+%####################################################################%
+or 
+%====================================================================%
+$$\begin{array}{>{\displaystyle}l>{\displaystyle}l>{\displaystyle}l>{\displaystyle}c>{\displaystyle}l}
+  -p\subt{D}\vbVarEps\subt{D$\parallel$}
+  \zeta\subt{D}
+ &-\overline{p}\subt{D}\overline{\vbVarEps}\subt{D$\parallel$}
+  \overline{\zeta}\subt{D}
+ &+t\vbVarEps\subt{E$\parallel$} \zeta\subt{E}
+ &=
+ & 0
+\\[5pt]
+  -\frac{p\subt{D}}{Z\subt{D}}\vbEta\subt{D$\parallel$}
+     \zeta\subt{D}
+ &-\frac{\overline{p}\subt{D}}{Z\subt{D}}
+     \overline{\vbEta}\subt{D$\parallel$}
+     \overline{\zeta}\subt{D}
+ &+\frac{t}{Z\subt{E}}\vbEta\subt{E$\parallel$}
+     \zeta\subt{E}
+ &=
+ & -\sigma\subt{S} t \big(\vbhat{z}\times \vbVarEps\subt{e}\big)\zeta\subt{E}
+\end{array}
 $$
 %====================================================================%
+$$ \zeta\subt{R}= e^{i\vb k\subt{R}\cdot T\subt{D}\vbhat{z}}, 
+   \qquad
+   \overline{\zeta}\subt{R}= e^{i\overline{\vb k}\subt{R}\cdot T\subt{D}\vbhat{z}}
+$$
+%====================================================================%
+These two equations replace the last 4 lines of the system 
+(\ref{TwoFilmSystem}).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Example 2: Dielectric sphere with thin conductive coating layer}
+
+\subsection{Exact solution}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}[h]
+\resizebox{\textwidth}{!}{\includegraphics{CoatedSphere.pdf}}
+\caption{Dielectric sphere covered by finite-thickness coating layer.
+Eventually I will take layer C to be thin and highly conductive
+and will model it by an infinitesimally thin surface-impedance layer.}
+\label{CoatedSphereFigure}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+
+\subsection{IBC solution}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}[h]
+\resizebox{\textwidth}{!}{\includegraphics{IBCSphere.pdf}}
+\caption{Dielectric sphere coated by infinitesimally thin 
+surface-impedance layer.}
+\label{IBCSphereFigure}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
 \end{document}

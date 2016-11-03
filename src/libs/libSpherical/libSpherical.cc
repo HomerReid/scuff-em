@@ -719,8 +719,12 @@ void GetMNlmArray(int lMax, cdouble k,
   /***************************************************************/
   memset(M,0,3*sizeof(cdouble));  /* zero out the l==0 functions */
   memset(N,0,3*sizeof(cdouble));
-  if (LL) LL[0]=LL[1]=LL[2]=0.0;
-  if (DivLL) DivLL[0]=0.0;
+  if (LL)
+   { LL[0]=dRdr[0] / (4.0*M_PI);
+     LL[1]=LL[2]=0.0;
+   };
+  if (DivLL) 
+   DivLL[0]=-k*k*dRdr[0]/(4.0*M_PI);
   nik=-II*k;
   for (Alpha=l=1; l<=lMax; l++)
    for (m=-l; m<=l; m++, Alpha++)
@@ -734,6 +738,8 @@ void GetMNlmArray(int lMax, cdouble k,
        M[3*Alpha + 1]= -dm*PreFac*R[l]*Ylm[Alpha]/SinTheta;
        M[3*Alpha + 2]= -II*PreFac*R[l]*dYlmdTheta[Alpha];
 
+#if 0
+20161101
        PreFac/=nik;
 
        if (r==0.0)
@@ -743,15 +749,25 @@ void GetMNlmArray(int lMax, cdouble k,
        N[3*Alpha + 0]= -sqrt(dl*(dl+1.0))*ROverR*Ylm[Alpha]/k;
        N[3*Alpha + 1]= II*PreFac*(ROverR + dRdr[l])*dYlmdTheta[Alpha];
        N[3*Alpha + 2]= -dm*PreFac*(ROverR + dRdr[l])*Ylm[Alpha]/SinTheta;
+#endif
+       PreFac/=k;
+
+       if (r==0.0)
+        ROverR = (l==1) ? k/3.0 : 0.0;
+       else
+        ROverR=R[l]/r;
+       N[3*Alpha + 0]= -sqrt(dl*(dl+1.0))*ROverR*Ylm[Alpha]/k;
+       N[3*Alpha + 1]= -PreFac*(ROverR + dRdr[l])*dYlmdTheta[Alpha];
+       N[3*Alpha + 2]= -II*dm*PreFac*(ROverR + dRdr[l])*Ylm[Alpha]/SinTheta;
 
        if (LL)
-        { LL[3*Alpha + 0] = dRdr[l] * Ylm[Alpha] / k;
-          LL[3*Alpha + 1] = ROverR*dYlmdTheta[Alpha] / k;
-          LL[3*Alpha + 2] = II*dm*ROverR * Ylm[Alpha] / (k*SinTheta);
+        { LL[3*Alpha + 0] = PreFac*dRdr[l] * Ylm[Alpha];
+          LL[3*Alpha + 1] = PreFac*ROverR*dYlmdTheta[Alpha];
+          LL[3*Alpha + 2] = PreFac*II*dm*ROverR * Ylm[Alpha] / SinTheta;
         };
 
        if (DivLL)
-        DivLL[Alpha] = -k*R[l]*Ylm[Alpha];
+        DivLL[Alpha] = -k*k*PreFac*R[l]*Ylm[Alpha];
 
     };
 

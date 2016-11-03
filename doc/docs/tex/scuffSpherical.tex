@@ -1,5 +1,6 @@
 \documentclass[letterpaper]{article}
 \usepackage[square,sort,comma,numbers]{natbib}
+\usepackage{array}
 %====================================================================%
 \input{scufftex}
 
@@ -73,14 +74,39 @@ and testing {\sc scuff-em} and {\sc buff-em}.
 
 Many authors define pairs of three-vector-valued functions
 $\{\vb M_{\ell m}(\vb x), \vb N_{\ell m}(\vb x)\}$
-describing exact solutions of Maxwell's equations 
-in spherical coordinates for 
+describing exact solutions of the source-free 
+Maxwell's equations---namely, the vector Helmholtz equation
+plus the divergence-free condition---in spherical coordinates for 
 a homogeneous medium with wavenumber $k$, i.e.
 %====================================================================%
-$$\Big[\nabla \times \nabla \times - k^2 \Big]
-  \left\{\begin{array}{c} \vb M \\ \vb N\end{array}\right\} = 0.$$
+\numeq{VectorHelmholtz}
+{ \Big[\nabla \times \nabla \times - k^2 \Big]
+  \left\{\begin{array}{c} \vb M_{\ell m} \\ \vb N_{\ell m}\end{array}\right\} = 0,
+  \qquad
+  \nabla \cdot
+  \left\{\begin{array}{c} \vb M_{\ell m} \\ \vb N_{\ell m}\end{array}\right\} = 0.
+}
 %====================================================================%
-These functions always involve spherical Bessel functions and
+In some cases, the set $\{\vb M, \vb N\}_{\ell m}$ is augmented to
+include a third function $\{\vb L_{\ell m}\}$ that satisfies
+the vector Helmholtz equation but is now \textit{curl-}free
+(and not divergenceless):
+%====================================================================%
+\numeq{LDef}
+{ \Big[\nabla \times \nabla \times - k^2 \Big]
+  \vb  L_{\ell m}=0,
+  \qquad
+  \nabla \times \vb L_{\ell m}=0.
+}
+%====================================================================%
+The function $\vb L_{\ell m}$ is not a solution of Maxwell's equations
+and is never 
+needed in a basis of expansion functions for \textit{fields},
+but must be retained in a basis for expanding \textit{currents}
+in inhomogeneous and/or anisotropic media.
+
+In all cases, the $\{\vb M, \vb N, \vb L\}$
+functions involve spherical Bessel functions and
 spherical harmonics, but the precise definitions (including
 sign conventions and normalization factors) vary from author
 to author. In this section I set down the particular
@@ -91,11 +117,10 @@ explicit closed-form expressions for small $\ell$.
 %====================================================================%
 \begin{align*}
   \vb X\lm(\theta, \varphi) 
-&= \frac{i}{\ell(\ell+1)}\nabla \times 
-     \Big\{Y\lm(\theta, \varphi) \vbhat{r}\Big\}
+&\equiv \frac{i}{\sqrt{\ell(\ell+1)}}\nabla \times 
+     \Big\{Y\lm(\theta, \varphi) \vb r\Big\}
 \\
-%--------------------------------------------------------------------%
-  \vb Z\lm(\theta, \varphi) &= \vbhat{r} \times \vb X\lm(\theta, \varphi)
+  \vb Z\lm(\theta, \varphi) &\equiv \vbhat{r} \times \vb X\lm(\theta, \varphi)
 \end{align*}
 %====================================================================%
 
@@ -117,6 +142,21 @@ explicit closed-form expressions for small $\ell$.
    \right].
 \end{align*}
 %====================================================================%
+These are orthonormal in the sense that 
+%====================================================================%
+$$ \inp{\vb X}{\vb X}= \inp{\vb Z}{\vb Z}=1,
+   \quad \inp{\vb X}{\vb Z}=0
+$$
+%====================================================================%
+where the inner product is
+%====================================================================%
+$$
+   \inp{\vb F}{\vb G}\equiv \int \, \vb F^* \cdot \vb G \, d\Omega
+   = \int_0^\pi \, \int_0^{2\pi} \, 
+     \vb F^*(\theta,\varphi)\cdot \vb G(\theta, \varphi)\,\sin\theta\,d\varphi\,d\theta
+$$
+%====================================================================%
+
 Their divergences are:
 %====================================================================%
 \begin{subequations}
@@ -140,9 +180,9 @@ Their divergences are:
 \paragraph{Radial functions}
 %====================================================================%
 \begin{align*}
- R_\ell \sups{outgoing}(kr)  &= h^{(1)}_\ell(kr) \\
- R_\ell \sups{incoming}(kr)  &= h^{(2)}_\ell(kr) \\
- R_\ell \sups{regular}(kr)   &= j_\ell(kr).
+ R_\ell \sups{outgoing}(kr)  &\equiv h^{(1)}_\ell(kr) \\
+ R_\ell \sups{incoming}(kr)  &\equiv h^{(2)}_\ell(kr) \\
+ R_\ell \sups{regular}(kr)   &\equiv j_\ell(kr).
 \end{align*}
 %====================================================================%
 I also define the shorthand symbols
@@ -151,25 +191,46 @@ $$ \RBar_\ell(kr)
    \equiv 
    \frac{1}{kr}R_\ell(kr) + R^\prime_\ell(kr)
    \qquad
-   \RSlash_\ell(kr) = -\frac{\sqrt{l(l+1)}}{kr} R_\ell(kr)
+   \RSlash_\ell(kr) \equiv -\frac{\sqrt{l(l+1)}}{kr} R_\ell(kr)
 $$
-where $R^\prime_\ell = \frac{d}{dz}R_\ell.$
+where $R^\prime_\ell(kr) = \left|\frac{d}{dz}R_\ell(z)\right|_{z=kr}.$
 %====================================================================%
 
+\paragraph{Scalar Helmholtz solutions}
+
+%====================================================================%
+$$ \Big[ \nabla^2 + k^2\Big]\psi\lm(\vb r) = 0
+   \whereupon
+   \psi\lm(r,\theta,\varphi)=R_\ell(kr) Y_{\ell m}(\theta,\varphi)
+$$
+%====================================================================%
+where $R_\ell$ is one of the radial functions defined above.
+
 \paragraph{Vector spherical wave functions}
+
 %====================================================================%
-\begin{subequations} 
-\begin{align} 
+\numeq{MNLDef}
+{
+ \begin{array}{>{\displaystyle}lc>{\displaystyle}lc>{\displaystyle}l}
  \vb M\lm(k; \vb r) 
-&\equiv R_\ell(kr) \vb X\lm(\Omega) 
-\\
+ &\equiv&\frac{i}{\sqrt{\ell(\ell+1)}}\nabla\Big\{\psi\lm \vb r\Big\}
+ &=&R_\ell(kr) \vb X\lm(\Omega) 
+\\[8pt]
 %--------------------------------------------------------------------%
- \vb N\lm(k; \vb r) &\equiv 
+ \vb N\lm(k; \vb r) 
+ &\equiv&-\frac{1}{ik}\nabla \times \vb M\lm
+ &=&
 i\RBar_\ell(kr) \vb Z\lm(\Omega) + \RSlash_\ell(kr) Y\lm(\Omega) \vbhat{r} 
-\end{align} 
-\label{MNDef}%
-\end{subequations} 
+\\[8pt]
+%--------------------------------------------------------------------%
+ \vb L\lm(k; \vb r)
+ &\equiv&\frac{1}{k\sqrt{\ell(\ell+1)}}\nabla \psi\lm
+ &=& -i\frac{R_\ell(kr)}{kr}\vb Z\lm(\Omega)
+    +\frac{1}{\sqrt{\ell(\ell+1)}}R^\prime_\ell(kr) Y\lm(\Omega)\vbhat{r}
+ \end{array}
+}
 %====================================================================%
+$$ \vb L_{00}(k; \vb r) = \frac{R^\prime_0(kr)}{4\pi}\vbhat{r}$$
 
 \paragraph{Curl Identities}
 
@@ -1268,7 +1329,7 @@ Combining these yields
 %====================================================================%
 \numeq{VIE0}
 {\Big[ \vb 1 + \mb V \mb G\Big]
-\vb J(\vb x) =-\frac{i}{kZ_0}\mb V\vb E\sups{inc}
+\vb J(\vb x) =\frac{i}{kZ_0}\mb V\vb E\sups{inc}
 }
 %====================================================================%
 where $\mb V\equiv -k^2 \Big(\vbEps-\vb 1\Big)$ is the
@@ -1280,67 +1341,31 @@ where $\mb V\equiv -k^2 \Big(\vbEps-\vb 1\Big)$ is the
 \subsection{Vector spherical waves as volume-current basis functions}
 
 For a compact material body confined within a sphere of radius $R$,
-I use the regular vector spherical waves to define an orthonormal 
+I use the regular vector spherical waves to define a
 basis of volume-current basis functions:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{mbBDef}
 {
- \mb B_{P\ell m}(\vb x) =
+ \bmc B_{P\ell m}(\vb x) =
  \begin{dcases}
-   0, \qquad &|\vb x| > R 
-   \\
-  \mc N_{M\ell} \vb M_{\ell m}\sups{reg}(\vb x),
-       \qquad &|\vb x|\le R, P=M \\
-  \mc N_{N\ell} \vb N_{\ell m}\sups{reg}(\vb x),
-       \qquad &|\vb x|\le R, P=N \\
+   0,                              \qquad &|\vb x| > R \\[5pt]
+  \vb M_{\ell m}\sups{reg}(\vb x), \qquad &|\vb x|\le R, P=M \\[5pt]
+  \vb N_{\ell m}\sups{reg}(\vb x), \qquad &|\vb x|\le R, P=N \\[5pt]
+  \vb L_{\ell m}\sups{reg}(\vb x), \qquad &|\vb x|\le R, P=L.
  \end{dcases}
 }
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where the normalization factors are
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ \mc N_{P\ell}(R) \equiv \frac{1}{\sqrt{S_{P\ell}(R)}} $$
-\begin{align*}
- S_{M\ell}(R) 
-&\equiv \int_0^R \Big |\vb M\sups{reg}_{\ell m}(\vb x)\Big |^2 \, d\vb x
-= \int_0^R\, dr \, r^2 \, \int_0^R \, dr^\prime \, r^{\prime 2}
-   \Big[ j_\ell(kr) j_\ell(kr^\prime) \Big]
-\\
- S_{N\ell}(R) 
-&\equiv \int_0^R \Big |\vb N\sups{reg}_{\ell m}(\vb x)\Big |^2 \, d\vb x
-= \int_0^R\, dr \, r^2 \, \int_0^R \, dr^\prime \, r^{\prime 2}
-   \Big[  \overline{j}_\ell(kr) \overline{j}_\ell(kr^\prime) 
-         +\jslash_\ell(kr) \jslash_\ell(kr^\prime) \Big].
-\end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 I use these basis functions to expand currents and fields in 
 (\ref{VIE0}):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{JEVSWExpansion}
-{ \vb J(\vb x) = \sum j_\alpha \mb B_\alpha, \qquad
-   \vb E\sups{inc}(\vb x) = \sum e_\alpha \mb B_\alpha.
+{ \vb J(\vb x) = \sum j_\alpha \bmc B_\alpha, \qquad
+   \vb E\sups{inc}(\vb x) = \sum e_\alpha \bmc B_\alpha.
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Note that the $e_\alpha$ coefficients have dimensions of
-[electric field strength/length$^{3/2}$]; they are the $P,Q$
-coefficients in (\ref{SourcesOutsideSection}) or Section
-\ref{IncidentFieldSection} divided by
-factors of $\sqrt{S_\alpha}.$
+electric field strength.
 
-The normalization factors in the $\ell=1$ sector are $(a=kR)$
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*} 
- S_{M1}
-&=R^3\left[\frac{a\sin(2a) + 2[\cos(2a) - 1 + a^2]}{4a^4}\right]
-\\
-&=R^3\left[\frac{a^2}{45} - \frac{a^4}{315} + O(a^6)\cdots\right]
-\\
- S_{N1}
-&=R^3\left[\frac{a(4-a^2)\sin(2a) +
-           2[a^4 - a^2 - 1 - (a^2-1)\cos(2a)]}{4a^6}\right]
-\\
-&=R^3\left[\frac{2}{9} -\frac{2a^2}{45} + \frac{a^4}{225} + O(a^6)\right]
-\end{align*} 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Solution of VIE equation in VSW basis}
 
@@ -1350,30 +1375,251 @@ coefficients and incident-field expansion coefficients:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{VSWVIE}
 {
-\vb j = -\frac{i}{kZ_0} \Big[ 1 + \vb V \vb G\Big]^{-1} \vb V \vb e
+\vb j = \frac{i}{kZ_0} \Big[ \vb S + \vb V \vb G\Big]^{-1} \vb V \vb e
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where the elements of the $\vb V, \vb G$ matrices are
+where the elements of the $\vb S \vb V, \vb G$ matrices are
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ V_{\alpha\beta} = 
-   -k^2 \int_0^R \mb B_\alpha^*(\vb x)
-   \Big[\vbEps(\vb x) - 1 \Big]\mb B_\beta(\vb x)\,d\vb x,
-   \qquad
+$$ S_{\alpha\beta} = 
+  \int_{|\vb x|<R} \bmc B_\alpha^*(\vb x) \bmc B_\beta(\vb x) \, d\vb x,
+\qquad
+   V_{\alpha\beta} = 
+   -k^2 \int_0^R \bmc B_\alpha^*(\vb x)
+   \Big[\vbEps(\vb x) - 1 \Big]\bmc B_\beta(\vb x)\,d\vb x,
+$$
+$$
    G_{\alpha\beta} = 
-   \int_0^R \, \int_0^R \, \mb B_\alpha^*(\vb x)
-   \mb G(\vb x, \vb x^\prime)\mb B_\beta(\vb x^\prime)\,d\vb x\,d\vb x^\prime
+   \int_0^R \, \int_0^R \, \bmc B_\alpha^*(\vb x)
+   \mb G(\vb x, \vb x^\prime)\bmc B_\beta(\vb x^\prime)\,d\vb x\,d\vb x^\prime
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 and $\vb e$ is the vector of incident-field projections onto the
 $\{\mb B_\alpha\}$ basis. If $\vb e$ is expressed as an expansion in 
 the usual (non-normalized) regular VSWs, as in equation 
-(\ref{EIncExpansion}), then the entries of $\vb e$ are proportional
-to the $P,Q$ coefficients in that equation:
+(\ref{EIncExpansion}), then the entries of $\vb e$ are just
+the $P,Q$ coefficients in that equation:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ \vb e_{M_\ell m} = \frac{1}{\mc N_{M\ell}}P_{\ell m}, 
+$$ \vb e_{M_\ell m} = P_{\ell m}, 
    \qquad
-   \vb e_{N_\ell m} = \frac{1}{\mc N_{N\ell}}Q_{\ell m}.
+   \vb e_{N_\ell m} = Q_{\ell m}.
 $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Overlap integrals}
+
+The overlap matrix is diagonal in the $\ell$ and $m$
+indices and independent of $m$:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ S_{P\ell m; P^\prime \ell^\prime m^\prime} 
+   \equiv S_{PP^\prime \ell}\delta_{\ell, \ell^\prime} \delta_{m,m^\prime}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+It is also ``partially diagonal' in the $P$ index, in the sense that the
+$\vb M$ functions are orthogonal to the $\vb N$ and $\vb L$ functions,
+but the $\vb N$ and $\vb L$ functions have nonvanishing overlap. 
+
+The overlap integrals are
+$$
+ S_{PP^\prime \ell}(R) \equiv \int_0^R \mc R_{PP^\prime \ell}(r)\, dr
+\qtq{where}
+R_{PP^\prime\ell}\equiv \int\,
+ \bmc B^*_{P\ell m}(r,\Omega)
+ \bmc B_{P^\prime\ell m}(r,\Omega)\,d\Omega.
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Explicit forms of the integrand function are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\mc R_{MM\ell}&\equiv \big[j_\ell(kr)\big]^2 
+\\[5pt]
+\mc R_{NN\ell}&\equiv \big[j_\ell(kr)\big]^2 
+  r^2 \big[j^\prime_\ell(kr)\big]^2 
+ +2\frac{r}{k}j_\ell(kr) j_\ell^\prime(kr)
+ +\frac{\ell^2+\ell+1}{k^2}\big[j_\ell(kr)\big]^2
+\\[5pt]
+\intertext{which may be simplified~\cite{Tai} to read}
+\mc R_{NN\ell}&\equiv \pf{\ell+1}{2\ell+1}r^2 j_{\ell-1}^2(kr) 
+                    + \pf{\ell}{2\ell+1}r^2 j_{\ell+1}^2(kr)
+\\[5pt]
+\mc R_{LL\ell}&\equiv 
+  \frac{1}{k^2} \big[j_\ell(kr)\big]^2 
+  + \frac{[rj_\ell^\prime(kr)]^2}{\ell(\ell+1)}
+\\[5pt]
+\mc R_{NL\ell}&\equiv 
+  -\frac{2r}{k}j_\ell(kr)j^\prime_\ell(kr) - \frac{1}{k^2}j^2_\ell(u)
+\\[5pt]
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Explicit forms for the overlap integrals are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+ S_{MM\ell}(R)
+&=\frac{j_\ell^2(kR) - j_{\ell-1}(kR) j_{\ell+1}(kR)}{2}
+\\
+ S_{NN\ell}(R)
+&=\frac{1}{2(2\ell+1)}
+  \bigg\{    (\ell+1)\big[j_{\ell-1}(kR)\big]^2 
+           - (\ell+1)j_{\ell}(kR) j_{\ell-2}(kR)
+\nn
+&\qquad\qquad\qquad
+           - \ell j_{\ell}(kR) j_{\ell+2}(kR)
+           + \ell\big[j_{\ell+1}(kR)\big]^2
+  \bigg\}
+\end{align}
+\label{ExplicitOverlapIntegrals}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+I also need another type of overlap integral:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$
+ \wh{S}_{PP^\prime \ell}(R) \equiv 
+ \int_0^R \wh{\mc R}_{PP^\prime \ell}(r)\, dr
+\qtq{where}
+\wh{\mc R}_{PP^\prime\ell}\equiv \int\,
+ \bmc B^*_{P\ell m}(r,\Omega)
+ \wh{\bmc B}_{P^\prime\ell m}(r,\Omega)\,d\Omega.
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The $\wh{\mc R}$ integrands are similar to the $\mc R$ integrands
+given above, except that one of the two $j_\ell$ factors in each 
+term is replaced by $h_\ell^{(1)}$:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\wh{\mc R}_{MM\ell}&\equiv j_\ell(kr)h^{(1)}_\ell(kr)
+\\[5pt]
+\wh{\mc R}_{NN\ell}&\equiv 
+  r^2 \overline{j_\ell}(kr) \overline{h^{(1)}_\ell}(kr)
+ +\frac{\ell(\ell+1)}{k^2}j_\ell(kr) h^{(1)}_\ell(kr)
+\\[5pt]
+\wh{\mc R}_{LN\ell}&\equiv
+  -\frac{r}{k}j^\prime_\ell(kr)h^{(1)}_\ell(kr)
+  -\frac{r}{k}j_\ell(kr)\overline{h^{(1)}_\ell}(kr)
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Fields produced by VSW basis functions}
+
+I will use the symbol $\mb E_\alpha(\vb x)$ to denote
+$1/(i\omega \epsilon_0)$ times the $\vb E$-field at $\vb x$
+due to a current distribution produced by basis function $\bmc B_\alpha$
+populated with unit strength:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \mb E_\alpha(\vb x) \equiv
+   \int_{|\vb x^\prime|<R} \mb G(\vb x, \vb x^\prime) \bmc B_\alpha(\vb x^\prime)
+  \,d\vb x^\prime
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The quantity $\mb E$ has dimensions of length$^2$.
+
+The integral here may be easily evaluated using the standard eigenexpansion
+of $\mb G$~\cite{Tai,Collin}:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \mb G(\vb x, \vb x^\prime)
+   =-\frac{\vbhat{r} \vbhat{r}}{k^2}\delta(\vb x-\vb x^\prime)
+   +ik\sum_{\alpha} 
+     \left\{ \wh{\vb M}_\alpha(\vb r_>) \vb M_\alpha^*(\vb r_<)
+            +\wh{\vb N}_\alpha(\vb r_>) \vb N_\alpha^*(\vb r_<)
+     \right\}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The result is:
+\paragraph{Evaluation point outside sphere ($|\vb x|>R$):}
+
+\begin{align*}
+ \mb E_{M\ell m}(\vb r)&=ikS_{MM\ell}(R)\wh{\vb M}(\vb r) \\
+ \mb E_{N\ell m}(\vb r)&=ikS_{NN\ell}(R)\wh{\vb N}(\vb r) \\
+ \mb E_{L\ell m}(\vb r)&=ikS_{NL\ell}(R)\wh{\vb N}(\vb r) \\
+\end{align*}
+
+\paragraph{Evaluation point inside sphere ($|\vb x|<R$):}
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \mb E_{M\ell m}(\vb r)&=
+    ik S_{MM\ell}(r)\wh{\vb M}(\vb r)
+  + ik \wh{S}_{MM\ell}(r,R)\vb M(\vb r)
+\\
+ \mb E_{N\ell m}(\vb r)&=
+    -\frac{1}{k^2}\Big[\vbhat{r}\cdot \vb N_{\ell m}\Big] \vbhat{r}
+  + ik S_{NN\ell}(r)\wh{\vb N}(\vb r)
+  + ik \wh{S}_{NN\ell}(r,R)\vb N(\vb r)
+\\
+ \mb E_{L\ell m}(\vb r)&=
+    -\frac{1}{k^2}\Big[\vbhat{r}\cdot \vb L_{\ell m}\Big] \vbhat{r}
+  + ik S_{NL\ell}(r)\wh{\vb N}(\vb r)
+  + ik \wh{S}_{NL\ell}(r,R)\vb N(\vb r)
+\end{align}
+\label{InteriorEFields}
+\end{subequations}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Matrix elements of $\mb G$}
+
+%====================================================================%
+\begin{align*}
+G_{PP^\prime \ell}
+&\equiv
+ \vmv{\bmc B_{P\ell m}}{\mb G}{\bmc B_{P^\prime \ell m}}
+\\
+&\equiv
+ \int_{|\vb x|<R}  \bmc B^*_{P\ell m}(\vb x) \cdot \mb E_{P^\prime \ell(\vb x)}\,d\vb x 
+\end{align*}
+%====================================================================%
+Using equation (\ref{InteriorEFields}), one finds
+%====================================================================%
+\begin{subequations}
+\begin{align}
+G_{MM\ell}&=2ik
+ \int_0^R \, \int_r^R \, \mc{R}_{MM\ell}(r) \wh{\mc{R}_{MM\ell}}(r^\prime)
+  \,dr\,dr^\prime
+\nn
+&=2ik
+ \int_0^R \, \int_r^R \, 
+   \big [j_\ell(kr)\big]^2 j_\ell(kr^\prime) h_\ell^{(1)}(kr^\prime)\,
+   r^2 r^{\prime 2}\, dr^\prime \, dr
+\\[5pt]
+%--------------------------------------------------------------------%
+G_{NN\ell}&=
+ -\frac{1}{k^2}
+  \int_{|\vb x|<R} \big| N_{\ell mr}(\vb x)\big|^2\,d\vb x
+  + 2ik \int_0^R \, \int_r^R \, \mc{R}_{NN\ell}(r) \wh{\mc{R}}_{NN\ell}(r^\prime)
+  \,dr\,dr^\prime
+\nn
+&=-\frac{\ell(\ell+1)}{k^4}\int_0^R \big[j_\ell(kr)\big]^2\,dr
+  + 2ik \int_0^R \, \int_r^R \, 
+   \mc{R}_{NN\ell}(r) \wh{\mc{R}}_{NN\ell}(r^\prime)\,
+  \,dr\,dr^\prime
+\\[5pt]
+%--------------------------------------------------------------------%
+G_{LN\ell}&=
+ + \frac{1}{k^3}\int_0^R rj_\ell(kr) j^\prime_\ell(kr)\,dr
+  + ik \int_0^R \, \int_r^R \, \mc R_{NN\ell}(r) \wh {\mc R}_{LN\ell}(r^\prime)
+  \,dr\,dr^\prime
+\nn
+&\qquad 
+  + ik \int_0^R \, \int_r^R \, \wh{\mc R}_{NN\ell}(r) \mc R_{LN\ell}(r^\prime)
+  \,dr\,dr^\prime
+\\[5pt]
+%--------------------------------------------------------------------%
+G_{LL\ell}&=
+ - \frac{1}{\ell(\ell+1)k^2}\int_0^R \big[rj_\ell(kr)\big]^2\,dr
+  + 2ik \int_0^R \, \int_r^R \, \mc R_{LN\ell}(r) \wh {\mc R}_{LN\ell}(r^\prime)
+  \,dr\,dr^\prime
+%--------------------------------------------------------------------%
+\end{align}
+\end{subequations}
+%====================================================================%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The convenient thing about the VSW basis is that the $\vb G$ matrix
 is diagonal (and $m$-independent) in this basis, with elements that
@@ -1428,15 +1674,12 @@ In the $\ell=1$ sector one finds
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Scattered fields}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Alternative expression for total fields inside the 
+body}
 
-Once the expansion coefficients in (\ref{VSWVIE}) are known,
-I compute the scattered fields in different ways depending
-on whether the evaluation point lies inside or outside the 
-body.
-
-\paragraph{Inside the body} In this case I compute the
-total field according to
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*} 
  \vb E\sups{tot}(\vb x)
@@ -1445,18 +1688,6 @@ total field according to
 &= ikZ_0 \mb V^{-1} \sum j_\alpha \mb B_\alpha(\vb x).
 \end{align*} 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\paragraph{Outside the body} In this case I compute the scattered
-field by noting
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*} 
- \vb E\sups{scat}
-&= ikZ_0 \underbrace{\mb G}_{ik\sum \wh{\bmc B}_\alpha \bmc B_\alpha^*} \cdot \vb J
-\\
-&= -k^2 Z_0 \sum_{\alpha} \frac{1}{\mc N_\alpha} j_\alpha \wh{\bmc B}_\alpha
-\end{align*} 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2084,3 +2315,4 @@ inverse $\mu m$. Then the units of (\ref{FxFinalSpecialCase}) are
 \end{figure}
 
 \end{document}
+
