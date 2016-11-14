@@ -272,4 +272,16 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
                     bool AbortOnUnknown=true, bool ZeroArgs=false);
 void ProcessOptions(const char *ArgString, OptStruct *OSArray);
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define STATICBUFFER(Name,Num,Type)                       \
+ static int Name ## Size=0;                               \
+ static Type *Name=0;                                     \
+ if ( Name ## Size   < (Num) )                            \
+  { Name ## Size   = (Num);                               \
+    if (Name) free(Name);                                 \
+    Name=(Type *)mallocEC((Num)*sizeof(Type));            \
+  }; 
+
 #endif

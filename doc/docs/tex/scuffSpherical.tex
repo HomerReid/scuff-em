@@ -8,6 +8,8 @@
 \newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
 \newcommand{\iD}{_{i\text{\tiny D}}}
 \newcommand{\jS}{_{j\text{\tiny S}}}
+\newcommand{\bbVInv}{\rotatebox[origin=c]{180}{$\mathbb{V}$}}
+\newcommand{\vbVInv}{\rotatebox[origin=c]{180}{$\vb{V}$}}
 
 \newcommand{\OP}{\vb O\sups{power}}
 \newcommand{\OG}{\overline{G}}
@@ -230,7 +232,7 @@ i\RBar_\ell(kr) \vb Z\lm(\Omega) + \RSlash_\ell(kr) Y\lm(\Omega) \vbhat{r}
  \end{array}
 }
 %====================================================================%
-$$ \vb L_{00}(k; \vb r) = \frac{R^\prime_0(kr)}{4\pi}\vbhat{r}$$
+$$ \vb L_{00}(k; \vb r) = \frac{R^\prime_0(kr)}{\sqrt{4\pi}}\vbhat{r}$$
 
 \paragraph{Curl Identities}
 
@@ -281,50 +283,43 @@ on the physical conditions of the problem.
 
 %====================================================================%
 $$\begin{array}{lclclcl}
-% R\sups{regular}_0(kr) 
-%&=&
-% \displaystyle{ \frac{\sin kr}{kr} }
-%&\qquad&
-% \displaystyle{ \RBar\sups{regular}_0(kr)  }
-%&=&
-% \displaystyle{ \frac{i\cos kr}{kr} }
-%\\[10pt]
-%%--------------------------------------------------------------------%
-% R\sups{outgoing}_0(kr) 
-%&=&
-% \displaystyle{ \frac{-i e^{ikr}}{kr} }
-%&\qquad&
-% \displaystyle{ \RBar\sups{outgoing}_0(kr) }
-%&=&
-% \displaystyle{ \frac{ie^{ikr}}{kr} }
-%\\[10pt]
-%%--------------------------------------------------------------------%
-% R\sups{incoming}_0(kr) 
-%&=&
-% \displaystyle{ \frac{e^{-ikr}}{kr} }
-%&\qquad&
-% \displaystyle{ \RBar\sups{outgoing}_0(kr) }
-%&=&
-% \displaystyle{ \frac{e^{-ikr}}{kr} } 
-%\\[10pt]
+%--------------------------------------------------------------------%
+ R\sups{regular}_0(x) 
+&=&
+ \displaystyle{ \frac{\sin x}{x}}
+&\qquad&
+ \displaystyle{ \RBar\sups{regular}_0(x)  }
+&=&
+ \displaystyle{ \frac{\cos x}{x}
+              }
+\\[10pt]
+%--------------------------------------------------------------------%
+ R\sups{outgoing}_0(x) 
+&=&
+ \displaystyle{ -i\frac{e^{ix}}{x}}
+&\qquad&
+ \displaystyle{ \RBar\sups{outgoing}_0(x) }
+&=&
+ \displaystyle{ \frac{e^{ix}}{x}}
+\\
 %--------------------------------------------------------------------%
  R\sups{regular}_1(x) 
 &=&
- \displaystyle{ -\frac{\cos x}{x} + \frac{\sin x}{x^2} }
+ \displaystyle{ \frac{\sin x - x\cos x}{x^2} }
 &\qquad&
  \displaystyle{ \RBar\sups{regular}_1(x)  }
 &=&
- \displaystyle{ \frac{\cos x}{x^2} + \frac{(x^2-1)\sin x}{x^3}
+ \displaystyle{ \frac{x\cos x + (x^2-1)\sin x}{x^3}
               }
 \\[10pt]
 %--------------------------------------------------------------------%
  R\sups{outgoing}_1(x) 
 &=&
- \displaystyle{ -i\frac{(1-ix)e^{ix}}{x^2}}
+ \displaystyle{ -\frac{ie^{ix}}{x^2}\big(1-ix\big)}
 &\qquad&
  \displaystyle{ \RBar\sups{outgoing}_1(x) }
 &=&
- \displaystyle{ i\frac{(1-ix+x^2)e^{ix}}{x^3} }
+ \displaystyle{ \frac{ie^{ix}}{x^3}\big(1-ix-x^2\big) }
 \end{array}$$
 %====================================================================%
 
@@ -340,8 +335,22 @@ In what follows, the $\zeta_n$ are dimensionless sinusoidal functions:
 
 %====================================================================%
 \begin{align*}
+ \vb L\sups{regular}_{00}(\vb r)
+  &=-\frac{\zeta_1(kr)}{4\pi(kr)^2}
+    \left(\begin{array}{c}
+    1                 \\
+    0                 \\
+    0
+    \end{array}\right)
+\\
+%--------------------------------------------------------------------%
+&\xrightarrow{k\to 0}
+ \frac{kr}{6\sqrt\pi}
+    \left(\begin{array}{c} 1 \\ 0 \\ 0 \end{array}\right)
+\\[8pt]
+%--------------------------------------------------------------------%
  \vb M\sups{regular}_{1,\pm 1}(\vb r)
-  &=\sqrt\frac{3}{16\pi}\Bf{\zeta_1(kr)}{(kr)^2} e^{\pm i\varphi}
+  &=\sqrt\frac{3}{16\pi}\sbf{\zeta_1(kr)}{(kr)^2} e^{\pm i\varphi}
     \left(\begin{array}{c}
     0                 \\
     1                 \\
@@ -349,17 +358,35 @@ In what follows, the $\zeta_n$ are dimensionless sinusoidal functions:
     \end{array}\right)
 \\[5pt]
 %--------------------------------------------------------------------%
+ &\xrightarrow{k\to 0}
+    \frac{kr}{4\sqrt{3\pi}} e^{\pm i\varphi}
+    \left(\begin{array}{c}
+    0                 \\
+    1                 \\
+    \pm i\cos \theta
+    \end{array}\right)
+\\[8pt]
+%--------------------------------------------------------------------%
  \vb M\sups{regular}_{1,0}(\vb r)
-  &=\sqrt\frac{3}{8\pi}\Bf{\zeta_1(kr)}{(kr)^2}
+  &=i\sqrt\frac{3}{2\pi}\pf{ \sin kr - kr\cos kr}{(kr)^2}   
     \left(\begin{array}{c}
     0                 \\
     0                 \\
-    i\sin \theta
+    \sin\theta
+    \end{array}\right)
+\\[5pt]
+%--------------------------------------------------------------------%
+ &\xrightarrow{k\to 0}
+    i\sqrt\frac{3}{8\pi}\sbf{\zeta(kr)}{(kr)^2}
+    \left(\begin{array}{c}
+    0                 \\
+    0                 \\
+    \sin\theta
     \end{array}\right)
 \\[5pt]
 %--------------------------------------------------------------------%
  \vb N\sups{regular}_{1,\pm 1}(\vb r)
-  &=\sqrt\frac{3}{16\pi}\Bf{1}{(kr)^3} e^{\pm i\varphi}
+  &=\sqrt\frac{3}{16\pi}\sbf{1}{(kr)^3} e^{\pm i\varphi}
     \left(\begin{array}{c}
     \pm 2\zeta_1(kr) \sin \theta \\
     \mp\zeta_2(kr) \cos \theta \\
@@ -367,13 +394,32 @@ In what follows, the $\zeta_n$ are dimensionless sinusoidal functions:
     \end{array}\right)
 \\[5pt]
 %--------------------------------------------------------------------%
+&\xrightarrow{k\to 0}
+ \sqrt\frac{e^{\pm i\varphi}}{12\pi}
+    \left(\begin{array}{c}
+    \pm\sin\theta \\
+    \pm\cos\theta \\
+    i
+    \end{array}\right)
+\\[8pt]
+%--------------------------------------------------------------------%
  \vb N\sups{regular}_{1,0}(\vb r)
-  &=\frac{1}{2\sqrt{2}(kr)^3}
+  &=\sqrt\frac{3}{8\pi}\sbf{1}{(kr)^3}
     \left(\begin{array}{c}
     -2\zeta_1(kr)\cos\theta \\
     -\zeta_2(kr)\sin\theta  \\
     0                
     \end{array}\right)
+\\[5pt]
+%--------------------------------------------------------------------%
+&\xrightarrow{k\to 0}
+    \frac{1}{\sqrt{6\pi}}
+    \left(\begin{array}{c}
+    -\cos\theta \\
+    \sin\theta \\
+    0
+    \end{array}\right)
+=-\frac{1}{\sqrt{6\pi}}\vbhat{z}
 %--------------------------------------------------------------------%
 \end{align*}
 %====================================================================%
@@ -1328,12 +1374,50 @@ $$
 Combining these yields
 %====================================================================%
 \numeq{VIE0}
-{\Big[ \vb 1 + \mb V \mb G\Big]
+{\Big[ \vb 1 + \mb V \mb G\Big]\star
 \vb J(\vb x) =\frac{i}{kZ_0}\mb V\vb E\sups{inc}
 }
 %====================================================================%
-where $\mb V\equiv -k^2 \Big(\vbEps-\vb 1\Big)$ is the
-``potential.''
+where the diagonal operator 
+$\mb V(\vb x,\vb x^\prime)\equiv -k^2 \big(\vbEps-\vb 1\big)\delta(\vb x,\vb x^\prime)$ 
+is the ``potential.'' Another way to write this is 
+%====================================================================%
+\numeq{VIE1}
+{\Big[ \bbVInv + \mb G\Big]\star 
+\vb J(\vb x) =\frac{i}{kZ_0}\vb E\sups{inc}
+}
+%====================================================================%
+where 
+$ \bbVInv(\vb x,\vb x^\prime) 
+ \equiv -\frac{1}{k^2}\big(\vbEps-\vb 1\big)^{-1}\delta(\vb x-\vb x^\prime).$
+
+Upon approximating the induced current as an expansion in a
+finite set of $N\subt{BF}$ vector-valued basis functions,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{JExpansion}
+{ \vb J(\vb x)
+   \approx \sum_{\alpha=1}^{N_\text{BF}} j_\alpha \bmc B_\alpha(\vb x)
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+the integral equation (\ref{VIE1}) becomes an $N\subt{BF}\times N\subt{BF}$
+linear system:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \left[\vbVInv + \vb G\right]\vb j = \frac{i}{kZ_0}\vb e$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\vb j_\alpha$ is the vector of expansion coefficients in 
+(\ref{JExpansion}) and 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ e_\alpha
+&\equiv \frac{i}{kZ_0}\Inp{\bmc B_\alpha}{\vb E\sups{inc}},
+\\
+\vbVInv_{ab}
+&= -\frac{1}{k^2}\Vmv{\vb B_\alpha}{\left(\vbEps-\vb 1\right)^{-1}}{\vb B_\beta}
+\\
+\vb G_{ab}
+&= -\frac{1}{k^2}\Vmv{\vb B_\alpha}{\mb G}{\vb B_\beta}.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1419,10 +1503,11 @@ $\vb M$ functions are orthogonal to the $\vb N$ and $\vb L$ functions,
 but the $\vb N$ and $\vb L$ functions have nonvanishing overlap. 
 
 The overlap integrals are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$
  S_{PP^\prime \ell}(R) \equiv \int_0^R \mc R_{PP^\prime \ell}(r)\, dr
 \qtq{where}
-R_{PP^\prime\ell}\equiv \int\,
+R_{PP^\prime\ell}(r)\equiv r^2 \int\,
  \bmc B^*_{P\ell m}(r,\Omega)
  \bmc B_{P^\prime\ell m}(r,\Omega)\,d\Omega.
 $$
@@ -1430,10 +1515,10 @@ $$
 Explicit forms of the integrand function are
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
-\mc R_{MM\ell}&\equiv \big[j_\ell(kr)\big]^2 
+\mc R_{MM\ell}&\equiv r^2 \big[j_\ell(kr)\big]^2 
 \\[5pt]
-\mc R_{NN\ell}&\equiv \big[j_\ell(kr)\big]^2 
-  r^2 \big[j^\prime_\ell(kr)\big]^2 
+\mc R_{NN\ell}&\equiv
+  \frac{\ell(\ell+1)}{k^2} \big[j^\prime_\ell(kr)\big]^2 
  +2\frac{r}{k}j_\ell(kr) j_\ell^\prime(kr)
  +\frac{\ell^2+\ell+1}{k^2}\big[j_\ell(kr)\big]^2
 \\[5pt]
@@ -1509,14 +1594,17 @@ term is replaced by $h_\ell^{(1)}$:
 I will use the symbol $\mb E_\alpha(\vb x)$ to denote
 $1/(i\omega \epsilon_0)$ times the $\vb E$-field at $\vb x$
 due to a current distribution produced by basis function $\bmc B_\alpha$
-populated with unit strength:
+populated with unit strength.
+The quantity $\mb E$ has dimensions of length$^2$.
+
+\subsection*{Evaluation using dyadic Green's function}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$ \mb E_\alpha(\vb x) \equiv
    \int_{|\vb x^\prime|<R} \mb G(\vb x, \vb x^\prime) \bmc B_\alpha(\vb x^\prime)
   \,d\vb x^\prime
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The quantity $\mb E$ has dimensions of length$^2$.
 
 The integral here may be easily evaluated using the standard eigenexpansion
 of $\mb G$~\cite{Tai,Collin}:
@@ -1559,6 +1647,99 @@ The result is:
 \label{InteriorEFields}
 \end{subequations}
 %====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection*{Evaluation using scalar Green's function}
+
+I can also evaluate the fields using the scalar Green's function,
+whose eigenexpansion reads
+%====================================================================%
+$$ G_0(\vb r, \vb r^\prime) 
+   = ik\sum_{\alpha} R\supt{reg}_\alpha(kr_<) R\supt{out}_\alpha(kr_>)
+     Y_{\alpha}(\theta,\phi) Y^*_\alpha(\theta^\prime, \phi^\prime)
+$$
+         
+%====================================================================%
+
+In general, the $\mb E$-field produced by a current distribution $\vb J$
+reads
+%====================================================================%
+\begin{align*}
+\mb E(\vb x)
+&= \underbrace{\int_V G_0(\vb x-\vb x^\prime) \vb J(\vb x^\prime) \, dV}_{\mb E^1}
+  +\underbrace{\frac{1}{k^2}\nabla_{\vb x}\int_V G_0(\vb x-\vb x^\prime)
+               \Big[\nabla \cdot \vb J(\vb x^\prime)\Big]\,dV
+              }_{\mb E^2}
+\\
+&\qquad
+ \underbrace{
+  -\frac{1}{k^2}\nabla_{\vb x}\oint_V G_0(\vb x-\vb x^\prime) J_r(\vb x^\prime)dA
+            }_{\mb E^3}
+\end{align*}
+%====================================================================%
+The third integral here captures the effect of the surface charge layer
+due to the discontinuous dropoff of the currents at the sphere 
+surface.
+
+In evaluating $\mb E^1$ integrals I need to use the 3x3 matrices
+that convert spherical vector components to cartesian vector components
+and vice versa:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \left(\begin{array}{c}V_x \\ V_y \\ V_z\end{array}\right)
+  =
+   \underbrace{
+   \left(\begin{array}{ccc}
+   \sin\theta\cos\varphi & \cos\theta \cos \varphi & -\sin\varphi \\
+   \sin\theta\sin\varphi & \cos\theta \sin \varphi & \cos\varphi \\
+   \cos\theta & -\sin\theta & 0
+   \end{array}\right)
+              }_{\vbLambda\sups{S2C}(\theta,\varphi)}
+   \left(\begin{array}{c}V_r \\ V_\theta \\ V_\varphi\end{array}\right)
+$$
+$$ \left(\begin{array}{c}V_r \\ V_\theta \\ V_\varphi\end{array}\right)
+  =
+   \underbrace{
+   \left(\begin{array}{ccc}
+   \sin\theta\cos\varphi & \sin\theta \sin \varphi & \cos\theta \\
+   \cos\theta\cos\varphi & \cos\theta \sin\varphi  & -\sin\theta \\
+   -\sin\varphi & \cos\varphi & 0
+   \end{array}\right)
+              }_{\vbLambda\sups{C2S}(\theta,\varphi)}
+   \left(\begin{array}{c}V_x \\ V_y \\ V_z \end{array}\right)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Relevant integrals include:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+  \int 
+   Y^*_\alpha(\theta,\phi) \vbLambda\sups{C2S}(\theta,\phi)
+   \cdot \left\{ Y_\beta(\theta,\phi)\vbhat{r}\right\}
+   d\Omega
+&=
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+I then find:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \mb E^1_{M\ell m}(\vb x)
+\\
+ \mb E^2_{M\ell m}(\vb x)&=0  \qtq{because} \nabla \cdot \vb M
+\\
+ \mb E^3_{M\ell m}(\vb x)&=0  \qtq{because} M_r=0
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

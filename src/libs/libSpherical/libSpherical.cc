@@ -720,11 +720,11 @@ void GetMNlmArray(int lMax, cdouble k,
   memset(M,0,3*sizeof(cdouble));  /* zero out the l==0 functions */
   memset(N,0,3*sizeof(cdouble));
   if (LL)
-   { LL[0]=dRdr[0] / (4.0*M_PI);
+   { LL[0]=dRdr[0] / sqrt(4.0*M_PI);
      LL[1]=LL[2]=0.0;
    };
   if (DivLL) 
-   DivLL[0]=-k*k*dRdr[0]/(4.0*M_PI);
+   DivLL[0]=-k*k*dRdr[0]/sqrt(4.0*M_PI);
   nik=-II*k;
   for (Alpha=l=1; l<=lMax; l++)
    for (m=-l; m<=l; m++, Alpha++)

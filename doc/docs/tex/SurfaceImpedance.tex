@@ -2,6 +2,7 @@
 \usepackage{array}
 \input{HRCommands}
 \newcommand{\BG}{\vbGamma}
+\newcommand{\RBar}{\overline{R}}
 
 \graphicspath{{figures/}}
 
@@ -207,13 +208,14 @@ My alternative SIE formulation for IPEC bodies goes like this:
        \end{align*}
 \end{enumerate}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%####################################################################%
+%####################################################################%
+%####################################################################%
 \newpage
 \section{Example 1: Dielectric film with thin conductive coating layer}
 
 \subsection{Exact solution}
+\label{FilmExactSolution}
 
 %####################################################################%
 %####################################################################%
@@ -339,8 +341,99 @@ linear system of the form
 %====================================================================%
 that we solve for the field-expansion coefficients.
 
-\newpage
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\subsection*{Results: Transmission through dielectric layer with thin gold film}
+
+Figure \ref{ThinFilmTransmissionData} shows the tangential $\vb E$ and $\vb H$
+fields for the geometry of Figure \ref{TwoFilmFigure} with parameters
+%====================================================================%
+$$ \epsilon\subt{I}=\epsilon\subt{E}=1, \qquad
+   \epsilon\subt{D}=10, \qquad
+   \epsilon\subt{C}=\epsilon\subs{gold}, \qquad
+   T\subt{D}=1 \, \mu\text{m} \qquad
+   T\subt{C}=10\text{ nm},
+$$
+%====================================================================%
+i.e. a 1-$\mu$m-thick dielectric layer coated by a thin (10 nm)
+layer of gold, with vacuum above and below. The point of these
+figures is that the tangential electric field is continuous
+across the gold layer, while the magnetic field appears
+to suffer a discontinuous jump upon traversing the gold layer.
+
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\begin{tabular}{cc}
+\resizebox{0.5\textwidth}{!}{\includegraphics{ThinFilmTransmissionTE.pdf}}
+&
+\resizebox{0.5\textwidth}{!}{\includegraphics{ThinFilmTransmissionTM.pdf}}
+\\
+ \textbf{(a)} 
+&\textbf{(b)} 
+\end{tabular}
+\begin{tabular}{c}
+\resizebox{0.5\textwidth}{!}{\includegraphics{ThinFilmIBCLayerZoom.pdf}}
+ \textbf{(c)} 
+\end{tabular}
+\caption{Tangential electric (purple) and magnetic (green) fields
+         for the geometry of Figure (\ref{TwoFilmFigure})
+         irradiated by TE \textbf{(a)} and TM \textbf{(b)} 
+         plane waves at incident angle $\theta=\frac{\pi}{4}.$
+         The region between the dashed lines is the dielectric
+         layer $(\epsilon\subt{D}=10)$. The gold layer lives
+         at the right dashed line. In both cases the tangential
+         $\vb E$-field is continuous across the gold layer,
+         while the tangential $\vb H$-field appears 
+         to suffer a discontinuous jump across the layer.
+         Zooming in to just the gold layer [plot \textbf{(c)}]
+         we see that the $\vb E$-field is nearly constant in 
+         the layer, while the $\vb H$-field varies rapidly, giving
+         the impression of the discontinuous jumps in
+         Figures \textbf{(a,b)}.
+         }
+\label{ThinFilmTransmissionData}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{IBCLayerCurrents.pdf}}
+\caption{A constant tangential $\vb E$-field in a thin layer of thickness
+         $T\subt{C}$ and relative permittivity $\epsilon$
+         produces a constant volume-current density 
+         $\vb J=-\frac{ik}{Z_0}(\epsilon-1)\vb E$,
+         which we model as an infinitesimally thin sheet
+         with surface-current density $\vb K=T\subt{C}\vb J$.}
+\label{SurfaceCurrentSchematic}
+\end{center}
+\end{figure}
+%####################################################################%
+The fact that the $\vb E$-field is constant throughout the gold
+layer [Figure \ref{ThinFilmTransmissionData}\textbf{(c)}] 
+suggests the scenario cartooned in Figure \ref{SurfaceCurrentSchematic}:
+A constant tangential $\vb E$-field in a thin layer of thickness
+$T\subt{C}$ and relative permittivity $\epsilon$
+produces a constant volume-current density 
+$\vb J=-\frac{ik}{Z_0}(\epsilon-1)\vb E$,
+which we model as an infinitesimally thin sheet
+with surface-current density $\vb K=T\subt{C}\vb J$.
+The effective surface conductivity of the layer
+is related to its thickness and bulk conductivity by
+%====================================================================%
+\numeq{SigmaS}
+{\sigma\subt{S}=\frac{|\vb K|}{|\vb E_\parallel|}=
+   -\frac{ikT\supt{C}}{Z_0}(\epsilon-1).
+}
+%====================================================================%
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
 \subsection{IBC solution}
+\label{FilmIBCSolution}
 
 %####################################################################%
 %####################################################################%
@@ -403,40 +496,238 @@ $$
 These two equations replace the last 4 lines of the system 
 (\ref{TwoFilmSystem}).
 
+\subsection*{Results: Transmission coefficient in the full calculation and in the IBC approximation}
+
+For the parameters considered above (gold film of thickness $T\subt{C}$ 
+on $\epsilon\subt{D}=10$ dielectric layer of thickness 1 $\mu$m),
+Figure \ref{IBCVsFullTR} plots the transmission coefficient 
+magnitude $|t|$ as computed using the full calculation 
+of Section \ref{FilmExactSolution} (filled circles)
+and the IBC approximation of 
+Section \ref{FilmIBCSolution} (hollow circles)
+vs. film thickness $T\subt{C}$.
+
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\begin{tabular}{c}
+\resizebox{0.5\textwidth}{!}{\includegraphics{ExactVsIBC_Theta0_TR.pdf}}\\
+\textbf{(a)} $\theta=0$
+\end{tabular}
+
+\begin{tabular}{cc}
+\resizebox{0.5\textwidth}{!}{\includegraphics{ExactVsIBC_Theta45TE_TR.pdf}}
+&
+\resizebox{0.5\textwidth}{!}{\includegraphics{ExactVsIBC_Theta45TM_TR.pdf}}
+\\
+\textbf{(b)} $\theta=\frac{\pi}{4}$, TE
+&
+\textbf{(c)} $\theta=\frac{\pi}{4}$, TE
+\end{tabular}
+\label{IBCVsFullTR}
+\end{center}
+\end{figure}
+%####################################################################%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Example 2: Dielectric sphere with thin conductive coating layer}
 
-\subsection{Exact solution}
-
 %####################################################################%
 %####################################################################%
 %####################################################################%
-\begin{figure}[h]
+\begin{figure}[H]
 \resizebox{\textwidth}{!}{\includegraphics{CoatedSphere.pdf}}
 \caption{Dielectric sphere covered by finite-thickness coating layer.
-Eventually I will take layer C to be thin and highly conductive
-and will model it by an infinitesimally thin surface-impedance layer.}
+\textbf{(a)} Full geometry.
+\textbf{(b)} IBC-layer approximation.
+}
 \label{CoatedSphereFigure}
 \end{figure}
 %####################################################################%
 %####################################################################%
 %####################################################################%
+I next consider a spherical version of the geometry of Figure
+\ref{TwoFilmFigure}: a dielectric sphere (permittivity
+$\epsilon\subt{D}$, radius $R\subt{D}$) coated by a
+conducting layer (permittivity $\epsilon\subt{C}$, thickness
+$T\subt{C}$) illuminated by a linear combination of regular
+spherical waves:\footnote{My conventions for vector spherical
+waves are detailed in the companion memo,
+``Electromagnetism in the Spherical-Wave Basis''
+(\url{http://homerreid.github.io/scuff-em-documentation/tex/scuffSpherical.pdf}).}
+%====================================================================%
+$$ \vb E\sups{inc}(\vb x)=
+   \sum_{\alpha}
+     \Big\{ P_\alpha\vb M\sups{reg}_\alpha(\vb x)
+            Q_\alpha\vb N\sups{reg}_\alpha(\vb x)
+     \Big\}
+$$
+%====================================================================%
 
+\subsection{Exact solution}
+\label{SphereExactSolution}
+
+Fields outside:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \vb E(\vb x) &= \vb E\sups{inc}(\vb x) 
++ \sum_{\alpha}
+     \Big\{ A_\alpha\vb M\sups{out}_\alpha(\vb x)
+           +B_\alpha\vb N\sups{out}_\alpha(\vb x)
+     \Big\}
+\\
+\vb H\sups{scat}(\vb x) &= \vb H\sups{inc}(\vb x)
++ \frac{1}{Z_0}
+     \sum_{\alpha}
+     \Big\{ B_\alpha\vb M\sups{out}_\alpha(\vb x)
+           -A_\alpha\vb N\sups{out}_\alpha(\vb x)
+     \Big\}
+\\
+\end{align}
+\label{SphereFieldsOutside}
+\end{subequations}
+%====================================================================%
+Fields in conducting layer:
+%====================================================================%
+\begin{align}
+\vb E &= 
+   \sum_{\alpha}
+     \Big\{ C_\alpha\vb M\sups{out}_\alpha(\vb x)
+           +D_\alpha\vb N\sups{out}_\alpha(\vb x)
+           +E_\alpha\vb M\sups{reg}_\alpha(\vb x)
+           +F_\alpha\vb N\sups{reg}_\alpha(\vb x)
+     \Big\}
+\\
+\vb H &= 
+ \frac{1}{Z_0Z\subt{C}}
+   \sum_{\alpha}
+     \Big\{ D_\alpha\vb M\sups{out}_\alpha(\vb x)
+           -C_\alpha\vb N\sups{out}_\alpha(\vb x)
+           +F_\alpha\vb M\sups{reg}_\alpha(\vb x)
+           -E_\alpha\vb N\sups{reg}_\alpha(\vb x)
+     \Big\}
+\end{align}
+%====================================================================%
+Fields inside dielectric sphere:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\vb E &= 
+   \sum_{\alpha}
+     \Big\{ G_\alpha\vb M\sups{reg}_\alpha(\vb x)
+           +H_\alpha\vb N\sups{reg}_\alpha(\vb x)
+     \Big\}
+\\
+\vb H &= 
+ \frac{1}{Z_0Z\subt{D}}
+   \sum_{\alpha}
+     \Big\{ H_\alpha\vb M\sups{reg}_\alpha(\vb x)
+           -G_\alpha\vb N\sups{reg}_\alpha(\vb x)
+     \Big\}
+\end{align}
+\label{SphereFieldsInside}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Match tangential fields:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$\left(\begin{array}{cccc}
+    R\sups{out}(R\subt{C})
+ & -R\sups{out}(R\subt{C})
+ & -R\sups{reg}(R\subt{C})
+ & 0
+\\
+    \RBar\sups{out}(R\subt{C})
+ & -\frac{1}{Z\subt{C}}\RBar\sups{out}(R\subt{C})
+ & -\frac{1}{Z\subt{C}}\RBar\sups{reg}(R\subt{C})
+ & 0
+\\
+    0   
+ &  R\sups{out}(R\subt{D})
+ &  R\sups{reg}(R\subt{D})
+ & -R\sups{reg}(R\subt{D})
+\\
+    0   
+ & \frac{1}{Z\subt{C}}  \RBar\sups{out}(R\subt{D})
+ & \frac{1}{Z\subt{C}}  \RBar\sups{reg}(R\subt{D})
+ & -\frac{1}{Z\subt{D}} \RBar\sups{reg}(R\subt{D})
+  \end{array}\right)
+  \left(\begin{array}{c}
+  A \\ C \\ E \\ G
+  \end{array}\right)
+=-P
+  \left(\begin{array}{c}
+  R\sups{reg}(R\subt{C}) \\ \RBar\sups{reg}(R\subt{C}) \\ 0 \\ 0
+  \end{array}\right)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+The equation for the vector $\left(\begin{array}{c}B\\D\\F\\H\end{array}\right)$
+is similar with $R\leftrightarrow \RBar$ everywhere.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{IBC solution}
+\label{SphereIBCSolution}
 
-%####################################################################%
-%####################################################################%
-%####################################################################%
-\begin{figure}[h]
-\resizebox{\textwidth}{!}{\includegraphics{IBCSphere.pdf}}
-\caption{Dielectric sphere coated by infinitesimally thin 
-surface-impedance layer.}
-\label{IBCSphereFigure}
-\end{figure}
-%####################################################################%
-%####################################################################%
-%####################################################################%
+In the IBC version of the problem we have only the fields
+(\ref{SphereFieldsOutside}) and (\ref{SphereFieldsInside}).
+The IBC condition reads
+%====================================================================%
+\begin{align*}
+ \vb H \big( R\subt{D}^+ \big)
+-\vb H \big( R\subt{D}^- \big)
+&=-\sigma\subt{S}\vbhat{r}\times E\big(R\subt{D}^-\big)
+\intertext{or (using an obvious shorthand)}
+Q\vb M\sups{reg} - P\vb N\sups{reg}
++B\vb M\sups{out} - A\vb N\sups{out}
+-\frac{1}{Z\supt{D}}H\vb M\sups{reg}
++\frac{1}{Z\supt{D}}G\vb N\sups{reg}
+&=-Z_0\sigma\subt{S}\left( G\vbhat{r}\times \vb M\sups{reg} + H\vbhat{r}\times \vb N\sups{reg}\right)
+\end{align*}
+Noting that 
+%====================================================================%
+$$ \vbhat{r}\times \vb M\sups{reg} = R\sups{reg} \vb{Z}, \qquad
+   \vbhat{r}\times \vb N\sups{reg} = -i\overline{R}\sups{reg} \vb{X}
+$$
+%====================================================================%
+and working through the algebra yields
+%====================================================================%
+$$
+ \left(\begin{array}{cc}
+   R\sups{out}(a)
+& -R\sups{reg}(na)
+\\
+   \RBar\sups{out}(a)
+& -\frac{1}{Z\subt{D}}\RBar\sups{reg}(na)
+  +iZ_0 \sigma\subt{S}R\sups{reg}(na)
+ \end{array}\right)
+ \left(\begin{array}{c}
+ A \\ G 
+ \end{array}\right)
+=-P
+ \left(\begin{array}{c}
+  R\sups{reg}(a)
+\\
+  \RBar\sups{reg}(a)
+ \end{array}\right)
+$$
+
+$$
+ \left(\begin{array}{cc}
+  \RBar\sups{out}(a) & -\RBar\sups{reg}(na)
+\\ 
+   R\sups{out}(a)
+& -\frac{1}{Z\subt{D}}R\sups{reg}(na) - iZ_0\sigma\subt{S} \RBar\sups{reg}(na)
+ \end{array}\right)
+=
+   -Q
+  \left(\begin{array}{c} \RBar\sups{reg}(a) \\ R\sups{reg}(a)
+  \end{array}\right)
+$$
+
 \end{document}
