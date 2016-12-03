@@ -451,6 +451,23 @@ void HMatrix::AddEntry(size_t nr, size_t nc, double Entry)
 }
 
 /***************************************************************/
+/* multiply a single matrix entry by a scalar factor ***********/
+/***************************************************************/
+void HMatrix::ScaleEntry(size_t nr, size_t nc, cdouble ScaleFactor)
+{ SetEntry(nr, nc, ScaleFactor*GetEntry(nr,nc)); }
+
+/***************************************************************/
+/* return a pointer to the head of the double-valued or        */
+/* cdouble-valued array of elements for column #nc             */
+/***************************************************************/
+void *HMatrix::GetColumnPointer(size_t nc)
+{ if (DM)
+   return DM + nc*NR;
+  else
+   return ZM + nc*NR;
+}
+
+/***************************************************************/
 /* scale the entire matrix by a scalar multiple ****************/
 /***************************************************************/
 void HMatrix::Scale(cdouble Alpha)
