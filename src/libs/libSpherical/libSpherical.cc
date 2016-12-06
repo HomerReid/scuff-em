@@ -177,40 +177,37 @@ void GetPlm(int lMax, int m, double x, double *Plm, double *PlmPrime)
   /***************************************************************/
   /* compute P_m^m ***********************************************/
   /***************************************************************/
-  double pmm=1.0;
-  double fact=1.0;
-  int n;
-  for(n=1; n<=m; n++)
-   { pmm*=omx2*fact/(fact+1.0);
-     fact+=2.0;
+  double Pmm=1.0, Factor=1.0;
+  for(int n=1; n<=m; n++)
+   { Pmm*=omx2*Factor/(Factor+1.0);
+     Factor+=2.0;
    };
-  pmm=sqrt( (2.0*m+1.0)*pmm/(4.0*M_PI) );
+  Pmm=sqrt( (2.0*m+1.0)*Pmm/(4.0*M_PI) );
   if (m&1) 
-   pmm=-pmm;
+   Pmm*=-1.0;
 
   /***************************************************************/
   /* assemble the first two slots in the output arrays ***********/
   /***************************************************************/
-  double oldfact=sqrt(2.0*m+3.0);
-  double l, Alm;
+  double OldFactor=sqrt(2.0*m+3.0);
 
-  Plm[0] = pmm;
-  Plm[1] = x*oldfact*pmm;
+  Plm[0] = Pmm;
+  Plm[1] = x*OldFactor*Pmm;
   PlmPrime[0] = -m*x*Plm[0]/omx2;
-  l=m+1;
-  Alm=sqrt( (2*l+1)*(l*l-m*m) / (2*l-1) );
+
+  double l=m+1;
+  double Alm=sqrt( (2*l+1)*(l*l-m*m) / (2*l-1) );
   PlmPrime[1] = (Alm*Plm[0] - l*x*Plm[1])/omx2;
 
   /***************************************************************/
   /* use recurrence to fill in the remaining slots               */
   /***************************************************************/
-  int np;
-  for(np=2, l=m+2; l<=lMax; l++, np++)
-   { fact=sqrt( (4.0*l*l-1.0) / (l*l-m*m) );
-     Plm[np]=fact*(x*Plm[np-1] - Plm[np-2]/oldfact);
+  for(int np=2, l=m+2; l<=lMax; l++, np++)
+   { Factor=sqrt( (4.0*l*l-1.0) / (l*l-m*m) );
+     Plm[np]=Factor*(x*Plm[np-1] - Plm[np-2]/OldFactor);
      Alm=sqrt( (2*l+1)*(l*l-m*m) / (2*l-1) );
      PlmPrime[np] = (Alm*Plm[np-1] - l*x*Plm[np])/omx2;
-     oldfact=fact;
+     OldFactor=Factor;
    };
 
 }
