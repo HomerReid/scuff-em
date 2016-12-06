@@ -431,7 +431,7 @@ void HMatrix::AddEntry(size_t nr, size_t nc, cdouble Entry)
    DM[Index] += real(Entry);
   else if ( StorageType==LHM_HERMITIAN )
    ZM[Index] += ( Flipped == 1 ? conj(Entry) : Entry );
-  else /* complex symmetric */
+  else 
    ZM[Index] += Entry;
 }
 

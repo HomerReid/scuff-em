@@ -58,7 +58,8 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M,
 
 void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
                  char *PotFile, char *PhiExt, int ConstFieldDirection,
-                 char *PlotFile, char **EPFiles, int nEPFiles);
+                 char *PlotFile, char **EPFiles, int nEPFiles,
+                 char *FileBase);
 
 /***************************************************************/
 /***************************************************************/
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
   char *PotFile     = 0;
   char *PhiExt      = 0;
   char *EPFiles[MAXEPF];             int nEPFiles;
+  char *FileBase    = 0;
   char *PlotFile    = 0;
   char *Cache       = 0;
   char *ReadCache[MAXCACHE];         int nReadCache;
@@ -108,6 +110,7 @@ int main(int argc, char *argv[])
      {"ConstField",     PA_STRING,  1, 1,       (void *)&ConstField, 0,             "direction of constant unit-strength E field (x,y,z) "},
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EP file output"},
      {"PlotFile",       PA_STRING,  1, 1,       (void *)&PlotFile,   0,             "surface charge visualization output file"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
@@ -120,6 +123,9 @@ int main(int argc, char *argv[])
 
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+
+  if (FileBase==0)
+   vstrdup(FileBase,GetFileBase(GeoFile));
 
   if (nlMax && (CMatrixFile==0 || CMatrixHDF5File) )
    ErrExit("--lMax option can only be used with --CMatrixFile or --CMatrixHDF5File");
@@ -274,7 +280,7 @@ int main(int argc, char *argv[])
      if (nEPFiles>0 || PlotFile )
       WriteFields(SSS, M, Sigma,
                   PotFile, PhiExt, ConstFieldDirection,
-                  PlotFile, EPFiles, nEPFiles);
+                  PlotFile, EPFiles, nEPFiles, FileBase);
 
      /*******************************************************************/
      /*******************************************************************/

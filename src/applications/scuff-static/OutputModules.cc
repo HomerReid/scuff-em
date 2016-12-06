@@ -455,7 +455,7 @@ void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
 /***************************************************************/
 void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
                  char *PotFile, char *PhiExt, int ConstFieldDirection,
-                 char *PlotFile, char **EPFiles, int nEPFiles)
+                 char *PlotFile, char **EPFiles, int nEPFiles, char *FileBase)
 { 
   /***************************************************************/
   /* process user's conductor potential file if present          */
@@ -513,7 +513,7 @@ void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
      else
       PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
 
-     FILE *f=vfopen("%s.out","w",GetFileBase(EPFiles[nepf]));
+     FILE *f=vfopen("%s.%s.out","w",FileBase,GetFileBase(EPFiles[nepf]));
      fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
      int nc=1;
