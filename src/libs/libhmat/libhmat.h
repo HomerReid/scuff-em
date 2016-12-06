@@ -195,12 +195,16 @@ class HMatrix
    cdouble GetEntry(size_t nr, size_t nc);
    double GetEntryD(size_t nr, size_t nc);
 
-   /* routines for setting or augmenting matrix entries */
+   /* routines for setting, augmenting, scaling matrix entries */
    void SetEntry(size_t nr, size_t nc, double Entry);
    void SetEntry(size_t nr, size_t nc, cdouble Entry);
 
    void AddEntry(size_t nr, size_t nc, double Entry);
    void AddEntry(size_t nr, size_t nc, cdouble Entry);
+
+   void ScaleEntry(size_t nr, size_t nc, cdouble ScaleFactor);
+
+   void *GetColumnPointer(size_t nc);
 
    /* matlab-style fetching or setting of swaths of a matrix */
    double *GetEntriesD(const char *RowString, int Col, double *Entries=0);
@@ -231,7 +235,6 @@ class HMatrix
    void DoSetEntries(int RowStart, int RowStop, int RowInc, int RowLen,
                      int ColStart, int ColStop, int ColInc, int ColLen,
                      HMatrix *B, cdouble Entry=0.0);
-
 
    /* routine for copying another HMatrix of the same size*/
    void Copy(HMatrix *M);

@@ -431,7 +431,7 @@ void HMatrix::AddEntry(size_t nr, size_t nc, cdouble Entry)
    DM[Index] += real(Entry);
   else if ( StorageType==LHM_HERMITIAN )
    ZM[Index] += ( Flipped == 1 ? conj(Entry) : Entry );
-  else /* complex symmetric */
+  else 
    ZM[Index] += Entry;
 }
 
@@ -448,6 +448,23 @@ void HMatrix::AddEntry(size_t nr, size_t nc, double Entry)
    DM[Index] += Entry;
   else 
    ZM[Index] += cdouble(Entry,0.0);
+}
+
+/***************************************************************/
+/* multiply a single matrix entry by a scalar factor ***********/
+/***************************************************************/
+void HMatrix::ScaleEntry(size_t nr, size_t nc, cdouble ScaleFactor)
+{ SetEntry(nr, nc, ScaleFactor*GetEntry(nr,nc)); }
+
+/***************************************************************/
+/* return a pointer to the head of the double-valued or        */
+/* cdouble-valued array of elements for column #nc             */
+/***************************************************************/
+void *HMatrix::GetColumnPointer(size_t nc)
+{ if (DM)
+   return DM + nc*NR;
+  else
+   return ZM + nc*NR;
 }
 
 /***************************************************************/
