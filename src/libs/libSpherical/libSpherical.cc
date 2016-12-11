@@ -52,6 +52,14 @@ void CoordinateC2S(double X[3], double *r, double *Theta, double *Phi)
 void CoordinateC2S(double X[3], double R[3])
  { CoordinateC2S(X[0], X[1], X[2], R+0, R+1, R+2); }
 
+void CoordinateC2S(double X[3])
+ { double R[3];
+   CoordinateC2S(X,R);
+   X[0]=R[0];
+   X[1]=R[1];
+   X[2]=R[2];
+ }
+
 /***************************************************************/
 /* convert spherical coordinates to cartesian coordinates      */
 /***************************************************************/
@@ -70,6 +78,14 @@ void CoordinateS2C(double r, double Theta, double Phi, double X[3])
 
 void CoordinateS2C(double R[3], double X[3])
  { CoordinateS2C(R[0], R[1], R[2], X+0, X+1, X+2); }
+
+void CoordinateS2C(double R[3])
+ { double X[3];
+   CoordinateS2C(R[0], R[1], R[2], X+0, X+1, X+2); 
+   R[0]=X[0];
+   R[1]=X[1];
+   R[2]=X[2];
+}
 
 /***************************************************************/
 /* given the cartesian components of a vector, return its      */
@@ -92,6 +108,18 @@ void VectorC2S(double Theta, double Phi, cdouble VC[3], cdouble VS[3])
     VS[mu] += M[mu][nu]*VC[nu];
 }
 
+void VectorC2S(double Theta, double Phi, cdouble V[3])
+{ cdouble VS[3];
+  VectorC2S(Theta, Phi, V, VS);
+  V[0]=VS[0]; V[1]=VS[1]; V[2]=VS[2];
+}
+
+void VectorC2S(double Theta, double Phi, double V[3])
+{ double VS[3];
+  VectorC2S(Theta, Phi, V, VS);
+  V[0]=VS[0]; V[1]=VS[1]; V[2]=VS[2];
+}
+
 void VectorC2S(double Theta, double Phi, double VC[3], double VS[3])
 { 
   double CT=cos(Theta), ST=sin(Theta);
@@ -108,6 +136,19 @@ void VectorC2S(double Theta, double Phi, double VC[3], double VS[3])
    for(nu=0; nu<3; nu++)
     VS[mu] += M[mu][nu]*VC[nu];
 }
+
+void VectorS2C(double Theta, double Phi, cdouble V[3])
+{ cdouble VC[3];
+  VectorS2C(Theta, Phi, V, VC);
+  V[0]=VC[0]; V[1]=VC[1]; V[2]=VC[2];
+}
+
+void VectorS2C(double Theta, double Phi, double V[3])
+{ double VC[3];
+  VectorS2C(Theta, Phi, V, VC);
+  V[0]=VC[0]; V[1]=VC[1]; V[2]=VC[2];
+}
+
 
 /***************************************************************/
 /* given the spherical components of a vector, return its      */
