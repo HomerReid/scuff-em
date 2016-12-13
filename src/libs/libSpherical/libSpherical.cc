@@ -1,4 +1,19 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
+
+  double CT=cos(Theta), ST=sin(Theta);
+  double CP=cos(Phi), SP=sin(Phi);
+  double M[3][3];
+  int mu, nu;
+
+  M[0][0]=ST*CP;    M[0][1]=CT*CP;    M[0][2]=-SP;
+  M[1][0]=ST*SP;    M[1][1]=CT*SP;    M[1][2]=CP;
+  M[2][0]=CT;       M[2][1]=-ST;      M[2][2]=0.0;
+
+  memset(VC,0,3*sizeof(double));
+  for(mu=0; mu<3; mu++)
+   for(nu=0; nu<3; nu++)
+    VC[mu] += M[mu][nu]*VS[nu];
+}
  *
  * This file is part of SCUFF-EM.
  *
@@ -30,6 +45,12 @@
 #include <math.h>
 
 #include <libhrutil.h>
+
+#include <config.h>
+
+#ifdef HAVE_LIBGSL
+ #include <gsl/gsl_sf_legendre.h>
+#endif
 
 #include "libSpherical.h"
 
@@ -236,9 +257,9 @@ void GetPlm(int lMax, int m, double x, double *Plm, double *PlmPrime)
   Plm[1] = x*OldFactor*Pmm;
   PlmPrime[0] = -m*x*Plm[0]/omx2;
 
-  double l=m+1;
-  double Alm=sqrt( (2*l+1)*(l*l-m*m) / (2*l-1) );
-  PlmPrime[1] = (Alm*Plm[0] - l*x*Plm[1])/omx2;
+  double dl=(double)(m+1);
+  double Alm=sqrt( (2*dl+1)*(dl*dl-m*m) / (2*dl-1) );
+  PlmPrime[1] = (Alm*Plm[0] - dl*x*Plm[1])/omx2;
 
   /***************************************************************/
   /* use recurrence to fill in the remaining slots               */
@@ -362,8 +383,6 @@ double GetRealYlm(int l, int m, double Theta, double Phi)
 void GetYlmDerivArray(int lMax, double Theta, double Phi, 
                       cdouble *Ylm, cdouble *dYlmdTheta)
 {
-  int l, m, mm, Alpha;
-
   /* whoops! this doesn't work in C++. for now i will  */
   /* hard-code the value of LMAX...FIXME               */
   // double **Plm      = new double[lMax+1][lMax+1];
@@ -382,7 +401,7 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
   /*--------------------------------------------------------------*/
   /* get sines and cosines                                        */ 
   /*--------------------------------------------------------------*/
-  for(m=0; m<=lMax; m++)
+  for(int m=0; m<=lMax; m++)
    { SinMP[m]=sin( ((double)m) * Phi );
      CosMP[m]=cos( ((double)m) * Phi );
    };
@@ -396,22 +415,41 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
   /* where P_l^m is the associated legendre function with the     */
   /* correct prefactor for use in spherical harmonics.            */
   /*--------------------------------------------------------------*/
-  if ( Theta < 1.0e-8 )
-   Theta=1.0e-8;
-  if ( fabs(M_PI-Theta) < 1.0e-8 ) 
-   Theta=M_PI-1.0e-8;
+  if ( Theta < 1.0e-6 ) Theta=1.0e-6;
+  if ( fabs(M_PI-Theta) < 1.0e-6 ) Theta=M_PI-1.0e-6;
   ST=sin(Theta);
   CT=cos(Theta);
-  for(m=0; m<=lMax; m++)
+
+#ifdef HAVE_LIBGSL
+  static int lMaxSave=-1;
+  static double *gslP=0, *gslPPrime=0;
+  if (lMaxSave<lMax)
+   { lMaxSave=lMax;
+     int gslSize=gsl_sf_legendre_array_n(lMax);
+     gslP=(double *)realloc(gslP, gslSize*sizeof(double));
+     gslPPrime=(double *)realloc(gslPPrime, gslSize*sizeof(double));
+   };
+  gsl_sf_legendre_deriv_array(GSL_SF_LEGENDRE_SPHARM, lMax, CT, gslP, gslPPrime);
+  for(int l=0; l<=lMax; l++)
+   for(int m=0; m<=l; m++)
+    { int gslIndex=gsl_sf_legendre_array_index(l,m);
+      double Sign = (m%2) ? -1.0 : 1.0;
+      Plm[m][l] = Sign * gslP[gslIndex];
+      PlmPrime[m][l] = Sign * gslPPrime[gslIndex];
+    };
+#else
+  for(int m=0; m<=lMax; m++)
    GetPlm(lMax, m, CT, Plm[m] + m, PlmPrime[m] + m);
+#endif
+
 
   /*--------------------------------------------------------------*/
   /* assemble output quantities                                   */
   /*--------------------------------------------------------------*/
-  for(Alpha=l=0; l<=lMax; l++)
-   for(m=-l; m<=l; m++, Alpha++)
+  for(int Alpha=0, l=0; l<=lMax; l++)
+   for(int m=-l; m<=l; m++, Alpha++)
     { 
-      mm=abs(m);
+      int mm=abs(m);
 
       if (m>=0)
        PhiFac=cdouble( CosMP[mm],  SinMP[mm] );

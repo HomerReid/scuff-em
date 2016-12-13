@@ -177,6 +177,13 @@ AC_CHECK_HEADERS([execinfo.h])
 AC_CHECK_FUNCS([backtrace])
 
 ##################################################
+# check for GSL 
+##################################################
+AC_CHECK_LIB([m],[cos])
+AC_CHECK_LIB([gslcblas],[cblas_dgemm])
+AC_CHECK_LIB([gsl],[gsl_sf_legendre_array_n])
+
+##################################################
 # Checks for miscellaneous math functions
 AC_CHECK_FUNCS([isnan isinf erf erfc copysign])
 
