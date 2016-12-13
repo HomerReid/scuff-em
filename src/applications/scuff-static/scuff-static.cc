@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
   if (FileBase==0)
-   vstrdup(FileBase,GetFileBase(GeoFile));
+   FileBase=vstrdup(GetFileBase(GeoFile));
 
   if (nlMax && (CMatrixFile==0 || CMatrixHDF5File) )
    ErrExit("--lMax option can only be used with --CMatrixFile or --CMatrixHDF5File");
