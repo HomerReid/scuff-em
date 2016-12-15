@@ -202,18 +202,20 @@ void MatProp::InitMatProp(const char *MaterialName, const char *MatPropFileName)
   /*- CONST_EPS_xxx                                              -*/
   /*- CONST_MU_xxx                                               -*/
   /*- CONST_EPS_xxx_MU_xxx                                       -*/
+  /*- CONST_EPS_xxx_MU_XXX_SIGMA_xxx                             -*/
   /*-  ... etc                                                   -*/
   /*--------------------------------------------------------------*/
   if ( !strncasecmp(p,"CONST_",6) )
    { 
      char ConstString[100];
-     char *Tokens[4];
+     char *Tokens[6];
      int nt, NumTokens, nConv;
      double ER, EI;
      char c1, c2;
+     double Sigma=0.0;
 
      strncpy(ConstString, p+6, 100);
-     NumTokens=Tokenize(ConstString, Tokens, 4, "_");
+     NumTokens=Tokenize(ConstString, Tokens, 6, "_");
      for(nt=0; nt<NumTokens; nt++)
       { 
         if ( !StrCaseCmp(Tokens[nt],"MU") )
@@ -250,14 +252,48 @@ void MatProp::InitMatProp(const char *MaterialName, const char *MatPropFileName)
               return;
             };
          }
+        else if ( !StrCaseCmp(Tokens[nt],"SIGMA") )
+         { if ( ++nt == NumTokens )
+            { ErrMsg=strdupEC("no value specified for SIGMA");
+              return;
+            };
+           nConv=sscanf(Tokens[nt],"%le",&Sigma);
+           if ( nConv != 1 )
+            { ErrMsg=strdupEC("bad constant value specified for Sigma");
+              return;
+            };
+         }
         else
          { ErrMsg=strdupEC("invalid token");
            return;
          };
       };
 
-     Type=MP_CONSTANT;
      Name=strdupEC(p);
+     if (Sigma==0.0)
+      Type=MP_CONSTANT;
+     else
+      { Type=MP_PARSED;
+        char Expr[100];
+        snprintf(Expr,100,"%e + %e*i*2.99792458e14/w",real(Eps),Sigma);
+        EpsExpression = cevaluator_create(Expr);
+	if (!EpsExpression)
+         { ErrMsg=strdupEC("invalid SIGMA value");
+	   return;
+	 }
+	cevaluator_set_var_index(EpsExpression, "w", 0);
+        if (Mu!=1.0)
+         { snprintf(Expr,100,"%e+%ei",real(Mu),imag(Mu));
+           MuExpression = cevaluator_create(Expr);
+	   if (!MuExpression)
+            { ErrMsg=strdupEC("invalid MU value");
+	      return;
+	    };
+	   cevaluator_set_var_index(MuExpression, "w", 0);
+         };
+	OwnsExpressions=true;
+      };
+     
      return;
 
    }; // if ( !strncasecmp(p,"CONST_",6) )
