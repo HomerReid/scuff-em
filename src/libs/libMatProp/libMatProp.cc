@@ -289,10 +289,9 @@ void MatProp::InitMatProp(const char *MaterialName, const char *MatPropFileName)
             { ErrMsg=strdupEC("invalid MU value");
 	      return;
 	    };
+	   cevaluator_set_var_index(MuExpression, "w", 0);
          };
-	cevaluator_set_var_index(MuExpression, "w", 0);
 	OwnsExpressions=true;
-printf("Created %s \n",Expr);
       };
      
      return;
