@@ -1012,4 +1012,87 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
   PlotSurfaceCurrents(0, KN, Omega, 0, FileName);
 }
 
+/***************************************************************/
+/* this is a non-class method that is designed for more general*/
+/* purposes outside SCUFF-EM.                                  */
+/* MDFunc is a caller-supplied routine that inputs a list of   */
+/* NX coordinates (in the form of an NX x 3 HMatrix)           */
+/* and returns an NX x ND HMatrix whose columns are the values */
+/* of ND data quantities, plus optional names for those        */
+/* quantities.                                                 */
+/***************************************************************/
+void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
+                  char *MeshFileName,
+                  const char *OutFileFormat, ...)
+{
+  /***************************************************************/
+  /* try to open output file *************************************/
+  /***************************************************************/
+  va_list ap;
+  char OutFileName[100];
+  if (!OutFileFormat) 
+   snprintf(OutFileName, 100, "%s.pp", GetFileBase(MeshFileName));
+  else
+   { va_start(ap,OutFileFormat);
+     vsnprintfEC(OutFileName,100,OutFileFormat,ap);
+     va_end(ap);
+     if (strlen(OutFileName)<96) strcat(OutFileName,".pp");
+   };
+  FILE *f=fopen(OutFileName,"w");
+  if (!f)
+   { Warn("could not create output file %s",OutFileName);
+     return;
+   };
+     
+  /***************************************************************/
+  /* read in mesh and put vertex coordinates into XMatrix        */
+  /***************************************************************/
+  RWGSurface *S=new RWGSurface(MeshFileName);
+  HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
+  for(int nv=0; nv<S->NumVertices; nv++)
+   XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
+
+  /***************************************************************/
+  /* call user's function to populate data matrix ****************/
+  /***************************************************************/
+  const char **DataNames=0;
+  HMatrix *DataMatrix=MDFunc(MDFData, XMatrix, &DataNames);
+  
+  /***************************************************************/
+  /* write a separate "View" section to the .pp file for each    */
+  /* data field                                                  */
+  /***************************************************************/
+  for(int nd=0; nd<DataMatrix->NC; nd++)
+   {
+     if (DataNames && DataNames[nd])
+      fprintf(f,"View \"%s\"{",DataNames[nd]);
+     else
+      fprintf(f,"View \"%i\"{",nd);
+
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        double *V[3]; // vertices
+        double Q[3];  // quantities
+        for(int iv=0; iv<3; iv++)
+         { 
+           int nv = S->Panels[np]->VI[iv];
+           V[iv]  = S->Vertices + 3*nv;
+	   Q[iv]  = DataMatrix->GetEntryD(nv, nd);
+         };
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   V[0][0], V[0][1], V[0][2],
+                   V[1][0], V[1][1], V[1][2],
+                   V[2][0], V[2][1], V[2][2],
+                   Q[0], Q[1], Q[2]);
+      }; // for(int np=0; np<S->NumPanels; np++)
+
+     fprintf(f,"};\n\n");
+
+   };  // for(int nd=0; nd<DataMatrix->NC; nd++)
+  fclose(f);
+  delete XMatrix;
+  delete DataMatrix;
+  delete S;
+}
+
 } // namespace scuff
