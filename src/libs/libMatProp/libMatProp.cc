@@ -213,6 +213,7 @@ void MatProp::InitMatProp(const char *MaterialName, const char *MatPropFileName)
      double ER, EI;
      char c1, c2;
      double Sigma=0.0;
+     Name=strdupEC(p);
 
      strncpy(ConstString, p+6, 100);
      NumTokens=Tokenize(ConstString, Tokens, 6, "_");
@@ -269,7 +270,6 @@ void MatProp::InitMatProp(const char *MaterialName, const char *MatPropFileName)
          };
       };
 
-     Name=strdupEC(p);
      if (Sigma==0.0)
       Type=MP_CONSTANT;
      else
