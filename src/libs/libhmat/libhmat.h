@@ -165,6 +165,7 @@ class HMatrix
    /* storage parameters                                           */
    HMatrix(int NRows, int NCols, int RealComplex = LHM_REAL,
 	   int StorageType = LHM_NORMAL, void *data = NULL);
+   HMatrix(int NRows, int NCols, int pRealComplex, void *data);
    HMatrix(HMatrix *M, bool takedatandownership=false); // copy constructor
    void InitHMatrix(int NRows, int NCols, int RealComplex = LHM_REAL,
 		    int StorageType = LHM_NORMAL, void *data = NULL);

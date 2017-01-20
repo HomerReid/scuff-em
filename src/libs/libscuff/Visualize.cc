@@ -1022,7 +1022,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 /* quantities.                                                 */
 /***************************************************************/
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  char *MeshFileName,
+                  char *MeshFileName, const char *OptionsString,
                   const char *OutFileFormat, ...)
 {
   /***************************************************************/
@@ -1043,6 +1043,9 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
    { Warn("could not create output file %s",OutFileName);
      return;
    };
+
+  if (OptionsString)
+   fprintf(f,OptionsString);
      
   /***************************************************************/
   /* read in mesh and put vertex coordinates into XMatrix        */
