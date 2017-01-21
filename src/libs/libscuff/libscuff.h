@@ -626,7 +626,7 @@ void CheckLattice(HMatrix *LBasis);
 typedef HMatrix * (*MeshDataFunc)(void *UserData, HMatrix *XMatrix,
                                   const char ***DataNames);
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  char *MeshFileName, 
+                  char *MeshFileName, const char *OptionsString,
                   const char *OutFileFormat, ...);
 
 } // namespace scuff
