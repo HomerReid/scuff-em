@@ -40,6 +40,7 @@
 #else
 #  include <sys/resource.h>
 #  include <sys/times.h>
+#  include <fenv.h>
 #endif
 
 #ifdef HAVE_PTHREAD
@@ -1012,6 +1013,14 @@ void InstallHRSignalHandler()
 { 
 #if defined(_WIN32)
 #else
+
+  // this allows users to set the environment variable
+  //  SCUFF_ABORT_ON_FPE=1
+  // to force the code to abort on any floating-point error
+  char *s=getenv("SCUFF_ABORT_ON_FPE");
+  if (s && s[0]=='1')
+   feenableexcept(FE_INVALID | FE_OVERFLOW);
+
   struct sigaction sa;
 
   sa.sa_handler=SignalHandler;
