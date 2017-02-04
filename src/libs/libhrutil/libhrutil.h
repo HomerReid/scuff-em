@@ -284,4 +284,6 @@ void ProcessOptions(const char *ArgString, OptStruct *OSArray);
     Name=(Type *)mallocEC((Num)*sizeof(Type));            \
   }; 
 
-#endif
+
+#endif // LIBHRUTIL_H
+

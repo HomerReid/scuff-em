@@ -134,6 +134,9 @@ void GetMNlmArray(int lMax, cdouble k,
                   int WaveType, cdouble *M, cdouble *N, 
                   double *Workspace=0, cdouble *LL=0, cdouble *DivLL=0);
 
+double GetdzVSWCoefficient(int L,  int M,  int T,
+                           int LP, int MP, int TP);
+
 /***************************************************************/
 /***************************************************************/
 /* differential operators **************************************/

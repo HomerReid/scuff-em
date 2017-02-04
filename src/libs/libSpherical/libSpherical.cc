@@ -500,8 +500,8 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
   /*- 20111112 separate handling for the r==0 case ---------------*/
   /*--------------------------------------------------------------*/
   if (r==0.0)
-   { memset(R, 0, lMax*sizeof(cdouble));
-     if (dRdr) memset(dRdr, 0, lMax*sizeof(cdouble));
+   { memset(R, 0, (lMax+1)*sizeof(cdouble));
+     if (dRdr) memset(dRdr, 0, (lMax+1)*sizeof(cdouble));
      if (WaveType == LS_REGULAR ) 
       { R[0]=1.0/3.0; dRdr[1]=k/3.0; };
      return;
@@ -949,6 +949,38 @@ void GetMNlm(int l, int m, cdouble k, double r, double Theta, double Phi,
   delete[] MArray;
   delete[] NArray;
 
+}
+
+/***************************************************************/
+/* d/dz F_{LMT} = k*\sum C_{LMT, L'M'T'} F_{L'M'T'}            */
+/* where T=0,1 for M,N waves                                   */
+/***************************************************************/
+static double almCoefficient(int L, int M)
+ { return ((double)M)/(L*(L+1.0)); }
+
+static double blmCoefficient(int L, int M)
+{ 
+  double Num   = L*(L+2.0)*(L-M+1.0)*(L+M+1.0);
+  double Denom = (2.0*L+1.0)*(2.0*L+3.0);
+  return sqrt(Num/Denom) / (L+1.0);
+}
+
+double GetdzVSWCoefficient(int L,  int M,  int T,
+                           int LP, int MP, int TP)
+{
+  if (M!=MP)
+   return 0.0;
+
+  if (L==LP && T!=TP)
+   return ( T==0 ? 1.0 : -1.0) * almCoefficient(L,M);
+
+  int DL = L-LP;
+  if ( T!=TP || abs(DL)!=1 )
+   return 0.0;
+
+  if (L>LP)
+   return blmCoefficient(LP,M);
+  return -1.0*blmCoefficient(L,M);
 }
  
 /***************************************************************/
