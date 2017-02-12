@@ -87,13 +87,11 @@ void HMatrix::InitHMatrix(int NRows, int NCols, int pRealComplex,
   
    if ( (StorageType==LHM_SYMMETRIC || StorageType==LHM_HERMITIAN) && NR!=NC )
     { StorageType=LHM_NORMAL;
-      fprintf(stderr,"\n*\n* warning: packed storage not available for\n");
-      fprintf(stderr,"\n* non-square matrices (using normal storage)\n*\n");
+      Warn("warning: packed storage not available for non-square matrices (using normal storage)");
     }
    if ( StorageType==LHM_HERMITIAN && RealComplex==LHM_REAL )
     { StorageType=LHM_SYMMETRIC;
-      fprintf(stderr,"\n*\n* warning: HERMITIAN is equivalent to\n");
-      fprintf(stderr,"\n* SYMMETRIC for real-valued matrices\n*\n");
+      Warn("warning: HERMITIAN is equivalent to SYMMETRIC for real-valued matrices");
     };
 
    /* If the data parameter is non-NULL, it is assumed to point to a 
@@ -300,7 +298,7 @@ void HMatrix::Copy(HMatrix *M)
   size_t nr, nc;
 
   if ( M->NR != NR || M->NC != NC || M->RealComplex!=RealComplex )
-   { fprintf(stderr,"\n*\n* WARNING: %s:%i: matrix properties mismatch (copy failed)\n*\n",__FILE__,__LINE__);
+   { Warn("%s:%i: matrix properties mismatch (copy failed)",__FILE__,__LINE__);
      return;
    };
 
@@ -365,7 +363,7 @@ cdouble HMatrix::GetTrace()
   cdouble Trace;
 
   if (NR!=NC)
-   { fprintf(stderr,"**warning: GetTrace() called on non-square HMatrix\n");
+   { Warn("GetTrace() called on non-square HMatrix");
      return 0.0;
    };
 
