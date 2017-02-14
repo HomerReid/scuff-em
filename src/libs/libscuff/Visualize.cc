@@ -1020,24 +1020,20 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 /* and returns an NX x ND HMatrix whose columns are the values */
 /* of ND data quantities, plus optional names for those        */
 /* quantities.                                                 */
+/* if Integral is non-null, on return Integral[d] is an        */
+/* estimate of the integral of quantity #d over the mesh area. */
 /***************************************************************/
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                   char *MeshFileName, const char *OptionsString,
-                  const char *OutFileFormat, ...)
+                  char *OutFileBase, HVector *Integral)
 {
   /***************************************************************/
   /* try to open output file *************************************/
   /***************************************************************/
-  va_list ap;
+  if (OutFileBase==0) 
+   OutFileBase=GetFileBase(MeshFileName);
   char OutFileName[100];
-  if (!OutFileFormat) 
-   snprintf(OutFileName, 100, "%s.pp", GetFileBase(MeshFileName));
-  else
-   { va_start(ap,OutFileFormat);
-     vsnprintfEC(OutFileName,100,OutFileFormat,ap);
-     va_end(ap);
-     if (strlen(OutFileName)<96) strcat(OutFileName,".pp");
-   };
+  snprintf(OutFileName, 100, "%s.pp",OutFileBase);
   FILE *f=fopen(OutFileName,"w");
   if (!f)
    { Warn("could not create output file %s",OutFileName);
@@ -1045,7 +1041,7 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
    };
 
   if (OptionsString)
-   fprintf(f,OptionsString);
+   fprintf(f,"%s",OptionsString);
      
   /***************************************************************/
   /* read in mesh and put vertex coordinates into XMatrix        */
@@ -1060,12 +1056,20 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
   /***************************************************************/
   const char **DataNames=0;
   HMatrix *DataMatrix=MDFunc(MDFData, XMatrix, &DataNames);
+  int NumData = DataMatrix->NC;
+
+  if (Integral && Integral->N!=NumData)
+   { Warn("%s:%i: wrong-size Integral vector (%i!=%i)",__FILE__,__LINE__,Integral->N,NumData);
+     Integral=0;
+   };
+  if (Integral)
+   Integral->Zero();
   
   /***************************************************************/
   /* write a separate "View" section to the .pp file for each    */
   /* data field                                                  */
   /***************************************************************/
-  for(int nd=0; nd<DataMatrix->NC; nd++)
+  for(int nd=0; nd<NumData; nd++)
    {
      if (DataNames && DataNames[nd])
       fprintf(f,"View \"%s\"{",DataNames[nd]);
@@ -1074,8 +1078,8 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
 
      for(int np=0; np<S->NumPanels; np++)
       { 
-        double *V[3]; // vertices
-        double Q[3];  // quantities
+        double *V[3];        // vertices
+        double Q[3];         // quantities
         for(int iv=0; iv<3; iv++)
          { 
            int nv = S->Panels[np]->VI[iv];
@@ -1087,6 +1091,10 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                    V[1][0], V[1][1], V[1][2],
                    V[2][0], V[2][1], V[2][2],
                    Q[0], Q[1], Q[2]);
+
+        if (Integral)
+         Integral->AddEntry(nd,S->Panels[np]->Area*(Q[0]+Q[1]*Q[2])/3.0);
+
       }; // for(int np=0; np<S->NumPanels; np++)
 
      fprintf(f,"};\n\n");
