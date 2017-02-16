@@ -214,6 +214,10 @@ HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   for(int ns=0; ns<NS; ns++)
    if (G->Surfaces[ns]->IsPEC)
     NCS++;
+  if (NCS==0)
+   { Warn("No conducting surfaces! Aborting capacitance calculation.");
+     return 0;
+   };
 
   if (CMatrix==0 || CMatrix->NR!=NCS || CMatrix->NC!=NCS )
    { if (CMatrix) delete CMatrix;
@@ -229,7 +233,7 @@ HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   HMatrix *QP = new HMatrix(NS, 4);
   for(int ns=0, ncs=-1; ns<NS; ns++)
    { 
-     if ( ! G->Surfaces[ns]->IsPEC )
+     if ( !(G->Surfaces[ns]->IsPEC) )
       continue;
      ncs++;
 
@@ -240,7 +244,7 @@ HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
      SSS->GetCartesianMoments(Sigma, QP);
 
      for(int nsp=0, ncsp=-1; nsp<NS; nsp++)
-      { if (G->Surfaces[ns]->IsPEC == false)
+      { if ( !(G->Surfaces[nsp]->IsPEC) )
          continue;
         ncsp++;
         CMatrix->SetEntry(ncsp, ncs, QP->GetEntry(nsp,0));
@@ -263,6 +267,7 @@ void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *CapMatrix=GetCapacitanceMatrix(SSS, M, Sigma, 0);
+  if (!CapMatrix) return;
 
   /*--------------------------------------------------------------*/
   /*- write file header the first time ---------------------------*/
