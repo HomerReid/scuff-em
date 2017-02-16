@@ -210,27 +210,41 @@ HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   /*--------------------------------------------------------------*/
   /*- (re)allocate capacitance matrix as necessary ---------------*/
   /*--------------------------------------------------------------*/
-  if (CMatrix==0 || CMatrix->NR!=NS || CMatrix->NC!=NS)
+  int NCS=0; // number of conducting surfaces 
+  for(int ns=0; ns<NS; ns++)
+   if (G->Surfaces[ns]->IsPEC)
+    NCS++;
+
+  if (CMatrix==0 || CMatrix->NR!=NCS || CMatrix->NC!=NCS )
    { if (CMatrix) delete CMatrix;
      CMatrix=0;
    };
   if (CMatrix==0)
-   CMatrix = new HMatrix(NS, NS);
+   CMatrix = new HMatrix(NCS, NCS);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double *Potentials = new double[NS];
+  double *Potentials = new double[NCS];
   HMatrix *QP = new HMatrix(NS, 4);
-  for(int ns=0; ns<NS; ns++)
+  for(int ns=0, ncs=-1; ns<NS; ns++)
    { 
+     if ( ! G->Surfaces[ns]->IsPEC )
+      continue;
+     ncs++;
+
      memset(Potentials, 0, NS*sizeof(double));
      Potentials[ns]=1.0;
      SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
      M->LUSolve(Sigma);
      SSS->GetCartesianMoments(Sigma, QP);
-     for(int nsp=0; nsp<NS; nsp++)
-      CMatrix->SetEntry(nsp, ns, QP->GetEntry(nsp,0));
+
+     for(int nsp=0, ncsp=-1; nsp<NS; nsp++)
+      { if (G->Surfaces[ns]->IsPEC == false)
+         continue;
+        ncsp++;
+        CMatrix->SetEntry(ncsp, ncs, QP->GetEntry(nsp,0));
+      };
    };
   delete[] Potentials;
   delete QP;
@@ -255,16 +269,21 @@ void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   /*--------------------------------------------------------------*/
   FILE *f=fopen(CapFile,"a");
   static bool WroteHeader=false;
-  int NS = SSS->G->NumSurfaces;
+  RWGGeometry *G=SSS->G;
   if (WroteHeader==false)
    { WroteHeader=true;
      fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# indices of conducting surfaces: ");
      fprintf(f,"# data file columns: \n");
+     int NCS=0;
+     for(int ns=0; ns<G->NumSurfaces; ns++)
+      if (G->Surfaces[ns]->IsPEC)
+       fprintf(f,"# %i %s\n",NCS++,G->Surfaces[ns]->Label);
      int nc=1;
      if (SSS->TransformLabel)
       fprintf(f,"# %02i transformation label\n",nc++);
-     for(int p=0; p<NS; p++)
-      for(int q=p; q<NS; q++)
+     for(int p=0; p<NCS; p++)
+      for(int q=p; q<NCS; q++)
        fprintf(f,"# %02i: C_{%i,%i} \n",nc++,p,q);
    };
 
@@ -273,8 +292,8 @@ void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   /*--------------------------------------------------------------*/
   if (SSS->TransformLabel)
    fprintf(f,"%s ",SSS->TransformLabel);
-  for(int nr=0; nr<NS; nr++)
-   for(int nc=nr; nc<NS; nc++)
+  for(int nr=0; nr<CapMatrix->NR; nr++)
+   for(int nc=nr; nc<CapMatrix->NC; nc++)
     fprintf(f,"%e ",CapMatrix->GetEntryD(nr,nc));
   fprintf(f,"\n");
   fclose(f);
