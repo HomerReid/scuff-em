@@ -1,10 +1,19 @@
 noinst_LTLIBRARIES = libIncField.la
 pkginclude_HEADERS = libIncField.h libVec.h
-libIncField_la_SOURCES = IncField.cc IncFieldList.cc GaussianBeam.cc PlaneWave.cc PointSource.cc libIncField.h libVec.h
+libIncField_la_SOURCES = \
+ IncField.cc      \
+ IncFieldList.cc  \
+ GaussianBeam.cc  \
+ PlaneWave.cc     \
+ PointSource.cc   \
+ SphericalWave.cc \
+ libIncField.h    \
+ libVec.h 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil \
-              -I$(top_srcdir)/src/libs/libTriInt \
-              -I$(top_srcdir)/src/libs/libSGJC   \
+AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
+              -I$(top_srcdir)/src/libs/libTriInt    \
+              -I$(top_srcdir)/src/libs/libSpherical \
+              -I$(top_srcdir)/src/libs/libSGJC      \
               -I$(top_srcdir)/src/libs/libhmat
 
 # 20141001 commenting out this test program for now because 

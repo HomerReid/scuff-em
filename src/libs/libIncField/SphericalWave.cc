@@ -29,7 +29,6 @@
 #include <libhrutil.h>
 #include <libIncField.h>
 #include <libSpherical.h>
-#include "SphericalWave.h"
 
 #define II cdouble(0.0,1.0)
 

@@ -37,7 +37,6 @@
 #include "libscuff.h"
 #include "libhmat.h"
 #include "libSpherical.h"
-#include "SphericalWave.h"
 
 using namespace scuff;
 #define II cdouble (0.0,1.0)

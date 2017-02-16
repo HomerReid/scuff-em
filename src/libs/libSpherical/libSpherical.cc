@@ -1,19 +1,4 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
-
-  double CT=cos(Theta), ST=sin(Theta);
-  double CP=cos(Phi), SP=sin(Phi);
-  double M[3][3];
-  int mu, nu;
-
-  M[0][0]=ST*CP;    M[0][1]=CT*CP;    M[0][2]=-SP;
-  M[1][0]=ST*SP;    M[1][1]=CT*SP;    M[1][2]=CP;
-  M[2][0]=CT;       M[2][1]=-ST;      M[2][2]=0.0;
-
-  memset(VC,0,3*sizeof(double));
-  for(mu=0; mu<3; mu++)
-   for(nu=0; nu<3; nu++)
-    VC[mu] += M[mu][nu]*VS[nu];
-}
  *
  * This file is part of SCUFF-EM.
  *
@@ -271,7 +256,6 @@ void GetPlm(int lMax, int m, double x, double *Plm, double *PlmPrime)
      PlmPrime[np] = (Alm*Plm[np-1] - l*x*Plm[np])/omx2;
      OldFactor=Factor;
    };
-
 }
 
 /*--------------------------------------------------------------*/
@@ -488,6 +472,10 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
 /* Workspace may be NULL, in which case work space will be allocated  */
 /* dynamically; if it is non-NULL it must point to a buffer of length */
 /* at least 4*(lMax+2) doubles.                                       */
+/*                                                                    */
+/* 20170215 this is now a legacy routine, replaced by                 */
+/* GetVSWRadialFunctions(), and will eventually be removed            */
+/* from libSpherical.                                                 */
 /**********************************************************************/
 void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
                         cdouble *R, cdouble *dRdr, double *Workspace)
@@ -575,6 +563,72 @@ void GetRadialFunction(int l, cdouble k, double r, int WaveType,
   delete[] R;
   delete[] dRdr;
 
+}
+
+/***************************************************************/
+/* Compute the radial-function factors in the vector spherical */
+/* wavefunctions.                                              */
+/* RFArray[3*L + P] = radial-function factor that multiplies   */
+/*                    angular function of polarization P for   */
+/*                    spherical-wave index L                   */
+/*                    where P={0,1,2} for angular functions    */
+/*                            {X,Z,Y}                          */
+/* RFArray[3*L + 0] = R(kr)                                    */
+/* RFArray[3*L + 1] = R(kr)/kr + |dR(z)/dz|_{z=kr}             */
+/* RFArray[3*L + 2] = -Sqrt[L*(L+1)]*R(kr)/kr                  */
+/*                                                             */
+/* where R(kr) = j_\ell(kr)     for WaveType=LS_REGULAR        */
+/*               h^(1)_\ell(kr) for WaveType=LS_OUTGOING       */
+/*               h^(2)_\ell(kr) for WaveType=LS_INCOMING       */
+/*                                                             */
+/* if TimesrFactor=true, all functions are multiplied by a     */
+/* factor of r (if r=0 the limiting value as r->0 is returned) */
+/* if Conjugate=true, the complex conjugate of all functions   */
+/* is returned.                                                */
+/***************************************************************/
+void GetVSWRadialFunctions(int LMax, cdouble k, double r,
+                           int WaveType, cdouble *RFArray,
+                           double *Workspace, bool TimesrFactor,
+                           bool Conjugate)
+{
+  if (r==0.0)
+   { memset(RFArray, 0, 3*(LMax+1));
+     if (TimesrFactor) return;
+     RFArray[3*1+1] = 2.0/3.0;
+     RFArray[3*1+2] = -M_SQRT2/3.0; //-1.41421356237309504880/3.0;
+     return;
+   };
+
+  cdouble z=k*r;
+
+
+  char Func =   (WaveType==LS_INCOMING) ? 't'
+              : (WaveType==LS_OUTGOING) ? 'o'
+              :                           'j'; // LS_REGULAR;
+
+  AmosBessel(Func,z,0.0,LMax+2,false,RFArray,Workspace);
+
+  for(int L=LMax; L>=0; L--)
+   { 
+     double RtLLP1 = sqrt(L*(L+1.0));
+
+     cdouble R      = RFArray[L];
+     cdouble Rlp1   = RFArray[L+1];
+     cdouble Roz    = R/z;
+     cdouble dRdz   = ((double )L)*Roz - Rlp1;
+     RFArray[3*L+0] = R;
+     RFArray[3*L+1] = Roz + dRdz;
+     RFArray[3*L+2] = -RtLLP1*Roz;
+   };
+ 
+  if (TimesrFactor)
+   VecScale(RFArray, r, 3*(LMax+1) );
+
+  if (Conjugate)
+   for(int n=0; n<3*(LMax+1); n++)
+    RFArray[n]=conj(RFArray[n]);
+
+  
 }
 
 /***************************************************************/

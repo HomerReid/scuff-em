@@ -1,9 +1,7 @@
 bin_PROGRAMS = scuff-tmatrix
 
 scuff_tmatrix_SOURCES = 	\
- scuff-tmatrix.cc 		\
- SphericalWave.cc		\
- SphericalWave.h
+ scuff-tmatrix.cc 		
 
 scuff_tmatrix_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 

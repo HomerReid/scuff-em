@@ -180,6 +180,31 @@ class GaussianBeam: public IncField
  };
 
 /**********************************************************************/
+/* vector spherical wave **********************************************/
+/* note: SW_MAGNETIC and SW_ELECTRIC labelt the functions commonly    */
+/* \mathbf{M}_{\ell m} and \mathbf{N}_{\ell m} respectively; in       */
+/* particular, \mathbf{M} has no radial component.                    */
+/**********************************************************************/
+#define SW_MAGNETIC 0
+#define SW_ELECTRIC 1
+class SphericalWave : public IncField
+ { 
+ public:
+   int L, M;        // spherical wave indices 
+   int Type;        // either SW_ELECTRIC or SW_MAGNETIC
+
+   SphericalWave(int L=1, int M=0, int Type=SW_MAGNETIC);
+
+   void SetL(int NewL);
+   void SetM(int NewM);
+   void SetType(int NewType);
+
+   void GetFields(const double X[3], cdouble EH[6]);
+
+ };
+
+
+/**********************************************************************/
 /* magnetic 'frill' (annulus)    **************************************/
 /**********************************************************************/
 #if 0
