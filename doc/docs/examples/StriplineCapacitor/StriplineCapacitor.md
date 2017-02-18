@@ -127,17 +127,26 @@ this:
 
 ## Calculation of capacitance matrix
 
-````
-for 
- scuff-static --geometry ${GEOM}.scuffgeo 
-StriplineCapacitor_1948.scuffgeo --CapFile
+To compute the capacitance matrices for the two mesh resolutions,
+go like this from the shell command line:
 
-## Calculate capacitance matrix
+````bash
+for N in 1948 7856 
+do
+ GEOM=StriplineCapacitor_${N}
+ scuff-static --geometry ${GEOM}.scuffgeo --CapFile ${GEOM}.CapMatrix
+done
+````
+
+This produces files
+`StripLineCapacitor_1948.CapMatrix`
+and 
+`StripLineCapacitor_7856.CapMatrix`.
 
 ## Capacitance vs. PCB thickess
 
 --------------------------------------------------
 
-[MMJs]:        ../../reference/Geometries#Complex
-[GMSH]:                        http://www.geuz.org/gmsh
-[scuffGeometries]:        ../../reference/Geometries
+[MMJs]:        		../../reference/Geometries#Complex
+[GMSH]:                 http://www.geuz.org/gmsh
+[scuffGeometries]:      ../../reference/Geometries

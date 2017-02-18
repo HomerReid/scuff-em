@@ -31,13 +31,17 @@ GEOM=StriplineCapacitor
 #################################################################
 N=4 # meshing fineness
 /bin/rm ${GEOM}.CapVsT
-for T in 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0
+for N in 2 4
+do
+for W in 0.5 1.0
+do
+for T in `cat TFile`
 do
 
   #################################################################
   #################################################################
   #################################################################
-  gmsh -2 -setnumber N ${N} -setnumber T ${T} ${GEOM}.geo
+  gmsh -2 -setnumber N ${N} -setnumber T ${T} -setnumber W ${W} ${GEOM}.geo
   NUMEDGES=`scuff-analyze --mesh ${GEOM}.msh  | grep 'interior edges' | head -1 | cut -f2 -d' '`
 
   #################################################################
@@ -52,6 +56,8 @@ do
   ${PREFIX} ${DIR}/${CODE} ${ARGS}
 
   LINE=`tail -1 ${GEOM}.CapMatrix`
-  echo "${T} ${LINE}" >> ${GEOM}.CapVsT
+  echo "${T} ${LINE}" >> ${GEOM}.N${N}.CapVsT
 
+done
+done
 done
