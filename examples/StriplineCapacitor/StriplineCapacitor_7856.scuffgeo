@@ -1,0 +1,25 @@
+REGION Exterior   MATERIAL Vacuum
+REGION Dielectric MATERIAL CONST_EPS_4
+
+OBJECT Trace
+    MESHFILE StriplineCapacitor_7856.msh
+    MESHTAG 1
+ENDOBJECT
+
+SURFACE RightBoundary
+    MESHFILE StriplineCapacitor_7856.msh
+    MESHTAG 2
+    REGIONS Exterior Dielectric
+ENDSURFACE
+
+SURFACE LeftBoundary
+    MESHFILE StriplineCapacitor_7856.msh
+    MESHTAG 2
+    ROTATED 180 ABOUT 0 0 1
+    REGIONS Exterior Dielectric
+ENDSURFACE
+
+OBJECT GroundPlane
+    MESHFILE StriplineCapacitor_7856.msh
+    MESHTAG 3
+ENDOBJECT

@@ -29,6 +29,7 @@
 
 #include "libhmat.h"
 #include "libhrutil.h"
+#include "libIncField.h"
 
 namespace scuff {
 

@@ -99,23 +99,25 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   /***************************************************************/
   /* plot all panels on all objects  *****************************/
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n",Tag);
   for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
-   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
-    { 
-      PV[0]=S->Vertices + 3*P->VI[0];
-      PV[1]=S->Vertices + 3*P->VI[1];
-      PV[2]=S->Vertices + 3*P->VI[2];
-      Val=(double)(ns+1);
-      fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                 PV[0][0], PV[0][1], PV[0][2],
-                 PV[1][0], PV[1][1], PV[1][2],
-                 PV[2][0], PV[2][1], PV[2][2],
-                 Val,Val,Val);
-    };
-  fprintf(f,"};\n");
-  fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=1;\n");
-  fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   { 
+    fprintf(f,"View \"%s(%s)\" {\n",S->Label,Tag);
+    for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
+     { 
+       PV[0]=S->Vertices + 3*P->VI[0];
+       PV[1]=S->Vertices + 3*P->VI[1];
+       PV[2]=S->Vertices + 3*P->VI[2];
+       Val=(double)(ns+1);
+       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                  PV[0][0], PV[0][1], PV[0][2],
+                  PV[1][0], PV[1][1], PV[1][2],
+                  PV[2][0], PV[2][1], PV[2][2],
+                  Val,Val,Val);
+     };
+    fprintf(f,"};\n");
+    fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=1;\n");
+    fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   };
 
   /***************************************************************/
   /* additionally plot panel normals if that was also requested **/
@@ -1093,7 +1095,7 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                    Q[0], Q[1], Q[2]);
 
         if (Integral)
-         Integral->AddEntry(nd,S->Panels[np]->Area*(Q[0]+Q[1]*Q[2])/3.0);
+         Integral->AddEntry(nd,S->Panels[np]->Area*(Q[0]+Q[1]+Q[2])/3.0);
 
       }; // for(int np=0; np<S->NumPanels; np++)
 

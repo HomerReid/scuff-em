@@ -39,6 +39,7 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 #define MAXEPF   10    // max number of evaluation-point files
+#define MAXFVM   10    // max number of field-visualization meshes
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define MAXSTR   1000
@@ -58,8 +59,14 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M,
 
 void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
                  char *PotFile, char *PhiExt, int ConstFieldDirection,
-                 char *PlotFile, char **EPFiles, int nEPFiles,
-                 char *FileBase);
+                 char *PlotFile, char **EPFiles, int nEPFiles);
+
+void VisualizeFields(SSSolver *SSS, char *FVMesh, char *TransFile, HVector *Sigma);
+
+void VisualizeFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                     char *PotFile, char *PhiExt, 
+                     int ConstFieldDirection, 
+                     char *FVMesh, char *TransFile);
 
 /***************************************************************/
 /***************************************************************/
@@ -89,6 +96,9 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache  = 0;
   char *ConstField  = 0;
+  char *FVMeshes[MAXFVM];            int nFVMeshes;
+  char *FVMeshTransFiles[MAXFVM];    int nFVMeshTransFiles;
+  memset(FVMeshTransFiles, 0, MAXFVM*sizeof(char *));
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -112,6 +122,9 @@ int main(int argc, char *argv[])
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EP file output"},
      {"PlotFile",       PA_STRING,  1, 1,       (void *)&PlotFile,   0,             "surface charge visualization output file"},
+/**/
+     {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
+     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -155,9 +168,10 @@ int main(int argc, char *argv[])
   /* create the ScuffStaticGeometry **********************************/
   /*******************************************************************/
   SSSolver *SSS   = new SSSolver(GeoFile);
+  SSS->FileBase   = FileBase;
+
   HMatrix *M      = SSS->AllocateBEMMatrix();
   HVector *Sigma  = SSS->AllocateRHSVector();
-
   RWGGeometry *G  = SSS->G;
 
   /****************************************************************/
@@ -280,7 +294,11 @@ int main(int argc, char *argv[])
      if (nEPFiles>0 || PlotFile )
       WriteFields(SSS, M, Sigma,
                   PotFile, PhiExt, ConstFieldDirection,
-                  PlotFile, EPFiles, nEPFiles, FileBase);
+                  PlotFile, EPFiles, nEPFiles);
+
+     for(int nfm=0; nfm<nFVMeshes; nfm++)
+      VisualizeFields(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection,
+                      FVMeshes[nfm], FVMeshTransFiles[nfm]);
 
      /*******************************************************************/
      /*******************************************************************/

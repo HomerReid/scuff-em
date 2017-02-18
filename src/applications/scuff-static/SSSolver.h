@@ -108,6 +108,7 @@ class SSSolver
    RWGGeometry *G;
 
    char *TransformLabel;
+   char *FileBase;
 
  };
 

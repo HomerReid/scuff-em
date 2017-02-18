@@ -127,6 +127,97 @@ void PhiESpherical(double *x, void *UserData, double PhiE[4])
 }
 
 /***************************************************************/
+/* Parse a "potential" file to read a list of conductor        */
+/* potentials.                                                 */
+/* The file should look something like                         */
+/*                                                             */
+/*  BottomSurface 3.2                                          */
+/*  TopSurface    1.4                                          */
+/*                                                             */
+/* where the first string is the name of a PEC object/surface  */
+/* specified in the .scuffgeo file, and the second string is   */
+/* the potential in volts at which that object will be held    */
+/* in the scuff-static calculation.                            */
+/***************************************************************/
+void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
+{ 
+  FILE *f=fopen(PotFile,"r");
+  if (!f)
+   ErrExit("could not open file %s",PotFile);
+
+  int LineNum=0;
+  char Line[100];
+  while (fgets(Line,100,f))
+   { 
+     LineNum++;
+
+     char *Tokens[3];
+     int NumTokens=Tokenize(Line, Tokens, 3);
+
+     if (NumTokens==0 || Tokens[0][0]=='#') 
+      continue; // skip blank lines and comments
+
+     if (NumTokens!=2) 
+      ErrExit("%s:%i: syntax error",PotFile,LineNum);
+
+     int ns;
+     if (G->GetSurfaceByLabel(Tokens[0],&ns)==0)
+      ErrExit("%s:%i: unknown surface",PotFile,LineNum,Tokens[0]);
+     if ( ! (G->Surfaces[ns]->IsPEC) )
+      ErrExit("%s:%i: attempt to assign potential to non-PEC surface %s",Tokens[0]);
+
+     double V;
+     if (1!=sscanf(Tokens[1],"%le",&V))
+      ErrExit("%s:%i: invalid potential specification",PotFile,LineNum);
+
+     Potentials[ns]=V;
+     Log("Setting potential of surface %s to %e volts.\n",Tokens[0],V);
+   }; 
+
+  fclose(f); 
+}
+
+/***************************************************************/
+/* solve the BEM electrostatics problem to fill in Sigma.      */
+/* on entry, M is the LU-factorized BEM matrix.                */
+/***************************************************************/
+void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+           char *PotFile, char *PhiExt, int ConstFieldDirection)
+{
+  /***************************************************************/
+  /* process user's conductor potential file if present          */
+  /***************************************************************/
+  RWGGeometry *G=SSS->G;
+  double *Potentials = new double[G->NumSurfaces];
+  memset(Potentials, 0.0, G->NumSurfaces*sizeof(double));
+  if (PotFile)
+   ParsePotentialFile(G, PotFile, Potentials);
+
+  /***************************************************************/
+  /* process user's external-field specification if present      */
+  /***************************************************************/
+  if (PhiExt)
+   { 
+     ErrExit("--phiexternal option not yet supported");
+     /*
+     USFData MyData, *D = &MyData;
+     D->PhiEvaluator = cevaluator_create(PhiExt);
+     D->EEvaluator[0] = D->EEvaluator[1] = D->EEvaluator[2] = 0;
+     SSS->AssembleRHSVector(Potentials, UserStaticField, (void *)D, Sigma);
+     */
+   }
+  else if ( ConstFieldDirection!=-1 )
+   SSS->AssembleRHSVector(Potentials, PhiEConstant, &ConstFieldDirection, Sigma);
+  else
+   SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
+
+  /***************************************************************/
+  /* solve the problem *******************************************/
+  /***************************************************************/
+  M->LUSolve(Sigma);
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
@@ -229,7 +320,7 @@ HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double *Potentials = new double[NCS];
+  double *Potentials = new double[NS];
   HMatrix *QP = new HMatrix(NS, 4);
   for(int ns=0, ncs=-1; ns<NS; ns++)
    { 
@@ -424,94 +515,13 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
 }
 
 /***************************************************************/
-/* Parse a "potential" file to read a list of conductor        */
-/* potentials.                                                 */
-/* The file should look something like                         */
-/*                                                             */
-/*  BottomSurface 3.2                                          */
-/*  TopSurface    1.4                                          */
-/*                                                             */
-/* where the first string is the name of a PEC object/surface  */
-/* specified in the .scuffgeo file, and the second string is   */
-/* the potential in volts at which that object will be held    */
-/* in the scuff-static calculation.                            */
-/***************************************************************/
-void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
-{ 
-  FILE *f=fopen(PotFile,"r");
-  if (!f)
-   ErrExit("could not open file %s",PotFile);
-
-  int LineNum=0;
-  char Line[100];
-  while (fgets(Line,100,f))
-   { 
-     LineNum++;
-
-     char *Tokens[3];
-     int NumTokens=Tokenize(Line, Tokens, 3);
-
-     if (NumTokens==0 || Tokens[0][0]=='#') 
-      continue; // skip blank lines and comments
-
-     if (NumTokens!=2) 
-      ErrExit("%s:%i: syntax error",PotFile,LineNum);
-
-     int ns;
-     if (G->GetSurfaceByLabel(Tokens[0],&ns)==0)
-      ErrExit("%s:%i: unknown surface",PotFile,LineNum,Tokens[0]);
-     if ( ! (G->Surfaces[ns]->IsPEC) )
-      ErrExit("%s:%i: attempt to assign potential to non-PEC surface %s",Tokens[0]);
-
-     double V;
-     if (1!=sscanf(Tokens[1],"%le",&V))
-      ErrExit("%s:%i: invalid potential specification",PotFile,LineNum);
-
-     Potentials[ns]=V;
-     Log("Setting potential of surface %s to %e volts.\n",Tokens[0],V);
-   }; 
-
-  fclose(f); 
-}
-
-/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
                  char *PotFile, char *PhiExt, int ConstFieldDirection,
-                 char *PlotFile, char **EPFiles, int nEPFiles, char *FileBase)
+                 char *PlotFile, char **EPFiles, int nEPFiles)
 { 
-  /***************************************************************/
-  /* process user's conductor potential file if present          */
-  /***************************************************************/
-  RWGGeometry *G=SSS->G;
-  double *Potentials = new double[G->NumSurfaces];
-  memset(Potentials, 0.0, G->NumSurfaces*sizeof(double));
-  if (PotFile)
-   ParsePotentialFile(G, PotFile, Potentials);
-
-  /***************************************************************/
-  /* process user's external-field specification if present      */
-  /***************************************************************/
-  if (PhiExt)
-   { 
-     ErrExit("--phiexternal option not yet supported");
-     /*
-     USFData MyData, *D = &MyData;
-     D->PhiEvaluator = cevaluator_create(PhiExt);
-     D->EEvaluator[0] = D->EEvaluator[1] = D->EEvaluator[2] = 0;
-     SSS->AssembleRHSVector(Potentials, UserStaticField, (void *)D, Sigma);
-     */
-   }
-  else if ( ConstFieldDirection!=-1 )
-   SSS->AssembleRHSVector(Potentials, PhiEConstant, &ConstFieldDirection, Sigma);
-  else
-   SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
-
-  /***************************************************************/
-  /* solve the problem *******************************************/
-  /***************************************************************/
-  M->LUSolve(Sigma);
+  Solve(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection);
 
   /***************************************************************/
   /***************************************************************/
@@ -523,6 +533,7 @@ void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   /***************************************************************/
   /***************************************************************/
   char *TransformLabel = SSS->TransformLabel;
+  char *FileBase       = SSS->FileBase;
   for(int nepf=0; nepf<nEPFiles; nepf++)
    {
      HMatrix *X = new HMatrix(EPFiles[nepf]);
@@ -555,5 +566,157 @@ void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
       };
      fclose(f);
    }; // for(int nepf=0; nepf<nEPFiles; nepf++)
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteFVMesh(SSSolver *SSS, RWGSurface *S, HVector *Sigma,
+                 char *PhiExt, int ConstFieldDirection,
+                 char *TransformLabel, FILE *f)
+{
+  /*--------------------------------------------------------------*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the flux mesh panel vertices                                */
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
+  for(int nv=0; nv<S->NumVertices; nv++)
+   XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
+
+  /*--------------------------------------------------------------*/
+  /* 20150404 explain me -----------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int nvRef=S->Panels[0]->VI[0];
+  for(int nv=0; nv<S->NumVertices; nv++)
+   { 
+     bool VertexUsed=false;
+     for(int np=0; np<S->NumPanels && !VertexUsed; np++)
+      if (     nv==S->Panels[np]->VI[0]
+           ||  nv==S->Panels[np]->VI[1]
+           ||  nv==S->Panels[np]->VI[2]
+         ) VertexUsed=true;
+
+     if (!VertexUsed)
+      { printf("Replacing %i:{%.2e,%.2e,%.2e} with %i: {%.2e,%.2e,%.2e}\n",
+                nv,XMatrix->GetEntryD(nv,0), XMatrix->GetEntryD(nv,1), XMatrix->GetEntryD(nv,2),
+                nvRef,S->Vertices[3*nvRef+0], S->Vertices[3*nvRef+1], S->Vertices[3*nvRef+2]);
+        XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nvRef);
+      };
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- get the total fields at the panel vertices                 -*/
+  /*--------------------------------------------------------------*/
+  HMatrix *PhiE=0;
+  if (PhiExt)
+   ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
+  else if ( ConstFieldDirection!=-1 )
+   PhiE = SSS->GetFields(PhiEConstant, &ConstFieldDirection, Sigma, XMatrix, 0);
+  else
+   PhiE = SSS->GetFields(0, 0, Sigma, XMatrix, 0);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+const char *FieldTitles[]={"Phi","Ex","Ey","Ez"};
+#define NUMFIELDFUNCS 4
+  for(int nff=0; nff<NUMFIELDFUNCS; nff++)
+   { 
+     fprintf(f,"View \"%s",FieldTitles[nff]);
+     if (TransformLabel)
+      fprintf(f,"(%s)",TransformLabel);
+     fprintf(f,"\" {\n");
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        RWGPanel *P=S->Panels[np];
+
+        double *V[3]; // vertices
+        double Q[3];  // quantities
+        for(int nv=0; nv<3; nv++)
+         { 
+           int VI = P->VI[nv];
+           V[nv]  = S->Vertices + 3*VI;
+           Q[nv] = PhiE->GetEntryD(VI,nff);
+         };
+           
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   V[0][0], V[0][1], V[0][2],
+                   V[1][0], V[1][1], V[1][2],
+                   V[2][0], V[2][1], V[2][2],
+                   Q[0], Q[1], Q[2]);
+      }; // for(int np=0; np<S->NumPanels; np++)
+
+     fprintf(f,"};\n\n");
+
+   };  // for(int nff=0; nff<NUMFIELDFUNCS; nff++)
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  delete PhiE;
+  delete XMatrix;
+}
+
+/***************************************************************/
+/* VisualizeFields() produces a color plot of the potential    */
+/* and E field on a user-specified surface mesh for GMSH       */
+/* visualization.                                              */
+/***************************************************************/
+void VisualizeFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                     char *PotFile, char *PhiExt, 
+                     int ConstFieldDirection, 
+                     char *FVMesh, char *TransFile)
+{ 
+  /***************************************************************/
+  /* solve the electrostatics problem ****************************/
+  /***************************************************************/
+  Solve(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection);
+
+  /*--------------------------------------------------------------*/
+  /*- try to open user's mesh file -------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S=new RWGSurface(FVMesh);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NumFVMeshTransforms;
+  GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
+
+  char *GeoFileBase=SSS->FileBase;
+  char *FVMFileBase=GetFileBase(FVMesh);
+  for(int nt=0; nt<NumFVMeshTransforms; nt++)
+   {
+     char *Tag = FVMeshGTCList[nt]->Tag;
+     char PPFileName[100];
+     if (NumFVMeshTransforms>1)
+      { 
+        snprintf(PPFileName,100,"%s.%s.%s.pp",GeoFileBase,FVMFileBase,Tag);
+        Log("Creating flux plot for surface %s, transform %s...",FVMesh,Tag);
+      }
+     else
+      {  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,FVMFileBase);
+         Log("Creating flux plot for surface %s...",FVMesh);
+      };
+     FILE *f=fopen(PPFileName,"a");
+     if (!f) 
+      { Warn("could not open field visualization file %s",PPFileName);
+       continue;
+      };
+
+     S->Transform(FVMeshGTCList[nt]->GT);
+     WriteFVMesh(SSS, S, Sigma, PhiExt, ConstFieldDirection, Tag, f);
+     S->UnTransform();
+
+     fclose(f);
+   };
+
+  delete S;
+  DestroyGTCList(FVMeshGTCList,NumFVMeshTransforms);
 
 }

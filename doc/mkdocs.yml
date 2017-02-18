@@ -37,6 +37,7 @@ pages:
     - 'LDOS and dyadic Green functions above an infinite aluminum half-space': 'examples/HalfSpaceLDOS/HalfSpaceLDOS.md'
     - 'Electrostatic polarizability of platonic solids': 'examples/PlatonicSolids/PlatonicSolids.md'
     - 'Capacitance of two-body capacitors': 'examples/TwoBodyCapacitors/TwoBodyCapacitors.md'
+    - 'Capacitance of a PCB stripline trace': 'examples/StriplineCapacitor/StriplineCapacitor.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'
