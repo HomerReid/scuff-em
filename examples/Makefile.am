@@ -11,6 +11,7 @@ SUBDIRS =            	\
  SiliconBeams           \
  SolidSphere            \
  SphericalShell         \
+ StriplineCapacitor     \
  ThinFilm               \
  TwoBodyCapacitors      \
  WireAntenna         

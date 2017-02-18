@@ -290,6 +290,7 @@ AC_CONFIG_FILES([
  examples/SphericalShell/Makefile
  examples/SiliconBeams/Makefile
  examples/SiO2Spheres/Makefile
+ examples/StriplineCapacitor/Makefile
  examples/TwoBodyCapacitors/Makefile
  examples/TwoDimensionalCylinders/Makefile
  examples/ThinFilm/Makefile

@@ -1,48 +1,27 @@
 #!/bin/bash
 
-#################################################################
-#################################################################
-#################################################################
-if [ "x$1" == "x--debug" ]
-then
-  DIR=${SEDB}
-  PREFIX="gdb --args"
-  shift
-elif [ "x$1" == "x--valgrind" ]
-then
-  DIR=${SEDB}
-  PREFIX="valgrind"
-  shift
-else
-  DIR=${SEI}
-  PREFIX=""
-fi
-
-#################################################################
-#################################################################
-#################################################################
-DIR=${SEI}
 CODE=scuff-static
 
-#################################################################
-#################################################################
-#################################################################
-N=1948
+for N in 1948 7856
+do
 
-ARGS=""
-ARGS="${ARGS} --geometry StriplineCapacitor_${N}.scuffgeo"
-ARGS="${ARGS} --PotentialFile MyPotentialFile"
-ARGS="${ARGS} --EPFile InTrace"
-ARGS="${ARGS} --EPFile NotInTrace"
-ARGS="${ARGS} --FVMesh FVMesh.msh"
+  ##################################################
+  # first run to get capacitance matrix 
+  ##################################################
+  ARGS=""
+  ARGS="${ARGS} --geometry StriplineCapacitor_${N}.scuffgeo"
+  ARGS="${ARGS} --CapFile  StriplineCapacitor_${N}.CapMatrix"
 
-${PREFIX} ${DIR}/${CODE} ${ARGS}
+  ${CODE} ${ARGS}
 
-#################################################################
-#################################################################
-#################################################################
-#ARGS=""
-#ARGS="${ARGS} --geometry StriplineCapacitor_${N}.scuffgeo"
-#ARGS="${ARGS} --CapFile  StriplineCapacitor_${N}.CapMatrix"
+  ##################################################
+  # second run to get field visualization data
+  ##################################################
+  ARGS=""
+  ARGS="${ARGS} --geometry StriplineCapacitor_${N}.scuffgeo"
+  ARGS="${ARGS} --PotentialFile MyPotentialFile"
+  ARGS="${ARGS} --FVMesh FVMesh.msh"
 
-#${PREFIX} ${DIR}/${CODE} ${ARGS}
+  ${CODE} ${ARGS}
+
+done

@@ -692,7 +692,9 @@ void VisualizeFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   char *FVMFileBase=GetFileBase(FVMesh);
   for(int nt=0; nt<NumFVMeshTransforms; nt++)
    {
-     char *Tag = FVMeshGTCList[nt]->Tag;
+     GTComplex *GTC=FVMeshGTCList[nt];
+     GTransformation *GT=GTC->GT;
+     char *Tag = GTC->Tag;
      char PPFileName[100];
      if (NumFVMeshTransforms>1)
       { 
@@ -709,9 +711,9 @@ void VisualizeFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
        continue;
       };
 
-     S->Transform(FVMeshGTCList[nt]->GT);
+     if (GT) S->Transform(GT);
      WriteFVMesh(SSS, S, Sigma, PhiExt, ConstFieldDirection, Tag, f);
-     S->UnTransform();
+     if (GT) S->UnTransform();
 
      fclose(f);
    };
