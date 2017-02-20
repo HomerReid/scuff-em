@@ -141,12 +141,98 @@ done
 This produces files
 `StripLineCapacitor_1948.CapMatrix`
 and 
-`StripLineCapacitor_7856.CapMatrix`.
+`StripLineCapacitor_7856.CapMatrix`
+reporting capacitance-matrix entries.
 
-## Capacitance vs. PCB thickess
+These files look something like this:
+
+````bash
+# scuff-static run on hikari (02/18/17::18:46:43)# indices of conducting surfaces: # data file columns: 
+# 0 Trace
+# 1 GroundPlane
+# 01: C_{0,0} 
+# 02: C_{0,1} 
+# 03: C_{1,1} 
+3.644861e+01 -3.080723e+01 1.142077e+02 
+````
+
+The three numbers reported here are the capacitance-matrix
+entries $C_{11}$, $C_{12}$, $C_{22}$ divided by $\epsilon_0.$
+The capacitance from trace to ground plane is
+$$
+ \begin{array}{lcl} 
+ C &=& \displaystyle{
+        \frac{1}{\frac{1}{C_{11}} + \frac{1}{C_{22}} - \frac{2}{C_{12}}}
+                    }
+\\[5pt]
+   &=& \displaystyle{
+         \frac{1}{   \frac{1}{\texttt{36.45}}
+                   + \frac{1}{\texttt{114.2}}
+                   + \frac{2}{\texttt{30.81}}
+                 }  }
+       \cdot \texttt{8.85e-12}
+\\[5pt]
+   &=& 0.89 \texttt{pf}
+ \end{array}
+$$
+
+## Field visualization
+
+Here's a cross-sectional plot of electrostatic potential
+with the trace and ground plane maintained at potentials
+of 1 and 0 volt respectively:
+
+![Stripline field visualization](StriplineFields.png)
+
+This plot is generated as follows:
+
+````bash
+ARGS=""
+ARGS="${ARGS} --geometry StriplineCapacitor_7876.scuffgeo"
+ARGS="${ARGS} --PotFile MyPotentialFile"
+ARGS="${ARGS} --FVMesh FVMesh.msh"
+scuff-static ${ARGS}
+````
+
+Here [`MyPotentialFile`](MyPotentialFile) is a text file 
+specifying the conductor potentials and `FVMesh.msh` is a 
+field-visualization screen mesh produced by [[gmsh]] from 
+the file [`FVMesh.geo`](FVMesh.geo).
+
+## Capacitance vs. PCB thickness
+
+Here's a [[bash]] script that computes capacitance vs. PCB
+thickness:
+
+ + [`CapVsT.sh`](CapVsT.sh)
+
+ For each thickness value `T` in the file `TFile,`
+this script
+
+ + runs [[gmsh]] to create a new surface mesh for a PCB stripline
+   with thickness `T`
+
+ + runs [[scuff-static]] to compute the capacitance matrix for this thickness
+
+ + extracts the data from the `.CapMatrix` file output and writes 
+   it together with `T` to an overall output file.
+
+According to [this memo][PCBTraceMemo], the 
+capacitance per unit length (CPUL)
+of a stripline trace with the geometry shown above is
+
+$$ \texttt{CPUL} = 
+   \frac{1}{25.4}\cdot\frac{0.67(\epsilon_r + 1.41)}
+                           {\ln \left[5.98H/(0.8W + T)\right]}
+   \qquad \text{pf/mm}
+$$
+where $\epsilon_r$ is the relative dielectric constant
+and $T=0$ for an infinitesimally thin trace.
+(The factor 1/25.4 converts units from pf/inch to pf/mm).
 
 --------------------------------------------------
 
 [MMJs]:        		../../reference/Geometries#Complex
 [GMSH]:                 http://www.geuz.org/gmsh
 [scuffGeometries]:      ../../reference/Geometries
+[PCBTraceMemo]:		http://www.analog.com/media/en/training-seminars/tutorials/MT-094.pdf

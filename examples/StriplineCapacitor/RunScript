@@ -2,26 +2,27 @@
 
 CODE=scuff-static
 
-for N in 1948 7856
+for N in 2880 11520
 do
 
   ##################################################
   # first run to get capacitance matrix 
   ##################################################
   ARGS=""
-  ARGS="${ARGS} --geometry StriplineCapacitor_${N}.scuffgeo"
-  ARGS="${ARGS} --CapFile  StriplineCapacitor_${N}.CapMatrix"
+  ARGS="${ARGS} --geometry StriplineCapacitorAir_${N}.scuffgeo"
+  ARGS="${ARGS} --CapFile  StriplineCapacitorAir_${N}.CapMatrix"
 
-  ${CODE} ${ARGS}
+  ${CODE} ${ARGS} --TransFile TransFile
 
   ##################################################
   # second run to get field visualization data
   ##################################################
   ARGS=""
-  ARGS="${ARGS} --geometry StriplineCapacitor_${N}.scuffgeo"
+  ARGS="${ARGS} --geometry StriplineCapacitorFull_${N}.scuffgeo"
   ARGS="${ARGS} --PotentialFile MyPotentialFile"
   ARGS="${ARGS} --FVMesh FVMesh.msh"
+  ARGS="${ARGS} --PlotFile StriplineCapacitorFull_${N}.SurfaceCharge.pp"
 
-  ${CODE} ${ARGS}
+#  ${CODE} ${ARGS}
 
 done

@@ -9,12 +9,10 @@
 //////////////////////////////////////////////////
 DefineConstant[ W = 1.0  ];  // trace width
 DefineConstant[ L = 10.0 ];  // trace length
-DefineConstant[ T = 0.5  ];  // dielectric thickness
+DefineConstant[ T = 1.0  ];  // dielectric thickness
 DefineConstant[ B = 10.0 ];  // PCB edge length
 
 DefineConstant[ N = 2    ];  // triangles per unit length
-
-DefineConstant[ UseSymmetry = 0 ];
 
 //////////////////////////////////////////////////
 // derived constants /////////////////////////////
@@ -55,10 +53,6 @@ Extrude(0,L,0)  { Line{4};   Layers{NL}; }
 
 Extrude(-0.5*B,0,0)  { Line{3,13}; Layers{NB2}; }
 //Translate(0,L,0) { Duplicata{Surface{24};}}
-
-If (UseSymmetry==0)
- Rotate{ (0,0,1), (0,0,0), Pi} { Duplicata{Surface{12, 16, 24, 28};} }
-EndIf
 
 Physical Surface(1) = { 8      };        // trace
 Physical Surface(2) = { 12, 16, 24, 28}; // dielectric-air interface (right side)

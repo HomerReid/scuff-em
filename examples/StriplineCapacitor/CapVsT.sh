@@ -24,7 +24,7 @@ fi
 DIR=${SEI}
 CODE=scuff-static
 
-GEOM=StriplineCapacitor
+GEOM=StriplineCapacitor_Air
 
 #################################################################
 #################################################################
