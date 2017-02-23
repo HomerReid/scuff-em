@@ -30,6 +30,7 @@ CPULV(H,W) = InchesPerMM*0.67*(1.0+1.41) / log( 5.98*H / (0.8*W + T) )
 ##################################################
 # scuff-static data files ########################
 ##################################################
+
 MDATA='StriplineCapacitor_1868.CapVsT'
 FDATA='StriplineCapacitor.CapVsT'
 

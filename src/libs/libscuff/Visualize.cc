@@ -1060,8 +1060,8 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
   HMatrix *DataMatrix=MDFunc(MDFData, XMatrix, &DataNames);
   int NumData = DataMatrix->NC;
 
-  if (Integral && Integral->N!=NumData)
-   { Warn("%s:%i: wrong-size Integral vector (%i!=%i)",__FILE__,__LINE__,Integral->N,NumData);
+  if (Integral && (Integral->N!=NumData || Integral->RealComplex!=LHM_REAL) )
+   { Warn("%s:%i: incorrect Integral vector (%i,%i!=%i,0)",__FILE__,__LINE__,Integral->N,NumData,Integral->RealComplex);
      Integral=0;
    };
   if (Integral)

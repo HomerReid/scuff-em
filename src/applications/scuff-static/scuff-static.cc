@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
   /* for the 'default' (identity) transformation                     */
   /*******************************************************************/
   for(int nt=0; nt<NT; nt++)
-   { 
+  { 
      char TransformStr[100]="";
      if (TransFile)
       { 
@@ -257,8 +257,9 @@ int main(int argc, char *argv[])
      else
       { 
         if (nt==0)
-         for(int ns=0, nb=0; ns<NS; ns++)
-          SSS->AssembleBEMMatrixBlock(ns, ns, TBlocks[nb]);
+         for(int ns=0; ns<NS; ns++)
+          if (G->Mate[ns]==-1)
+           SSS->AssembleBEMMatrixBlock(ns, ns, TBlocks[ns]);
 
         for(int ns=0, nb=0; ns<NS; ns++)
          for(int nsp=ns+1; nsp<NS; nsp++, nb++)
