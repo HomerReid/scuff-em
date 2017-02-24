@@ -845,57 +845,56 @@ void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, const char *format, ...)
   va_end(ap);
 
   FILE *f=fopen(FileName,"w");
-  fprintf(f,"View \"%s\" {\n","Ports");
+  if (!f)
+   { Warn("could not open file %s (skipping port plot)",FileName);
+     return;
+   };
+  fprintf(f,"View.LineWidth = 5;\n");
+  fprintf(f,"View.LineType  = 1;\n");
+  fprintf(f,"View.CustomMax = %i;\n",+(NumPorts+1));
+  fprintf(f,"View.CustomMin = %i;\n",-(NumPorts+1));
+  fprintf(f,"View.RangeType = 2;\n");
+  fprintf(f,"View.ShowScale = 0;\n");
 
   /***************************************************************/
   /* loop over all ports on all surfaces *************************/
   /***************************************************************/
-  RWGSurface *S;
-  RWGPort *Port;
-  int nPort, nPanel, PanelIndex, PaneliQ;
-  double *V1, *V2;
-  for(nPort=0; nPort<NumPorts; nPort++)
-   { 
-     Port=Ports[nPort];
+  for(int nPort=0; nPort<NumPorts; nPort++)
+   for(int Polarity=0; Polarity<2; Polarity++)
+    { 
+      fprintf(f,"View \"Port %i %s terminal\" {\n",nPort+1, Polarity ? "positive" : "negative");
 
-     /*--------------------------------------------------------------*/
-     /*- plot scalar points for the positive and negative ref points-*/
-     /*--------------------------------------------------------------*/
-     fprintf(f,"SP(%e,%e,%e) {%i};\n",
-                Port->PRefPoint[0],Port->PRefPoint[1],Port->PRefPoint[2],nPort+1);
-     fprintf(f,"SP(%e,%e,%e) {-%i};\n",
-                Port->MRefPoint[0],Port->MRefPoint[1],Port->MRefPoint[2],nPort+1);
+      RWGPort *Port     = Ports[nPort];
+      double *RefPoint  = Polarity ? Port->PRefPoint     : Port->MRefPoint;
+      RWGSurface *S     = Polarity ? Port->PSurface      : Port->MSurface;
+      int NumEdges      = Polarity ? Port->NumPEdges     : Port->NumMEdges;
+      int *PanelIndices = Polarity ? Port->PPanelIndices : Port->MPanelIndices;
+      int *PaneliQs     = Polarity ? Port->PPaneliQs     : Port->MPaneliQs;
+      int Value         = (Polarity ? 1 : -1 ) * (nPort+1);
 
-     /*--------------------------------------------------------------*/
-     /*- plot scalar lines for the positive and negative port edges  */
-     /*--------------------------------------------------------------*/
-     S=Port->PSurface;
-     for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
-      { 
-        PanelIndex = Port->PPanelIndices[nPanel]; 
-        PaneliQ    = Port->PPaneliQs[nPanel]; 
-        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
-        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
-        fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
-                   V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],nPort+1,nPort+1);
-        fprintf(f,"\n\n");
-      };
+      /*--------------------------------------------------------------*/
+      /*- scalar points for ref points                               -*/
+      /*--------------------------------------------------------------*/
+      fprintf(f,"SP(%e,%e,%e) {%i};\n", RefPoint[0],RefPoint[1],RefPoint[2],Value);
 
-     S=Port->MSurface;
-     for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
-      { 
-        PanelIndex = Port->MPanelIndices[nPanel]; 
-        PaneliQ    = Port->MPaneliQs[nPanel]; 
-        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
-        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
-        fprintf(f,"\n\n");
-        fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {-%i,-%i};\n",
-                   V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],nPort+1,nPort+1);
-      };
+      /*--------------------------------------------------------------*/ 
+      /*- scalar lines for port edges                                 */
+      /*--------------------------------------------------------------*/
+      for(int nPanel=0; nPanel<NumEdges; nPanel++)
+       { 
+         int PanelIndex = PanelIndices[nPanel];
+         int PaneliQ    = PaneliQs[nPanel]; 
+         double *V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+         double *V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+         fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
+                    V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],Value,Value);
+         fprintf(f,"\n\n");
+       };
+
+      fprintf(f,"};\n");
 
    };
 
-  fprintf(f,"};\n");
   fclose(f);
 
 }

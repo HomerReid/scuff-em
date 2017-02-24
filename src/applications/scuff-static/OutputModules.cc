@@ -116,7 +116,6 @@ void PhiESpherical(double *x, void *UserData, double PhiE[4])
   int l = PESD->l;
   int m = PESD->m;
 
-  
   double r, Theta, Phi;
   CoordinateC2S(x, &r, &Theta, &Phi);
 
