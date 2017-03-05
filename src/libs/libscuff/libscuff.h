@@ -577,7 +577,6 @@ class RWGGeometry
    
    static bool UseHRWGFunctions;
    static bool UseHighKTaylorDuffy;
-   static bool UseGetFieldsV2P0;
    static bool UseTaylorDuffyV2P0;
    static bool DisableCache;
  };

@@ -48,7 +48,6 @@ namespace scuff {
 bool RWGGeometry::UseHRWGFunctions=false;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
-bool RWGGeometry::UseGetFieldsV2P0=false;
 bool RWGGeometry::DisableCache=false;
 int RWGGeometry::NumMeshDirs=0;
 char **RWGGeometry::MeshDirs=0;
@@ -448,11 +447,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 #else
      Log("Can not enable abort-on-floating-point-exception on OS X because feenableexcept is not available.");
 #endif
-   };
-
-  if ( (s=getenv("SCUFF_GETFIELDSV2P0")) && (s[0]=='1') )
-   { Log("Using V2P0 field calculation.");
-     UseGetFieldsV2P0=true;
    };
 
   /***************************************************************/

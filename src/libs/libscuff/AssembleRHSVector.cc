@@ -305,11 +305,14 @@ void *AssembleRHS_Thread(void *data)
      /*- the subset of IncFields that contribute with a plus sign to */
      /*- the RHS vector entries for this surface, as well as those   */
      /*- that contribute with a minus sign.                          */
-     /*- (IncFields whose sources lie in the 'negative' region       */
-     /*- associated with this surface contribute with a minus sign;  */
      /*- IncFields whose sources lie in the 'positive' region        */
-     /*- associated with this surface contribute with a plus sign;   */
+     /*- associated with this surface contribute with a minus sign,  */
+     /*- IncFields whose sources lie in the 'negative' region        */
+     /*- associated with this surface contribute with a plus sign,   */
      /*- and all other IncFields do not contribute.                  */
+     /*- The apparent sign inconsistency here arises because the     */
+     /*- incident-field terms in the tangential-fields-must-be-equal */
+     /*- equation are swung over to the RHS, acquiring a minus sign. */
      /*--------------------------------------------------------------*/
      for(NPositiveIFs=NNegativeIFs=0, IF=IFList; IF; IF=IF->Next)
       { 
