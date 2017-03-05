@@ -139,7 +139,7 @@ typedef void PPCFunction2(double x[3], double b[3], double Divb,
 
 void GetBFCubature2(RWGGeometry *G, int ns, int ne,
                     PCFunction2 Integrand, void *UserData, int IDim,
-                    int Order, double *Integral);
+                    int Order, double *Integral, int PanelOnly=-1);
 
 void GetBFBFCubature2(RWGSurface *S, int ne, 
                       RWGSurface *SP, int neP,

@@ -1,0 +1,199 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\usepackage{array}
+%====================================================================%
+\input{scufftex}
+\graphicspath{{figures/}}
+\renewcommand{\wt}{\widetilde}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Electrostatic Green's function above dielectric substrate
+        and ground plane 
+       }
+\author {Homer Reid}
+\date {March 2, 2017}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Electrostatic GF above PCB} 
+\maketitle
+
+\tableofcontents
+
+\subsection{2D Fourier representation of free-space Green's function}
+
+The 3D Fourier representation of the free-space Green's function---the
+potential at $\vb x=(\vbrho,z)$ due to a point charge at 
+$\vb x^\prime=(\vbrho^\prime,z^\prime)$---is 
+%====================================================================%
+\begin{align*}
+G_0(\vbrho, z; \vbrho^\prime, z^\prime)
+=
+ \frac{1}{4\pi |\vb x-\vb x^\prime|}
+ &=\int \frac{d^3 \vb k}{(2\pi)^3}
+        \frac{e^{i\vb k \cdot (\vb x-\vb x^\prime)}}{|\vb k|^2}
+\intertext{Evaluate the $k_z$ integral:}
+ &=\frac{1}{2}\int \frac{d^2 \vb q}{(2\pi)^2}
+        \frac{e^{i\vb q\cdot (\vbrho-\vbrho^\prime)-q|z-z^\prime|}}{q},
+ \qquad  \vb   q\equiv  \vb k_\parallel,
+ \quad        q\equiv |\vb q|.
+\end{align*}
+%====================================================================%
+
+\subsection{Potential due to a surface-charge layer at $z=T$}
+
+%====================================================================%
+\begin{align*}
+ \Phi(\vbrho, z)
+   &=\int \, G_0(\vbrho,z; \vb y, T)\, \sigma(\vb y) \, d^2 \vb y
+\\
+   &=\frac{1}{2} \int \frac{d^2 \vb q}{(2\pi)^2}
+     \frac{e^{i\vb q \cdot \vbrho - q|z-T|}}{q}
+     \underbrace{\int d\vb y \, \sigma(\vb y) \, e^{-i\vb q \cdot \vb y}}
+               _{\wt{\sigma}(\vb q)}
+\\
+   &=\int \frac{d^2 \vb q}{(2\pi)^2}
+     \frac{\wt\sigma(\vb y)e^{i\vb q \cdot \vbrho - q|z-T|}}{2q}
+\end{align*}
+%====================================================================%
+
+\subsection{Potential at $(\vbrho, z)$ due to point charge at
+            $(\vbrho^\prime, z^\prime)$ 
+            above dielectric interface at $z=T$ and ground plane at $z=0$}
+
+Here I assume $z^\prime>T$, i.e. the point charge lies above the dielectric
+layer.
+
+Potential and its $z$-derivative above dielectric layer $(z>T)$:
+%====================================================================%
+\begin{align}
+ G\sups{above}(\vbrho, z; \vbrho^\prime, z^\prime)
+  &=\frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z-z^\prime)^2}}
+   -\frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z+z^\prime)^2}}
+\\
+%--------------------------------------------------------------------%
+ &\qquad+ \int \frac{d^2 \vb q}{(2\pi)^2}
+          \frac{\wt \sigma(\vb q)e^{i\vb q \cdot (\vbrho-\vbrho^\prime)-qz}}{q}\sinh qT
+\\[5pt]
+%--------------------------------------------------------------------%
+ -\partial_z
+G\sups{above}(\vbrho, z; \vbrho^\prime, z^\prime)
+  &= \frac{(z-z^\prime)}{4\pi\big[|\vbrho-\vbrho^\prime|^2 + (z-z^\prime)^2\big]^{3/2}}
+    -\frac{(z+z^\prime)}{4\pi\big[|\vbrho-\vbrho^\prime|^2 + (z+z^\prime)^2\big]^{3/2}}
+\\
+%--------------------------------------------------------------------%
+  &\qquad+ \int \frac{d^2 \vb q}{(2\pi)^2}
+          \wt \sigma(\vb q)e^{i\vb q \cdot (\vbrho-\vbrho^\prime)-qz}\sinh qT
+\label{dzdGAbove}
+\end{align}
+%====================================================================%
+\noindent Potential and $z$-derivative inside dielectric layer $(0<z<T)$:
+%====================================================================%
+\begin{align}
+ G\sups{inside}(\vbrho, z; \vbrho^\prime, z^\prime)
+  &=\frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z-z^\prime)^2}}
+   -\frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z+z^\prime)^2}}
+\\
+%--------------------------------------------------------------------%
+ &\qquad+\int \frac{d^2 \vb q}{(2\pi)^2}
+          \frac{\wt \sigma(\vb q)e^{i\vb q \cdot (\vbrho-\vbrho^\prime)-qT}}{q}\sinh qz
+\\[5pt]
+%--------------------------------------------------------------------%
+-\partial_z G\sups{inside}(\vbrho, z; \vbrho^\prime, z^\prime)
+  &= \frac{(z-z^\prime)}{4\pi\big[|\vbrho-\vbrho^\prime|^2 + (z-z^\prime)^2\big]^{3/2}}
+    -\frac{(z+z^\prime)}{4\pi\big[|\vbrho-\vbrho^\prime|^2 + (z+z^\prime)^2\big]^{3/2}}
+%--------------------------------------------------------------------%
+\\
+  &\qquad- \int \frac{d^2 \vb q}{(2\pi)^2}
+          \wt \sigma(\vb q)e^{i\vb q \cdot (\vbrho-\vbrho^\prime)-qT}\cosh qz
+\label{dzdGBelow}
+%--------------------------------------------------------------------%
+\end{align}
+%====================================================================%
+Boundary condition at $z=T$:
+%====================================================================%
+$$            \left|\pard{G\sups{above}}{z}\right|_{z=T} = 
+   \epsilon_r \left|\pard{G\sups{inside}}{z}\right|_{z=T} 
+$$
+%====================================================================%
+Insert (\ref{dzdGAbove}) and (\ref{dzdGBelow}):
+%====================================================================%
+\begin{align*}
+&\hspace{-0.2in}
+\int \Upsilon(\epsilon_r,T,q) \wt\sigma(\vb q) e^{i\vb q \cdot (\vbrho-\vbrho^\prime)} 
+\, \frac{d\vb q}{(2\pi)^2}
+\\
+&=\frac{\epsilon_r-1}{4\pi}
+   \left[\frac{(z^\prime-T)}
+           {\big\{ |\vbrho-\vbrho^\prime|^2 + (z^\prime-T)^2\big\}^{3/2}}
+        -\frac{(z^\prime+T)}
+           {\big\{ |\vbrho-\vbrho^\prime|^2 + (z^\prime+T)^2\big\}^{3/2}}
+   \right]
+\end{align*}
+or, inverting the Fourier transform,
+%====================================================================%
+\begin{align*}
+\wt \sigma(\vb q)
+&=\frac{\epsilon_r-1}{4\pi\Upsilon(\epsilon_r, T, q)}
+  \int e^{-i\vb q \cdot (\vbrho-\vbrho^\prime)}
+   \left[\frac{(z^\prime-T)}
+           {\big\{ |\vbrho-\vbrho^\prime|^2 + (z^\prime-T)^2\big\}^{3/2}}
+        -\frac{(z^\prime+T)}
+           {\big\{ |\vbrho-\vbrho^\prime|^2 + (z^\prime+T)^2\big\}^{3/2}}
+   \right]
+  \,d\vbrho
+\end{align*}
+%====================================================================%
+where I put
+%====================================================================%
+$$ \Upsilon(\epsilon_r, T, q) \equiv
+   e^{-qT}\Big[\sinh qT + \epsilon_r \cosh qT\Big].
+$$
+%====================================================================%
+To evaluate the integrals, I go like this:
+%====================================================================%
+\begin{align*} 
+ \mc I(\vb q, \Delta) 
+&= 
+ \int \frac{\Delta}{ \big[|\vb u|^2 + \Delta^2\big]^{3/2}}
+  e^{i\vb q \cdot \vb u} \, d\vb u
+\\
+&= \int_0^\infty \frac{u\,du}{\big[u^2 + \Delta^2\big]^{3/2}}
+   \int_0^{2\pi} e^{-i q u \cos\theta}\,d\theta 
+\\
+&= 2\pi \int_0^\infty \frac{u\,du}{\big[u^2 + \Delta^2\big]^{3/2}}J_0(qu)
+\\
+&= 2\pi e^{-q\Delta}.
+\end{align*}
+%====================================================================%
+Then I have
+%====================================================================%
+\begin{align*}
+ \wt{\sigma}(\vb q)
+ &=\frac{\epsilon_r-1}{2e^{-qT}\big[\sinh qT + \epsilon_r \cosh qT\big]}
+    \Big[ e^{-q(z^\prime-T)} - e^{-q(z^\prime+T)}\Big]
+\\
+&=
+ \frac{ (\epsilon_r-1)\sinh qT }{ \sinh qT + \epsilon_r \cosh qT}
+ e^{-q(z^\prime - T)}
+\end{align*}
+   
+%====================================================================%
+
+\end{document}

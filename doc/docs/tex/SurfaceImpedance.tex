@@ -27,6 +27,19 @@
 \pagestyle{myheadings}
 \markright{Homer Reid: Surface Impedance Boundary Conditions in {\sc scuff-em} }
 
+\begin{abstract}
+I consider the implementation of surface-impedance boundary
+conditions in the surface-integral-equation formalism
+as implemented in {\sc scuff-em}.
+I consider formulations for two distinct situations:
+\textbf{(a)} ``imperfectly electrically conducting'' (IPEC) bodies,
+which are similar to PEC bodies but with some lossiness
+introduced,
+\textbf{(b)} ``conductive dielectric interfaces'' (CDIs),
+which model the effects of thin metal layers lying at the 
+interface between two homogeneous material regions.
+\end{abstract}
+
 \tableofcontents 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -729,5 +742,36 @@ $$
   \left(\begin{array}{c} \RBar\sups{reg}(a) \\ R\sups{reg}(a)
   \end{array}\right)
 $$
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\newpage
+\section{Implementing conductive dielectric interfaces in {\sc scuff-em}}
+
+The usual $\vb H$-field condition imposed at dielectric boundary surfaces
+is\footnote{I am here assuming that the sources of incident field
+lie only in the ``outer'' medium.}
+%====================================================================%
+\begin{align*}
+ \vb H_\parallel\sups{out} - \vb H_\parallel\sups{in}
+&=0
+\intertext{or}
+ \vb H_\parallel\sups{scat,out} - \vb H_\parallel\sups{scat,in}
+&=-\vb H_\parallel\sups{inc}
+\end{align*}
+%====================================================================%
+If there is a layer of surface conductivity $\sigma\subt{S}$ at the 
+interface, the condition is modified to read
+%====================================================================%
+\begin{align*}
+ \vb H_\parallel\sups{out} - \vb H_\parallel\sups{in}
+&=-\sigma\subt{S}\vbhat n\times \vb E\sups{in}
+\intertext{or}
+ \vb H_\parallel\sups{scat,out} - \vb H_\parallel\sups{scat,in}
++\sigma\subt{S}\vbhat n\times \vb E\sups{scat,in}
+&=-\vb H_\parallel\sups{inc}
+\\
+\end{align*}
 
 \end{document}

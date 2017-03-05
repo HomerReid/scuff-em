@@ -1024,7 +1024,12 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 /* quantities.                                                 */
 /* if Integral is non-null, on return Integral[d] is an        */
 /* estimate of the integral of quantity #d over the mesh area. */
+/* If the value of a data quantity at any mesh vertex exceeds  */
+/* ABSURD in absolute value, that point is excluded and the    */
+/* average over the triangle is determined by the values at    */
+/* the remaining vertices.                                     */
 /***************************************************************/
+#define ABSURD 1.0e100
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                   char *MeshFileName, const char *OptionsString,
                   char *OutFileBase, HVector *Integral)
@@ -1077,17 +1082,29 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
       fprintf(f,"View \"%s\"{",DataNames[nd]);
      else
       fprintf(f,"View \"%i\"{",nd);
-
      for(int np=0; np<S->NumPanels; np++)
       { 
         double *V[3];        // vertices
         double Q[3];         // quantities
+        double QAvg=0.0;     // average quantity, excluding absurd vertices
+        int nAvg=0;          // # vertices that contributed to average
         for(int iv=0; iv<3; iv++)
          { 
            int nv = S->Panels[np]->VI[iv];
            V[iv]  = S->Vertices + 3*nv;
 	   Q[iv]  = DataMatrix->GetEntryD(nv, nd);
+	   if ( fabs(Q[iv]) < ABSURD )
+	    { QAvg += Q[iv];
+	      nAvg += 1;
+	    };
          };
+        if (nAvg>=2)
+         QAvg/=nAvg;
+
+        for(int iv=0; iv<3; iv++)
+         if ( fabs(Q[iv]) >= ABSURD )
+          Q[iv]=QAvg;
+
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    V[0][0], V[0][1], V[0][2],
                    V[1][0], V[1][1], V[1][2],
@@ -1095,7 +1112,7 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                    Q[0], Q[1], Q[2]);
 
         if (Integral)
-         Integral->AddEntry(nd,S->Panels[np]->Area*(Q[0]+Q[1]+Q[2])/3.0);
+         Integral->AddEntry(nd,QAvg * S->Panels[np]->Area);
 
       }; // for(int np=0; np<S->NumPanels; np++)
 

@@ -582,9 +582,10 @@ void GetRadialFunction(int l, cdouble k, double r, int WaveType,
 /*               h^(2)_\ell(kr) for WaveType=LS_INCOMING       */
 /*                                                             */
 /* if TimesrFactor=true, all functions are multiplied by a     */
-/* factor of r (if r=0 the limiting value as r->0 is returned) */
-/* if Conjugate=true, the complex conjugate of all functions   */
-/* is returned.                                                */
+/* factor of r (if r=0 the limiting value as r->0 is returned).*/
+/*                                                             */
+/* if Conjugate=true, the radial factor in all functions is    */
+/* complex-conjugated.                                         */
 /***************************************************************/
 void GetVSWRadialFunctions(int LMax, cdouble k, double r,
                            int WaveType, cdouble *RFArray,

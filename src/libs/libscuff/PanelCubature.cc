@@ -671,7 +671,7 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
 /***************************************************************/
 void GetBFCubature2(RWGGeometry *G, int ns, int ne,
                     PCFunction2 Integrand, void *UserData, int IDim,
-                    int Order, double *Integral)
+                    int Order, double *Integral, int PanelOnly)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -713,6 +713,9 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
 
      for(int PM=0; PM<NumPM; PM++)
       { 
+        if (PanelOnly!=-1 && PM!=PanelOnly) 
+         continue;
+
         double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
         double PreFac=Sign*Length/(2.0*Area[PM]);
         for(int Mu=0; Mu<3; Mu++)
