@@ -198,10 +198,7 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  bool UGFVSave=RWGGeometry::UseGetFieldsV2P0;
-  RWGGeometry::UseGetFieldsV2P0=true;
   HMatrix *FMatrix=G->GetFields(IF, KNVector, Omega, XCCMatrix);
-  RWGGeometry::UseGetFieldsV2P0=UGFVSave;
 
   /***************************************************************/
   /*- initialize edge-by-edge contributions to zero -------------*/
