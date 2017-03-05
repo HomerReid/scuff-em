@@ -193,7 +193,26 @@ Then I have
  \frac{ (\epsilon_r-1)\sinh qT }{ \sinh qT + \epsilon_r \cosh qT}
  e^{-q(z^\prime - T)}
 \end{align*}
-   
+%====================================================================%
+The Green's function at points above the substrate then reads
+%====================================================================%
+\begin{align}
+ G\sups{above}(\vbrho, z; \vbrho^\prime, z^\prime)
+  &= \frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z-z^\prime)^2}}
+    -\frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z+z^\prime)^2}}
+\nn
+  &\quad + \int \frac{d^2 \vb q}{(2\pi)^2}
+   \frac{ (\epsilon_r-1)\sinh^2 qT}{\sinh qT + \epsilon_r \cosh qT}
+   e^{i\vb q \cdot\vbrho -q(z+z^\prime-T)}
+\intertext{or}
+ G\sups{above}(\vbrho, z; \vbrho^\prime, z^\prime)
+  &= \frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z-z^\prime)^2}}
+    -\frac{1}{4\pi\sqrt{|\vbrho-\vbrho^\prime|^2 + (z+z^\prime)^2}}
+\nn
+  &\quad + \int \frac{dq}{2\pi}
+   \frac{ (\epsilon_r-1)\sinh^2 qT}{\sinh qT + \epsilon_r \cosh qT}
+   e^{iq|\vbrho-\vbrho^\prime| -q(z+z^\prime-T)}J_0(q|\vbrho-\vbrho^\prime|).
+\end{align}
 %====================================================================%
 
 \end{document}
