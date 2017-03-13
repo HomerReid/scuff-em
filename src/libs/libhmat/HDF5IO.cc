@@ -198,6 +198,9 @@ void HMatrix::ExportToHDF5(void *pHC, const char *format, ...)
   vsnprintfEC(Name,1000,format,ap);
   va_end(ap);
 
+  // turn off the HDF5 console error messages
+  H5Eset_auto2( 0, 0, 0 );
+
   /*--------------------------------------------------------------*/
   /*- write the data ---------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -407,6 +410,9 @@ void HVector::ExportToHDF5(void *pHC, const char *format, ...)
   vsnprintfEC(Name,1000,format,ap);
   va_end(ap);
 
+  // turn off the HDF5 console error messages
+  H5Eset_auto2( 0, 0, 0 );
+
   HDF5Context *HC=(HDF5Context *)pHC;
   if (HC==0) 
    { ErrMsg=vstrdup("%s:%i: ExportToHDF5 called with pHC=void",__FILE__,__LINE__);
@@ -463,6 +469,9 @@ void HVector::ImportFromHDF5(const char *FileName, const char *Name)
 { 
   hid_t file_id;
   herr_t status;
+
+  // turn off the HDF5 console error messages
+  H5Eset_auto2( 0, 0, 0 );
 
   /*--------------------------------------------------------------*/
   /*- try to open the file ---------------------------------------*/

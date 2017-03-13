@@ -626,7 +626,8 @@ typedef HMatrix * (*MeshDataFunc)(void *UserData, HMatrix *XMatrix,
                                   const char ***DataNames);
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                   char *MeshFileName, const char *OptionsString=0,
-                  char *OutFileName=0, HVector *Integral=0);
+                  char *OutFileName=0, HVector *Integral=0,
+                  bool UseCentroids=false);
                   
 
 } // namespace scuff

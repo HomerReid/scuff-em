@@ -1028,11 +1028,14 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 /* ABSURD in absolute value, that point is excluded and the    */
 /* average over the triangle is determined by the values at    */
 /* the remaining vertices.                                     */
+/* If UseCentroids==true, the function is evaluated at the     */
+/* panel centroids, not vertices.                              */
 /***************************************************************/
 #define ABSURD 1.0e100
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                   char *MeshFileName, const char *OptionsString,
-                  char *OutFileBase, HVector *Integral)
+                  char *OutFileBase, HVector *Integral, 
+                  bool UseCentroids)
 {
   /***************************************************************/
   /* try to open output file *************************************/
@@ -1054,9 +1057,18 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
   /* read in mesh and put vertex coordinates into XMatrix        */
   /***************************************************************/
   RWGSurface *S=new RWGSurface(MeshFileName);
-  HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
-  for(int nv=0; nv<S->NumVertices; nv++)
-   XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
+  HMatrix *XMatrix=0;
+
+  if (UseCentroids)
+   { XMatrix =new HMatrix(S->NumPanels, 3);
+     for(int np=0; np<S->NumPanels; np++)
+      XMatrix->SetEntriesD(np, ":", S->Panels[np]->Centroid);
+   }
+  else
+   { XMatrix=new HMatrix(S->NumVertices, 3);
+     for(int nv=0; nv<S->NumVertices; nv++)
+      XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
+   };
 
   /***************************************************************/
   /* call user's function to populate data matrix ****************/
@@ -1092,18 +1104,27 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
          { 
            int nv = S->Panels[np]->VI[iv];
            V[iv]  = S->Vertices + 3*nv;
-	   Q[iv]  = DataMatrix->GetEntryD(nv, nd);
+
+           if (UseCentroids) continue;
+
+           Q[iv]  = DataMatrix->GetEntryD(nv, nd);
 	   if ( fabs(Q[iv]) < ABSURD )
 	    { QAvg += Q[iv];
 	      nAvg += 1;
 	    };
          };
-        if (nAvg>=2)
-         QAvg/=nAvg;
 
-        for(int iv=0; iv<3; iv++)
-         if ( fabs(Q[iv]) >= ABSURD )
-          Q[iv]=QAvg;
+        if (UseCentroids)
+         {
+           QAvg = DataMatrix->GetEntryD(np,nd);
+         }
+        else
+         { if (nAvg>=2)
+            QAvg/=nAvg;
+           for(int iv=0; iv<3; iv++)
+            if ( fabs(Q[iv]) >= ABSURD )
+             Q[iv]=QAvg;
+         }
 
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    V[0][0], V[0][1], V[0][2],

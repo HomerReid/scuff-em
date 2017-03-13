@@ -57,16 +57,165 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M,
                   HVector *Sigma, int lMax,
                   char *TextFileName, char *HDF5FileName);
 
-void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                 char *PotFile, char *PhiExt, int ConstFieldDirection,
-                 char *PlotFile, char **EPFiles, int nEPFiles);
+void WriteFields(SSSolver *SSS, HVector *Sigma,
+                 char *PhiExt, int ConstFieldDirection,
+                 char **EPFiles, int nEPFiles);
 
 void VisualizeFields(SSSolver *SSS, char *FVMesh, char *TransFile, HVector *Sigma);
 
-void VisualizeFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                     char *PotFile, char *PhiExt, 
-                     int ConstFieldDirection, 
+void VisualizeFields(SSSolver *SSS, HVector *Sigma,
+                     char *PhiExt, int ConstFieldDirection,
                      char *FVMesh, char *TransFile);
+
+void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+           char *PotFile, char *PhiExt, int ConstFieldDirection);
+
+/***************************************************************/
+/* 'BEM matrix accelerator' is a simple scheme for accelerating*/
+/* multiple repeated assemblies of the BEM matrix in cases     */
+/* where one or more blocks may be reused.                     */
+/*                                                             */
+/* TODO: something more sophisticated to figure out when matrix*/
+/*       blocks need to be recomputed. Some sort of clean/     */
+/*       dirty paradigm where a block is recomputed only if    */
+/*       marked dirty.                                         */
+/***************************************************************/
+typedef struct BMAccelerator
+ {
+   HMatrix **TBlocks;
+   HMatrix **UBlocks;
+ } BMAccelerator;
+
+BMAccelerator *CreateBMAccelerator(SSSolver *SSS)
+{
+  RWGGeometry *G     = SSS->G;
+  int NS             = G->NumSurfaces;
+  int NADB           = NS*(NS-1)/2; // number of above-diagonal blocks
+
+  BMAccelerator *BMA = (BMAccelerator *)mallocEC(sizeof *BMA);
+  BMA->TBlocks       = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  BMA->UBlocks       = (HMatrix **)mallocEC(NADB*sizeof(HMatrix *));
+  
+  for(int ns=0, nb=0; ns<NS; ns++)
+   { 
+     int NBF=G->Surfaces[ns]->NumPanels;
+
+     // allocate diagonal block for surface #ns, unless
+     // it has a mate in which case we reuse the mate's block
+     int nsMate = G->Mate[ns];
+     if ( nsMate!=-1 )
+      BMA->TBlocks[ns] = BMA->TBlocks[nsMate];
+     else
+      BMA->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL);
+
+     // allocate off-diagonal blocks for surfaces ns,nsp>ns
+     for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+      { int NBFp = G->Surfaces[nsp]->NumPanels;
+        BMA->UBlocks[nb] = new HMatrix(NBF, NBFp, LHM_REAL);
+      };
+   };
+
+  return BMA;
+}
+
+void ReassembleBEMMatrix(SSSolver *SSS, HMatrix **pM, BMAccelerator *BMA=0, int nt=0)
+{
+  HMatrix *M = *pM;
+
+  if (M==0)
+   M=*pM=SSS->AllocateBEMMatrix();
+
+  /*******************************************************************/
+  /* assemble BEM matrix, either (a) all at once if we have only one */
+  /* geometric transformation, or (b) with the diagonal and off-     */
+  /* diagonal blocks computed separately so that the former can be   */
+  /* reused for multiple geometric transformations                   */
+  /*******************************************************************/
+  if (BMA==0)
+   { 
+     SSS->AssembleBEMMatrix(M);
+   }
+  else
+   { 
+     RWGGeometry *G    = SSS->G;
+     int NS            = G->NumSurfaces;
+     HMatrix **TBlocks = BMA->TBlocks;
+     HMatrix **UBlocks = BMA->UBlocks;
+ 
+     /*******************************************************************/
+     /* recompute T blocks only on first transformation *****************/
+     /*******************************************************************/
+     if (nt==0)
+      for(int ns=0; ns<NS; ns++)
+       if (G->Mate[ns]==-1)
+        SSS->AssembleBEMMatrixBlock(ns, ns, TBlocks[ns]);
+
+     /*******************************************************************/
+     /* recompute U blocks only for surfaces that have moved ************/
+     /*******************************************************************/
+     for(int ns=0, nb=0; ns<NS; ns++)
+      for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+       if (nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
+        SSS->AssembleBEMMatrixBlock(ns, nsp, UBlocks[nb]);
+
+     /*******************************************************************/
+     /* stamp blocks into BEM matrix ************************************/
+     /*******************************************************************/
+     for(int ns=0, nb=0; ns<NS; ns++)
+      { 
+        int RowOffset=G->PanelIndexOffset[ns];
+        M->InsertBlock(TBlocks[ns], RowOffset, RowOffset);
+        for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+         { int ColOffset=G->PanelIndexOffset[nsp];
+           M->InsertBlock(UBlocks[nb], RowOffset, ColOffset);
+           M->InsertBlockTranspose(UBlocks[nb], ColOffset, RowOffset);
+         };
+      };
+   };
+
+  /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  M->LUFactorize();
+
+}
+
+/***************************************************************/
+/* Attempt to read or write the solution vector for a BEM      */
+/* electrostatics problem to/from an HDF5 binary data file.    */
+/***************************************************************/
+#define FILEOP_READ  0
+#define FILEOP_WRITE 1
+bool FileOp(int Op, HVector *Sigma, char *SolutionFile, char *SolutionName, char *TransformString)
+{  
+  Log("Attempting to %s solution: file %s ",
+       Op==FILEOP_READ ? "read" : "write", SolutionFile);
+
+  char DataSetName[1000];
+  if(TransformString)
+   snprintf(DataSetName,1000,"%s_%s",SolutionName,TransformString);
+  else
+   snprintf(DataSetName,1000,"%s",SolutionName);
+  
+  switch(Op)
+   { 
+     case FILEOP_READ:
+      Sigma->ImportFromHDF5(SolutionFile,DataSetName);
+      break;
+
+     case FILEOP_WRITE:
+      Sigma->ExportToHDF5(SolutionFile,DataSetName);
+      break;
+   };
+
+  if (Sigma->ErrMsg)
+   { Log("failed! %s",Sigma->ErrMsg);
+     free(Sigma->ErrMsg);
+     return false;
+   }
+  Log("success!");
+  return true;
+}
 
 /***************************************************************/
 /***************************************************************/
@@ -93,6 +242,8 @@ int main(int argc, char *argv[])
   char *FileBase    = 0;
   char *PlotFile    = 0;
   char *Cache       = 0;
+  char *SolutionFile= 0;
+  char *SolutionName= 0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache  = 0;
   char *ConstField  = 0;
@@ -102,29 +253,32 @@ int main(int argc, char *argv[])
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
-     {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+     {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file\n"},
 /**/
-     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometry transformations"},
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometry transformations\n"},
 /**/
-     {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file"},
+     {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file\n"},
 /**/
-     {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance matrix output file"},
+     {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance matrix output file\n"},
 /**/
      {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "C-matrix text output file"},
      {"CMatrixHDF5File", PA_STRING, 1, 1,       (void *)&CMatrixHDF5File, 0,        "C-matrix HDF5 output file"},
-     {"lMax",           PA_INT,     1, 1,       (void *)&lMax,       &nlMax,        "maximum l-value of spherical harmonic in C-matrix "},
+     {"lMax",           PA_INT,     1, 1,       (void *)&lMax,       &nlMax,        "maximum l-value of spherical harmonic in C-matrix\n"},
 /**/
-     {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials"},
+     {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials\n"},
 /**/
      {"PhiExternal",    PA_STRING,  1, 1,       (void *)&PhiExt,     0,             "functional form of external potential"},
-     {"ConstField",     PA_STRING,  1, 1,       (void *)&ConstField, 0,             "direction of constant unit-strength E field (x,y,z) "},
+     {"ConstField",     PA_STRING,  1, 1,       (void *)&ConstField, 0,             "direction of constant unit-strength E field (x,y,z)\n"},
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EP file output"},
-     {"PlotFile",       PA_STRING,  1, 1,       (void *)&PlotFile,   0,             "surface charge visualization output file"},
+     {"PlotFile",       PA_STRING,  1, 1,       (void *)&PlotFile,   0,             "surface charge visualization output file\n"},
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
-     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh"},
+     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh\n"},
+/**/
+     {"SolutionFile",   PA_STRING,  1, 1,       (void *)&SolutionFile, 0,           "name of HDF5 file for solution input/output"},
+     {"SolutionName",   PA_STRING,  1, 1,       (void *)&SolutionName, 0,           "name of dataset within HDF5 file\n"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -144,14 +298,6 @@ int main(int argc, char *argv[])
    ErrExit("--lMax option can only be used with --CMatrixFile or --CMatrixHDF5File");
 
   /*******************************************************************/
-  /* sanity check on input arguments *********************************/
-  /*******************************************************************/
-  if ( (PolFile || CapFile || CMatrixFile || CMatrixHDF5File) && (nEPFiles>0 || PotFile!=0 || PhiExt!=0 ) )
-   ErrExit("(--EPFile,--PotFile,--PhiExternal) may not be used with (--polfile, --capfile)");
-  if ( nEPFiles==0 && !PolFile && !CapFile && !CMatrixFile && !CMatrixHDF5File && !PlotFile )
-   OSUsage(argv[0], OSArray, "you have not selected any type of calculation");
-
-  /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
   int ConstFieldDirection=-1;
@@ -165,12 +311,33 @@ int main(int argc, char *argv[])
    };
 
   /*******************************************************************/
+  /* sanity checks on input arguments ********************************/
+  /*******************************************************************/
+  bool HaveType1Outputs = (PolFile || CapFile || CMatrixFile || CMatrixHDF5File);
+  bool HaveType2Outputs = (nEPFiles>0 || nFVMeshes>0 || PlotFile!=0);
+  bool HaveType2Inputs  = (PotFile!=0 || PhiExt!=0 || ConstFieldDirection!=-1);
+
+  if ( (!HaveType1Outputs) && (!HaveType2Outputs) )
+   OSUsage(argv[0], OSArray, "you have not selected any type of calculation");
+  if (HaveType1Outputs && HaveType2Outputs)
+   ErrExit("{--EPFile,--FVMesh{ may not be used with {--polfile, --capfile}");
+  if (HaveType1Outputs && HaveType2Inputs)
+   ErrExit("potential/field specifications may not be used with {--polfile, --capfile}");
+  if (HaveType2Outputs && !HaveType2Inputs)
+   ErrExit("you have not specified any external potential or field");
+  if (HaveType1Outputs && SolutionFile) 
+   ErrExit("--SolutionFile may not be used with {--polfile, --capfile}");
+
+  if (SolutionFile && SolutionName==0)
+   SolutionName = strdup("DEFAULT");
+
+  /*******************************************************************/
   /* create the ScuffStaticGeometry **********************************/
   /*******************************************************************/
   SSSolver *SSS   = new SSSolver(GeoFile);
   SSS->FileBase   = FileBase;
 
-  HMatrix *M      = SSS->AllocateBEMMatrix();
+  HMatrix *M      = 0;
   HVector *Sigma  = SSS->AllocateRHSVector();
   RWGGeometry *G  = SSS->G;
 
@@ -191,31 +358,7 @@ int main(int argc, char *argv[])
   /* if we have more than one geometrical transformation,            */
   /* allocate storage for BEM matrix blocks                          */
   /*******************************************************************/
-  HMatrix **TBlocks=0, **UBlocks=0;
-  int NS=G->NumSurfaces;
-  if (NT>1)
-   { int NADB = NS*(NS-1)/2; // number of above-diagonal blocks
-     TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
-     UBlocks  = (HMatrix **)mallocEC(NADB*sizeof(HMatrix *));
-     for(int ns=0, nb=0; ns<NS; ns++)
-      { 
-        int NBF=G->Surfaces[ns]->NumPanels;
-
-        // allocate diagonal block for surface #ns, unless
-        // it has a mate in which case we reuse the mate's block
-        int nsMate = G->Mate[ns];
-        if ( nsMate!=-1 )
-         TBlocks[ns] = TBlocks[nsMate];
-        else
-         TBlocks[ns] = new HMatrix(NBF, NBF, M->RealComplex);
-
-        // allocate off-diagonal blocks for surfaces ns,nsp>ns
-        for(int nsp=ns+1; nsp<NS; nsp++, nb++)
-         { int NBFp = G->Surfaces[nsp]->NumPanels;
-           UBlocks[nb] = new HMatrix(NBF, NBFp, M->RealComplex);
-         };
-      };
-   };
+  BMAccelerator *BMA = (NT==1) ? 0 : CreateBMAccelerator(SSS);
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -231,9 +374,9 @@ int main(int argc, char *argv[])
    PreloadCache( Cache );
 
   /*******************************************************************/
-  /* loop over transformations ***************************************/
-  /* (if no --TransFile was specified, this loop iterates just once, */
-  /* for the 'default' (identity) transformation                     */
+  /* loop over transformations.                                      */
+  /* if no --TransFile was specified, this loop iterates just once,  */
+  /* for the 'default' (identity) transformation.                    */
   /*******************************************************************/
   for(int nt=0; nt<NT; nt++)
   { 
@@ -247,44 +390,19 @@ int main(int argc, char *argv[])
       };
 
      /*******************************************************************/
-     /* assemble BEM matrix, either (a) all at once if we have only one */
-     /* geometric transformation, or (b) with the diagonal and off-     */
-     /* diagonal blocks computed separately so that the former can be   */
-     /* reused for multiple geometric transformations                   */
      /*******************************************************************/
-     if (NT==1)
-      SSS->AssembleBEMMatrix(M);
-     else
-      { 
-        if (nt==0)
-         for(int ns=0; ns<NS; ns++)
-          if (G->Mate[ns]==-1)
-           SSS->AssembleBEMMatrixBlock(ns, ns, TBlocks[ns]);
+     /*******************************************************************/
+     bool HaveSolution=false;
+     if (SolutionFile)
+      HaveSolution=FileOp(FILEOP_READ, Sigma, SolutionFile, SolutionName, TransformStr);
 
-        for(int ns=0, nb=0; ns<NS; ns++)
-         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
-          if (nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
-           SSS->AssembleBEMMatrixBlock(ns, nsp, UBlocks[nb]);
-
-        /*******************************************************************/
-        /* stamp blocks into BEM matrix and LU-factorize *******************/
-        /*******************************************************************/
-        for(int ns=0, nb=0; ns<NS; ns++)
-         { 
-           int RowOffset=G->PanelIndexOffset[ns];
-           M->InsertBlock(TBlocks[ns], RowOffset, RowOffset);
-           for(int nsp=ns+1; nsp<NS; nsp++, nb++)
-            { int ColOffset=G->PanelIndexOffset[nsp];
-              M->InsertBlock(UBlocks[nb], RowOffset, ColOffset);
-              M->InsertBlockTranspose(UBlocks[nb], ColOffset, RowOffset);
-            };
-         };
-      };
-     M->LUFactorize();
+     if (!HaveSolution)
+      ReassembleBEMMatrix(SSS, &M, BMA, nt);
 
      /*******************************************************************/
      /* now switch off depending on the type of calculation the user    */
-     /* requested                                                       */
+     /* requested. The first three options below do not require         */
+     /* user-specified external fields.                                 */
      /*******************************************************************/
      if (PolFile)
       WritePolarizabilities(SSS, M, Sigma, PolFile);
@@ -292,13 +410,25 @@ int main(int argc, char *argv[])
       WriteCapacitanceMatrix(SSS, M, Sigma, CapFile);
      if (CMatrixFile)
       WriteCMatrix(SSS, M, Sigma, lMax, CMatrixFile, CMatrixHDF5File);
+
+     /******************************************************************/
+     /* The remaining options do require user-specified external       */
+     /* fields unless the user supplied a precomputed solution vector. */
+     /******************************************************************/
+     if (!HaveSolution)
+      { Solve(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection);
+        if (SolutionFile)
+         FileOp(FILEOP_WRITE, Sigma, SolutionFile, SolutionName, TransformStr);
+      };
+
+     if (PlotFile)
+      SSS->PlotChargeDensity(Sigma, PlotFile, 0);
+
      if (nEPFiles>0 || PlotFile )
-      WriteFields(SSS, M, Sigma,
-                  PotFile, PhiExt, ConstFieldDirection,
-                  PlotFile, EPFiles, nEPFiles);
+      WriteFields(SSS, Sigma, PhiExt, ConstFieldDirection, EPFiles, nEPFiles);
 
      for(int nfm=0; nfm<nFVMeshes; nfm++)
-      VisualizeFields(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection,
+      VisualizeFields(SSS, Sigma, PhiExt, ConstFieldDirection,
                       FVMeshes[nfm], FVMeshTransFiles[nfm]);
 
      /*******************************************************************/

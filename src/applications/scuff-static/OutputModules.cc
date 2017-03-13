@@ -516,18 +516,10 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                 char *PotFile, char *PhiExt, int ConstFieldDirection,
-                 char *PlotFile, char **EPFiles, int nEPFiles)
+void WriteFields(SSSolver *SSS, HVector *Sigma,
+                 char *PhiExt, int ConstFieldDirection,
+                 char **EPFiles, int nEPFiles)
 { 
-  Solve(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/ 
-  if (PlotFile)
-   SSS->PlotChargeDensity(Sigma, PlotFile, 0);
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -666,16 +658,10 @@ const char *FieldTitles[]={"Phi","Ex","Ey","Ez"};
 /* and E field on a user-specified surface mesh for GMSH       */
 /* visualization.                                              */
 /***************************************************************/
-void VisualizeFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                     char *PotFile, char *PhiExt, 
-                     int ConstFieldDirection, 
+void VisualizeFields(SSSolver *SSS, HVector *Sigma,
+                     char *PhiExt, int ConstFieldDirection,
                      char *FVMesh, char *TransFile)
 { 
-  /***************************************************************/
-  /* solve the electrostatics problem ****************************/
-  /***************************************************************/
-  Solve(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection);
-
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/
   /*--------------------------------------------------------------*/
