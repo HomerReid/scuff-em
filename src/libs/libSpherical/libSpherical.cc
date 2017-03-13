@@ -405,14 +405,9 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
   CT=cos(Theta);
 
 #ifdef HAVE_LIBGSL
-  static int lMaxSave=-1;
-  static double *gslP=0, *gslPPrime=0;
-  if (lMaxSave<lMax)
-   { lMaxSave=lMax;
-     int gslSize=gsl_sf_legendre_array_n(lMax);
-     gslP=(double *)realloc(gslP, gslSize*sizeof(double));
-     gslPPrime=(double *)realloc(gslPPrime, gslSize*sizeof(double));
-   };
+  size_t gslSize=gsl_sf_legendre_array_n(lMax);
+  double *gslP=new double[gslSize];
+  double *gslPPrime=new double[gslSize];
   gsl_sf_legendre_deriv_array(GSL_SF_LEGENDRE_SPHARM, lMax, CT, gslP, gslPPrime);
   for(int l=0; l<=lMax; l++)
    for(int m=0; m<=l; m++)
@@ -421,6 +416,8 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
       Plm[m][l] = Sign * gslP[gslIndex];
       PlmPrime[m][l] = Sign * gslPPrime[gslIndex];
     };
+  delete[] gslP;
+  delete[] gslPPrime;
 #else
   for(int m=0; m<=lMax; m++)
    GetPlm(lMax, m, CT, Plm[m] + m, PlmPrime[m] + m);
