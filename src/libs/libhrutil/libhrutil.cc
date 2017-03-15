@@ -1011,7 +1011,7 @@ static void SignalHandler(int WhichSignal)
 
 void InstallHRSignalHandler()
 { 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__APPLE__)
 #else
 
   // this allows users to set the environment variable
