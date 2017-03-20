@@ -1034,7 +1034,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 #define ABSURD 1.0e100
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
                   char *MeshFileName, const char *OptionsString,
-                  char *OutFileBase, HVector *Integral, 
+                  char *OutFileBase, HVector *Integral,
                   bool UseCentroids)
 {
   /***************************************************************/
@@ -1116,7 +1116,7 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
 
         if (UseCentroids)
          {
-           QAvg = DataMatrix->GetEntryD(np,nd);
+           Q[0]=Q[1]=Q[2]=QAvg=DataMatrix->GetEntryD(np,nd);
          }
         else
          { if (nAvg>=2)
