@@ -1,49 +1,14 @@
-SHELL=/bin/bash
+include $(SE)/MakefileRules.abInitio
 
-##################################################
-##################################################
-##################################################
-include ../../../../Makefile.Rules
+OBJS = scuff-scatter.o OutputModules.o
 
-##################################################
-##################################################
-##################################################
-HR_LIBS = -lscuff -lIncFieldPrime -lMatProp -lMDInterp \
-          -lhmat -lSGJC -lTriInt -lhrutil
+all: scuff-scatter-haswell scuff-scatter-barcelona
 
-OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS) $(LB_LIBS)
+scuff-scatter-haswell:	$(OBJS)
+			$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS_HASWELL)
 
-LIBS=$(HR_LIBS) $(OTHER_LIBS)
+scuff-scatter-barcelona:	$(OBJS)
+			$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS_BARCELONA)
 
-##################################################
-##################################################
-##################################################
-DEBUG=-O2
-CXX=g++
-CFLAGS+=$(DEBUG)
-CPPFLAGS+=$(DEBUG)
-LDFLAGS+=$(DEBUG)
-
-CPPFLAGS+=-I../../libs/libscuff
-CPPFLAGS+=-I../../libs/libIncField
-CPPFLAGS+=-DSCUFF -DHAVE_MUPARSER -DHAVE_HDF5
-
-LDFLAGS+=-L.
-LDFLAGS+=-L../../libs/libscuff
-LDFLAGS+=-L../../libs/libIncField
-
-##################################################
-##################################################
-##################################################
-SS_OBJS = scuff-scatter.o OutputModules.o
-
-scuff-scatter:	$(SS_OBJS) libscuff.a 
-		$(CXX) $(LDFLAGS) -o $@ $(SS_OBJS) $(LIBS)
-
-libscuff.a:	
-		(pushd ../../libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
-
-clean:	
-		rm -f *.o *.a
-		ln -s ../../libs/libIncField/libIncField.a libIncFieldPrime.a
-		(pushd ../../libs/libscuff; make clean; popd)
+clean:
+		/bin/rm *.o *.a
