@@ -21,7 +21,7 @@
         in {\sc scuff-static}
        }
 \author {Homer Reid}
-\date {March 25, 2017}
+\date {April 3, 2017}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -58,218 +58,43 @@ In this memo I describe an extension to the {\sc scuff-em}
 electrostatics module to allow implicit treatment of
 layered substrates consisting of multiple dielectric layers,
 of arbitrary thicknesses and permittivities, with an optional
-perfectly conducting ground plane (Figure 1). (The subscripts ``D'' and
-``S'' stand for ``destination'' and ``source.'')\footnote{Note 
+perfectly conducting ground plane (Figure 1).\footnote{Note 
 that, if there is no ground plane, then the bottommost 
-layer in Figure \ref{SubstrateGeometryFigure})
+layer in Figure \ref{SubstrateGeometryFigure}
 (layer $N$) is assumed
 to be infinitely thick (it has no lower surface). Thus, a physical 
 substrate consisting of $M$ finite-thickness dielectric layers with 
 no ground plane is treated here as a stack of $N=M+1$ layers in which
 the bottommost layer is vacuum, i.e. $\epsilon\subt{$N$}=1.$}
 
-In Section \ref{TheorySection} I construct an expression for the potential
-at $\vb x\subt{D}=(x\subt{D},y\subt{D},z\subt{D})$
-due to a unit-strength point charge at
-$\vb x\subt{S}=(x\subt{S},y\subt{S},z\subt{S})$ in the presence
-of the multilayered substrate (Figure 1).
+Proceeding in reverse order from theory to practice, the 
+structure of this memo is as follows:
 
-In Section \ref{ImplementationSection} I document the usage
-of this new feature in {\sc scuff-static} calculations.
+\begin{itemize}
+\item 
+In Section \ref{ImplementationSection} I discuss the usage
+of this new feature in {\sc scuff-em} electrostatics calculations.
 
-%====================================================================%
-%====================================================================%
-%====================================================================%
-\newpage
-\section{Theory}
-\label{TheorySection}
-%####################################################################%
-\begin{figure}
-\begin{center}
-\resizebox{\textwidth}{!}{\includegraphics{DielectricSubstrateSigmaLayers.pdf}}
-\caption{In the surface-integral-equation picture of the geometry of Figure
-         \ref{SubstrateGeometryFigure}, the effect of the dielectric substrate
-         is represented by a collection of surface-charge layers
-         $\{\sigma_{n}(\vbrho)\}$, where $\sigma_n$ lives at the 
-         upper surface of dielectric layer $n$, i.e. at $z=z_n$.}
-\label{SigmaLayersFigure}
-\end{center}
-\end{figure}
-%####################################################################%
-In keeping with the spirit of the surface-integral-equation method, I
-will proceed by determining the effective surface-charge densities
-induced at each dielectric interface by the point source
-(Figure \ref{SigmaLayersFigure}). For an $N$-layer substrate
-there are $N$ such layers, with the surface-charge density at
-the interface between layers $n-1$ and $n$ denoted by $\sigma_n(\vbrho)$.
-Note that I do not include a
-surface-charge layer for the ground plane, whose effect I capture
-implicitly via the method of images. 
-
-\subsection{Expressing $G$ in terms of $\sigma$}
-
-I write the full Green's function $G(\vb x\subt{D}, \vb x\subt{S})$---the 
-potential at $\vb x\subt{D}=(\vbrho\subt{D},z\subt{D})$ 
-due to a unit-strength point charge
-at $\vb x\subt{S}=(\vbrho\subt{S},z\subt{S})$---as a sum
-of contributions from 
- \textbf{(a)} the point source itself, 
- \textbf{(b)} the image charge of the point source (if a ground plane is
- present),
-and 
- \textbf{(c)} the surface-charge layers:
-%====================================================================%
-\begin{align*}
- G(\vb x\subt{D}, \vb x\subt{S}) 
-&=                G_0(\vb x\subt{D}, \vb x\subt{S}) 
- + \delta\subt{GP}G_0(\vb x\subt{D}, \vb x\subt{S}^*)
- + \sum_n \phi(\vb x\subt{D}; \sigma_n, z_n)
-%--------------------------------------------------------------------%
-\intertext{where}
-%--------------------------------------------------------------------%
-  G_0(\vb x\subt{D}, \vb x\subt{S})
-&= \frac{1}{4\pi|\vb x\subt{D}-\vb x\subt{S}|}
-%--------------------------------------------------------------------%
-\intertext{is the bare vacuum Green's function,}
-%--------------------------------------------------------------------%
-\vb x\subt{S}^* 
-&= (x\subt{S}, y\subt{S}, z\subt{S}^*),
-  \quad z\subt{S}^* \equiv 2z\subt{GP}-z\subt{S} 
-\intertext{are the coordinates of the image charge due to the 
-ground plane at $z=z\subt{GP}$,}
-%--------------------------------------------------------------------%
-\delta\subt{GP}&=
- \begin{cases} 0, \qquad &\text{no ground plane} \\
-               1, \qquad &\text{ground plane}
- \end{cases}
-\end{align*}
-%====================================================================%
-and $\phi(\vb x; \sigma, z)$ is the potential at $\vb x$ due
-to a surface-charge layer $\sigma(\vbrho)$ at $z$.
-Putting
-$\vbrho\equiv (\vbrho\subt{D}-\vbrho\subt{S})$
-and $\rho\equiv |\vbrho|$ and using the results of
-Appendix \ref{SurfaceChargeLayerAppendix}, we have
-%====================================================================%
-\begin{align*}
- \mc G(\rho; z\subt{D}, z\subt{S})
-&=   G_0(\rho; z\subt{D}, z\subt{S})
-  +\delta\subt{GP} G_0(\rho; z\subt{D}, z\subt{S}^*)
-  + \sum_n \int \frac{dq}{4\pi} \wt{\sigma}_n(q) J_0(q\rho)
-    \zeta(z\subt{D},z_n)
-\intertext{and the $z$-directed electric field $E_z=-\pard{G}{z}$ reads}
-E_z(\rho; z\subt{D}, z\subt{S})
-&=  E_{z0}(\rho; z\subt{D}, z\subt{S})
-  +\delta\subt{GP} E_{z0}(\rho; z\subt{D}, z\subt{S}^*)
-  + \sum_n \int \frac{qdq}{4\pi} \wt{\sigma}_n(q) J_0(q\rho)
-    \xi(z\subt{D},z_n)
-\end{align*}
-%====================================================================%
-with 
-%====================================================================%
-$$ E_{z0}(\rho, z, z^\prime)
-   \equiv 
-   \frac{1}{4\pi[\rho^2 + (z-z^\prime)^2]^{3/2}}.
-$$
-%====================================================================%
-The functions $\zeta$ and $\xi$ are defined in 
-Appendix \ref{SurfaceChargeLayerAppendix}.
-
-%=================================================
-%=================================================
-%=================================================
-\subsection{Applying boundary conditions}
-
-The boundary condition at the interface between dielectric
-layers $m-1$ and $m$ reads
-%====================================================================%
-$$ \epsilon_{m-1} 
-   E_{z}\Big(\rho; z_m^+; z\subt{S}\Big)
- = \epsilon_{m} 
-   E_{z}\Big(\rho; z_m^-; z\subt{S}\Big)
-$$
-%====================================================================%
-with the convention $\epsilon_0=1$. Using the above results, we have
-%====================================================================%
-\begin{align*}
-&\int \frac{qdq}{4\pi} J_0(q\rho)
-   \sum_{n}
-   \Big[ \epsilon_{m-1} \xi(q; z_m^+; z_n)
-        -\epsilon_{m  } \xi(q; z_m^-; z_n)
-   \Big]\wt{\sigma}_n(q)
-\\
-&\qquad
-  =-\big( \epsilon_{m-1} - \epsilon_m\big)
-    \Big[                  E_{z0}(\rho; z_m; z\subt{S}) 
-          - \delta\subt{GP}E_{z0}(\rho; z_m, z\subt{S}^*)
-    \Big]
-\end{align*}
-%====================================================================%
-or, inverse Bessel-transforming\footnote{Multiply both 
-sides by $\rho J_0(q^\prime\rho)$, integrate over all $\rho$, and
-use 
-$$\int_0^\infty \rho J_0(q\rho) J_0(q^\prime \rho) d\rho = 
-  \frac{1}{q}\delta(q-q^\prime).
-$$} and rearranging slightly,
-%====================================================================%
-\numeq{MSigmae}
-{
-\sum_n
- \underbrace{
- \left[
- \frac{ \epsilon_{m-1} \xi(q; z_m^+; z_n)
-        -\epsilon_{m  } \xi(q; z_m^-; z_n)
-      }{ \epsilon_{m-1}-\epsilon_m}
- \right]}_{M_{mn}} \wt{\sigma}_n(q)
-=-\underbrace{4\pi\Big[ 
-                  \wt{E_{z0}}(q, z_m, z\subt{S}) 
-              - \delta\subt{GP}\wt{E_{z0}}(q, z_m, z\subt{S}^*)
-                 \Big]
-            }_{e_m}
-}
-%====================================================================%
-with
-%====================================================================%
-\begin{align*}
- 4\pi \wt{E_{z0}}(q,z,z^\prime)
-&=4\pi \int_0^\infty \rho J_0(q\rho) E_{z0}(\rho,z,z^\prime)\,d\rho
-\\
-&=e^{-q|z-z^\prime|}.
-\end{align*}
-%====================================================================%
-Equation (\ref{MSigmae}) is an $N\times N$ linear system of the form
-%====================================================================%
-$$ \vb M \wt{\vbsigma} = \vb e$$
-%====================================================================%
-that we may solve to compute the Fourier transforms
-$\wt{\sigma_n}(q)$
-of the surface-charge densities at each dielectric interface.
-The elements of the $\vb M$ matrix and $\vb e$ vector read
-%====================================================================%
-\begin{align*}
- M_{mn}
-&= \begin{dcases}
-    \xi(q; z_m; z_n), \qquad &m\ne n 
-    \\
-    \frac{  \epsilon_{m-1} \xi(q; z_m^+; z_m)
-           -\epsilon_{m  } \xi(q; z_m^-; z_m)
-         }{ \epsilon_{m-1}-\epsilon_m}, \qquad &m=n \\
-  \end{dcases}
-\\
-e_m&=-e^{-q|z_m-z\subt{S}|} + \delta\subt{GP}e^{-q|z_m-z\subt{S}^*|}.
-\end{align*}
-%====================================================================%
+\item 
+In Section \ref{TheorySection} I discuss the physics and
+mathematics of the underlying method and some technical details
+regarding its implementation in {\sc scuff-em}.
+\end{itemize}
 
 %====================================================================%
 %====================================================================%
 %====================================================================%
 \newpage
-\section{Implementation in {\sc scuff-em}}
+\section{Practice: Running {\sc scuff-em} calculations
+         with implicit substrates}
 \label{ImplementationSection}
 
+%=================================================
+%=================================================
+%=================================================
 \subsection{Substrate definition file}
 
-Referring to Figure (\ref{SubstrateGeometryFigure}),
+Referring to Figure \ref{SubstrateGeometryFigure},
 a substrate geometry is specified by
 \begin{itemize}
  \item the $z$-coordinate of the upper surface of each dielectric layer
@@ -311,6 +136,12 @@ where e.g.
 \end{itemize}
 %====================================================================%
 
+Note that, because of the scale invariance of electrostatics,
+there is no intrinsic length unit here; instead, numerical values
+specified for $z_n$ refer to the same length units---be they
+microns, millimeters, or what have you--- used in mesh files 
+and \texttt{--EPFile}s.
+
 Here are some examples of \texttt{.substrate} files:
 
 \begin{itemize}
@@ -346,8 +177,580 @@ lying atop a ground plane:
  0 CONST_EPS_4
 -1 GROUNDPLANE
 \end{verbcode}
+\medskip
+%====================================================================%
+
+\item A unit-thickness layer of $\epsilon_r=4$ atop an infinite-thickness
+slab of silicon:
+
+%====================================================================%
+\medskip
+\begin{verbcode}
+ 0 CONST_EPS_4
+-1 SILICON
+\end{verbcode}
+
+\item A unit-thickness layer of $\epsilon_r=4$ atop a thickness-2 layer 
+of silicon:
+
+%====================================================================%
+\medskip
+\begin{verbcode}
+ 0 CONST_EPS_4
+-1 SILICON
+-3 VACUUM
+\end{verbcode}
+
+\item Same as previous item, but now with a ground plane beneath
+the silicon layer:
+
+%====================================================================%
+\medskip
+\begin{verbcode}
+ 0 CONST_EPS_4
+-1 SILICON
+-3 GROUNDPLANE
+\end{verbcode}
+\medskip
 %====================================================================%
 \end{itemize}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Including implicit substrates in {\sc scuff-em} electrostatics
+            calculations}
+
+To run {\sc scuff-em} electrostatics calculations with an implicit 
+substrate described by a file \texttt{MySubstrate.substrate},
+there are two ways to proceed.
+
+\begin{itemize}
+ \item You can include the line
+
+       \begin{verbcode}
+         SUBSTRATE MySubstrate.substrate
+       \end{verbcode}
+
+       to the \texttt{.scuffgeo} file defining the meshed geometry.
+       Then the substrate will be present for all calculations---including
+       both API calculations and command-line calculations---involving 
+       that geometry file.
+ \item For command-line calculations, you can add the option
+
+       \begin{verbcode}
+       --SubstrateFile MySubstrate.substrate
+       \end{verbcode}
+
+       to the {\sc scuff-static} command line. 
+       The substrate file specified in this way will override
+       any \texttt{SUBSTRATE} specification that may be present
+       in the \texttt{.scuffgeo} file.
+\end{itemize}
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\newpage
+\section{Theory: How it works}
+\label{TheorySection}
+This discussion consists of two parts:
+\begin{itemize}
+ \item
+ I first derive a mathematical expression for the electrostatic
+ Green's function in the presence of the multilayered dielectric
+ substrate---that is, the function $G(\vb x\subt{D},\vb x\subt{S})$
+ giving the electrostatic potential at $\vb x\subt{D}$ due to a
+ unit-strength point source at $\vb x\subt{S}$ in the 
+ presence of the substrate (Figure \ref{SubstrateGeometryFigure}).
+ (The subscripts ``D'' and ``S'' stand for ``destination'' and ``source.'')
+
+ \item
+ Then I discuss how the discretized surface-integral-equation
+ system assembled by {\sc scuff-em} is modified to accommodate
+ this modified Green's function.
+\end{itemize}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Electrostatic Green's function in the presence of
+            dielectric substrate}
+%####################################################################%
+\begin{figure}
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{DielectricSubstrateSigmaLayers.pdf}}
+\caption{In the surface-integral-equation picture of the geometry of Figure
+         \ref{SubstrateGeometryFigure}, the effect of the dielectric substrate
+         is represented by a collection of surface-charge layers
+         $\{\sigma_{n}(\vbrho)\}$, where $\sigma_n$ lives at the 
+         upper surface of dielectric layer $n$, i.e. at $z=z_n$.}
+\label{SigmaLayersFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+
+\subsubsection{Basic strategy}
+
+In keeping with the spirit of the surface-integral-equation method, I
+will
+proceed by determining the effective surface-charge densities
+induced at each dielectric interface by the point source
+(Figure \ref{SigmaLayersFigure}). For an $N$-layer substrate
+there are $N$ such layers, with the surface-charge density at
+the interface between layers $n-1$ and $n$ denoted by $\sigma_n(\vbrho)$.
+Note that I do not include a
+surface-charge layer for the ground plane, whose effect I capture
+implicitly via the method of images. 
+
+\subsubsection{Expressing $G$ in terms of $\sigma$}
+
+I write the full Green's function $G(\vb x\subt{D}, \vb x\subt{S})$---the 
+potential at $\vb x\subt{D}=(\vbrho\subt{D},z\subt{D})$ 
+due to a unit-strength point charge
+at $\vb x\subt{S}=(\vbrho\subt{S},z\subt{S})$---as a sum
+of contributions from 
+ \textbf{(a)} the point source itself, 
+ \textbf{(b)} the image charge of the point source (if a ground plane is
+ present),
+and 
+ \textbf{(c)} the surface-charge layers:
+%====================================================================%
+\begin{align*}
+ G(\vb x\subt{D}, \vb x\subt{S}) 
+&=                G_0(\vb x\subt{D}, \vb x\subt{S}) 
+ \underbrace{
+ - \delta\subt{GP}G_0(\vb x\subt{D}, \vb x\subt{S}^*)
+ + \sum_n \phi(\vb x\subt{D}; \sigma_n, z_n)
+            }_{\mc G(\vb x\subt{D}, \vb x\subt{S})}
+%--------------------------------------------------------------------%
+\intertext{where}
+%--------------------------------------------------------------------%
+  G_0(\vb x\subt{D}, \vb x\subt{S})
+&= \frac{1}{4\pi|\vb x\subt{D}-\vb x\subt{S}|}
+%--------------------------------------------------------------------%
+\intertext{is the bare vacuum Green's function
+           [and $\mc G(\vb x\subt{D},\vb x\subt{S})$ is the correction
+            due to the substrate],}
+%--------------------------------------------------------------------%
+\vb x\subt{S}^* 
+&= (x\subt{S}, y\subt{S}, z\subt{S}^*),
+  \quad z\subt{S}^* \equiv 2z\subt{GP}-z\subt{S} 
+\intertext{are the coordinates of the image charge due to the 
+ground plane at $z=z\subt{GP}$,}
+%--------------------------------------------------------------------%
+\delta\subt{GP}&=
+ \begin{cases} 0, \qquad &\text{no ground plane} \\
+               1, \qquad &\text{ground plane}
+ \end{cases}
+\end{align*}
+%====================================================================%
+and $\phi(\vb x; \sigma, z)$ is the potential at $\vb x$ due
+to a surface-charge layer $\sigma(\vbrho)$ at $z$.
+Putting
+$\vbrho\equiv (\vbrho\subt{D}-\vbrho\subt{S})$
+and $\rho\equiv |\vbrho|$ and using the results of
+Appendix \ref{SurfaceChargeLayerAppendix}, we have
+%====================================================================%
+\begin{align*}
+     G(\rho; z\subt{D}, z\subt{S})
+&=   G_0(\rho; z\subt{D}, z\subt{S})
+  -\delta\subt{GP} G_0(\rho; z\subt{D}, z\subt{S}^*)
+  + \sum_n \int \frac{dq}{4\pi} \wt{\sigma}_n(q) J_0(q\rho)
+    \zeta(z\subt{D},z_n)
+\intertext{and the $z$-directed electric field $E_z=-\pard{G}{z}$ reads}
+E_z(\rho; z\subt{D}, z\subt{S})
+&=  E_{z0}(\rho; z\subt{D}, z\subt{S})
+  -\delta\subt{GP} E_{z0}(\rho; z\subt{D}, z\subt{S}^*)
+  + \sum_n \int \frac{qdq}{4\pi} \wt{\sigma}_n(q) J_0(q\rho)
+    \xi(z\subt{D},z_n)
+\end{align*}
+%====================================================================%
+with 
+%====================================================================%
+$$ E_{z0}(\rho, z, z^\prime)
+   \equiv 
+   \frac{(z-z^\prime)}{4\pi[\rho^2 + (z-z^\prime)^2]^{3/2}}.
+$$
+%====================================================================%
+The functions $\zeta$ and $\xi$ are defined in 
+Appendix \ref{SurfaceChargeLayerAppendix}.
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Applying boundary conditions to determine $\sigma$}
+
+The boundary condition at the interface between dielectric
+layers $m-1$ and $m$ reads
+%====================================================================%
+$$ \epsilon_{m-1} 
+   E_{z}\Big(\rho; z_m^+; z\subt{S}\Big)
+ = \epsilon_{m} 
+   E_{z}\Big(\rho; z_m^-; z\subt{S}\Big)
+$$
+%====================================================================%
+with $z^\pm_m$ denoting points lying just above or just below $z_m$
+and with the convention $\epsilon_0=1$. Using the above results, we have
+%====================================================================%
+\begin{align*}
+&\int \frac{qdq}{4\pi} J_0(q\rho)
+   \sum_{n}
+   \Big[ \epsilon_{m-1} \xi(q; z_m^+; z_n)
+        -\epsilon_{m  } \xi(q; z_m^-; z_n)
+   \Big]\wt{\sigma}_n(q)
+\\
+&\qquad
+  =\big( \epsilon_{m} - \epsilon_{m-1}\big)
+    \Big[                  E_{z0}(\rho; z_m; z\subt{S}) 
+          - \delta\subt{GP}E_{z0}(\rho; z_m, z\subt{S}^*)
+    \Big]
+\end{align*}
+%====================================================================%
+or, inverse Bessel-transforming\footnote{Multiply both 
+sides by $\rho J_0(q^\prime\rho)$, integrate over all $\rho$, and
+use 
+$$\int_0^\infty \rho J_0(q\rho) J_0(q^\prime \rho) d\rho = 
+  \frac{1}{q}\delta(q-q^\prime).
+$$} and rearranging slightly,
+%====================================================================%
+\numeq{MSigmae}
+{
+\sum_n
+ \underbrace{
+ \left[
+ \frac{ \epsilon_{m-1} \xi(q; z_m^+; z_n)
+        -\epsilon_{m  } \xi(q; z_m^-; z_n)
+      }{ \epsilon_{m-1}-\epsilon_m}
+ \right]}_{M_{mn}} \wt{\sigma}_n(q)
+=-\underbrace{4\pi\Big[ 
+                  \wt{E_{z0}}(q, z_m, z\subt{S}) 
+              - \delta\subt{GP}\wt{E_{z0}}(q, z_m, z\subt{S}^*)
+                 \Big]
+            }_{e_m}
+}
+%====================================================================%
+with
+%====================================================================%
+\begin{align*}
+ 4\pi \wt{E_{z0}}(q,z,z^\prime)
+&=4\pi \int_0^\infty \rho J_0(q\rho) E_{z0}(\rho,z,z^\prime)\,d\rho
+\\
+&=\text{sign}(z-z^\prime) e^{-q|z-z^\prime|}.
+\end{align*}
+%====================================================================%
+Equation (\ref{MSigmae}) is an $N\times N$ linear system of the form
+%====================================================================%
+\numeq{SystemForSigma}{\bmc M \wt{\vbsigma}(q) = \vb e}
+%====================================================================%
+that we may solve to compute the Fourier transforms
+$\wt{\sigma_n}(q)$
+of the surface-charge densities at each dielectric interface.
+The elements of the $\bmc M$ matrix and $\vb e$ vector read
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \mc M_{mn}
+&= \begin{dcases}
+    \xi(q; z_m; z_n), \qquad &m\ne n 
+    \\
+    \frac{  \epsilon_{m-1} \xi(q; z_m^+; z_m)
+           -\epsilon_{m  } \xi(q; z_m^-; z_m)
+         }{ \epsilon_{m-1}-\epsilon_m}, \qquad &m=n \\
+  \end{dcases}
+\\
+e_m&=-\xi(q; z_m; z\subt{S}).
+\end{align}
+\label{MmnEmdef}%
+\end{subequations}
+%====================================================================%
+
+\subsubsection{Special cases}
+
+\paragraph{Single infinite-thickness dielectric slab.}
+For the case of an infinite dielectric slab with
+relative permittivity $\epsilon_1$ filling the half
+space $z\le z_1$, equation (\ref{SystemForSigma}) 
+reads simply
+%====================================================================%
+\numeq{WTSigma1}
+{ \wt{\sigma_1}(q) = 
+   \pm
+   \pf{\epsilon_1 - \epsilon_0}
+      {\epsilon_1 + \epsilon_0}e^{-q|z_S-z\subt{1}|},
+   \qquad
+   \pm=\text{sign}(z\subt{S} - z_1)
+}
+%====================================================================%
+where $\epsilon_0$ is the relative permittivity of the
+upper half-space.
+
+\paragraph{Single finite-thickness dielectric layer with ground plane.}
+For a layer of permittivity $\epsilon_1$ with upper surface
+at $z=z_1$ above a ground plane at $z=z\subt{GP}$, we have
+%====================================================================%
+\numeq{WTSigma1GP}
+{ \wt{\sigma_1}(q) =
+   \pf{\epsilon_1 - \epsilon_0}
+      {\epsilon_1 + \epsilon_0}
+   \left[\frac{\pm 1 + e^{-2qT}}
+             {1 + \pf{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}e^{-2qT}}
+   \right]e^{-q|z_1-z\subt{S}|}
+}
+where $T=z_1-z\subt{GP}$ is the thickness of the layer. 
+This reduces to (\ref{WTSigma1}) in the limit $T\to \infty.$
+
+\paragraph{Single finite-thickness dielectric slab.}
+For the case of a dielectric slab of permittivity $\epsilon_1$
+filling the space $z_2<z<z_1$ with the media above and below
+having permittivity $\epsilon_0$, equation (\ref{SystemForSigma}) 
+reads (assuming the point source lies above the slab, $z\subt{S}>z_1$:)
+%=================================================
+$$ \left(\begin{array}{cc}
+   -\frac{1}{\eta} & e^{-qT} \\ 
+   -e^{-qT} & +\frac{1}{\eta} \\
+   \end{array}\right)
+   \left(\begin{array}{c}\wt \sigma_1 \\ \wt \sigma_2\end{array}\right)
+  =-e^{-q\Delta z}
+   \left(\begin{array}{c}1 \\ e^{-qT} \end{array}\right)
+  \qquad 
+  \left(\eta\equiv\frac{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}\right)
+$$
+%=================================================
+with $T=z_1-z_2$ the thickness of the layer and $\Delta z=z\subt{S}-z_1$ the
+height of the point source above the upper surface of the layer.
+
+The solution is
+%=================================================
+\begin{align*}
+ \wt\sigma_1 &= 
+   \eta e^{-q \Delta z}\left[\frac{1-\eta e^{-2qT}}{1-\eta^2 e^{-2qT}}\right],
+ \\
+ \wt\sigma_2 &=
+   -\eta e^{-q \Delta z}
+    \left[\frac{ (\eta-1) e^{-qT}}{1-\eta^2 e^{-2qT}}\right]
+\end{align*}
+%=================================================
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Evaluating Bessel-function integrals}
+
+The contributions of the surface-charge layers to the
+Green's function and its derivatives are given by
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{BesselFunctionIntegrals}
+{
+\left(\begin{array}{c}
+      \mc G^\sigma \\
+      -\partial_x \mc G^\sigma \\
+      -\partial_y \mc G^\sigma \\
+      -\partial_z \mc G^\sigma
+   \end{array}\right)
+=\int \sum_n \frac{dq}{4\pi}\wt\sigma_n(q)
+  \underbrace{
+  \left(\begin{array}{c}
+       J_0(q\rho)\zeta(q; z\subt{D}; z_n)        \\ 
+     qxJ_1(q\rho)\zeta(q; z\subt{D}; z_n)/\rho   \\
+     qyJ_1(q\rho)\zeta(q; z\subt{D}; z_n)/\rho   \\
+      qJ_0(q\rho)\xi(q; z\subt{D}; z_n)          \\ 
+   \end{array}\right).
+             }_{\bmc J(q, \rho, z\subt{D}, z_n)}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The $q$ integral here may be evaluated by numerical quadrature,
+with values of $\sigma_n(q)$ at each quadrature point
+determined by solving the system (\ref{SystemForSigma}).
+
+The convergence of the integrals (\ref{BesselFunctionIntegrals})
+is generally speeded by factors like $e^{-q|z\subt{S,D}-z_p|}$,
+which cause the integrand to decay exponentially as $q\to\infty$.
+However, when $z\subt{S}=z\subt{D}=z_p$ (source and destination
+point both lie on the $p$th dielectric interface) the integrand is
+undamped and numerical quadrature converges slowly due to
+the oscillatory nature of the Bessel-function integrands.
+To remedy this, for cases in which $z\subt{S}=z\subt{D}=z_p$,
+I rewrite the $p$th term in the sum by adding and substracting
+to yield
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ \int \frac{dq}{4\pi} R(q)
+ \wt\sigma_p(q) Z_p(q)
+&= 
+ \int \frac{dq}{4\pi} R(q)
+ \underbrace{
+ \Big[\wt \sigma_p(q)Z_p(q) - \wt \sigma_p(\infty)Z_p(\infty)\Big]
+            }_{\to 0 \text{ as } q\to \infty}
+\nn
+&\qquad + \wt\sigma_p(\infty)Z_p(\infty)
+  \int \frac{dq}{4\pi} R(q)
+\label{BesselFunctionIntegralsRewritten}
+\end{align}
+%====================================================================%
+where $R(q)$ and $Z_p(q)$ are the radial and $z$-factors in
+the integrand of (\ref{BesselFunctionIntegrals}):
+%====================================================================%
+$$R(q)=
+   \left\{ 
+     \begin{array}{c}
+        J_0(q\rho)       \\ 
+      qxJ_1(q\rho)/\rho  \\
+      qyJ_1(q\rho)/\rho  \\
+      qJ_0(q\rho)
+     \end{array}
+   \right\}, 
+ \qquad 
+  Z_p(q)=
+   \left\{ 
+     \begin{array}{c}
+      \zeta(q;z\subt{D};z\subt{p}) \\
+      \zeta(q;z\subt{D};z\subt{p}) \\
+      \zeta(q;z\subt{D};z\subt{p}) \\
+      \xi(q;z\subt{D};z\subt{p})
+     \end{array}
+   \right\}.
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The integral in the second
+term of (\ref{BesselFunctionIntegralsRewritten}) may be
+evaluated in closed form:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \int \frac{dq}{4\pi} R(q)
+   = \frac{1}{4\pi}
+     \left\{\begin{array}{c}
+         1/\rho   \\
+         x/\rho^3 \\
+         y/\rho^3 \\
+         2\pi\delta(\rho)
+     \end{array}\right\}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Also, we have
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$\wt \sigma_p(\infty) Z_p(\infty)
+ =\begin{dcases}
+   \pf{\epsilon_p-\epsilon_{p-1}}
+      {\epsilon_p+\epsilon_{p-1}}
+   \left\{\begin{array}{c} 1 \\ 1 \\ 1 \\ \pm 1\end{array}\right\},
+    \qquad &\text { if } z\subt{S}=z_p^\pm
+\\
+    0, &\text {otherwise}
+ \end{dcases}
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example}
+
+Figure \ref{SiOnE2Figure} shows the potential
+$\phi(\vb x\subt{D})$ and $z$-directed electric field 
+$E_z(\vb x\subt{D})$
+for points $\vb x\subt{D}=(0.1,0.2,z)$
+due to a unit-strength point source at $\vb x\subt{S}=(0,0,1)$
+in the presence of a two-layer substrate.
+The substrate 
+consists of an upper layer of silicon ($\epsilon_r=12$)
+filling the range $z\in[-1,0]$ lying atop a lower layer with 
+$\epsilon_r=2$. 
+The lower layer is of infinite thickness 
+(purple curves in upper and lower plots) 
+or of thickness 1 any lying atop a ground plane (green
+curve in upper plot).
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\begin{tabular}{c}
+ \resizebox{\textwidth}{!}{\includegraphics{SiOnE2Phi.pdf}}
+\\
+ \resizebox{\textwidth}{!}{\includegraphics{SiOnE2Ez.pdf}}
+\end{tabular}
+\caption{Potential (top) and $z$-directed electric field (bottom)
+         at $\vb x\subt{D}=(0.1,0.2,z)$ due to a unit-strength
+         point source at $\vb x\subt{S}=(0,0,1)$ in the 
+         presence of a substrate consisting of an upper  
+         layer of silicon ($\epsilon_r=12$) and a lower layer
+         of $\epsilon_r=2$. The lower layer is of infinite thickness 
+         (purple curves in upper and lower plots) 
+         or of thickness 1 lying atop a ground plane at $z\subt{GP}=-2$
+        (green curve in upper plot).
+         Dashed vertical lines indicate the locations of the dielectric 
+         interface layers.
+         For reference, in the interior of the silicon layer 
+         in the lower plot we have
+         plotted the quantities $\frac{\epsilon_1}{\epsilon_0}E_z$
+         (green curve)
+         and $\frac{\epsilon_1}{\epsilon_2}E_z$ (cyan curve)
+         to indicate that these quantities properly match
+         the values of $E_z$ on the other sides of the upper and 
+         lower dielectric interfaces.
+}
+\label{SiOnE2Figure}
+\end{center}
+\end{figure}
+%####################################################################%
+The take-home messages of Figure \ref{SiOnE2Figure} are 
+\begin{itemize}
+ \item The potential is continuous with discontinuous derivative
+       at dielectric-interface layers and properly vanishes at 
+       the ground plane (green curve in upper plot).
+ \item The $E_z$ field properly exhibits jumps of magnitude
+       $\frac{\epsilon_1}{\epsilon_0}=12$ at the upper dielectric 
+       interface $(z=0)$ and 
+       $\frac{\epsilon_1}{\epsilon_2}=6$ at the lower dielectric interface
+       ($z=1$).
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\subsection{Assembling the modified BEM system}
+
+In the boundary-element-method (BEM) implemented by the {\sc scuff-em}
+electrostatics module, we solve a linear system of the form\footnote{This
+is equation (11) in the memo ``{\sc scuff-static}: Pure Electrostatics 
+in {\sc scuff-em},'' available here:
+\url{http://homerreid.github.io/scuff-em-documentation/tex/scuff-static.pdf}}
+%====================================================================%
+$$ \vb M^{(0)} \cdot \vbsigma = \vb v$$
+%====================================================================%
+where entries of the $\vb M$ matrix are linear combinations of
+integrals over basis functions involving the vacuum electrostatic
+Green's function; for example, the matrix element for two basis functions
+lying atop conducting surfaces reads
+%====================================================================%
+\numeq{MmnDef}
+{
+  M^{(0)}_{mn} = \Vmv{b_m(\vb x_m)}
+                     {G_0(\vb x_m, \vb x_n)}
+                     {b_n(\vb x_n)}.
+}
+%====================================================================%
+In the presence of a multilayer substrate, (\ref{MmnDef}) is augmented
+by additional terms describing the contributions of the substrate:
+%====================================================================%
+$$ \vb M^{(0)} \to \vb M^{(0)} + \vb M\supt{GP} + \vb M^\sigma$$
+%====================================================================%
+where $\vb M^{(0)}$ is the vacuum contribution (\ref{MmnDef})
+and 
+%====================================================================%
+\begin{align*}
+  M\supt{GP}_{mn} 
+   &= \Vmv{b_\alpha(\vb x_\alpha)}
+          {\mc G\supt{GP}(\vb x_\alpha, \vb x_\beta)}
+          {b_\beta(\vb x_\beta)}
+\\
+  M^\sigma_{mn} 
+   &= \Vmv{b_\alpha(\vb x_\alpha)}
+          {\mc G^\sigma(\vb x_\alpha, \vb x_\beta)}
+          {b_\beta(\vb x_\beta)}
+\end{align*}
+%====================================================================%
+where $\mc G\supt{GP}$ and $\mc G^\sigma$ are the contributions
+of the ground plane and the surface-charge layers to 
+the substrate Green's function correction $\mc G$.
 
 %====================================================================%
 %====================================================================%
@@ -445,12 +848,12 @@ the surface-charge layer:
 %====================================================================%
 \begin{align}
 \phi(\vbrho\subt{D},z\subt{D})
- &=\int \frac{dq}{2\pi} \wt \sigma(q) J_0(q\rho\subt{D})
+ &=\int \frac{dq}{4\pi} \wt \sigma(q) J_0(q\rho\subt{D})
  \begin{dcases} 
-     e^{-q\overline{z\subt{D}}}\sinh q \overline{z\subt{S}},
+     2e^{-q\overline{z\subt{D}}}\sinh q \overline{z\subt{S}},
     \qquad &z\subt{D} > z\subt{S}
     \\
-     e^{-q\overline{z\subt{S}}}\sinh q \overline{z\subt{D}},
+     2e^{-q\overline{z\subt{S}}}\sinh q \overline{z\subt{D}},
     \qquad z\subt{GP} < &z\subt{D} < z\subt{S}
  \end{dcases}
 \label{PhiSurfaceLayerGP}
@@ -516,16 +919,16 @@ Taking derivatives of (\ref{PhiSigmaCommonForm}) yields
 \begin{align*}
  E_x &= -\pard{\phi}{x}
  = \frac{x\subt{D}}{\rho\subt{D}}
-    \int \frac{qdq}{2\pi} \wt{\sigma}(q) J_1(q\rho\subt{D})
+    \int \frac{qdq}{4\pi} \wt{\sigma}(q) J_1(q\rho\subt{D})
          \zeta(q; z\subt{D}; z\subt{S})
 \\
  E_y &= -\pard{\phi}{y}
  = \frac{y\subt{D}}{\rho\subt{D}}
-    \int \frac{qdq}{2\pi} \wt{\sigma}(q) J_1(q\rho\subt{D})
+    \int \frac{qdq}{4\pi} \wt{\sigma}(q) J_1(q\rho\subt{D})
          \zeta(q; z\subt{D}; z\subt{S})
 \\
  E_z &= -\pard{\phi}{z}
- =  \int \frac{qdq}{2\pi} \wt{\sigma}(q) J_0(q\rho\subt{D})
+ =  \int \frac{qdq}{4\pi} \wt{\sigma}(q) J_0(q\rho\subt{D})
          \xi(q; z\subt{D}; z\subt{S}).
 \end{align*}
 

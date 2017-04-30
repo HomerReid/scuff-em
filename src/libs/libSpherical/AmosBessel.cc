@@ -344,8 +344,8 @@ int AmosBessel(char WhichFunction, cdouble z,
    delete[] fr;
 
   if (ierr!=0)
-   Warn("error in AmosBessel (ierr=%i)",ierr);
- 
+   Warn("error in AmosBessel(%c,|z|=%g) (ierr=%i)",WhichFunction,abs(z),ierr);
+
   return ierr;
 
 }
