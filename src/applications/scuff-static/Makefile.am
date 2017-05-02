@@ -1,11 +1,11 @@
 #
-# NOTE: the three source files 'SSSolver.cc', 'GetPPI.cc', and
-# 'GetPhiE.cc' together constitute the full implementation
-# of the SSSolver class. The files 'scuff-static.cc' and 
-# 'OutputModules.cc' are just one particular instance of a 
-# driver program that uses this class. In principle the 
-# former three files should be compiled into the form of a 
-# library, which is then linked by the scuff-static 
+# NOTE: the source files 'SSSolver.cc', 'GetPPI.cc',
+# 'GetPhiE.cc,' and 'Substrate.cc' together constitute the 
+# the full implementation of the SSSolver class. The files 
+# 'scuff-static.cc' and  'OutputModules.cc' are just one 
+# particular instance of a driver program that uses this class. 
+# In principle the former files should be compiled into the form
+# of a library, which is then linked by the scuff-static 
 # executable but could be linked by other executables too.
 # But here for convenience we just throw them all into one 
 # big executable.
@@ -19,6 +19,8 @@ scuff_static_SOURCES = 		\
  SSSolver.cc			\
  SSSolver.h			\
  OutputModules.cc		\
+ StaticSubstrate.h     		\
+ StaticSubstrate.cc    		\
  scuff-static.cc
 
 scuff_static_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la

@@ -230,6 +230,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   InstallHRSignalHandler();
   char *GeoFile     = 0;
+  char *SubstrateFile = 0;
   char *TransFile   = 0;
   char *PolFile     = 0;
   char *CapFile     = 0;
@@ -254,6 +255,7 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { 
      {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file\n"},
+     {"Substrate",      PA_STRING,  1, 1,       (void *)&SubstrateFile,  0,             "substrate file\n"},
 /**/
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometry transformations\n"},
 /**/
@@ -334,7 +336,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* create the ScuffStaticGeometry **********************************/
   /*******************************************************************/
-  SSSolver *SSS   = new SSSolver(GeoFile);
+  SSSolver *SSS   = new SSSolver(GeoFile, SubstrateFile);
   SSS->FileBase   = FileBase;
 
   HMatrix *M      = 0;

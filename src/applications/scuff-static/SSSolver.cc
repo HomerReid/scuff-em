@@ -37,6 +37,7 @@
 
 #include "libscuff.h"
 #include "SSSolver.h"
+#include "StaticSubstrate.h"
 
 namespace scuff {
 
@@ -46,12 +47,22 @@ namespace scuff {
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-SSSolver::SSSolver(const char *GeoFileName, int LogLevel)
+SSSolver::SSSolver(const char *GeoFileName, const char *SubstrateFile, int LogLevel)
 {
   G=new RWGGeometry(GeoFileName, LogLevel);
   if (G->LDim>0)
    ErrExit("periodic geometries not yet supported for electrostatics in SCUFF-EM");
   TransformLabel=0;
+
+  if (SubstrateFile)
+   { if (Substrate) 
+      DestroySubstrateData(Substrate);
+
+     char *ErrMsg=0;
+     Substrate=CreateSubstrateData(SubstrateFile, &ErrMsg);
+     if (ErrMsg) 
+      ErrExit(ErrMsg);
+   };
 }
 
 /***********************************************************************/
@@ -108,8 +119,8 @@ HMatrix *SSSolver::AssembleBEMMatrix(HMatrix *M)
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-void SSSolver::AssembleBEMMatrixBlock(int nsa, int nsb, 
-                                      HMatrix *M, 
+void SSSolver::AssembleBEMMatrixBlock(int nsa, int nsb,
+                                      HMatrix *M,
                                       int RowOffset, int ColOffset)
 {
   Log("Assembling BEM matrix block (%i,%i)...",nsa,nsb);
@@ -171,6 +182,13 @@ void SSSolver::AssembleBEMMatrixBlock(int nsa, int nsb,
        };
       M->SetEntry(RowOffset + npa, ColOffset + npb, MatrixEntry); 
     };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (Substrate)
+   AddSubstrateContributionsToBEMMatrixBlock(nsa, nsb, M,
+                                             RowOffset, ColOffset);
 
 }
 

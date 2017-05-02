@@ -307,7 +307,12 @@ implicitly via the method of images.
 
 I write the full Green's function $G(\vb x\subt{D}, \vb x\subt{S})$---the 
 potential at $\vb x\subt{D}=(\vbrho\subt{D},z\subt{D})$ 
-due to a unit-strength point charge
+due to a unit-strength\footnote{I assume that charge is measured
+in units of $\frac{1}{\epsilon_0}$ (the inverse vacuum permittivity),
+so that there is no factor of $\epsilon_0$ in the denominators
+of expressions like (\ref{GTotal}). In this memo, $\epsilon_0$
+refers to the relative permittivity of the uppermost medium in 
+Figure \ref{SubstrateGeometryFigure}.} point charge
 at $\vb x\subt{S}=(\vbrho\subt{S},z\subt{S})$---as a sum
 of contributions from 
  \textbf{(a)} the point source itself, 
@@ -316,18 +321,20 @@ of contributions from
 and 
  \textbf{(c)} the surface-charge layers:
 %====================================================================%
-\begin{align*}
+\begin{align}
  G(\vb x\subt{D}, \vb x\subt{S}) 
 &=                G_0(\vb x\subt{D}, \vb x\subt{S}) 
  \underbrace{
  - \delta\subt{GP}G_0(\vb x\subt{D}, \vb x\subt{S}^*)
- + \sum_n \phi(\vb x\subt{D}; \sigma_n, z_n)
+ + \sum_n \mc G^{\sigma_n}(\vb x\subt{D})
             }_{\mc G(\vb x\subt{D}, \vb x\subt{S})}
+\label{GTotal}
 %--------------------------------------------------------------------%
 \intertext{where}
 %--------------------------------------------------------------------%
   G_0(\vb x\subt{D}, \vb x\subt{S})
 &= \frac{1}{4\pi|\vb x\subt{D}-\vb x\subt{S}|}
+\nonumber
 %--------------------------------------------------------------------%
 \intertext{is the bare vacuum Green's function
            [and $\mc G(\vb x\subt{D},\vb x\subt{S})$ is the correction
@@ -336,6 +343,7 @@ and
 \vb x\subt{S}^* 
 &= (x\subt{S}, y\subt{S}, z\subt{S}^*),
   \quad z\subt{S}^* \equiv 2z\subt{GP}-z\subt{S} 
+\nonumber
 \intertext{are the coordinates of the image charge due to the 
 ground plane at $z=z\subt{GP}$,}
 %--------------------------------------------------------------------%
@@ -343,7 +351,8 @@ ground plane at $z=z\subt{GP}$,}
  \begin{cases} 0, \qquad &\text{no ground plane} \\
                1, \qquad &\text{ground plane}
  \end{cases}
-\end{align*}
+\nonumber
+\end{align}
 %====================================================================%
 and $\phi(\vb x; \sigma, z)$ is the potential at $\vb x$ due
 to a surface-charge layer $\sigma(\vbrho)$ at $z$.
@@ -465,73 +474,6 @@ e_m&=-\xi(q; z_m; z\subt{S}).
 \end{subequations}
 %====================================================================%
 
-\subsubsection{Special cases}
-
-\paragraph{Single infinite-thickness dielectric slab.}
-For the case of an infinite dielectric slab with
-relative permittivity $\epsilon_1$ filling the half
-space $z\le z_1$, equation (\ref{SystemForSigma}) 
-reads simply
-%====================================================================%
-\numeq{WTSigma1}
-{ \wt{\sigma_1}(q) = 
-   \pm
-   \pf{\epsilon_1 - \epsilon_0}
-      {\epsilon_1 + \epsilon_0}e^{-q|z_S-z\subt{1}|},
-   \qquad
-   \pm=\text{sign}(z\subt{S} - z_1)
-}
-%====================================================================%
-where $\epsilon_0$ is the relative permittivity of the
-upper half-space.
-
-\paragraph{Single finite-thickness dielectric layer with ground plane.}
-For a layer of permittivity $\epsilon_1$ with upper surface
-at $z=z_1$ above a ground plane at $z=z\subt{GP}$, we have
-%====================================================================%
-\numeq{WTSigma1GP}
-{ \wt{\sigma_1}(q) =
-   \pf{\epsilon_1 - \epsilon_0}
-      {\epsilon_1 + \epsilon_0}
-   \left[\frac{\pm 1 + e^{-2qT}}
-             {1 + \pf{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}e^{-2qT}}
-   \right]e^{-q|z_1-z\subt{S}|}
-}
-where $T=z_1-z\subt{GP}$ is the thickness of the layer. 
-This reduces to (\ref{WTSigma1}) in the limit $T\to \infty.$
-
-\paragraph{Single finite-thickness dielectric slab.}
-For the case of a dielectric slab of permittivity $\epsilon_1$
-filling the space $z_2<z<z_1$ with the media above and below
-having permittivity $\epsilon_0$, equation (\ref{SystemForSigma}) 
-reads (assuming the point source lies above the slab, $z\subt{S}>z_1$:)
-%=================================================
-$$ \left(\begin{array}{cc}
-   -\frac{1}{\eta} & e^{-qT} \\ 
-   -e^{-qT} & +\frac{1}{\eta} \\
-   \end{array}\right)
-   \left(\begin{array}{c}\wt \sigma_1 \\ \wt \sigma_2\end{array}\right)
-  =-e^{-q\Delta z}
-   \left(\begin{array}{c}1 \\ e^{-qT} \end{array}\right)
-  \qquad 
-  \left(\eta\equiv\frac{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}\right)
-$$
-%=================================================
-with $T=z_1-z_2$ the thickness of the layer and $\Delta z=z\subt{S}-z_1$ the
-height of the point source above the upper surface of the layer.
-
-The solution is
-%=================================================
-\begin{align*}
- \wt\sigma_1 &= 
-   \eta e^{-q \Delta z}\left[\frac{1-\eta e^{-2qT}}{1-\eta^2 e^{-2qT}}\right],
- \\
- \wt\sigma_2 &=
-   -\eta e^{-q \Delta z}
-    \left[\frac{ (\eta-1) e^{-qT}}{1-\eta^2 e^{-2qT}}\right]
-\end{align*}
-%=================================================
-
 %=================================================
 %=================================================
 %=================================================
@@ -563,6 +505,12 @@ The $q$ integral here may be evaluated by numerical quadrature,
 with values of $\sigma_n(q)$ at each quadrature point
 determined by solving the system (\ref{SystemForSigma}).
 
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Special handling for source and evaluation points 
+               on dielectric interface layer}
+
 The convergence of the integrals (\ref{BesselFunctionIntegrals})
 is generally speeded by factors like $e^{-q|z\subt{S,D}-z_p|}$,
 which cause the integrand to decay exponentially as $q\to\infty$.
@@ -570,9 +518,87 @@ However, when $z\subt{S}=z\subt{D}=z_p$ (source and destination
 point both lie on the $p$th dielectric interface) the integrand is
 undamped and numerical quadrature converges slowly due to
 the oscillatory nature of the Bessel-function integrands.
-To remedy this, for cases in which $z\subt{S}=z\subt{D}=z_p$,
-I rewrite the $p$th term in the sum by adding and substracting
-to yield
+To remedy this, I subtract the undamped contributions
+from the integrands in (\ref{BesselFunctionIntegrals}) and
+evaluate these analytically, leaving behind integrands that
+decay rapidly with $q$ and yield convergent numerical quadrature.
+
+\subsubsection*{Case A: Infinite dielectric slab}
+
+I first consider the special case in which the substrate consists
+of an infinite-thickness slab with permittivity $\epsilon_1$,
+so that there is only a single dielectric interface
+layer at $z_1$. If $z\subt{S}=z\subt{D}=z_1^+$ (both source
+and evaluation point approach interface layer from above),
+then equation
+(\ref{SystemForSigma}) becomes simply\footnote{Note that
+for $\epsilon_1>\epsilon_0$ the surface-charge density induced
+by a positive point source is \textit{negative}, as expected.}
+%====================================================================%
+\numeq{SigmaSingleLayer}
+{\wt{\sigma}(q)
+   = -\pf{\epsilon_1 - \epsilon_0}{\epsilon_1+\epsilon_0}
+   \qtq{(independent of $q$)}
+}
+%====================================================================%
+and the integrals (\ref{BesselFunctionIntegrals}) may be evaluated
+in closed form to read
+%====================================================================%
+\numeq{ScriptGSingleLayer}
+{
+\left\{\begin{array}{c}
+               \mc G^\sigma(\vbrho) \\
+   -\partial_x \mc G^\sigma(\vbrho) \\
+   -\partial_y \mc G^\sigma(\vbrho) \\
+   -\partial_z \mc G^\sigma(\vbrho)
+   \end{array}\right\}
+   = -\frac{1}{4\pi}
+      \pf{\epsilon_1 - \epsilon_0}{\epsilon_1+\epsilon_0}
+   \left\{
+   \begin{array}{c} 1/\rho \\ x/\rho^3 \\ y/\rho^3 \\ \pm \delta(\rho)
+   \end{array}\right\}
+}
+%====================================================================%
+Equation (\ref{ScriptGSingleLayer}) gives just the contribution
+to the potential from the induced surface charge at the dielectric
+interface.
+The \textit{total} potential is the sum of this plus the free-space
+contribution of the point source, equation (\ref{GTotal}):
+%====================================================================%
+\begin{align}
+ G(\vbrho)&= G_0(\vbrho) + \mc G^\sigma(\vbrho)
+\nn
+ &=\frac{1}{4\pi|\vbrho|}
+   \left[ 1 - \frac{\epsilon_1 - \epsilon_0}{\epsilon_1 + \epsilon_0}\right]
+\nn
+ &=\frac{1}{4\pi\epsilon\sups{effective}|\vbrho|}
+ \qtq{where} \epsilon\sups{effective}
+     \equiv \frac{\epsilon_1 + \epsilon_0}{2\epsilon_0}
+\\
+ &=\frac{1}{\epsilon\sups{effective}} G_0(\vbrho)
+   \qquad\text{(exactly.)}
+\label{EpsEffective}
+\end{align}
+%====================================================================%
+Thus, the electrostatics of e.g. planar conductors confined to the 
+surface of an infinite-thickness dielectric slab is \textit{exactly}
+equivalent to their electrostatics in vacuum, but with the
+vacuum permittivity replaced by the average of the permittivities
+above and below the slab.
+
+\subsubsection*{Case B: Multiple dielectric interfaces}
+
+Next I consider the general case in which the source and evaluation points
+both lie on one of multiple dielectric interfaces
+(call it the $p$th interface, so we have $z\subt{S}=z\subt{D}=z_p.$)
+In this case the (Fourier transform of the) surface charge on the $p$th
+interface is not \textit{exactly} given by (\ref{SigmaSingleLayer}), but
+does tend to the constant value (\ref{SigmaSingleLayer}) in the 
+$q\to\infty$ limit. Thus I can substract that constant term from
+the integrand in (\ref{BesselFunctionIntegrals})---restoring
+the exponential decay of the integrand as $q\to \infty$---and
+account for its contributions exactly in the form of 
+(\ref{ScriptGSingleLayer}). In equations, I go like this:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align}
  \int \frac{dq}{4\pi} R(q)
@@ -616,27 +642,16 @@ The integral in the second
 term of (\ref{BesselFunctionIntegralsRewritten}) may be
 evaluated in closed form:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ \int \frac{dq}{4\pi} R(q)
-   = \frac{1}{4\pi}
-     \left\{\begin{array}{c}
-         1/\rho   \\
-         x/\rho^3 \\
-         y/\rho^3 \\
-         2\pi\delta(\rho)
-     \end{array}\right\}
-$$
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Also, we have
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$\wt \sigma_p(\infty) Z_p(\infty)
- =\begin{dcases}
-   \pf{\epsilon_p-\epsilon_{p-1}}
-      {\epsilon_p+\epsilon_{p-1}}
-   \left\{\begin{array}{c} 1 \\ 1 \\ 1 \\ \pm 1\end{array}\right\},
-    \qquad &\text { if } z\subt{S}=z_p^\pm
-\\
-    0, &\text {otherwise}
- \end{dcases}
+$$ \wt\sigma_p(\infty) Z_p(\infty)
+   \int \frac{dq}{4\pi} R(q)
+   = -\frac{1}{4\pi}
+      \pf{\epsilon_p - \epsilon_{p-1}}{\epsilon_p + \epsilon_{p+1}}
+      \left\{\begin{array}{c}
+          1/\rho   \\
+          x/\rho^3 \\
+          y/\rho^3 \\
+          2\pi\delta(\rho)
+      \end{array}\right\}
 $$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -702,6 +717,71 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
        ($z=1$).
 \end{itemize}
 
+%\paragraph{Single infinite-thickness dielectric slab.}
+%For the case of an infinite dielectric slab with
+%relative permittivity $\epsilon_1$ filling the half
+%space $z\le z_1$, equation (\ref{SystemForSigma}) 
+%reads simply
+%%====================================================================%
+%\numeq{WTSigma1}
+%{ \wt{\sigma_1}(q) = 
+%   \mp
+%   \pf{\epsilon_1 - \epsilon_0}
+%      {\epsilon_1 + \epsilon_0}e^{-q|z_S-z\subt{1}|},
+%   \qquad
+%   \pm=\text{sign}(z\subt{S} - z_1)
+%}
+%%====================================================================%
+%where $\epsilon_0$ is the relative permittivity of the
+%upper half-space.
+%
+%\paragraph{Single finite-thickness dielectric layer with ground plane.}
+%For a layer of permittivity $\epsilon_1$ with upper surface
+%at $z=z_1$ above a ground plane at $z=z\subt{GP}$, we have
+%%====================================================================%
+%\numeq{WTSigma1GP}
+%{ \wt{\sigma_1}(q) =
+%   \pf{\epsilon_1 - \epsilon_0}
+%      {\epsilon_1 + \epsilon_0}
+%   \left[\frac{\pm 1 + e^{-2qT}}
+%             {1 + \pf{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}e^{-2qT}}
+%   \right]e^{-q|z_1-z\subt{S}|}
+%}
+%where $T=z_1-z\subt{GP}$ is the thickness of the layer. 
+%This reduces to (\ref{WTSigma1}) in the limit $T\to \infty.$
+%
+%\paragraph{Single finite-thickness dielectric slab.}
+%For the case of a dielectric slab of permittivity $\epsilon_1$
+%filling the space $z_2<z<z_1$ with the media above and below
+%having permittivity $\epsilon_0$, equation (\ref{SystemForSigma}) 
+%reads (assuming the point source lies above the slab, $z\subt{S}>z_1$:)
+%%=================================================
+%$$ \left(\begin{array}{cc}
+%   -\frac{1}{\eta} & e^{-qT} \\ 
+%   -e^{-qT} & +\frac{1}{\eta} \\
+%   \end{array}\right)
+%   \left(\begin{array}{c}\wt \sigma_1 \\ \wt \sigma_2\end{array}\right)
+%  =-e^{-q\Delta z}
+%   \left(\begin{array}{c}1 \\ e^{-qT} \end{array}\right)
+%  \qquad 
+%  \left(\eta\equiv\frac{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}\right)
+%$$
+%%=================================================
+%with $T=z_1-z_2$ the thickness of the layer and $\Delta z=z\subt{S}-z_1$ the
+%height of the point source above the upper surface of the layer.
+%
+%The solution is
+%%=================================================
+%\begin{align*}
+% \wt\sigma_1 &= 
+%   \eta e^{-q \Delta z}\left[\frac{1-\eta e^{-2qT}}{1-\eta^2 e^{-2qT}}\right],
+% \\
+% \wt\sigma_2 &=
+%   -\eta e^{-q \Delta z}
+%    \left[\frac{ (\eta-1) e^{-qT}}{1-\eta^2 e^{-2qT}}\right]
+%\end{align*}
+%%=================================================
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
