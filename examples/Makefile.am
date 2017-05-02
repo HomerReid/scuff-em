@@ -4,6 +4,7 @@ SUBDIRS =            	\
  CubeTorus           	\
  GetTMatrix             \
  HalfSpaceLDOS          \
+ ImplicitSubstrate      \
  PlateWithHole          \
  PerforatedThinFilm     \
  PlatonicSolids         \

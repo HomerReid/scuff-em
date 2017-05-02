@@ -49,13 +49,17 @@ namespace scuff {
 /***********************************************************************/
 SSSolver::SSSolver(const char *GeoFileName, const char *SubstrateFile, int LogLevel)
 {
+  Substrate=0;
+  TransformLabel=0;
+  FileBase=0;
+
   G=new RWGGeometry(GeoFileName, LogLevel);
   if (G->LDim>0)
    ErrExit("periodic geometries not yet supported for electrostatics in SCUFF-EM");
-  TransformLabel=0;
 
   if (SubstrateFile)
-   { if (Substrate) 
+   { 
+     if (Substrate)
       DestroySubstrateData(Substrate);
 
      char *ErrMsg=0;
@@ -566,7 +570,7 @@ HMatrix *SSSolver::GetFields(StaticField *SF, void *UserData, HVector *Sigma, HM
 #endif
   for(int nx=0; nx<NX; nx++)
    { 
-     double R[3]; 
+     double R[3];
      R[0]=X->GetEntryD(nx,0);
      R[1]=X->GetEntryD(nx,1);
      R[2]=X->GetEntryD(nx,2);

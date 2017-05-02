@@ -51,9 +51,10 @@ typedef struct SubstrateData
    int qMaxEval;
    double qAbsTol;
    double qRelTol;
-   int PPIMaxEval;
-   int PPIRelTol;
-   int PPIAbsTol;
+   int PPIOrder;
+   int PhiEOrder;
+   //int PPIRelTol;
+   //int PPIAbsTol;
    int WhichIntegral;
  } SubstrateData;
 
@@ -64,10 +65,8 @@ SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg);
 void DestroySubstrateData(SubstrateData *SD);
 
 void GetStaticSubstrateGFCorrection(SubstrateData *SD,
-                                    double X[3], double XP[3],
+                                    double XD[3], double XS[3],
                                     double PhiE[4],
                                     bool RetainSameLayerContributions=true);
-
-void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double PhiE[4]);
 
 #endif // STATICSUBSTRATE_H

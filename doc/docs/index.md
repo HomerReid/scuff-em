@@ -45,6 +45,7 @@
 * [Electrostatic polarizability of platonic solids](examples/PlatonicSolids/PlatonicSolids.md)
 * [Capacitance of two-body capacitors](examples/TwoBodyCapacitors/TwoBodyCapacitors.md)
 * [Capacitance of PCB stripline trace](examples/StriplineCapacitor/StriplineCapacitor.md)
+* [Implicit handling of multilayer dielectric substrates](examples/ImplicitSubstrate/ImplicitSubstrate.md)
 
 ### BU Symposium on Open-Source CAD Tools for Photonic Design Modeling
 

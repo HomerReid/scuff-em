@@ -38,6 +38,7 @@ pages:
     - 'Electrostatic polarizability of platonic solids': 'examples/PlatonicSolids/PlatonicSolids.md'
     - 'Capacitance of two-body capacitors': 'examples/TwoBodyCapacitors/TwoBodyCapacitors.md'
     - 'Capacitance of a PCB stripline trace': 'examples/StriplineCapacitor/StriplineCapacitor.md'
+    - 'Implicit handling of multilayer dielectric substrates': 'examples/ImplicitSubstrate/ImplicitSubstrate.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'

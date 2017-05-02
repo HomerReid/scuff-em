@@ -1,0 +1,3 @@
+# dielectric slab of thickness 1 length unit, suspended in vacuum
+ 0.0 CONST_EPS_10
+-1.0 VACUUM

@@ -43,6 +43,18 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+typedef void (*PPC2Function)(double XA[3], double XB[3], void *UserData,
+                             double Weight, double *Integral);
+
+void GetPanelPanelCubature2(RWGSurface *SA, int npA,
+                            RWGSurface *SB, int npB,
+                            PPC2Function Integrand,
+                            void *UserData, int IDim,
+                            int Order, double *Integral);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
 {
   MatProp *MPMedium=0;
@@ -150,9 +162,10 @@ SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
   int qMaxEval     = 10000;
   double qAbsTol   = 1.0e-12;
   double qRelTol   = 1.0e-8;
-  int PPIMaxEval   = 36; // or 441 or 0
-  double PPIAbsTol = 1.0e-12;
-  double PPIRelTol = 1.0e-8;
+  int PPIOrder     = 9;
+  int PhiEOrder    = 9;
+  //double PPIAbsTol = 1.0e-12;
+  //double PPIRelTol = 1.0e-8;
   char *s;
   if ((s=getenv("SCUFF_SUBSTRATE_QMAXEVAL")))
    sscanf(s,"%i",&qMaxEval);
@@ -160,12 +173,14 @@ SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
    sscanf(s,"%le",&qAbsTol);
   if ((s=getenv("SCUFF_SUBSTRATE_QRELTOL")))
    sscanf(s,"%le",&qRelTol);
-  if ((s=getenv("SCUFF_SUBSTRATE_PPIMAXEVAL")))
-   sscanf(s,"%i",&PPIMaxEval);
-  if ((s=getenv("SCUFF_SUBSTRATE_PPIABSTOL")))
-   sscanf(s,"%le",&PPIAbsTol);
-  if ((s=getenv("SCUFF_SUBSTRATE_PPIRELTOL")))
-   sscanf(s,"%le",&PPIRelTol);
+  if ((s=getenv("SCUFF_SUBSTRATE_PPIORDER")))
+   sscanf(s,"%i",&PPIOrder);
+  if ((s=getenv("SCUFF_SUBSTRATE_PHIEORDER")))
+   sscanf(s,"%i",&PhiEOrder);
+  // if ((s=getenv("SCUFF_SUBSTRATE_PPIABSTOL")))
+  // sscanf(s,"%le",&PPIAbsTol);
+  // if ((s=getenv("SCUFF_SUBSTRATE_PPIRELTOL")))
+  // sscanf(s,"%le",&PPIRelTol);
 
   /*--------------------------------------------------------------*/
   /*- create and return data structure ---------------------------*/
@@ -181,9 +196,10 @@ SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
   SD->qMaxEval      = qMaxEval;
   SD->qAbsTol       = qAbsTol;
   SD->qRelTol       = qRelTol;
-  SD->PPIMaxEval    = PPIMaxEval;
-  SD->PPIAbsTol     = PPIAbsTol;
-  SD->PPIRelTol     = PPIRelTol;
+  SD->PPIOrder      = PPIOrder;
+  SD->PhiEOrder     = PhiEOrder;
+  //SD->PPIAbsTol     = PPIAbsTol;
+  //SD->PPIRelTol     = PPIRelTol;
 
   *pErrMsg=0;
   return SD;
@@ -455,15 +471,15 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
 /* of the point charge in vacuum.                              */
 /***************************************************************/
 void GetStaticSubstrateGFCorrection(SubstrateData *SD,
-                                    double X[3], double XP[3],
+                                    double XD[3], double XS[3],
                                     double PhiE[4],
                                     bool RetainSameLayerContributions)
 {
   qIntegrandData MyqID, *qID=&MyqID;
-  qID->Rho[0]  = X[0]-XP[0];
-  qID->Rho[1]  = X[1]-XP[1];
-  qID->zD      = X[2];
-  qID->zS      = XP[2];
+  qID->Rho[0]  = XD[0]-XS[0];
+  qID->Rho[1]  = XD[1]-XS[1];
+  qID->zD      = XD[2];
+  qID->zS      = XS[2];
   qID->SD      = SD;
   qID->NCalls  = 0;
   qID->LogFile = 0;
@@ -502,9 +518,9 @@ void GetStaticSubstrateGFCorrection(SubstrateData *SD,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (RetainSameLayerContributions && EqualFloat(X[2],XP[2]) )
+  if (RetainSameLayerContributions && EqualFloat(XD[2],XS[2]) )
    for(int n=0; n<SD->NumLayers; n++)
-    if ( EqualFloat(X[2],SD->zLayer[n]) )
+    if ( EqualFloat(XD[2],SD->zLayer[n]) )
      { 
        double *Rho = qID->Rho;
        double Rho2 = Rho[0]*Rho[0] + Rho[1]*Rho[1];
@@ -526,30 +542,28 @@ void GetStaticSubstrateGFCorrection(SubstrateData *SD,
   // contribution of image charge if present
   double zGP = SD->zGP;
   if (zGP != HUGE_VAL)
-   AddPhiE0(X, XP[0], XP[1], 2.0*zGP-XP[2], -1.0, PhiE);
+   AddPhiE0(XD, XS[0], XS[1], 2.0*zGP-XS[2], -1.0, PhiE);
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void SubstratePPIntegrand(double *xA, double *xB, PPCData *PPCD,
-                          void *UserData, double *Result)
+void SubstratePPIntegrand(double *xA, double *xB, void *UserData, 
+                          double Weight, double *Result)
 {
-  (void )PPCD; // unused
-
   SubstrateData *SD = (SubstrateData *)UserData;
 
   double PhiE[4];
   GetStaticSubstrateGFCorrection(SD, xA, xB, PhiE, false);
-  Result[0] = (SD->WhichIntegral==0) ? PhiE[0] : PhiE[3];
+  double Integrand = (SD->WhichIntegral==0) ? PhiE[0] : PhiE[3];
+  Result[0] += Weight * Integrand;
 
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-double GetSubstratePPI(RWGGeometry *G,
-                       RWGSurface *SA, int npA,
+double GetSubstratePPI(RWGSurface *SA, int npA,
                        RWGSurface *SB, int npB,
                        SubstrateData *Substrate,
                        double *pFactor)
@@ -581,17 +595,13 @@ double GetSubstratePPI(RWGGeometry *G,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double *Displacement=0;
   int IDim=1;
-  int MaxEval   = Substrate->PPIMaxEval;
-  double RelTol = Substrate->PPIRelTol;
-  double AbsTol = Substrate->PPIAbsTol;
+  int PPIOrder = Substrate->PPIOrder;
+  //double RelTol = Substrate->PPIRelTol;
+  //double AbsTol = Substrate->PPIAbsTol;
   double Result;
-  GetPanelPanelCubature(G, SA->Index, npA, SB->Index, npB,
-                        Displacement,
-                        SubstratePPIntegrand, (void *)Substrate,
-                        IDim, MaxEval, RelTol, AbsTol,
-                        0, 0, 0, 0, 0, 0, &Result);
+  GetPanelPanelCubature2(SA, npA, SB, npB, SubstratePPIntegrand,
+                         (void *)Substrate, IDim, PPIOrder, &Result);
 
   return Result;
 }
@@ -643,9 +653,50 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
        { Substrate->WhichIntegral = ENORMALINTEGRAL;
          MEPreFactor = Delta;
        };
-      double MatrixEntry = MEPreFactor*GetSubstratePPI(G,Sa,npa,Sb,npb,Substrate,&CorrectionFactor);
+      double MatrixEntry = MEPreFactor*GetSubstratePPI(Sa,npa,Sb,npb,Substrate,&CorrectionFactor);
       if (CorrectionFactor!=1.0)
        M->ScaleEntry(RowOffset + npa, ColOffset + npb, CorrectionFactor);
       M->AddEntry(RowOffset + npa, ColOffset + npb, MatrixEntry);
     };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/ 
+typedef void (*PC2Function)(double X[3], void *UserData, double Weight, double *Integral);
+
+void GetPanelCubature2(RWGSurface *S, int np, PC2Function Integrand,
+                       void *UserData, int IDim, int Order,
+                       double *Integral);
+
+typedef struct SPEIntegrandData
+ {
+   SubstrateData *Substrate;
+   double *XDest;
+ } SPEIntegrandData;
+
+void SubstratePhiEIntegrand(double XS[3], void *UserData,
+                            double Weight, double *Integral)
+{
+  SPEIntegrandData *SPEIData = (SPEIntegrandData *) UserData;
+  SubstrateData *SD          = SPEIData->Substrate;
+  double *XD                 = SPEIData->XDest;
+
+  double DeltaPhiE[4];
+  GetStaticSubstrateGFCorrection(SD, XD, XS, DeltaPhiE, true);
+  VecPlusEquals(Integral, Weight, DeltaPhiE, 4);
+}
+
+void SSSolver::AddSubstratePhiE(int ns, int np, double *XD, double PhiE[4])
+{
+  SPEIntegrandData MyData, *SPEIData = &MyData;
+  SPEIData->Substrate = Substrate;
+  SPEIData->XDest     = XD;
+
+  int IDim=4;
+  int Order = Substrate->PhiEOrder;
+  double DeltaPhiE[4];
+  GetPanelCubature2(G->Surfaces[ns], np, SubstratePhiEIntegrand,
+                    (void *)SPEIData, IDim, Order, DeltaPhiE);
+  VecPlusEquals(PhiE, 4.0*M_PI, DeltaPhiE, 4);
 }

@@ -21,6 +21,7 @@ scuff_static_SOURCES = 		\
  OutputModules.cc		\
  StaticSubstrate.h     		\
  StaticSubstrate.cc    		\
+ PanelPanelCubature2.cc		\
  scuff-static.cc
 
 scuff_static_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
