@@ -596,7 +596,7 @@ HMatrix *SSSolver::GetFields(StaticField *SF, void *UserData, HVector *Sigma, HM
        {  
          double DeltaPhiE[4];
          GetPhiE(ns,np,R,DeltaPhiE);
-         double ChargeDensity=Sigma->GetEntryD(nbf) / (4.0*M_PI);
+         double ChargeDensity=Sigma->GetEntryD(nbf);
          PhiE->AddEntry(nx, 0, ChargeDensity * DeltaPhiE[0] );
          PhiE->AddEntry(nx, 1, ChargeDensity * DeltaPhiE[1] );
          PhiE->AddEntry(nx, 2, ChargeDensity * DeltaPhiE[2] );

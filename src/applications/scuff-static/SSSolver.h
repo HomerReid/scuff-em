@@ -125,7 +125,7 @@ class SSSolver
                                                   HMatrix *M,
                                                   int RowOffset,
                                                   int ColOffset);
-   void AddSubstratePhiE(int ns, int np, double *X, double PhiE[4]);
+   void AddSubstrateContributionToPanelPhiE(int ns, int np, double *X, double PhiE[4]);
 
  };
 

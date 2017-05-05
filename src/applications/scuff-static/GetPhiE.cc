@@ -159,12 +159,13 @@ void SSSolver::GetPhiE(int ns, int np, double *X, double PhiE[4])
      PhiE[3] += w0Sign*Betai*nHat[2] + f2i*mHat[n][2];
 
    };
+  VecScale(PhiE, 1.0/(4.0*M_PI), 4);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   if (Substrate)
-   AddSubstratePhiE(ns, np, X, PhiE);
+   AddSubstrateContributionToPanelPhiE(ns, np, X, PhiE);
 
 }
 

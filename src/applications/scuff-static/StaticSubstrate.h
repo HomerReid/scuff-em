@@ -64,9 +64,8 @@ typedef struct SubstrateData
 SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg);
 void DestroySubstrateData(SubstrateData *SD);
 
-void GetStaticSubstrateGFCorrection(SubstrateData *SD,
-                                    double XD[3], double XS[3],
-                                    double PhiE[4],
-                                    bool RetainSameLayerContributions=true);
+void GetDeltaPhiESubstrate(SubstrateData *SD,
+                           double XD[3], double XS[3],
+                           double PhiE[4], double *pG0Correction=0);
 
 #endif // STATICSUBSTRATE_H

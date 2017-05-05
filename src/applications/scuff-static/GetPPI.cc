@@ -18,12 +18,7 @@
  */
 
 /*
- * GetPhiE.cc  -- routine for computing electrostatic potential and field
- *                due to a constant charge density on a single triangle,
- *                following these references:
- *                (1) Graglia, IEEE Trans. Ant. Prop. *41* 1448 (1993)
- *                (2) Wilton et al, IEEE Trans. Ant. Prop. *32* 276 (1984)
- *
+ * GetPPI.cc   -- get panel-panel integrals for electrostatic BEM
  * homer reid  -- 5/2013 
  */
 
@@ -155,9 +150,9 @@ double GetPPI_CE(SSSolver *SSS, double *Va[3], double *nHat, int ns2, int np2,
      SSS->GetPhiE(ns2, np2, X, PhiE);
 
      if (WhichIntegral==0)
-      Result += w*PhiE[0]/(4.0*M_PI);
+      Result += w*PhiE[0];
      else
-      Result += w*(nHat[0]*PhiE[1+0] + nHat[1]*PhiE[1+1] + nHat[2]*PhiE[1+2])/(4.0*M_PI);
+      Result += w*(nHat[0]*PhiE[1+0] + nHat[1]*PhiE[1+1] + nHat[2]*PhiE[1+2]);
    };
 
   return Result;

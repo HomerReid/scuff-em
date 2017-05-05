@@ -47,7 +47,8 @@
 \caption{Geometry of the layered dielectric substrate. The $n$th layer
 has relative DC permittivity $\epsilon_n$, and its upper surface
 lies at $z=z_n$. The ground plane, if present, lies
-at $z=z\subt{GP}.$}
+at $z=z\subt{GP}.$ The upper medium, if not vacuum, has permittivity
+$\epsilon\subt{A}.$}
 \label{SubstrateGeometryFigure}
 \end{center}
 \end{figure}
@@ -134,6 +135,9 @@ where e.g.
        specifies that a perfectly-conducting ground plane lives at 
        coordinate $z=\texttt{zGP}$.
 \end{itemize}
+If the medium above the uppermost dielectric layer is not vacuum,
+its permittivity may be specified by including a line of the form
+$\texttt{MEDIUM UpperMaterial}.$
 %====================================================================%
 
 Note that, because of the scale invariance of electrostatics,
@@ -262,7 +266,7 @@ This discussion consists of two parts:
  substrate---that is, the function $G(\vb x\subt{D},\vb x\subt{S})$
  giving the electrostatic potential at $\vb x\subt{D}$ due to a
  unit-strength point source at $\vb x\subt{S}$ in the 
- presence of the substrate (Figure \ref{SubstrateGeometryFigure}).
+ presence of the substrate (Figure \ref{SigmaLayersFigure}).
  (The subscripts ``D'' and ``S'' stand for ``destination'' and ``source.'')
 
  \item
@@ -310,9 +314,7 @@ potential at $\vb x\subt{D}=(\vbrho\subt{D},z\subt{D})$
 due to a unit-strength\footnote{I assume that charge is measured
 in units of $\frac{1}{\epsilon_0}$ (the inverse vacuum permittivity),
 so that there is no factor of $\epsilon_0$ in the denominators
-of expressions like (\ref{GTotal}). In this memo, $\epsilon_0$
-refers to the relative permittivity of the uppermost medium in 
-Figure \ref{SubstrateGeometryFigure}.} point charge
+of expressions like (\ref{GTotal}).} point charge
 at $\vb x\subt{S}=(\vbrho\subt{S},z\subt{S})$---as a sum
 of contributions from 
  \textbf{(a)} the point source itself, 
@@ -400,10 +402,12 @@ $$ \epsilon_{m-1}
 $$
 %====================================================================%
 with $z^\pm_m$ denoting points lying just above or just below $z_m$
-and with the convention $\epsilon_0=1$. Using the above results, we have
+and with the convention $\epsilon_{0-1}=\epsilon\subt{A}$ (the permittivity
+of the uppermost region in Figure \ref{SubstrateGeometryFigure}).
+Using the above results, we have
 %====================================================================%
 \begin{align*}
-&\int \frac{qdq}{4\pi} J_0(q\rho)
+&\int \frac{qdq}{4\pi } J_0(q\rho)
    \sum_{n}
    \Big[ \epsilon_{m-1} \xi(q; z_m^+; z_n)
         -\epsilon_{m  } \xi(q; z_m^-; z_n)
@@ -532,12 +536,12 @@ layer at $z_1$. If $z\subt{S}=z\subt{D}=z_1^+$ (both source
 and evaluation point approach interface layer from above),
 then equation
 (\ref{SystemForSigma}) becomes simply\footnote{Note that
-for $\epsilon_1>\epsilon_0$ the surface-charge density induced
+for $\epsilon_1>\epsilon\supt{A}$ the surface-charge density induced
 by a positive point source is \textit{negative}, as expected.}
 %====================================================================%
 \numeq{SigmaSingleLayer}
 {\wt{\sigma}(q)
-   = -\pf{\epsilon_1 - \epsilon_0}{\epsilon_1+\epsilon_0}
+   = -\pf{\epsilon_1 - \epsilon\subt{A}}{\epsilon_1+\epsilon\subt{A}}
    \qtq{(independent of $q$)}
 }
 %====================================================================%
@@ -553,7 +557,7 @@ in closed form to read
    -\partial_z \mc G^\sigma(\vbrho)
    \end{array}\right\}
    = -\frac{1}{4\pi}
-      \pf{\epsilon_1 - \epsilon_0}{\epsilon_1+\epsilon_0}
+      \pf{\epsilon_1 - \epsilon\subt{A}}{\epsilon_1+\epsilon\subt{A}}
    \left\{
    \begin{array}{c} 1/\rho \\ x/\rho^3 \\ y/\rho^3 \\ \pm \delta(\rho)
    \end{array}\right\}
@@ -569,11 +573,11 @@ contribution of the point source, equation (\ref{GTotal}):
  G(\vbrho)&= G_0(\vbrho) + \mc G^\sigma(\vbrho)
 \nn
  &=\frac{1}{4\pi|\vbrho|}
-   \left[ 1 - \frac{\epsilon_1 - \epsilon_0}{\epsilon_1 + \epsilon_0}\right]
+   \left[ 1 - \frac{\epsilon_1 - \epsilon\subt{A}}{\epsilon_1 + \epsilon\subt{A}}\right]
 \nn
- &=\frac{1}{4\pi\epsilon\sups{effective}|\vbrho|}
+ &=\frac{1}{4\pi \epsilon\sups{effective}|\vbrho|}
  \qtq{where} \epsilon\sups{effective}
-     \equiv \frac{\epsilon_1 + \epsilon_0}{2\epsilon_0}
+     \equiv \frac{\epsilon_1 + \epsilon\subt{A}}{2\epsilon\subt{A}}
 \\
  &=\frac{1}{\epsilon\sups{effective}} G_0(\vbrho)
    \qquad\text{(exactly.)}
@@ -645,7 +649,7 @@ evaluated in closed form:
 $$ \wt\sigma_p(\infty) Z_p(\infty)
    \int \frac{dq}{4\pi} R(q)
    = -\frac{1}{4\pi}
-      \pf{\epsilon_p - \epsilon_{p-1}}{\epsilon_p + \epsilon_{p+1}}
+      \pf{\epsilon_p - \epsilon_{p-1}}{\epsilon_p + \epsilon_{p-1}}
       \left\{\begin{array}{c}
           1/\rho   \\
           x/\rho^3 \\
@@ -694,7 +698,7 @@ curve in upper plot).
          interface layers.
          For reference, in the interior of the silicon layer 
          in the lower plot we have
-         plotted the quantities $\frac{\epsilon_1}{\epsilon_0}E_z$
+         plotted the quantities $\frac{\epsilon_1}{}E_z$
          (green curve)
          and $\frac{\epsilon_1}{\epsilon_2}E_z$ (cyan curve)
          to indicate that these quantities properly match
@@ -711,7 +715,7 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
        at dielectric-interface layers and properly vanishes at 
        the ground plane (green curve in upper plot).
  \item The $E_z$ field properly exhibits jumps of magnitude
-       $\frac{\epsilon_1}{\epsilon_0}=12$ at the upper dielectric 
+       $\frac{\epsilon_1}{}=12$ at the upper dielectric 
        interface $(z=0)$ and 
        $\frac{\epsilon_1}{\epsilon_2}=6$ at the lower dielectric interface
        ($z=1$).
@@ -726,13 +730,13 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
 %\numeq{WTSigma1}
 %{ \wt{\sigma_1}(q) = 
 %   \mp
-%   \pf{\epsilon_1 - \epsilon_0}
-%      {\epsilon_1 + \epsilon_0}e^{-q|z_S-z\subt{1}|},
+%   \pf{\epsilon_1 - }
+%      {\epsilon_1 + }e^{-q|z_S-z\subt{1}|},
 %   \qquad
 %   \pm=\text{sign}(z\subt{S} - z_1)
 %}
 %%====================================================================%
-%where $\epsilon_0$ is the relative permittivity of the
+%where $$ is the relative permittivity of the
 %upper half-space.
 %
 %\paragraph{Single finite-thickness dielectric layer with ground plane.}
@@ -741,10 +745,10 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
 %%====================================================================%
 %\numeq{WTSigma1GP}
 %{ \wt{\sigma_1}(q) =
-%   \pf{\epsilon_1 - \epsilon_0}
-%      {\epsilon_1 + \epsilon_0}
+%   \pf{\epsilon_1 - }
+%      {\epsilon_1 + }
 %   \left[\frac{\pm 1 + e^{-2qT}}
-%             {1 + \pf{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}e^{-2qT}}
+%             {1 + \pf{\epsilon_1-}{\epsilon_1+}e^{-2qT}}
 %   \right]e^{-q|z_1-z\subt{S}|}
 %}
 %where $T=z_1-z\subt{GP}$ is the thickness of the layer. 
@@ -753,7 +757,7 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
 %\paragraph{Single finite-thickness dielectric slab.}
 %For the case of a dielectric slab of permittivity $\epsilon_1$
 %filling the space $z_2<z<z_1$ with the media above and below
-%having permittivity $\epsilon_0$, equation (\ref{SystemForSigma}) 
+%having permittivity $$, equation (\ref{SystemForSigma}) 
 %reads (assuming the point source lies above the slab, $z\subt{S}>z_1$:)
 %%=================================================
 %$$ \left(\begin{array}{cc}
@@ -764,7 +768,7 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
 %  =-e^{-q\Delta z}
 %   \left(\begin{array}{c}1 \\ e^{-qT} \end{array}\right)
 %  \qquad 
-%  \left(\eta\equiv\frac{\epsilon_1-\epsilon_0}{\epsilon_1+\epsilon_0}\right)
+%  \left(\eta\equiv\frac{\epsilon_1-}{\epsilon_1+}\right)
 %$$
 %%=================================================
 %with $T=z_1-z_2$ the thickness of the layer and $\Delta z=z\subt{S}-z_1$ the
@@ -1011,5 +1015,123 @@ Taking derivatives of (\ref{PhiSigmaCommonForm}) yields
  =  \int \frac{qdq}{4\pi} \wt{\sigma}(q) J_0(q\rho\subt{D})
          \xi(q; z\subt{D}; z\subt{S}).
 \end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Point charge on dielectric slab}
+\label{PointChargeAboveSlabSection}
+
+To lend insight into the results of Section \ref{},
+I here use simple reasoning to study the surface charge
+$\sigma$
+induced on a single dielectric interface (boundary
+between two infinite dielectric half-spaces)
+by a point charge of strength $Q$ lying on the $z$ axis
+at a distance $z_0$ from the interface.
+
+\subsubsection*{Point source above interface}
+First assume that the point source lies above the interface,
+so that the $z$-directed field due to the point source
+at the interface is negative (points downward).
+Including the contribution of the induced surface charge,
+the normal electric fields just above and below the
+dielectric interface at a distance $\rho$ from the origin
+read
+%====================================================================%
+\numeq{FieldsAboveBelow}
+{ E_z(\rho, 0^\pm)
+  = 
+  \pm\frac{\sigma(\rho)}{2\epsilon_0}
+   - \frac{Q z_0}{4\pi \epsilon_0|\rho^2 + z_0^2|^{3/2}}
+}
+%====================================================================%
+The boundary condition is 
+\begin{align*}
+\epsilon\subt{A}E_z(\rho,0^+) &= \epsilon\subt{B}E_z(\rho,0^-)
+\intertext{or, inserting (\ref{FieldsAboveBelow}),}
+\epsilon\subt{A}
+ \left[
+     \frac{\sigma(\rho)}{2\epsilon_0}
+   - \frac{Q z_0}{4\pi \epsilon_0|\rho^2 + z_0^2|^{3/2}}
+ \right]
+&=
+\epsilon\subt{B}
+ \left[
+    -\frac{\sigma(\rho)}{2\epsilon_0}
+   - \frac{Q z_0}{4\pi \epsilon_0|\rho^2 + z_0^2|^{3/2}}
+ \right]
+\intertext{whereupon one finds}
+\sigma(\rho) &= \pf{\epsilon\subt{A}-\epsilon\subt{B}}
+                   {\epsilon\subt{A}+\epsilon\subt{B}}
+     \frac{Q z_0}{2\pi |\rho^2 + z_0^2|^{3/2}}.
+\end{align*}
+%====================================================================%
+The total charge induced on the interface is
+$$ Q\sups{induced}= 2\pi \int_0^\infty \rho \sigma(\rho) d\rho
+   = \pf{\epsilon\subt{A} - \epsilon\subt{B}}
+       {\epsilon\subt{A} + \epsilon\subt{B}}Q
+$$
+\textit{independent} of $z_0$.
+
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Extension to the full-wave case}
+\label{FullWaveSection}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+ \vb G(k; \vbrho; z\subt{D}, z\subt{S})
+&= \int \frac{d\vb q}{(2\pi)^2}
+   \,
+   \vb{\wt G}^\pm (k; \vb q)
+      e^{i\vb q\cdot \vbrho)}
+     e^{\pm iq_z(z\subt{D}-z\subt{S})}
+\\
+ \vb C(k; \vbrho; z\subt{D}, z\subt{S})
+&=\int \frac{d\vb q}{(2\pi)^2}
+  \, 
+  \vb{\wt C}^\pm (k; \vb q) e^{i\vb q\cdot \vbrho}
+                   e^{\pm iq_z(z\subt{D}-z\subt{S})}
+\end{align}
+\label{SpectralGFs}%
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\vb q=(q_x,q_y)$ is a two-dimensional Fourier wavevector,
+$d\vb q=dq_x dq_y$,
+$q_z=\sqrt{k^2-|\vb q|^2}$, $\pm = \text{sign}(z-z^\prime)$,
+and
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \vb{\wt G}^\pm(k; \vb q)
+   &=\frac{i}{2 q_z}
+     \left[
+     \left(\begin{array}{ccc}
+      1 & 0 & 0 \\ 
+      0 & 1 & 0 \\ 
+      0 & 0 & 1
+     \end{array}\right)
+     -\frac{1}{k^2}
+     \left(\begin{array}{ccc}
+      q_x^2       & q_x q_y     & \pm q_x q_z \\
+      q_yq_x      & q_y^2       & \pm q_y q_z \\
+      \pm q_z q_x & \pm q_z q_y & q_z^2
+     \end{array}\right)\right]
+\\
+ \vb{\wt C}^\pm (k; \vb q)
+   &=\frac{i}{2q_z k}
+     \left(\begin{array}{ccc}
+           0 & \pm q_z & -q_y \\
+     \mp q_z &       0 &  q_x \\
+         q_y &    -q_x &    0
+     \end{array}\right).
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}

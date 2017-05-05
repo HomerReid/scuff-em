@@ -239,6 +239,23 @@ void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double
   PhiE[3] += R[2]*Term;
 }
 
+/*****************************************************************/
+/*****************************************************************/
+/*****************************************************************/
+double GetG0Correction(SubstrateData *SD, double z)
+{
+  for(int n=0; n<SD->NumLayers; n++)
+   if ( EqualFloat(z,SD->zLayer[n]) )
+    { 
+      // break ties by assuming source and observation points
+      // lie in whichever region has the lower permittivity
+      double EpsA = real( (n==0) ? SD->EpsMedium : SD->EpsLayer[n-1]);
+      double EpsB = real(SD->EpsLayer[n]);
+      return 2.0*fmin(EpsA, EpsB)/(EpsA + EpsB);
+    };
+ return 1.0;
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -263,6 +280,7 @@ void GetSigmaTwiddle(SubstrateData *SD, double zS, double q, double *SigmaTwiddl
 {
   int NumLayers     = SD->NumLayers;
   cdouble *EpsLayer = SD->EpsLayer;
+  double EpsMedium  = real(SD->EpsMedium);
   double *zLayer    = SD->zLayer;
 
   /*--------------------------------------------------------------*/
@@ -270,8 +288,16 @@ void GetSigmaTwiddle(SubstrateData *SD, double zS, double q, double *SigmaTwiddl
   /*--------------------------------------------------------------*/
   double RHS[MAXLAYER];
   for(int m=0; m<NumLayers; m++)
-   { double ZetaXi[2];
-     GetZetaXi(SD, q, zLayer[m], zS, ZetaXi);
+   { 
+     double Sign=0.0;
+     if (EqualFloat(zLayer[m], zS))
+      { double EpsA = real( (m==0) ? SD->EpsMedium : SD->EpsLayer[m-1]);
+        double EpsB = real( SD->EpsLayer[m]);
+        Sign = (EpsA < EpsB) ? -1.0 : 1.0;
+      };
+
+     double ZetaXi[2];
+     GetZetaXi(SD, q, zLayer[m], zS, ZetaXi, Sign);
      RHS[m] = -1.0*ZetaXi[1];
    };
 
@@ -284,7 +310,7 @@ void GetSigmaTwiddle(SubstrateData *SD, double zS, double q, double *SigmaTwiddl
    for(int n=0; n<NumLayers; n++)
     { 
       if (m==n)
-       { double Epsmm1   = (m==0) ? 1.0 : real(EpsLayer[m-1]);
+       { double Epsmm1   = (m==0) ? EpsMedium : real(EpsLayer[m-1]);
          double Epsm     = real(EpsLayer[m]);
          double DeltaEps = Epsmm1 - Epsm;
          if (DeltaEps==0.0)
@@ -431,16 +457,18 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
      PhiE[1] += q*Rho[0]*J1OverRho * ZetaXi[0] * SigmaTwiddle[n];
      PhiE[2] += q*Rho[1]*J1OverRho * ZetaXi[0] * SigmaTwiddle[n];
      PhiE[3] +=               q*J0 * ZetaXi[1] * SigmaTwiddle[n];
+
      if ( EqualFloat(zD,zLayer[n]) && EqualFloat(zS,zLayer[n]) )
       { cdouble *EpsLayer = SD->EpsLayer;
-        double Epsnm1  = (n==0) ? 1.0 : real(EpsLayer[n-1]);
-        double Epsn    = real(EpsLayer[n]);
-        double Sign    = 1.0; // assumes zS > zLayer[n]
-        double Factor  = Sign*(Epsn - Epsnm1) / (Epsn + Epsnm1);
+        cdouble EpsMedium = SD->EpsMedium;
+        double EpsA   = real( (n==0) ? EpsMedium: EpsLayer[n-1]);
+        double EpsB   = real(EpsLayer[n]);
+        double Sign   = (EpsA < EpsB) ? 1.0 : -1.0;
+        double Factor = Sign*(EpsA- EpsB) / (EpsA + EpsB);
         PhiE[0] -= J0*Factor;
         PhiE[1] -= q*Rho[0]*J1OverRho*Factor;
         PhiE[2] -= q*Rho[1]*J1OverRho*Factor;
-        PhiE[3] -= Sign*q*J0*Factor;
+        PhiE[3] -= q*J0*Sign*Factor;
       };
    };
 
@@ -463,17 +491,17 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
 }
 
 /***************************************************************/
-/* Compute the corrections to the potential and E-field at     */
-/* XDest due to a point charge at XSource in the presence of a */
-/* dielectric subtrate of thickness T and relative dielectric  */
-/* constant Eps above an infinite ground plane at z=0.         */
-/* 'Corrections' means everything but the direct contributions */
-/* of the point charge in vacuum.                              */
+/* Compute the extra contributions to the potential and E-field*/
+/* at XDest due to a point charge at XSource in the presence of*/
+/* a substrate.                                                */
+/*                                                             */
+/* 'Extra contributions' include everything but the direct     */
+/* contributions of the point charge in vacuum.                */
+/*                                                             */
 /***************************************************************/
-void GetStaticSubstrateGFCorrection(SubstrateData *SD,
-                                    double XD[3], double XS[3],
-                                    double PhiE[4],
-                                    bool RetainSameLayerContributions)
+void GetDeltaPhiESubstrate(SubstrateData *SD,
+                           double XD[3], double XS[3],
+                           double PhiE[4], double *pG0Correction)
 {
   qIntegrandData MyqID, *qID=&MyqID;
   qID->Rho[0]  = XD[0]-XS[0];
@@ -518,26 +546,8 @@ void GetStaticSubstrateGFCorrection(SubstrateData *SD,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (RetainSameLayerContributions && EqualFloat(XD[2],XS[2]) )
-   for(int n=0; n<SD->NumLayers; n++)
-    if ( EqualFloat(XD[2],SD->zLayer[n]) )
-     { 
-       double *Rho = qID->Rho;
-       double Rho2 = Rho[0]*Rho[0] + Rho[1]*Rho[1];
-       if (Rho2==0.0) continue;
-       double RhoMag = sqrt(Rho2);
-       double CosTheta = Rho[0]/RhoMag, SinTheta=Rho[1]/RhoMag;
-
-       cdouble *EpsLayer = SD->EpsLayer;
-       double Epsnm1     = (n==0) ? 1.0 : real(EpsLayer[n-1]);
-       double Epsn       = real(EpsLayer[n]);
-       double Sign       = 1.0;
-       double Factor     = Sign*(Epsn - Epsnm1) / (Epsn + Epsnm1);
-
-       PhiE[0] += Factor/(4.0*M_PI*RhoMag);
-       PhiE[1] += CosTheta*Factor/(4.0*M_PI*Rho2);
-       PhiE[2] += SinTheta*Factor/(4.0*M_PI*Rho2);
-     };
+  if (pG0Correction && EqualFloat(XD[2],XS[2]) )
+   *pG0Correction = GetG0Correction(SD, XD[2]);
 
   // contribution of image charge if present
   double zGP = SD->zGP;
@@ -554,10 +564,9 @@ void SubstratePPIntegrand(double *xA, double *xB, void *UserData,
   SubstrateData *SD = (SubstrateData *)UserData;
 
   double PhiE[4];
-  GetStaticSubstrateGFCorrection(SD, xA, xB, PhiE, false);
+  GetDeltaPhiESubstrate(SD, xA, xB, PhiE);
   double Integrand = (SD->WhichIntegral==0) ? PhiE[0] : PhiE[3];
-  Result[0] += Weight * Integrand;
-
+  Result[0] += Weight*Integrand;
 }
 
 /***************************************************************/
@@ -566,42 +575,34 @@ void SubstratePPIntegrand(double *xA, double *xB, void *UserData,
 double GetSubstratePPI(RWGSurface *SA, int npA,
                        RWGSurface *SB, int npB,
                        SubstrateData *Substrate,
-                       double *pFactor)
+                       double *pG0Correction)
 {
-  /***************************************************************/
-  /* test for source and destination panel on dielectric intrface*/
-  /***************************************************************/
-  int NumLayers     = Substrate->NumLayers;
-  double *zLayer    = Substrate->zLayer;
-  cdouble *EpsLayer = Substrate->EpsLayer;
-  double EpsMedium  = real(Substrate->EpsMedium);
-  RWGPanel *PA = SA->Panels[npA], *PB = SB->Panels[npB];
-  double zA = PA->Centroid[2], *zHatA = PA->ZHat;
-  double zB = PB->Centroid[2], *zHatB = PB->ZHat;
-  if (    EqualFloat(zA, zB)
-       && EqualFloat(fabs(zHatA[2]), 1.0)
-       && EqualFloat(fabs(zHatB[2]), 1.0)
-     )
-   {
-     for(int nl=0; nl<NumLayers; nl++)
-      if ( EqualFloat(zA, zLayer[nl]) )
-       { double EpsAbove = (nl==0) ? EpsMedium : real(EpsLayer[nl-1]);
-         double EpsBelow = real(EpsLayer[nl]);
-         double Numerator = (zA>=zLayer[nl]) ? EpsAbove : EpsBelow;
-         *pFactor = 2.0*Numerator/(EpsAbove+EpsBelow);
-       };
-   };
-  
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   int IDim=1;
   int PPIOrder = Substrate->PPIOrder;
-  //double RelTol = Substrate->PPIRelTol;
-  //double AbsTol = Substrate->PPIAbsTol;
   double Result;
   GetPanelPanelCubature2(SA, npA, SB, npB, SubstratePPIntegrand,
                          (void *)Substrate, IDim, PPIOrder, &Result);
+
+  /***************************************************************/
+  /* test for source and destination panel on dielectric intrface*/
+  /***************************************************************/
+  if (pG0Correction)
+   {   
+     double G0Correction=1.0;
+
+     RWGPanel *PA = SA->Panels[npA], *PB = SB->Panels[npB];
+     double zA = PA->Centroid[2], *zHatA = PA->ZHat;
+     double zB = PB->Centroid[2], *zHatB = PB->ZHat;
+     if (    EqualFloat(zA, zB)
+          && EqualFloat(fabs(zHatA[2]), 1.0)
+          && EqualFloat(fabs(zHatB[2]), 1.0)
+        ) G0Correction=GetG0Correction(Substrate, zA);
+
+     *pG0Correction=G0Correction;
+   };
 
   return Result;
 }
@@ -643,7 +644,7 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
     { 
       if (npb==0) LogPercent(npa, Sa->NumPanels);
 
-      double MEPreFactor=1.0, CorrectionFactor=1.0;
+      double MEPreFactor=1.0;
       if (SurfaceType==PEC)
        {
          Substrate->WhichIntegral = PHIINTEGRAL;
@@ -653,9 +654,10 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
        { Substrate->WhichIntegral = ENORMALINTEGRAL;
          MEPreFactor = Delta;
        };
-      double MatrixEntry = MEPreFactor*GetSubstratePPI(Sa,npa,Sb,npb,Substrate,&CorrectionFactor);
-      if (CorrectionFactor!=1.0)
-       M->ScaleEntry(RowOffset + npa, ColOffset + npb, CorrectionFactor);
+      double G0Correction=1.0;
+      double MatrixEntry = MEPreFactor*GetSubstratePPI(Sa,npa,Sb,npb,Substrate,&G0Correction);
+      if (G0Correction!=1.0)
+       M->ScaleEntry(RowOffset + npa, ColOffset + npb, G0Correction);
       M->AddEntry(RowOffset + npa, ColOffset + npb, MatrixEntry);
     };
 }
@@ -683,11 +685,11 @@ void SubstratePhiEIntegrand(double XS[3], void *UserData,
   double *XD                 = SPEIData->XDest;
 
   double DeltaPhiE[4];
-  GetStaticSubstrateGFCorrection(SD, XD, XS, DeltaPhiE, true);
+  GetDeltaPhiESubstrate(SD, XD, XS, DeltaPhiE);
   VecPlusEquals(Integral, Weight, DeltaPhiE, 4);
 }
 
-void SSSolver::AddSubstratePhiE(int ns, int np, double *XD, double PhiE[4])
+void SSSolver::AddSubstrateContributionToPanelPhiE(int ns, int np, double *XD, double PhiE[4])
 {
   SPEIntegrandData MyData, *SPEIData = &MyData;
   SPEIData->Substrate = Substrate;
@@ -698,5 +700,16 @@ void SSSolver::AddSubstratePhiE(int ns, int np, double *XD, double PhiE[4])
   double DeltaPhiE[4];
   GetPanelCubature2(G->Surfaces[ns], np, SubstratePhiEIntegrand,
                     (void *)SPEIData, IDim, Order, DeltaPhiE);
-  VecPlusEquals(PhiE, 4.0*M_PI, DeltaPhiE, 4);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGPanel *P = G->Surfaces[ns]->Panels[np];
+  if ( EqualFloat(P->ZHat[2], 1.0) && EqualFloat(P->Centroid[2], XD[2]) )
+   { double G0Correction = GetG0Correction(Substrate, XD[2]);
+     if (G0Correction!=1.0)
+      VecScale(PhiE, G0Correction, 4);
+   };
+
+  VecPlusEquals(PhiE, 1.0, DeltaPhiE, 4);
 }
