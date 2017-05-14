@@ -262,6 +262,7 @@ AC_CONFIG_FILES([
  src/libs/libhmat/Makefile
  src/libs/libhrutil/Makefile
  src/libs/libscuff/Makefile
+ src/libs/libSSSolver/Makefile
  src/libs/python/Makefile
  src/applications/Makefile
  src/applications/scuff-analyze/Makefile
@@ -300,10 +301,6 @@ AC_CONFIG_FILES([
  unitTests/Makefile
 ])
 AC_OUTPUT
-
-# src/applications/scuff-cas2D/libTDRT/Makefile
-# src/applications/scuff-cas2D/libAmosBessel/Makefile
-# src/applications/scuff-cas2D/Makefile
 
 ##################################################
 ##################################################

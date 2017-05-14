@@ -52,12 +52,13 @@ SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
   int NumLayers=0;
   double zGP=HUGE_VAL;
 
-  FILE *f=fopen(FileName,"r");
+  char *Dir=0;
+  FILE *f=fopenPath(getenv("SCUFF_SUBSTRATE_PATH"), FileName,"r",&Dir);
   if (!f)
    { *pErrMsg=vstrdup("could not open file %s",FileName);
      return 0;
    };
-  Log("Reading substrate description from file %s.",FileName);
+  Log("Reading substrate definition from %s/%s.",Dir ? Dir : ".",FileName);
 
 #define MAXSTR 1000
   char Line[MAXSTR];

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+for N in 4 8
+do
+  for LY in 10 20
+  do
+    for LX in 0.5 1.0
+    do
+      ARGS=""
+      ARGS="${ARGS} -2 Rectangle.geo"
+      ARGS="${ARGS} -setnumber LX ${LX}"
+      ARGS="${ARGS} -setnumber LY ${LY}"
+      ARGS="${ARGS} -setnumber N  ${N}"
+      ARGS="${ARGS} -o Trace_W${LX}_L${LY}_N${N}.msh"
+      gmsh ${ARGS}
+    done
+  done
+done

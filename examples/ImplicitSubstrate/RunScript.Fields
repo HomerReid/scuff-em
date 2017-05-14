@@ -2,13 +2,23 @@
 
 CODE=scuff-static
 
+export SCUFF_MESH_PATH=mshFiles
+export SCUFF_GEO_PATH=scuffgeoFiles
+export SCUFF_SUBSTRATE_PATH=substrateFiles
+
 ARGS=""
 ARGS="${ARGS} --geometry       Square_40.scuffgeo"
 ARGS="${ARGS} --potentialfile  PotentialFile"
 ARGS="${ARGS} --EPFile         EPFile"
 
+###################################################
+# first run with no substrate
+###################################################
 ${CODE} ${ARGS} --filebase None
 
+###################################################
+# now run with three different substrate geometries
+###################################################
 for SUBSTRATE in E10HalfSpace E10SlabGP E10Slab
 do
   ${CODE} ${ARGS} --substrate ${SUBSTRATE}.substrate --filebase ${SUBSTRATE}

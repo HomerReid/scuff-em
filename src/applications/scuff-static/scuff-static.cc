@@ -29,9 +29,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-#include <libscuff.h>
-#include <SSSolver.h>
-#include <cmatheval.h>
+#include <scuff-static.h>
 
 using namespace scuff;
 
@@ -43,32 +41,6 @@ using namespace scuff;
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define MAXSTR   1000
-
-/***************************************************************/
-/* routines in OutputModules.cc ********************************/
-/***************************************************************/
-void WritePolarizabilities(SSSolver *SSS, HMatrix *M,
-                           HVector *Sigma, char *FileName);
-
-void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
-                            HVector *Sigma, char *CapFile);
-
-void WriteCMatrix(SSSolver *SSS, HMatrix *M,
-                  HVector *Sigma, int lMax,
-                  char *TextFileName, char *HDF5FileName);
-
-void WriteFields(SSSolver *SSS, HVector *Sigma,
-                 char *PhiExt, int ConstFieldDirection,
-                 char **EPFiles, int nEPFiles);
-
-void VisualizeFields(SSSolver *SSS, char *FVMesh, char *TransFile, HVector *Sigma);
-
-void VisualizeFields(SSSolver *SSS, HVector *Sigma,
-                     char *PhiExt, int ConstFieldDirection,
-                     char *FVMesh, char *TransFile);
-
-void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-           char *PotFile, char *PhiExt, int ConstFieldDirection);
 
 /***************************************************************/
 /* 'BEM matrix accelerator' is a simple scheme for accelerating*/

@@ -18,14 +18,14 @@
  */
 
 /*
- * SSSolver.h   -- header file for 'scuff static solver' class
+ * SSSolver.h   -- header file for 'scuff static solver' library
  *
  *
  * homer reid   -- 5/2013
  */
 
-#ifndef SSGEOMETRY_H
-#define SSGEOMETRY_H
+#ifndef SSSOLVER_H  
+#define SSSOLVER_H   
 
 #include <stdio.h>
 #include <math.h>

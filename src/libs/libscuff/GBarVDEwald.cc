@@ -901,7 +901,6 @@ void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
 /*  GBarVD[5] = d^2GBar/dXdZ                                   */
 /*  GBarVD[6] = d^2GBar/dYdZ                                   */
 /*  GBarVD[7] = d^3GBar/dXdYdZ                                 */
-/*                                                             */
 /***************************************************************/
 void GBarVDEwald(double *R, cdouble k, double *kBloch,
                  double (*LBV)[3], int LDim,

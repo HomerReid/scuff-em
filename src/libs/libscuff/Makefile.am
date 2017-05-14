@@ -61,7 +61,8 @@ libscuff_la_LIBADD = 		\
  ../libMDInterp/libMDInterp.la  \
  ../libMatProp/libMatProp.la	\
  ../libTriInt/libTriInt.la 	\
- ../libSpherical/libSpherical.la
+ ../libSpherical/libSpherical.la \
+ ../libSSSolver/libSSSolver.la 
 
 # set the shared-library version number (DIFFERENT from human version #)
 libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@
@@ -75,4 +76,5 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libMDInterp  \
               -I$(top_srcdir)/src/libs/libSpherical \
               -I$(top_srcdir)/src/libs/libTriInt    \
+              -I$(top_srcdir)/src/libs/libSSSolver  \
               -I$(top_builddir) # for config.h 

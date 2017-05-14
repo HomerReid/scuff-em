@@ -96,6 +96,11 @@ dielectric substrate described by the file `MySubstrate.substrate`,
 simply add the option `--substrate MySubstrate.substrate`
 to the <span class=SC>scuff-static</span> command line.
 
+You may set the environment variable `SCUFF_SUBSTRATE_PATH`
+to define a colon-separated list of directories in which
+to search for `.substrate` files. (The current working
+directory is always searched first.)
+
 ## First computational example: Electric fields near a charged metallic plate 
 
 In this simple example, I consider a small finite-size metallic plate

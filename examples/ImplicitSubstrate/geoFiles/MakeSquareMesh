@@ -1,0 +1,9 @@
+#!/bin/bash
+
+ARGS="${ARGS} -2 Rectangle.geo"
+ARGS="${ARGS} -setnumber LX 1"
+ARGS="${ARGS} -setnumber LY 1"
+ARGS="${ARGS} -setnumber N 4"
+ARGS="${ARGS} -o Square_40.msh"
+
+gmsh ${ARGS}
