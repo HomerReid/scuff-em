@@ -252,12 +252,20 @@ bool EqualFloat(const cdouble a, const cdouble b)
           &&  ( float(imag(a)) == float(imag(b)) );
 }
 
-bool VecEqualFloat(const double *a, const double *b) 
-{
-   return (     float(a[0]) == float(b[0])
-            &&  float(a[1]) == float(b[1])
-            &&  float(a[2]) == float(b[2])
-          );
+bool VecEqualFloat(const double *a, const double *b, int N)
+{ for(int n=0; n<N; n++)
+   if ( float(a[n]) != float(b[n]) )
+    return false;
+  return true;
+}
+
+bool VecEqualFloat(const cdouble *a, const cdouble *b, int N)
+{ 
+  for(int n=0; n<N; n++)
+   if (    ( float(real(a[n])) != float(real(b[n])) )
+        || ( float(imag(a[n])) != float(imag(b[n])) )
+      ) return false;
+  return true;
 }
 
 bool VecClose(const double *a, const double *b, double abstol)

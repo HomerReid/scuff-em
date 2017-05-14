@@ -1,6 +1,6 @@
 set xlabel '$z$'
 set ylabel '$\phi(z)$'
-set key at 0.15,0.5 spacing 4
+set key at 0.4,0.9 spacing 4
 
 plot \
   'None.EPFile.out'         u 3:4 t 'No substrate'      w lp pt 7 ps 1 \

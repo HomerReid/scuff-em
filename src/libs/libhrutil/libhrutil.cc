@@ -748,6 +748,8 @@ double RD(cdouble x, cdouble y)
 /***************************************************************/
 void *mallocEC(size_t size)
 {
+  if (size==0)
+   return 0;
   void *v=malloc(size);
   if (size && v==0)
    ErrExit("out of memory");
@@ -777,7 +779,9 @@ char *strdupEC(const char *s)
 /* strdup for general pointers *********************************/
 /***************************************************************/
 void *memdup(void *v, size_t size)
-{ void *vv=mallocEC(size);
+{ if (v==0 || size==0)
+   return 0;
+  void *vv=mallocEC(size);
   if (vv) memcpy(vv,v,size);
   return vv;
 }

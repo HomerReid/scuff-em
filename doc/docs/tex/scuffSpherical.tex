@@ -272,6 +272,79 @@ of the medium, and we must choose the $\vb M, \vb N$
 functions to be regular, incoming, or outgoing depending
 on the physical conditions of the problem.
 
+\paragraph{Unified notation for $\vb M, \vb N$ waves}
+
+I will use the symbol $\bmc W_\alpha$ to refer
+collectively to $\vb M$ and $\vb N$ waves;
+here\footnote{With this notation I am committing the
+faux pas of using the same symbol $\alpha$ for
+the two-fold compound index $(\ell m)$ in (\ref{EHExpansion})
+and the three-fold compound index $(\ell m P)$ in
+(\ref{EHExpansion2}), but \textit{whaddya gonna do.}}
+$\alpha=(\ell m P)$ is a compound index
+with $P=\{M,N\}$ identifying the polarization.
+With this notation, expansions such as (\ref{EHExpansion})
+read
+%====================================================================%
+\numeq{EHExpansion2}
+{\vb E = \sum_\alpha C_\alpha \bmc W_\alpha, \qquad
+   \vb H = 
+   \frac{1}{Z_0Z^r}\sum_\alpha C_\alpha \sigma_{\alpha} \bmc W_{\overline{\alpha}}
+}
+%====================================================================%
+where 
+$$ \sum_\alpha\{\cdots\} 
+   = 
+   \sum_{\ell}\sum_{m=-\ell}^\ell \sum_{P\in \{M,N\}} \{\cdots\}
+$$
+%====================================================================%
+and 
+$$
+   \overline{\ell m M} = \ell m N, \qquad
+   \overline{\ell m N} = \ell m M, \qquad
+   \sigma_{\ell m M}=+1, \qquad
+   \sigma_{\ell m N}=-1.
+$$
+%====================================================================%
+\paragraph{Spherical-wave expansion of dyadic Green's function}
+
+Let $\mb G(k; \vb r)$ and $\mb C(k; \vb r)$ be the usual
+homogeneous dyadic Green's functions, with Cartesian components
+%====================================================================%
+\numeq{GCDef}
+{
+ \mb G_{ij}(k; \vb r)
+=\Big( \delta_{ij} + \frac{1}{k^2}\partial_i \partial_j\Big)
+  \frac{e^{ik|\vb r|}}{4\pi|\vb r|},
+  \qquad
+\mb C_{ij}(k, \vb r) = +\frac{1}{ik} \varepsilon_{ijl} 
+                         \partial_l \mb G(k, \vb r)
+}
+%====================================================================%
+Then have the spherical-wave expansion
+%====================================================================%
+\begin{subequations}
+\begin{align}
+  \mb G(\vb x, \vb x^\prime)
+&= -\frac{1}{k^2}\delta(\vb x-\vb x^\prime)\vbhat{r}\vbhat{r}^\prime
+     + ik \sum_\alpha 
+          \bmc W_\alpha\sups{out}(\vb x_>)
+          \bmc W_\alpha\sups{reg}(\vb x_<),
+\\
+\mb C(\vb x, \vb x^\prime)
+&= ik\sum_{\alpha} \sigma_\alpha
+   \begin{dcases}
+     \bmc W_{\overline \alpha}\sups{out}(\vb x)
+     \bmc W_{\alpha}\sups{reg}(\vb x^\prime), \qquad |\vb x|>|\vb x^\prime|,
+\\
+     \bmc W_{\overline \alpha}\sups{out}(\vb x^\prime)
+     \bmc W_{\alpha}\sups{reg}(\vb x), \qquad |\vb x|<|\vb x^\prime|
+     \end{dcases} 
+\end{align}
+\label{GCExpansions}
+\end{subequations}
+%====================================================================%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -538,7 +611,7 @@ produced by sources not located at the origin.
 
 \paragraph{Scalar case}
 Although we don't need it for electromagnetism problems,
-the scalar-wave analog of (\ref{MNDef}) is
+the scalar-wave analog of (\ref{MNLDef}) is
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$ \psi\lm(\vb x) = R_\ell(kr)Y\lm(\theta,\phi)$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2495,5 +2568,68 @@ inverse $\mu m$. Then the units of (\ref{FxFinalSpecialCase}) are
 \end{center}
 \end{figure}
 
-\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{$\mb T$-matrix elements and surface currents}
 
+The $\mb T$-matrix for a body relates the coefficients
+of the outgoing spherical-wave expansion of the scattered
+field to the coefficients of the regular spherical-wave
+expansion of the incident field; thus, if we write
+%====================================================================%
+$$
+ \vb E\sups{inc}  = \sum c\sups{inc}_\alpha \bmc W\sups{regular}_\alpha,
+ \qquad
+ \vb E\sups{scat} = \sum c\sups{scat}_\alpha \bmc W\sups{outgoing}_\alpha
+$$
+%====================================================================%
+then the coefficient vectors are related by
+%====================================================================%
+$$\vb c\sups{scat} = \mb T \vb c\sups{inc}.$$
+%====================================================================%
+Individual $\mb T$-matrix elements have the significance
+%====================================================================%
+$$ \mb T_{\alpha\beta} = 
+   \left\{\quad \parbox{0.45\textwidth}
+          { coefficient of outgoing $\alpha$-type wave  \\
+            due to irradiation by unit-amplitude incoming
+            $\beta$-type wave.
+          }\quad
+  \right\}
+$$
+%====================================================================%
+Now consider a scattering geometry irradiated by a unit-amplitude
+regular wave, and let $\vb K$ and $\vb N$ be the electric and magnetic
+surface currents induced by this excitation. The scattered field
+is 
+%====================================================================%
+\begin{align}
+ \vb E\sups{scat} &= ik Z \mb G \star \vb K + ik \mb C \star \vb N 
+\nonumber
+\intertext{ with $k$ and $Z$ the wavevector and (absolute) wave impedance
+of the exterior medium. Insert the expansions (\ref{GCExpansions}):}
+\vb E\sups{scat}(\vb x)
+ &= -k^2 \sum_{\alpha}
+    \left\{ Z \Inp{\bmc W\sups{reg}_\alpha}{\vb K}
+             \bmc W\sups{out}_\alpha(\vb x)
+          +\sigma_\alpha \Inp{\bmc W\sups{reg}_\alpha}{\vb N}
+             \bmc W\sups{out}_{\overline{\alpha}}(\vb x)
+   \right\}
+\nonumber
+\intertext{or, rearranging slightly,}
+\vb E\sups{scat}(\vb x)
+&= \sum_{\alpha}
+   \underbrace{ -k^2
+                \Big[  Z \inp{\bmc W\sups{reg}_\alpha}{\vb K}
+                     -\sigma_{\overline{\alpha}} 
+                         \inp{\bmc W\sups{reg}_{\overline{\alpha}}}{\vb N}
+                \Big]
+              }_{\mb T_{\alpha\beta}}\bmc W_{\alpha}\sups{out}(\vb x).
+\label{TFromKN}
+\end{align}
+%====================================================================%
+This yields a prescription for computing $\mb T$-matrix elements
+directly from surface currents.
+\end{document}

@@ -127,7 +127,7 @@ CODE=scuff-static
 ARGS=""
 ARGS="${ARGS} --geometry       Square_40.scuffgeo"
 ARGS="${ARGS} --potentialfile  PotentialFile"
-ARGS="${ARGS} --EPFile         EPFile"
+ARGS="${ARGS} --EPFile         EPFile.Fields"
 
 
 ${CODE} ${ARGS} --filebase None
@@ -139,13 +139,20 @@ done
 
 ````
 
-and the results are plotted in 
-<span class=SC>gnuplot</span> by saying `load Plotter.gp`,
-where `Plotter.gp` is [this script](Plotter.gp).
+This computes the electrostatic potential and fields along a line
+of evaluation points at fixed $x,y$ coordinates running from 
+$z=2$ (above the plate) to $z=-1$ (the ground plane) 
+and passing through the plate at $z=1$ and the dielectric interface
+at $z=0$.
+The results are plotted in 
+<span class=SC>gnuplot</span> by saying `load Plotter.Fields`,
+where `Plotter.Fields` is [this script](Plotter.Fields).
 
 ![Dielectric slab](E10Substrate.png)
 
 Take-home messages:
+
++ The potential rises to $\phi=1$ at the location of the plate ($z=1$).
 
 + In the presence of the $\epsilon=10$ substrate, the potential exhibits
   a kink at the air-substrate interface ($z=0$) that is absent for the

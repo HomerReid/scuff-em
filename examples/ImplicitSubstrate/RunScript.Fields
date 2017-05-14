@@ -7,7 +7,6 @@ ARGS="${ARGS} --geometry       Square_40.scuffgeo"
 ARGS="${ARGS} --potentialfile  PotentialFile"
 ARGS="${ARGS} --EPFile         EPFile"
 
-
 ${CODE} ${ARGS} --filebase None
 
 for SUBSTRATE in E10HalfSpace E10SlabGP E10Slab

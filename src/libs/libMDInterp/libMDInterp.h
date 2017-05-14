@@ -219,8 +219,10 @@ class Interp1D
     /*- class method that does the interpolation to return an      -*/
     /*- approximate value for the function at the given eval point -*/
     /*--------------------------------------------------------------*/
-    void Evaluate(double X, double *Phi);
-    double Evaluate(double X); // returns Phi[0]
+    bool Evaluate(double X, double *Phi);
+    double Evaluate(double X);             // returns Phi[0]
+
+    bool PointInGrid(double X);
 
     /*--------------------------------------------------------------*/
     /*- class method that writes all internal data to a binary file */

@@ -34,6 +34,7 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libMatProp.h>
+#include <libMDInterp.h>
 
 #define MAXLAYER 10
 
@@ -56,6 +57,11 @@ typedef struct SubstrateData
    //int PPIRelTol;
    //int PPIAbsTol;
    int WhichIntegral;
+
+   Interp1D *I1D;
+   double I1DRhoMin, I1DRhoMax, I1DZ;
+  
+   //Interp3D *I3D;
  } SubstrateData;
 
 /***************************************************************/
@@ -67,5 +73,9 @@ void DestroySubstrateData(SubstrateData *SD);
 void GetDeltaPhiESubstrate(SubstrateData *SD,
                            double XD[3], double XS[3],
                            double PhiE[4], double *pG0Correction=0);
+
+void InitSubstrateAccelerator1D(SubstrateData *SD,
+                                double RhoMin, double RhoMax,
+                                double z);
 
 #endif // STATICSUBSTRATE_H

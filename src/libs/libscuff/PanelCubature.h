@@ -18,9 +18,9 @@
  */
 
 /*
- * PanelCubature.h -- header file for PanelCubature and PanelPanelCubature
- *                 -- routines for integrating over panels in libscuff
- *                 -- geometries.
+ * PanelCubature.h -- routines for evaluating 2D and 4D integrals
+ *                 -- of arbitrary user-specified functions 
+ *                 -- over triangles and RWG basis functions
  *
  * homer reid      -- 5/2013
  */
@@ -164,6 +164,25 @@ void GetBFBFCubatureTD(RWGGeometry *G,
                        PPCFunction2 Integrand, void *UserData,
                        int IDim, double *Integral, double *Error,
                        int MaxEvals=0, double AbsTol=0.0, double RelTol=1.0e-4);
+
+/***************************************************************/
+/* slightly modified versions of the Cubature2 routines for use*/
+/* with scuff-static                                           */
+/***************************************************************/
+typedef void (*PC2Function)(double X[3], void *UserData, double Weight, double *Integral);
+
+typedef void (*PPC2Function)(double XA[3], double XB[3], void *UserData,
+                             double Weight, double *Integral);
+
+void GetPanelCubature2(RWGSurface *S, int np, PC2Function Integrand,
+                       void *UserData, int IDim, int Order,
+                       double *Integral);
+
+void GetPanelPanelCubature2(RWGSurface *SA, int npA,
+                            RWGSurface *SB, int npB,
+                            PPC2Function Integrand,
+                            void *UserData, int IDim,
+                            int Order, double *Integral);
 
 } // namespace scuff{
 

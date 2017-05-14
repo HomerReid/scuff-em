@@ -39,6 +39,9 @@
 #ifdef USE_PTHREAD
 #  include <pthread.h>
 #endif
+#ifdef USE_OPENMP
+#  include <omp.h>
+#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -89,23 +92,6 @@ void *GetPhiVD_Thread(void *data)
   
   ThreadData *TD=(ThreadData *)data;
 
-  /***************************************************************/
-  /* variables unpacked from thread data structure ***************/
-  /***************************************************************/
-  double *XPoints    = TD->XPoints;
-  double XMin        = TD->XMin;
-  double DX          = TD->DX;
-  int N              = TD->N;
-  int nFun           = TD->nFun;
-  double *PhiVDTable = TD->PhiVDTable;
-
-  /***************************************************************/
-  /* other local variables ***************************************/
-  /***************************************************************/
-  int nt, nf;
-  double *PhiVD = new double[nFun*NDATA];
-  double *P;
-
   /*--------------------------------------------------------------*/
   /*- hack to force scheduler on gnu/linux systems to assign each-*/
   /*- thread to a different core                                 -*/
@@ -121,14 +107,23 @@ void *GetPhiVD_Thread(void *data)
   /*--------------------------------------------------------------*/
 
   /***************************************************************/
+  /* variables unpacked from thread data structure ***************/
+  /***************************************************************/
+  double *XPoints    = TD->XPoints;
+  double XMin        = TD->XMin;
+  double DX          = TD->DX;
+  int N              = TD->N;
+  int nFun           = TD->nFun;
+  double *PhiVDTable = TD->PhiVDTable;
+
+  double *PhiVD      = new double[nFun*NDATA];
+
+  /***************************************************************/
   /* loop over all grid points, calling the user's function to   */ 
   /* get function values and derivatives at each point, and      */ 
   /* inserting those values into the table                       */
   /***************************************************************/
-  nt=0;
-  int n, nPoints=0, pc;
-  double X;
-  for(n=0; n<N; n++)
+  for(int n=0, nt=0, nPoints=0; n<N; n++)
    {
      /*--------------------------------------------------------------*/
      /*- status logging ---------------------------------------------*/
@@ -143,15 +138,12 @@ void *GetPhiVD_Thread(void *data)
       if (nt==TD->nThread) nt=0;
       if (nt!=TD->nt) continue;
  
-      if (XPoints)
-       X=XPoints[n];
-      else
-       X=XMin + ((double)n)*DX;
+      double X = (XPoints) ? XPoints[n] : XMin + ((double)n)*DX;
       TD->PhiFunc(X, TD->UserData, PhiVD);
 
-      for(nf=0; nf<nFun; nf++)
+      for(int nf=0; nf<nFun; nf++)
        { 
-         P = PhiVDTable + GetPhiVDTableOffset(nf, nFun, n);
+         double *P = PhiVDTable + GetPhiVDTableOffset(nf, nFun, n);
          memcpy(P, PhiVD + NDATA*nf, NDATA*sizeof(double));
        };
    
@@ -184,7 +176,7 @@ Interp1D::Interp1D(double *pXPoints, int pN, int pnFun,
 
 /****************************************************************/
 /* class constructor 2: construct the class from a user-supplied*/
-/* uniform and grid                                             */
+/* uniform grid                                                 */
 /****************************************************************/
 Interp1D::Interp1D(double pXMin, double XMax, int pN,
                    int pnFun, Phi1D PhiFunc, void *UserData,
@@ -321,22 +313,20 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
    /*- the inner loop runs over the NCOEFF monomials in the       -*/
    /*- interpolating polynomial.                                  -*/
    /*--------------------------------------------------------------*/
-   double XBar;
-   double XPowers[5];
-   int ncp, p;
    HMatrix *M=new HMatrix(NEQUATIONS, NCOEFF);
-
    M->Zero();
 
-   /* note: XPowers[p]  = 0        ,  p==0 */
-   /*                   = X^{p-1}  ,  p>0  */
+   /* XPowers[p] = 0        ,  p==0 */
+   /*            = X^{p-1}  ,  p>0  */
+   double XPowers[5];
    XPowers[0]=0.0; XPowers[1]=1.0; 
 
-   for(ncp=0, XBar=0.0; XBar<=1.0; XBar+=1.0, ncp++)
+   double XBar=0.0;
+   for(int ncp=0; XBar<=1.0; XBar+=1.0, ncp++)
     { 
       XPowers[2]=XPowers[3]=XPowers[4]=XBar;
 
-      for(p=0; p<4; p++)
+      for(int p=0; p<4; p++)
        { 
          /* the pth monomial is x^p                   */
          /* its x derivative is p x^{p-1}             */
@@ -352,29 +342,24 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
    /*- cell to compute the coefficients of the interpolating       */
    /*- polynomial in that cell                                     */
    /*--------------------------------------------------------------*/
-   int nPoints=0, TotalPoints=(N-1), pc;
-   int n, dn;
-   int nf;
-   double *P;
-   HVector *C = new HVector(NCOEFF);
-
    if (LogLevel>=LMDI_LOGLEVEL_TERSE)
     Log("Computing coefficients of interpolating polynomials...");
-   for(n=0; n<(N-1); n++)
+   HVector *C = new HVector(NCOEFF);
+   for(int n=0, nPoints=0; n<(N-1); n++)
     { 
       if( LogLevel>=LMDI_LOGLEVEL_VERBOSE )
-       LogPercent(nPoints, TotalPoints);
+       LogPercent(nPoints, N-1);
 
       if (XPoints)
        DX=XPoints[n+1]-XPoints[n];
 
       /* separately compute interpolation coefficients for each function  */
-      for(nf=0; nf<nFun; nf++)
+      for(int nf=0; nf<nFun; nf++)
        { 
          /* construct the RHS vector by extracting from PhiVDTable the 2 data */
          /* values for each of the 2 corners of this grid cell.               */
-         for(ncp=0, dn=0; dn<=1; dn++, ncp++)
-          { P=PhiVDTable + GetPhiVDTableOffset(nf, nFun, n+dn);
+         for(int ncp=0, dn=0; dn<=1; dn++, ncp++)
+          { double *P=PhiVDTable + GetPhiVDTableOffset(nf, nFun, n+dn);
             C->SetEntry( NDATA*ncp + 0, P[0]);
             C->SetEntry( NDATA*ncp + 1, DX*P[1]);
           };
@@ -383,7 +368,7 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
          M->LUSolve(C);
 
          /* store the coefficients in the appropriate place in CTable */
-         P=CTable + GetCTableOffset(nf, nFun, n);
+         double *P=CTable + GetCTableOffset(nf, nFun, n);
          memcpy(P, C->DV, NCOEFF*sizeof(double));
        };
 
@@ -645,8 +630,10 @@ Interp1D::~Interp1D()
 
 /****************************************************************/
 /* the routine that actually does the interpolation             */
+/* return value is false if the point does not lie in the grid, */
+/* true otherwise                                               */
 /****************************************************************/
-void Interp1D::Evaluate(double X, double *Phi)
+bool Interp1D::Evaluate(double X, double *Phi)
 {
   /****************************************************************/
   /* find the grid cell in which the given point lies, and set    */
@@ -655,7 +642,9 @@ void Interp1D::Evaluate(double X, double *Phi)
   /****************************************************************/
   int n;
   double XBar;
-  FindInterval(X, XPoints, N, XMin, DX, &n, &XBar);
+  bool Inside = FindInterval(X, XPoints, N, XMin, DX, &n, &XBar);
+  if (Inside==false || Phi==0)
+   return Inside;
 
   /****************************************************************/
   /* tabulate powers of the scaled/shifted coordinates            */
@@ -682,8 +671,8 @@ void Interp1D::Evaluate(double X, double *Phi)
       P+=C[p]*XPowers[p];
 
      Phi[nf]=P;
-
    };
+  return true;
 
 }
 
@@ -696,4 +685,12 @@ double Interp1D::Evaluate(double X)
   double Phi0 = Phi[0];
   delete[] Phi;
   return Phi0;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool Interp1D::PointInGrid(double X)
+{
+  return Evaluate(X,0);
 }

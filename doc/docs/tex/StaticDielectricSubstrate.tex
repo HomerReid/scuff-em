@@ -514,6 +514,7 @@ determined by solving the system (\ref{SystemForSigma}).
 %=================================================
 \subsubsection{Special handling for source and evaluation points 
                on dielectric interface layer}
+\label{PointOnLayerSection}
 
 The convergence of the integrals (\ref{BesselFunctionIntegrals})
 is generally speeded by factors like $e^{-q|z\subt{S,D}-z_p|}$,
@@ -1020,25 +1021,40 @@ Taking derivatives of (\ref{PhiSigmaCommonForm}) yields
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Point charge on dielectric slab}
+\section{Point charge above and on dielectric slab}
 \label{PointChargeAboveSlabSection}
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{PointSourceAboveSubstrate.pdf}}
+\caption{A point source $Q$ lying a distance $z_0$ above a dielectric
+         interface induces a surface charge $\sigma$ on the interface.
+         At a distance $\rho$ from the axis of the charge,
+         the $z$-directed $\vb E$-field due to $Q$ has the same sign 
+         above and below the interface (blue arrows), while that due to
+         $\sigma$ changes sign just above and below the interface (red arrows).
+        }
+\label{PointChargeAboveSlabFigure}
+\end{center}
+\end{figure}
+%####################################################################%
 
-To lend insight into the results of Section \ref{},
-I here use simple reasoning to study the surface charge
-$\sigma$
+To lend insight into the results of Section \ref{PointOnLayerSection},
+I here use simple reasoning to study the position-dependent
+surface charge $\sigma(\rho)$
 induced on a single dielectric interface (boundary
 between two infinite dielectric half-spaces)
 by a point charge of strength $Q$ lying on the $z$ axis
-at a distance $z_0$ from the interface.
+at a distance $z_0$ from the interface 
+(Figure \ref{PointChargeAboveSlabFigure}).
 
-\subsubsection*{Point source above interface}
-First assume that the point source lies above the interface,
+I assume the source lies above the interface,
 so that the $z$-directed field due to the point source
 at the interface is negative (points downward).
 Including the contribution of the induced surface charge,
-the normal electric fields just above and below the
+the normal electric field just above and below the
 dielectric interface at a distance $\rho$ from the origin
-read
+reads
 %====================================================================%
 \numeq{FieldsAboveBelow}
 { E_z(\rho, 0^\pm)
@@ -1048,34 +1064,68 @@ read
 }
 %====================================================================%
 The boundary condition is 
-\begin{align*}
-\epsilon\subt{A}E_z(\rho,0^+) &= \epsilon\subt{B}E_z(\rho,0^-)
+%====================================================================%
+\begin{align}
+\epsilon_0 E_z(\rho,0^+) &= \epsilon_1 E_z(\rho,0^-)
+\nonumber
 \intertext{or, inserting (\ref{FieldsAboveBelow}),}
-\epsilon\subt{A}
+\epsilon_0
  \left[
      \frac{\sigma(\rho)}{2\epsilon_0}
    - \frac{Q z_0}{4\pi \epsilon_0|\rho^2 + z_0^2|^{3/2}}
  \right]
 &=
-\epsilon\subt{B}
+\epsilon_1
  \left[
     -\frac{\sigma(\rho)}{2\epsilon_0}
    - \frac{Q z_0}{4\pi \epsilon_0|\rho^2 + z_0^2|^{3/2}}
  \right]
+\nonumber
 \intertext{whereupon one finds}
-\sigma(\rho) &= \pf{\epsilon\subt{A}-\epsilon\subt{B}}
-                   {\epsilon\subt{A}+\epsilon\subt{B}}
+\sigma(\rho) &= \pf{\epsilon\subt{0}-\epsilon\subt{1}}
+                   {\epsilon\subt{0}+\epsilon\subt{1}}
      \frac{Q z_0}{2\pi |\rho^2 + z_0^2|^{3/2}}.
-\end{align*}
+\label{SigmaRho}
+\end{align}
 %====================================================================%
 The total charge induced on the interface is
+%====================================================================%
 $$ Q\sups{induced}= 2\pi \int_0^\infty \rho \sigma(\rho) d\rho
-   = \pf{\epsilon\subt{A} - \epsilon\subt{B}}
-       {\epsilon\subt{A} + \epsilon\subt{B}}Q
+   = \pf{\epsilon\subt{0} - \epsilon\subt{1}}
+       {\epsilon\subt{0} + \epsilon\subt{1}}Q
 $$
+%====================================================================%
 \textit{independent} of $z_0$.
 
+In the limit $z_0\to 0$, the surface-charge density (\ref{SigmaRho})
+tends to a $\delta-$function:
 %====================================================================%
+$$ \lim_{z\to 0} 
+    \sigma(\rho) = \frac{Q\sups{induced}}{2\pi \rho}\delta(\rho).
+$$
+%====================================================================%
+Thus, when the point charge $Q$ lies exactly on the interface,
+the sole effect of the interface is to surround $Q$ with
+an opposite-sign screening charge, so that the total effective
+charge felt is
+%====================================================================%
+\begin{align*}
+ Q\sups{effective} 
+&= Q + Q\sups{induced} 
+\\
+&=\left[ 1 + \pf{\epsilon\subt{0} - \epsilon\subt{1}}
+                {\epsilon\subt{0} + \epsilon\subt{1}}
+   \right]Q
+\\
+&=\frac{2\epsilon_0}{\epsilon_0 + \epsilon_1} Q.
+\end{align*}
+%====================================================================%
+This explains why the electrostatics of conductors lying on 
+the surface of an infinite dielectric slab in vacuum 
+is precisely equivalent to that of conductors in vacuum
+with effective permittivity renormalized to 
+$$\epsilon_0  \to \frac{1}{1+\frac{\epsilon_1}{\epsilon_0}}.$$
+\end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1091,7 +1141,7 @@ $$
 &= \int \frac{d\vb q}{(2\pi)^2}
    \,
    \vb{\wt G}^\pm (k; \vb q)
-      e^{i\vb q\cdot \vbrho)}
+      e^{i\vb q\cdot \vbrho}
      e^{\pm iq_z(z\subt{D}-z\subt{S})}
 \\
  \vb C(k; \vbrho; z\subt{D}, z\subt{S})
@@ -1134,4 +1184,16 @@ and
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\wt F_\parallel=
+ \left(\begin{array}{c} E_x \\ E_y \\ H_x \\ H_y\end{array}\right)
+ &=ik
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Tangential fields in layer $n$:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

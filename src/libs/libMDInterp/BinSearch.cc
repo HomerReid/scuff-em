@@ -37,18 +37,15 @@
 /***************************************************************/
 int BinSearch(double X, double *XPoints, int N)
 {
-   int nMin, nHalf, nMax, Done;
-
    if ( X<XPoints[0] ) return 0;
    if ( X>XPoints[N-1] ) return N-1;
 
-   nMin=0; 
-   nMax=N-1;
-   Done=0;
+   int nMin=0; 
+   int nMax=N-1;
 
    for(;;)
     { 
-      nHalf=(nMin + nMax)/2;
+      int nHalf=(nMin + nMax)/2;
 
       if ( X>=XPoints[nHalf] )
        { 

@@ -4,12 +4,10 @@ EXTRA_DIST=				\
   E10Slab.substrate			\
   EPFile				\
   PotentialFile				\
-  Plotter.gp   				\
+  Plotter.Fields			\
   Square_40.msh				\
   Square_40.scuffgeo			\
-  RunScript
+  RunScript.Fields
 
 pkgdatadir = $(datadir)/scuff-em/examples/ImplicitSubstrate
 nodist_pkgdata_DATA = ${EXTRA_DIST}
-
-

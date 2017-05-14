@@ -31,6 +31,7 @@
 #include <fenv.h>
 
 #include "libhrutil.h"
+#include "libMDInterp.h"
 #include "libSGJC.h"
 #include "libscuff.h"
 #include "libSpherical.h"
@@ -39,18 +40,6 @@
 #include "StaticSubstrate.h"
 
 using namespace scuff;
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-typedef void (*PPC2Function)(double XA[3], double XB[3], void *UserData,
-                             double Weight, double *Integral);
-
-void GetPanelPanelCubature2(RWGSurface *SA, int npA,
-                            RWGSurface *SB, int npB,
-                            PPC2Function Integrand,
-                            void *UserData, int IDim,
-                            int Order, double *Integral);
 
 /***************************************************************/
 /***************************************************************/
@@ -201,6 +190,10 @@ SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
   //SD->PPIAbsTol     = PPIAbsTol;
   //SD->PPIRelTol     = PPIRelTol;
 
+  SD->I1D = 0;
+  SD->I1DRhoMin=HUGE_VAL;
+  SD->I1DRhoMax=0;
+
   *pErrMsg=0;
   return SD;
 }
@@ -254,6 +247,13 @@ double GetG0Correction(SubstrateData *SD, double z)
       return 2.0*fmin(EpsA, EpsB)/(EpsA + EpsB);
     };
  return 1.0;
+}
+
+double GetG0Correction(SubstrateData *SD, double zD, double zS)
+{ 
+  if (!EqualFloat(zD, zS))
+   return 1.0;
+  return GetG0Correction(SD, zD);
 }
 
 /***************************************************************/
@@ -372,7 +372,7 @@ void GetSigmaTwiddle(SubstrateData *SD, double zS, double q, double *SigmaTwiddl
 /***************************************************************/
 /***************************************************************/
 typedef struct qIntegrandData
- { double Rho[2];   // evaluation point - source point (transverse)
+ { double RhoMag;   // transverse distance dest-source
    double zD;       // evaluation point z coordinate 
    double zS;       // source point z coordinate 
    SubstrateData *SD;
@@ -381,12 +381,12 @@ typedef struct qIntegrandData
  } qIntegrandData;
 
 int qIntegrand(unsigned ndim, const double *u, void *UserData,
-               unsigned fdim, double *PhiE)
+               unsigned fdim, double *qIntegral)
 {
   (void) fdim; // unused 
   (void) ndim; // unused 
 
-  PhiE[0]=PhiE[1]=PhiE[2]=PhiE[3]=0.0;
+  qIntegral[0]=qIntegral[1]=qIntegral[2]=0.0;
 
   /*--------------------------------------------------------------*/
   /* integrand vanishes at q->infinity                            */
@@ -404,11 +404,10 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
   qIntegrandData *qID= (qIntegrandData *)UserData;
   qID->NCalls++;
 
-  double *Rho       = qID->Rho;
+  double RhoMag     = qID->RhoMag;
   double zD         = qID->zD;
   double zS         = qID->zS;
   SubstrateData *SD = qID->SD;
-  FILE *LogFile     = qID->LogFile;
   int NumLayers     = SD->NumLayers;
   double *zLayer    = SD->zLayer;
 
@@ -421,29 +420,28 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double RhoMag = sqrt(Rho[0]*Rho[0] + Rho[1]*Rho[1]);
   double qRho = q*RhoMag;
-  double J0, J1OverRho;
+  double J0, J1;
   if (qRho<1.0e-4) // Bessel-function series expansions for small arguments
    { double qRho2=qRho*qRho;
      J0 = 1.0 - qRho2/4.0;
-     J1OverRho = 0.5*q*(1.0 - qRho2/8.0);
+     J1 = 0.5*qRho*(1.0 - qRho2/8.0);
    }
   else if (qRho>1.0e2) // asymptotic forms for large argument
    {
      double Factor = sqrt(2.0/(M_PI*qRho));
-     J0        = Factor * cos(qRho - 0.25*M_PI);
-     J1OverRho = Factor * cos(qRho - 0.75*M_PI) / RhoMag;
+     J0 = Factor * cos(qRho - 0.25*M_PI);
+     J1 = Factor * cos(qRho - 0.75*M_PI);
    }
   else
   { cdouble J0J1[2];
     double Workspace[16];
     AmosBessel('J', qRho, 0.0, 2, false, J0J1, Workspace);
     J0=real(J0J1[0]);
-    J1OverRho= real(J0J1[1])/RhoMag;
+    J1=real(J0J1[1]);
   };
   J0*=Jac/(4.0*M_PI);
-  J1OverRho*=Jac/(4.0*M_PI);
+  J1*=Jac/(4.0*M_PI);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -453,10 +451,9 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
      double ZetaXi[2];
      GetZetaXi(SD, q, zD, zLayer[n], ZetaXi);
 
-     PhiE[0] +=                 J0 * ZetaXi[0] * SigmaTwiddle[n];
-     PhiE[1] += q*Rho[0]*J1OverRho * ZetaXi[0] * SigmaTwiddle[n];
-     PhiE[2] += q*Rho[1]*J1OverRho * ZetaXi[0] * SigmaTwiddle[n];
-     PhiE[3] +=               q*J0 * ZetaXi[1] * SigmaTwiddle[n];
+     qIntegral[0] +=     J0 * ZetaXi[0] * SigmaTwiddle[n];
+     qIntegral[1] += q * J1 * ZetaXi[0] * SigmaTwiddle[n];
+     qIntegral[2] += q * J0 * ZetaXi[1] * SigmaTwiddle[n];
 
      if ( EqualFloat(zD,zLayer[n]) && EqualFloat(zS,zLayer[n]) )
       { cdouble *EpsLayer = SD->EpsLayer;
@@ -465,20 +462,29 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
         double EpsB   = real(EpsLayer[n]);
         double Sign   = (EpsA < EpsB) ? 1.0 : -1.0;
         double Factor = Sign*(EpsA- EpsB) / (EpsA + EpsB);
-        PhiE[0] -= J0*Factor;
-        PhiE[1] -= q*Rho[0]*J1OverRho*Factor;
-        PhiE[2] -= q*Rho[1]*J1OverRho*Factor;
-        PhiE[3] -= q*J0*Sign*Factor;
+        qIntegral[0] -= J0*Factor;
+        qIntegral[1] -= q*J1*Factor;
+        qIntegral[2] -= q*J0*Sign*Factor;
       };
    };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (LogFile)
-   { fprintf(LogFile,"%e %e %e %e %e ", q, Rho[0], Rho[1], zD, zS);
-     fprintf(LogFile,"%e %e ", J0, J1OverRho);
-     fprintf(LogFile,"%e %e %e %e ",PhiE[0],PhiE[1],PhiE[2],PhiE[3]);
+  if (qID->LogFile)
+   { FILE *LogFile = qID->LogFile;
+     static bool init=true;
+     if (init)
+      { init=false;
+        fprintf(LogFile,"\n\n");
+        fprintf(LogFile,"#1 2 3 4    q  Rho zD zS\n");
+        fprintf(LogFile,"#6 7 8 9 10 J0 J1 qI[0] qI[1] qI[2]\n");
+        fprintf(LogFile,"#11 12 13  Sigma,Zeta,Xi (layer 0) \n");
+        fprintf(LogFile,"#14 15 16  Sigma,Zeta,Xi (layer 1) \n");
+      };
+     fprintf(LogFile,"%e %e %e %e ", q, RhoMag, zD, zS);
+     fprintf(LogFile,"%e %e ", J0, J1);
+     fprintf(LogFile,"%e %e %e ",qIntegral[0],qIntegral[1],qIntegral[2]);
      for(int n=0; n<NumLayers; n++)
       { double ZetaXi[2];
         GetZetaXi(SD, q, zD, zLayer[n], ZetaXi);
@@ -491,63 +497,82 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetqIntegral(SubstrateData *SD, double RhoMag, double zD, double zS, 
+                  double qIntegral[3])
+{ 
+  char *LogFileName = getenv("SSGF_LOGFILE");
+  FILE *LogFile     = LogFileName ? fopen(LogFileName, "a") : 0;
+  qIntegrandData MyqID, *qID=&MyqID;
+  qID->RhoMag  = RhoMag;
+  qID->zD      = zD;
+  qID->zS      = zS;
+  qID->SD      = SD;
+  qID->LogFile = LogFile;
+  qID->NCalls  = 0;
+  double uMin=0.0, uMax=1.0;
+  int FDim=3;
+  int NDim=1;
+  double Error[3];
+  int MaxEval   = SD->qMaxEval;
+  double AbsTol = SD->qAbsTol;
+  double RelTol = SD->qRelTol;
+  hcubature(FDim, qIntegrand, (void *)qID, NDim, &uMin, &uMax,
+	    MaxEval, AbsTol, RelTol, ERROR_INDIVIDUAL, qIntegral, Error);
+  if (LogFile)
+   fclose(LogFile);
+
+}
+
+/***************************************************************/
 /* Compute the extra contributions to the potential and E-field*/
 /* at XDest due to a point charge at XSource in the presence of*/
 /* a substrate.                                                */
 /*                                                             */
 /* 'Extra contributions' include everything but the direct     */
 /* contributions of the point charge in vacuum.                */
-/*                                                             */
 /***************************************************************/
 void GetDeltaPhiESubstrate(SubstrateData *SD,
                            double XD[3], double XS[3],
                            double PhiE[4], double *pG0Correction)
-{
-  qIntegrandData MyqID, *qID=&MyqID;
-  qID->Rho[0]  = XD[0]-XS[0];
-  qID->Rho[1]  = XD[1]-XS[1];
-  qID->zD      = XD[2];
-  qID->zS      = XS[2];
-  qID->SD      = SD;
-  qID->NCalls  = 0;
-  qID->LogFile = 0;
+{  
+  double Rho[2], ZD=XD[2], ZS=XS[2];
+  Rho[0] = XD[0]-XS[0];
+  Rho[1] = XD[1]-XS[1];
+  double RhoMag = sqrt(Rho[0]*Rho[0] + Rho[1]*Rho[1]);
+  double CosTheta = (RhoMag==0.0) ? 1.0 : Rho[0]/RhoMag;
+  double SinTheta = (RhoMag==0.0) ? 0.0 : Rho[1]/RhoMag;
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  char *s=getenv("SSGF_LOGFILE");
-  if (s) 
-   { qID->LogFile=fopen(s,"a");
-     if (qID->LogFile==0) ErrExit("could not open file %s",s);
-     fprintf(qID->LogFile,"#1 q \n");
-     fprintf(qID->LogFile,"#2 3 4 5     Rhox Rhoy zDest zSource\n");
-     fprintf(qID->LogFile,"#6 7         J0 J1/Rho\n");
-     fprintf(qID->LogFile,"#8 9 10 11   PhiE[0..3]\n");
-     fprintf(qID->LogFile,"#12 13 14    Sigma,Zeta,Xi (layer 0) \n");
-     fprintf(qID->LogFile,"#15 16 17    Sigma,Zeta,Xi (layer 1) \n");
-     fprintf(qID->LogFile,"# ...\n");
+  /***************************************************************/
+  /* try to get values of q integral using lookup table          */
+  /***************************************************************/
+  double qIntegral[3];
+  bool GotqIntegral=false;
+  if (     SD->I1D 
+        && EqualFloat(ZD, ZS) && EqualFloat(ZD, SD->I1DZ)
+        && SD->I1DRhoMin<=RhoMag && RhoMag<=SD->I1DRhoMax
+     )
+   {
+     GotqIntegral = SD->I1D->Evaluate(RhoMag, qIntegral);
    };
+ 
+  /***************************************************************/
+  /*- evaluate q integral to get contributions of surface        */
+  /*- charges at dielectric interface                            */
+  /***************************************************************/
+  if (!GotqIntegral) 
+   GetqIntegral(SD, RhoMag, ZD, ZS, qIntegral);
 
-  /*--------------------------------------------------------------*/
-  /*- get contributions of charges at dielectric interfaces      -*/
-  /*--------------------------------------------------------------*/
-  double uMin=0.0, uMax=1.0;
-  int FDim=4;
-  int NDim=1;
-  double Error[4];
-  int MaxEval   = SD->qMaxEval;
-  double AbsTol = SD->qAbsTol;
-  double RelTol = SD->qRelTol;
-  hcubature(FDim, qIntegrand, (void *)qID, NDim, &uMin, &uMax,
-	    MaxEval, AbsTol, RelTol, ERROR_INDIVIDUAL, PhiE, Error);
-  if (qID->LogFile)
-   fclose(qID->LogFile);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (pG0Correction && EqualFloat(XD[2],XS[2]) )
-   *pG0Correction = GetG0Correction(SD, XD[2]);
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  PhiE[0] = qIntegral[0];
+  PhiE[1] = CosTheta*qIntegral[1];
+  PhiE[2] = SinTheta*qIntegral[1];
+  PhiE[3] = qIntegral[2];
+  if (pG0Correction)
+   *pG0Correction=GetG0Correction(SD,ZD,ZS);
 
   // contribution of image charge if present
   double zGP = SD->zGP;
@@ -620,6 +645,33 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  double Rho2Min=HUGE_VAL, Rho2Max=0.0;
+  double DeltazMin=HUGE_VAL, DeltazMax=0.0;
+  double z=HUGE_VAL;
+  for(int npa=0; npa<Sa->NumPanels; npa++)
+   for(int via=0; via<3; via++)
+    for(int npb=0; npb<Sb->NumPanels; npb++)
+     for(int vib=0; vib<3; vib++)
+      { double *VA = Sa->Vertices + 3*(Sa->Panels[npa]->VI[via]);
+        double *VB = Sb->Vertices + 3*(Sb->Panels[npb]->VI[vib]);
+        double Rho2 = (VA[0]-VB[0])*(VA[0]-VB[0]) 
+                     +(VA[1]-VB[1])*(VA[1]-VB[1]); 
+        Rho2Min = fmin(Rho2, Rho2Min);
+        Rho2Max = fmax(Rho2, Rho2Max);
+        double Deltaz = fabs(VA[2]-VB[2]);
+        DeltazMin=fmin(Deltaz, DeltazMin);
+        DeltazMax=fmax(Deltaz, DeltazMax);
+        if (z==HUGE_VAL)
+         z=VA[2];
+      };
+  double RhoMin = sqrt(Rho2Min), RhoMax=sqrt(Rho2Max);
+  if (DeltazMax==0.0)
+   InitSubstrateAccelerator1D(Substrate, RhoMin, RhoMax,
+                              Sa->Panels[0]->Centroid[2]);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   SurfType SurfaceType;
   double Delta=0.0;
   if (Sa->IsPEC)
@@ -664,13 +716,7 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
 
 /***************************************************************/
 /***************************************************************/
-/***************************************************************/ 
-typedef void (*PC2Function)(double X[3], void *UserData, double Weight, double *Integral);
-
-void GetPanelCubature2(RWGSurface *S, int np, PC2Function Integrand,
-                       void *UserData, int IDim, int Order,
-                       double *Integral);
-
+/***************************************************************/
 typedef struct SPEIntegrandData
  {
    SubstrateData *Substrate;
@@ -689,6 +735,9 @@ void SubstratePhiEIntegrand(double XS[3], void *UserData,
   VecPlusEquals(Integral, Weight, DeltaPhiE, 4);
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void SSSolver::AddSubstrateContributionToPanelPhiE(int ns, int np, double *XD, double PhiE[4])
 {
   SPEIntegrandData MyData, *SPEIData = &MyData;
@@ -712,4 +761,86 @@ void SSSolver::AddSubstrateContributionToPanelPhiE(int ns, int np, double *XD, d
    };
 
   VecPlusEquals(PhiE, 1.0, DeltaPhiE, 4);
+}
+
+/***************************************************************/
+/* entry point for that has the proper prototype for           */
+/* passage to the Interp1D() initialization routine.           */
+/***************************************************************/
+typedef struct fInterpData
+ {
+   SubstrateData *SD;
+   double zD, zS;
+ } fInterpData;
+
+void fInterp1D(double Rho, void *UserData, double *fInterp)
+{
+  fInterpData *fID   = (fInterpData *)UserData;
+  SubstrateData *SD  = fID->SD;
+  double zD          = fID->zD;
+  double zS          = fID->zS;
+
+  double qI[3], dqI[3];
+  if (Rho==0.0)
+   { double DeltaRho=1.0e-5;
+     GetqIntegral(SD, Rho,          zD, zS, qI);
+     GetqIntegral(SD, Rho+DeltaRho, zD, zS, dqI);
+     VecPlusEquals(dqI, -1.0, qI, 3);
+     VecScale(dqI, 1.0/DeltaRho, 3);
+   }
+  else
+   { double DeltaRho=1.0e-5 * fabs(Rho);
+     GetqIntegral(SD, Rho+DeltaRho, zD, zS, dqI);
+     GetqIntegral(SD, Rho-DeltaRho, zD, zS, qI);
+     VecPlusEquals(dqI, -1.0, qI, 3);
+     VecScale(dqI, 1.0/(2.0*DeltaRho), 3);
+     GetqIntegral(SD, Rho,          zD, zS, qI);
+   };
+ 
+  fInterp[0] =  qI[0];
+  fInterp[1] = dqI[0];
+  fInterp[2] =  qI[1];
+  fInterp[3] = dqI[1];
+  fInterp[4] =  qI[2];
+  fInterp[5] = dqI[2];
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void InitSubstrateAccelerator1D(SubstrateData *SD,
+                                double RhoMin, double RhoMax,
+                                double z)
+{
+  if (      SD->I1D 
+       &&  (SD->I1DRhoMin <= RhoMin )
+       &&  (SD->I1DRhoMax >= RhoMax )
+       &&  (SD->I1DZ      == z      )
+     )
+   { Log(" reusing existing substrate interpolation table");
+     return;
+   };
+
+  SD->I1DRhoMin = fmin(RhoMin, SD->I1DRhoMin);
+  SD->I1DRhoMax = fmax(RhoMax, SD->I1DRhoMax);
+  
+  if (SD->I1D) delete SD->I1D;
+
+  Log(" (re)allocating substrate I1D(%g,%g,%g)...",SD->I1DRhoMin,SD->I1DRhoMax,z);
+
+  int NGrid=100;
+  char *s=getenv("SCUFF_SUBSTRATE_NGRID");
+  if (s)
+  sscanf(s,"%i",&NGrid);
+   
+  struct fInterpData MyfID, *fID=&MyfID;
+  fID->SD=SD;
+  fID->zD=fID->zS=z;
+  SD->I1D= new Interp1D(RhoMin, RhoMax, NGrid, 3, fInterp1D,
+                        (void *)fID);
+  SD->I1DZ      = z;
+
+  Log(" ...done with substrate I1D");
+
 }

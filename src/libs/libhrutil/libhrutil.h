@@ -171,7 +171,8 @@ cdouble GetDivCurl(VVFunction VVFun, void *UserData, int Order,
 /***************************************************************/
 bool EqualFloat(const double a, const double b);
 bool EqualFloat(const cdouble a, const cdouble b);
-bool VecEqualFloat(const double *a, const double *b);
+bool VecEqualFloat(const double *a, const double *b, int N=3);
+bool VecEqualFloat(const cdouble *a, const cdouble *b, int N=3);
 bool VecClose(const double *a, const double *b, double abstol);
 
 // relative differences |x-y| / (avg( |x|, |y| ) )
