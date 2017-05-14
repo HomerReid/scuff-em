@@ -20,4 +20,4 @@ Point(2) = { +0.5*LX, -0.5*LY, 0.0 };
 Line(1) = {1,2};
 Transfinite Line{1} = Ceil[NX] + 1;
 
-Extrude { 0, LY, 0  } { Line{1,2}; Layers{NY}; }
+Extrude { 0, LY, 0  } { Line{1}; Layers{NY}; }
