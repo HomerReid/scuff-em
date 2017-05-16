@@ -288,6 +288,7 @@ AC_CONFIG_FILES([
  examples/PlateWithHole/Makefile
  examples/PerforatedThinFilm/Makefile
  examples/PlatonicSolids/Makefile
+ examples/pythonCapacitance/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
  examples/SiliconBeams/Makefile

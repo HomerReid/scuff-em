@@ -96,7 +96,7 @@ HMatrix *SSSolver::AssembleBEMMatrix(HMatrix *M)
   /***************************************************************/
   /* (re)allocate the matrix as necessary                        */
   /***************************************************************/
-  if ( (M->NR!=Dim) || (M->NC!=Dim) )
+  if ( M && ((M->NR!=Dim) || (M->NC!=Dim)) )
    { Warn("wrong-size M matrix passed to AssembleBEMMatrix (resizing...)");
      delete M;
      M=0;
@@ -109,7 +109,7 @@ HMatrix *SSSolver::AssembleBEMMatrix(HMatrix *M)
   /***************************************************************/
   for (int ns=0; ns<G->NumSurfaces; ns++)
    for (int nsp=0; nsp<G->NumSurfaces; nsp++)
-    AssembleBEMMatrixBlock(ns, nsp, M, 
+    AssembleBEMMatrixBlock(ns, nsp, M,
                            G->PanelIndexOffset[ns],
                            G->PanelIndexOffset[nsp]);
 
@@ -117,7 +117,6 @@ HMatrix *SSSolver::AssembleBEMMatrix(HMatrix *M)
   /***************************************************************/
   /***************************************************************/
   return M;
-
 }
 
 /***********************************************************************/
@@ -193,7 +192,6 @@ void SSSolver::AssembleBEMMatrixBlock(int nsa, int nsb,
   if (Substrate)
    AddSubstrateContributionsToBEMMatrixBlock(nsa, nsb, M,
                                              RowOffset, ColOffset);
-
 }
 
 /***********************************************************************/
@@ -265,8 +263,8 @@ HVector *SSSolver::AllocateRHSVector()
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-HVector *SSSolver::AssembleRHSVector(double *Potentials, 
-                                     StaticField *SF, void *UD, 
+HVector *SSSolver::AssembleRHSVector(double *Potentials,
+                                     StaticField *SF, void *UD,
                                      HVector *RHS)
 {
   int Dim = G->TotalPanels;
@@ -362,6 +360,9 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
   return RHS;
 
 }
+
+HVector *SSSolver::AssembleRHSVector(double *Potentials, HVector *RHS)
+ { return AssembleRHSVector(Potentials, 0, 0, RHS); }
 
 /***********************************************************************/
 /***********************************************************************/

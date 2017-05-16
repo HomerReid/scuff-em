@@ -1,0 +1,3 @@
+OBJECT Plate
+	MESHFILE PPCapacitor.msh
+ENDOBJECT

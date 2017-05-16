@@ -46,6 +46,7 @@
 * [Capacitance of two-body capacitors](examples/TwoBodyCapacitors/TwoBodyCapacitors.md)
 * [Capacitance of PCB stripline trace](examples/StriplineCapacitor/StriplineCapacitor.md)
 * [Implicit handling of multilayer dielectric substrates](examples/ImplicitSubstrate/ImplicitSubstrate.md)
+* [Finite-size effects in metal-on-substrate capacitors (with data fitting in <span class=SC>python</span>)](examples/pythonCapacitance/pythonCapacitance.md)
 
 ### BU Symposium on Open-Source CAD Tools for Photonic Design Modeling
 

@@ -1,0 +1,3 @@
+# silicon slab of thickness 1 length unit with ground plane underneath
+ 0.0 CONST_EPS_11.7
+-1.0 GROUNDPLANE

@@ -14,6 +14,7 @@ of your <span class=SC>scuff-em</span> installation.
 Also, the mathematical techniques involved are discussed
 in [this memo][SubstrateMemo].
 
+<a name="SubstrateFile">
 ## Layered substrates in <span class="SC">scuff-em</span>: The `.substrate` file
 
 Layered substrates in [[scuff-em]] consist of zero or

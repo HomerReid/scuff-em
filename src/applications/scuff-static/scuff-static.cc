@@ -402,8 +402,9 @@ int main(int argc, char *argv[])
       WriteFields(SSS, Sigma, PhiExt, ConstFieldDirection, EPFiles, nEPFiles);
 
      for(int nfm=0; nfm<nFVMeshes; nfm++)
-      VisualizeFields(SSS, Sigma, PhiExt, ConstFieldDirection,
-                      FVMeshes[nfm], FVMeshTransFiles[nfm]);
+      SSS->VisualizeFields(Sigma, 
+                           FVMeshes[nfm], FVMeshTransFiles[nfm],
+                           PhiExt, ConstFieldDirection);
 
      /*******************************************************************/
      /*******************************************************************/

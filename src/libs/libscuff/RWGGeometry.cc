@@ -487,6 +487,11 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       { 
         ProcessMEDIUMSection(f,GeoFileName,&LineNum);
       }
+     else if ( !StrCaseCmp(Tokens[0],"LATTICE") )
+      { 
+        ProcessLATTICESection(f,GeoFileName,&LineNum);
+        //UseHRWGFunctions=false;
+      }
      else if (    !StrCaseCmp(Tokens[0],"MESHPATH")
                || !StrCaseCmp(Tokens[0],"MESH_PATH")
              )
@@ -512,11 +517,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
             };
          };
       }
-     else if ( !StrCaseCmp(Tokens[0],"LATTICE") )
-      { 
-        ProcessLATTICESection(f,GeoFileName,&LineNum);
-        //UseHRWGFunctions=false;
-      }
      else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
         /*--------------------------------------------------------------*/
@@ -529,8 +529,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          
         char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Tokens[1], &LineNum);
         if (ErrMsg)
-         ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg); 
-
+         ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg);
       }
      else if ( !StrCaseCmp(Tokens[0],"REGION") )
       {

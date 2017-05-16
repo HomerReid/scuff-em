@@ -2,9 +2,11 @@ noinst_LTLIBRARIES = libSSSolver.la
 pkginclude_HEADERS = SSSolver.h
 
 libSSSolver_la_SOURCES = 	\
+ ExternalFields.cc		\
  SSSolver.cc			\
  GetPPI.cc		\
  GetPhiE.cc		\
+ PostProcessing.cc	\
  StaticSubstrate.cc	\
  SSSolver.h		\
  StaticSubstrate.h	

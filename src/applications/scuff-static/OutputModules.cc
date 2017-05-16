@@ -36,96 +36,6 @@
 using namespace scuff;
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-typedef struct USFData 
- {
-   void *PhiEvaluator;
-   void *EEvaluator[3];
- } USFData;
-
-// 2.0e-20
-//#define DELTA 9.5367431640625e-7
-#define DELTA 1.0e-6
-void UserStaticField(double *x, void *UserData, double PhiE[4])
-{
-  USFData *SFD = (USFData *)UserData;
-
-  static const char *VariableNames[3] = { "x", "y", "z" };
-  cdouble VariableValues[3];
-  VariableValues[0] = cdouble(x[0], 0.0 );
-  VariableValues[1] = cdouble(x[1], 0.0 );
-  VariableValues[2] = cdouble(x[2], 0.0 );
-
-  memset(PhiE, 0, 4*sizeof(double));
-  if ( SFD==0 || SFD->PhiEvaluator==0 ) return;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  PhiE[0] = real( cevaluator_evaluate(SFD->PhiEvaluator, 3, 
-                                      const_cast<char **>(VariableNames), 
-                                      VariableValues) );
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  for(int Mu=0; Mu<3; Mu++)
-   { if (SFD->EEvaluator[Mu])
-      { PhiE[1+Mu] = real( cevaluator_evaluate(SFD->EEvaluator[Mu], 3, 
-                                               const_cast<char **>(VariableNames), 
-                                               VariableValues) 
-                         );
-      }
-     else
-      { VariableValues[Mu] *= (1.0 + DELTA);
-        double Temp = real( cevaluator_evaluate(SFD->PhiEvaluator, 3,
-                                                const_cast<char **>(VariableNames), 
-                                                VariableValues) 
-                          );
-        VariableValues[Mu] /= (1.0 + DELTA);
-        PhiE[1+Mu] = -(Temp - PhiE[0]) / DELTA; 
-      };
-   };
-   
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void PhiEConstant(double *x, void *UserData, double PhiE[4])
-{ 
-  memset(PhiE, 0, 4.0*sizeof(double));
-  int Direction = *((int *)UserData);
-  PhiE[0]             = -x[Direction];
-  PhiE[1 + Direction] = 1.0;
-} 
-
-/***************************************************************/
-/* (real-valued) spherical harmonic incident field *************/
-/***************************************************************/
-typedef struct PhiESphericalData
- { 
-   int l, m;
-
- } PhiESphericalData;
-
-void PhiESpherical(double *x, void *UserData, double PhiE[4])
-{
-  PhiESphericalData *PESD = (PhiESphericalData *)UserData;
-  int l = PESD->l;
-  int m = PESD->m;
-
-  double r, Theta, Phi;
-  CoordinateC2S(x, &r, &Theta, &Phi);
-
-  PhiE[0] = pow(r,l)*GetRealYlm(l,m,Theta,Phi);
-
-  // FIXME
-  PhiE[1] = PhiE[2] = PhiE[3] = 0.0;
-}
-
-/***************************************************************/
 /* Parse a "potential" file to read a list of conductor        */
 /* potentials.                                                 */
 /* The file should look something like                         */
@@ -206,7 +116,7 @@ void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
      */
    }
   else if ( ConstFieldDirection!=-1 )
-   SSS->AssembleRHSVector(Potentials, PhiEConstant, &ConstFieldDirection, Sigma);
+   SSS->AssembleRHSVector(Potentials, ConstantStaticField, &ConstFieldDirection, Sigma);
   else
    SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
 
@@ -214,6 +124,53 @@ void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   /* solve the problem *******************************************/
   /***************************************************************/
   M->LUSolve(Sigma);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteFields(SSSolver *SSS, HVector *Sigma,
+                 char *PhiExt, int ConstFieldDirection,
+                 char **EPFiles, int nEPFiles)
+{ 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  char *TransformLabel = SSS->TransformLabel;
+  char *FileBase       = SSS->FileBase;
+  for(int nepf=0; nepf<nEPFiles; nepf++)
+   {
+     HMatrix *X = new HMatrix(EPFiles[nepf]);
+     if (X->ErrMsg)
+      ErrExit(X->ErrMsg);
+
+     HMatrix *PhiE;
+     if (PhiExt)
+      ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
+     if ( ConstFieldDirection!=-1 )
+      PhiE = SSS->GetFields(ConstantStaticField, &ConstFieldDirection, Sigma, X, 0);
+     else
+      PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
+
+     FILE *f=vfopen("%s.%s.out","w",FileBase,GetFileBase(EPFiles[nepf]));
+     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# data file columns: \n");
+     int nc=1;
+     if (TransformLabel) 
+      fprintf(f,"# %i: transform label\n",nc++);
+     fprintf(f,"# %i, %i, %i: x, y, z (evaluation point coordinates)\n",nc,nc+1,nc+2); nc+=3;
+     fprintf(f,"# %i:       Phi      (electrostatic potential)\n",nc++);
+     fprintf(f,"# %i, %i, %i: Ex,Ey,Ez (electrostatic field components)\n",nc,nc+1,nc+2); nc+=3;
+     for(int nr=0; nr<X->NR; nr++)
+      { if (TransformLabel) fprintf(f,"%s ",TransformLabel);
+        fprintf(f,"%e %e %e %e %e %e %e\n",
+                 X->GetEntryD(nr,0), X->GetEntryD(nr,1), X->GetEntryD(nr,2),
+                 PhiE->GetEntryD(nr,0), PhiE->GetEntryD(nr,1), 
+                 PhiE->GetEntryD(nr,2), PhiE->GetEntryD(nr,3));
+      };
+     fclose(f);
+   }; // for(int nepf=0; nepf<nEPFiles; nepf++)
+
 }
 
 /***************************************************************/
@@ -232,7 +189,7 @@ void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *File
   HMatrix *QP        = new HMatrix(NS, 4);
   for(int Mu=0; Mu<3; Mu++)
    { 
-     SSS->AssembleRHSVector(0, PhiEConstant, (void *)(&Mu), Sigma);
+     SSS->AssembleRHSVector(0, ConstantStaticField, (void *)(&Mu), Sigma);
      M->LUSolve(Sigma);
      SSS->GetCartesianMoments(Sigma, QP);
      for(int ns=0; ns<NS; ns++)
@@ -291,72 +248,13 @@ void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *File
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
-                              HVector *Sigma, HMatrix *CMatrix)
-{
-  RWGGeometry *G = SSS->G;
-  int NS = G->NumSurfaces;
-
-  /*--------------------------------------------------------------*/
-  /*- (re)allocate capacitance matrix as necessary ---------------*/
-  /*--------------------------------------------------------------*/
-  int NCS=0; // number of conducting surfaces 
-  for(int ns=0; ns<NS; ns++)
-   if (G->Surfaces[ns]->IsPEC)
-    NCS++;
-  if (NCS==0)
-   { Warn("No conducting surfaces! Aborting capacitance calculation.");
-     return 0;
-   };
-
-  if (CMatrix==0 || CMatrix->NR!=NCS || CMatrix->NC!=NCS )
-   { if (CMatrix) delete CMatrix;
-     CMatrix=0;
-   };
-  if (CMatrix==0)
-   CMatrix = new HMatrix(NCS, NCS);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double *Potentials = new double[NS];
-  HMatrix *QP = new HMatrix(NS, 4);
-  for(int ns=0, ncs=-1; ns<NS; ns++)
-   { 
-     if ( !(G->Surfaces[ns]->IsPEC) )
-      continue;
-     ncs++;
-
-     memset(Potentials, 0, NS*sizeof(double));
-     Potentials[ns]=1.0;
-     SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
-     M->LUSolve(Sigma);
-     SSS->GetCartesianMoments(Sigma, QP);
-
-     for(int nsp=0, ncsp=-1; nsp<NS; nsp++)
-      { if ( !(G->Surfaces[nsp]->IsPEC) )
-         continue;
-        ncsp++;
-        CMatrix->SetEntry(ncsp, ncs, QP->GetEntry(nsp,0));
-      };
-   };
-  delete[] Potentials;
-  delete QP;
-
-  return CMatrix;
-  
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
                             HVector *Sigma, char *CapFile)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  HMatrix *CapMatrix=GetCapacitanceMatrix(SSS, M, Sigma, 0);
+  HMatrix *CapMatrix=SSS->GetCapacitanceMatrix(M, Sigma, 0);
   if (!CapMatrix) return;
 
   /*--------------------------------------------------------------*/
@@ -416,10 +314,10 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
       /* setup and solve the electrostatics problem with an (l,m)     */
       /* spherical-harmonic incident field                            */
       /*--------------------------------------------------------------*/
-      PhiESphericalData MyPhiESphericalData, *PESD=&MyPhiESphericalData;
-      PESD->l = l;
-      PESD->m = m;
-      SSS->AssembleRHSVector(0, PhiESpherical, (void *)PESD, Sigma);
+      SphericalSFData MyData, *Data=&MyData;
+      Data->l = l;
+      Data->m = m;
+      SSS->AssembleRHSVector(0, SphericalStaticField, (void *)Data, Sigma);
       M->LUSolve(Sigma);
 
       /*--------------------------------------------------------------*/
@@ -510,200 +408,5 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   delete CMatrix;
   delete CBarMatrix;
   delete Gamma;
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteFields(SSSolver *SSS, HVector *Sigma,
-                 char *PhiExt, int ConstFieldDirection,
-                 char **EPFiles, int nEPFiles)
-{ 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  char *TransformLabel = SSS->TransformLabel;
-  char *FileBase       = SSS->FileBase;
-  for(int nepf=0; nepf<nEPFiles; nepf++)
-   {
-     HMatrix *X = new HMatrix(EPFiles[nepf]);
-     if (X->ErrMsg)
-      ErrExit(X->ErrMsg);
-
-     HMatrix *PhiE;
-     if (PhiExt)
-      ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
-     if ( ConstFieldDirection!=-1 )
-      PhiE = SSS->GetFields(PhiEConstant, &ConstFieldDirection, Sigma, X, 0);
-     else
-      PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
-
-     FILE *f=vfopen("%s.%s.out","w",FileBase,GetFileBase(EPFiles[nepf]));
-     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
-     fprintf(f,"# data file columns: \n");
-     int nc=1;
-     if (TransformLabel) 
-      fprintf(f,"# %i: transform label\n",nc++);
-     fprintf(f,"# %i, %i, %i: x, y, z (evaluation point coordinates)\n",nc,nc+1,nc+2); nc+=3;
-     fprintf(f,"# %i:       Phi      (electrostatic potential)\n",nc++);
-     fprintf(f,"# %i, %i, %i: Ex,Ey,Ez (electrostatic field components)\n",nc,nc+1,nc+2); nc+=3;
-     for(int nr=0; nr<X->NR; nr++)
-      { if (TransformLabel) fprintf(f,"%s ",TransformLabel);
-        fprintf(f,"%e %e %e %e %e %e %e\n",
-                 X->GetEntryD(nr,0), X->GetEntryD(nr,1), X->GetEntryD(nr,2),
-                 PhiE->GetEntryD(nr,0), PhiE->GetEntryD(nr,1), 
-                 PhiE->GetEntryD(nr,2), PhiE->GetEntryD(nr,3));
-      };
-     fclose(f);
-   }; // for(int nepf=0; nepf<nEPFiles; nepf++)
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteFVMesh(SSSolver *SSS, RWGSurface *S, HVector *Sigma,
-                 char *PhiExt, int ConstFieldDirection,
-                 char *TransformLabel, FILE *f)
-{
-  /*--------------------------------------------------------------*/
-  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
-  /*- the flux mesh panel vertices                                */
-  /*--------------------------------------------------------------*/
-  HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
-  for(int nv=0; nv<S->NumVertices; nv++)
-   XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
-
-  /*--------------------------------------------------------------*/
-  /* 20150404 explain me -----------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int nvRef=S->Panels[0]->VI[0];
-  for(int nv=0; nv<S->NumVertices; nv++)
-   { 
-     bool VertexUsed=false;
-     for(int np=0; np<S->NumPanels && !VertexUsed; np++)
-      if (     nv==S->Panels[np]->VI[0]
-           ||  nv==S->Panels[np]->VI[1]
-           ||  nv==S->Panels[np]->VI[2]
-         ) VertexUsed=true;
-
-     if (!VertexUsed)
-      { printf("Replacing %i:{%.2e,%.2e,%.2e} with %i: {%.2e,%.2e,%.2e}\n",
-                nv,XMatrix->GetEntryD(nv,0), XMatrix->GetEntryD(nv,1), XMatrix->GetEntryD(nv,2),
-                nvRef,S->Vertices[3*nvRef+0], S->Vertices[3*nvRef+1], S->Vertices[3*nvRef+2]);
-        XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nvRef);
-      };
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- get the total fields at the panel vertices                 -*/
-  /*--------------------------------------------------------------*/
-  HMatrix *PhiE=0;
-  if (PhiExt)
-   ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
-  else if ( ConstFieldDirection!=-1 )
-   PhiE = SSS->GetFields(PhiEConstant, &ConstFieldDirection, Sigma, XMatrix, 0);
-  else
-   PhiE = SSS->GetFields(0, 0, Sigma, XMatrix, 0);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-const char *FieldTitles[]={"Phi","Ex","Ey","Ez"};
-#define NUMFIELDFUNCS 4
-  for(int nff=0; nff<NUMFIELDFUNCS; nff++)
-   { 
-     fprintf(f,"View \"%s",FieldTitles[nff]);
-     if (TransformLabel)
-      fprintf(f,"(%s)",TransformLabel);
-     fprintf(f,"\" {\n");
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     for(int np=0; np<S->NumPanels; np++)
-      { 
-        RWGPanel *P=S->Panels[np];
-
-        double *V[3]; // vertices
-        double Q[3];  // quantities
-        for(int nv=0; nv<3; nv++)
-         { 
-           int VI = P->VI[nv];
-           V[nv]  = S->Vertices + 3*VI;
-           Q[nv] = PhiE->GetEntryD(VI,nff);
-         };
-           
-        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   V[0][0], V[0][1], V[0][2],
-                   V[1][0], V[1][1], V[1][2],
-                   V[2][0], V[2][1], V[2][2],
-                   Q[0], Q[1], Q[2]);
-      }; // for(int np=0; np<S->NumPanels; np++)
-
-     fprintf(f,"};\n\n");
-
-   };  // for(int nff=0; nff<NUMFIELDFUNCS; nff++)
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  delete PhiE;
-  delete XMatrix;
-}
-
-/***************************************************************/
-/* VisualizeFields() produces a color plot of the potential    */
-/* and E field on a user-specified surface mesh for GMSH       */
-/* visualization.                                              */
-/***************************************************************/
-void VisualizeFields(SSSolver *SSS, HVector *Sigma,
-                     char *PhiExt, int ConstFieldDirection,
-                     char *FVMesh, char *TransFile)
-{ 
-  /*--------------------------------------------------------------*/
-  /*- try to open user's mesh file -------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S=new RWGSurface(FVMesh);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NumFVMeshTransforms;
-  GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
-
-  char *GeoFileBase=SSS->FileBase;
-  char *FVMFileBase=GetFileBase(FVMesh);
-  for(int nt=0; nt<NumFVMeshTransforms; nt++)
-   {
-     GTComplex *GTC=FVMeshGTCList[nt];
-     GTransformation *GT=GTC->GT;
-     char *Tag = GTC->Tag;
-     char PPFileName[100];
-     if (NumFVMeshTransforms>1)
-      { 
-        snprintf(PPFileName,100,"%s.%s.%s.pp",GeoFileBase,FVMFileBase,Tag);
-        Log("Creating flux plot for surface %s, transform %s...",FVMesh,Tag);
-      }
-     else
-      {  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,FVMFileBase);
-         Log("Creating flux plot for surface %s...",FVMesh);
-      };
-     FILE *f=fopen(PPFileName,"a");
-     if (!f) 
-      { Warn("could not open field visualization file %s",PPFileName);
-       continue;
-      };
-
-     if (GT) S->Transform(GT);
-     WriteFVMesh(SSS, S, Sigma, PhiExt, ConstFieldDirection, Tag, f);
-     if (GT) S->UnTransform();
-
-     fclose(f);
-   };
-
-  delete S;
-  DestroyGTCList(FVMeshGTCList,NumFVMeshTransforms);
 
 }

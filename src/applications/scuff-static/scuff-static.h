@@ -49,17 +49,11 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M,
                   HVector *Sigma, int lMax,
                   char *TextFileName, char *HDF5FileName);
 
+void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+           char *PotFile, char *PhiExt, int ConstFieldDirection);
+
 void WriteFields(SSSolver *SSS, HVector *Sigma,
                  char *PhiExt, int ConstFieldDirection,
                  char **EPFiles, int nEPFiles);
-
-void VisualizeFields(SSSolver *SSS, char *FVMesh, char *TransFile, HVector *Sigma);
-
-void VisualizeFields(SSSolver *SSS, HVector *Sigma,
-                     char *PhiExt, int ConstFieldDirection,
-                     char *FVMesh, char *TransFile);
-
-void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-           char *PotFile, char *PhiExt, int ConstFieldDirection);
 
 #endif
