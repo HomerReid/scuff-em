@@ -60,10 +60,10 @@ DataFile.close()
 
 ###################################################
 # fit CPUA versus L data to the form
-#  C(L) = CInfinity + Beta/L
+#  C(L) = CInfinity + Beta/L^2
 ###################################################
-def FunctionalForm(L, CInf, Beta):
-    return CInf + Beta/L
+def FunctionalForm(x, CInf, Beta):
+    return CInf + Beta/(x*x)
 
 CInfBeta = curve_fit(FunctionalForm, LVector, CPUAVector)[0]
 CInf=CInfBeta[0]

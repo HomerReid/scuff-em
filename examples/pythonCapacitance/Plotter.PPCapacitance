@@ -1,0 +1,9 @@
+CInf = 11.7644
+Beta = 21.7989
+set xlabel '$L$'
+set ylabel 'Capacitance per unit area $\frac{C}{\epsilon_0 L^2}$'
+set key at 17, 12.5 spacing 5
+plot  CInf+Beta/x w l t 'Best fit to form $C_\infty + \frac{\beta}{L}$' \
+    , 'PPCapacitor.CvsL' u 1:2 t 'SCUFF data' w p pt 7 ps 2 \
+    , CInf t '$C_\infty$' w l lt 0 
+call 'latex' 'PPCapacitorData'
