@@ -227,7 +227,7 @@ Take-home messages:
 + The $L\to\infty$ extrapolation recovers the correct infinite-area 
 result to an accuracy of better than 1%.
 
-+ \textit{Without} this extrapolation, we would incur much more severe
++ *Without* this extrapolation, we would incur much more severe
 errors. For example, if we were to approximate the $L\to\infty$
 capacitance by the capacitance computed for the largest
 value of $L$ considered here ($L=20$), we would incur an error

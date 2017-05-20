@@ -81,9 +81,6 @@ and the execution of the various types of calculation
 --geometry
 --TransFile
 --EPFile
---Cache
---ReadCache
---WriteCache
   ````
 {.toc}
 

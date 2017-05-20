@@ -832,7 +832,6 @@ int S2CD(const char *str, cdouble *pZ)
 /***************************************************************/
 /* convert complex number to a string                          */
 /***************************************************************/
-
 static char DefaultCD2SFormat[100];
 static int DefaultCD2SFormatInitialized=0;
 
@@ -842,22 +841,32 @@ char *CD2S(cdouble z, const char *format)
   #define STRLEN 50
   static char Strings[NUMSTRINGS][50];
   static int BufPtr=0;
-  int nc, nConv;
 
   BufPtr = (BufPtr+1) % NUMSTRINGS;
+  char *zStr=Strings[BufPtr];
 
+  if (!format)
+   { if ( imag(z)==0.0 )
+      snprintf(zStr,MAXSTR,"%g",real(z));
+     else if ( real(z)==0.0 )
+      snprintf(zStr,MAXSTR,"%gi",imag(z));
+     else 
+      snprintf(zStr,MAXSTR,"%g+%gi",real(z),imag(z));
+     return zStr; 
+   };
+
+  int nc, nConv;
   for(nConv=0, nc=0; format[nc]; nc++)
    if (format[nc]=='%') nConv++;
 
   if (nConv==2)
-   snprintf(Strings[BufPtr],STRLEN,format,real(z),imag(z));
+   snprintf(zStr,STRLEN,format,real(z),imag(z));
   else if (nConv==1)
-   snprintf(Strings[BufPtr],STRLEN,format,real(z));
+   snprintf(zStr,STRLEN,format,real(z));
   else 
-   strncpy(Strings[BufPtr],format,STRLEN);
+   strncpy(zStr,format,STRLEN);
 
-  return Strings[BufPtr];
-
+  return zStr;
 }
 
 char *CD2S(cdouble z)
@@ -875,25 +884,13 @@ void SetDefaultCD2SFormat(const char *format)
   DefaultCD2SFormatInitialized=1;
 }
 
-// 'z2s' is another complex-double-to-string routine
-// that is more suitable for output designed to be  
-// read by a human 
-void z2s(cdouble z, char *zStr)
-{ 
-  if ( imag(z)==0.0 )
-   snprintf(zStr,MAXSTR,"%g",real(z));
-  else if ( real(z)==0.0 )
-   snprintf(zStr,MAXSTR,"%gi",imag(z));
-  else 
-   snprintf(zStr,MAXSTR,"%g+%gi",real(z),imag(z));
-}
-
 char *z2s(cdouble z)
 { 
-  static char buffer[MAXSTR];
-  z2s(z,buffer);
-  return buffer;
+  return CD2S(z,0);
 }
+
+void z2s(cdouble z, char *zStr)
+ { strcpy(zStr, z2s(z)); }
 
 /***************************************************************/
 /* given a string like 'MyFile.dat', try to create a new file  */

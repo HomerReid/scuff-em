@@ -90,7 +90,8 @@ BMAccelerator *CreateBMAccelerator(SSSolver *SSS)
   return BMA;
 }
 
-void ReassembleBEMMatrix(SSSolver *SSS, HMatrix **pM, BMAccelerator *BMA=0, int nt=0)
+void ReassembleBEMMatrix(SSSolver *SSS, HMatrix **pM,
+                         BMAccelerator *BMA=0, int nt=0)
 {
   HMatrix *M = *pM;
 
@@ -214,11 +215,8 @@ int main(int argc, char *argv[])
   char *EPFiles[MAXEPF];             int nEPFiles;
   char *FileBase    = 0;
   char *PlotFile    = 0;
-  char *Cache       = 0;
   char *SolutionFile= 0;
   char *SolutionName= 0;
-  char *ReadCache[MAXCACHE];         int nReadCache;
-  char *WriteCache  = 0;
   char *ConstField  = 0;
   char *FVMeshes[MAXFVM];            int nFVMeshes;
   char *FVMeshTransFiles[MAXFVM];    int nFVMeshTransFiles;
@@ -253,10 +251,6 @@ int main(int argc, char *argv[])
 /**/
      {"SolutionFile",   PA_STRING,  1, 1,       (void *)&SolutionFile, 0,           "name of HDF5 file for solution input/output"},
      {"SolutionName",   PA_STRING,  1, 1,       (void *)&SolutionName, 0,           "name of dataset within HDF5 file\n"},
-/**/
-     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
-     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
-     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
 /**/
      {0,0,0,0,0,0,0}
    };
@@ -333,19 +327,6 @@ int main(int argc, char *argv[])
   /* allocate storage for BEM matrix blocks                          */
   /*******************************************************************/
   BMAccelerator *BMA = (NT==1) ? 0 : CreateBMAccelerator(SSS);
-
-  /*******************************************************************/
-  /* preload the scuff cache with any cache preload files the user   */
-  /* may have specified                                              */
-  /*******************************************************************/
-  if ( Cache!=0 && WriteCache!=0 )
-   ErrExit("--cache and --writecache options are mutually exclusive");
-  if (Cache) 
-   WriteCache=Cache;
-  for (int nrc=0; nrc<nReadCache; nrc++)
-   PreloadCache( ReadCache[nrc] );
-  if (Cache)
-   PreloadCache( Cache );
 
   /*******************************************************************/
   /* loop over transformations.                                      */
