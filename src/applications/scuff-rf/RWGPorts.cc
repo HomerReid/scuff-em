@@ -689,7 +689,7 @@ void AddPortContributionsToRHS(RWGGeometry *G,
 }
 
 /***************************************************************/
-/***************************************************************/
+/* contribution of port currents to panel source densities     */
 /***************************************************************/
 void AddPortContributionsToPSD(RWGGeometry *G, 
                                RWGPort **Ports, int NumPorts, cdouble *PortCurrents,

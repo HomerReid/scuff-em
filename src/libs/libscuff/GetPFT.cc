@@ -322,6 +322,10 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   Options->EMTPFTIMethod=SCUFF_EMTPFTI_DEFAULT;
   Options->TInterior=Options->TExterior=0;
 
+  // options affecting moment PFT computation
+  Options->KeepQpTerm=false;
+  Options->MomentFileBase=0;
+
   Options->GetRegionPFTs=false;
 
   return Options;

@@ -119,6 +119,10 @@ typedef struct PFTOptions
    int EMTPFTIMethod;
    HMatrix *TInterior, *TExterior;
 
+   // options affecting moment PFT computation
+   bool KeepQpTerm;
+   char *MomentFileBase;
+
    bool GetRegionPFTs;
 
  } PFTOptions;

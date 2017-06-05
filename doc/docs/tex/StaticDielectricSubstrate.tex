@@ -1125,7 +1125,6 @@ the surface of an infinite dielectric slab in vacuum
 is precisely equivalent to that of conductors in vacuum
 with effective permittivity renormalized to 
 $$\epsilon_0  \to \frac{1}{1+\frac{\epsilon_1}{\epsilon_0}}.$$
-\end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1133,6 +1132,8 @@ $$\epsilon_0  \to \frac{1}{1+\frac{\epsilon_1}{\epsilon_0}}.$$
 \newpage
 \section{Extension to the full-wave case}
 \label{FullWaveSection}
+
+\subsection{2D Fourier representation of dyadic Green's functions}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
@@ -1184,6 +1185,12 @@ and
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\begin{align*}
+  \vb E &= i k^r Z_0 Z^r \vb G \star \vb K + ik^r \vb C \star \vb N 
+\\
+  \vb H &= -i k^r        \vb C \star \vb K + \frac{ik^r}{Z_0Z^r} \vb G \star \vb N
+\end{align*}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
 \wt F_\parallel=
@@ -1192,8 +1199,9 @@ and
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Tangential fields in layer $n$:
+Tangential fields due to
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

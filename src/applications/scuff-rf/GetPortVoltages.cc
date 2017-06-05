@@ -230,22 +230,10 @@ cdouble iwAIntegral(RWGGeometry *G, HVector *KN,
 
   double Lower=0.0;
   double Upper=1.0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (WriteLogFile)
- LogFile=fopen("/tmp/doom.log","a");
-else
- LogFile=0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   adapt_integrate(2, iwaIntegrand, (void *)iwAID, 1, 
                   &Lower, &Upper,
 		  1000, RELTOL*fabs(RefVal), RELTOL,
 		  (double *)&iwAI, (double *)&Error);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (LogFile)
- { fprintf(LogFile,"\n\n");
-   fclose(LogFile);
-   LogFile=0;
- };
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   AICheck(__FILE__,__LINE__, (double *)&iwAI, (double *)&Error, 
           RELTOL*fabs(RefVal), RELTOL, 2);
