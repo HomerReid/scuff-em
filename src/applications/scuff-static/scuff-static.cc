@@ -40,6 +40,9 @@ using namespace scuff;
 #define MAXFVM   10    // max number of field-visualization meshes
 #define MAXCACHE 10    // max number of cache files for preload
 
+#define MAX_MONOPOLES 10
+#define MAX_DIPOLES 10
+
 #define MAXSTR   1000
 
 /***************************************************************/
@@ -202,52 +205,56 @@ int main(int argc, char *argv[])
   /* process options *********************************************/
   /***************************************************************/
   InstallHRSignalHandler();
+// geometry-definition stuff
   char *GeoFile     = 0;
   char *SubstrateFile = 0;
   char *TransFile   = 0;
+// excitation-definition stuff
+  char *PotFile     = 0;
+  char *ConstField  = 0;
+  double Monopoles[4*MAX_MONOPOLES]; int nMonopoles;
+  double Dipoles[6*MAX_DIPOLES];     int nDipoles;
+  char *PhiExt      = 0;
+  char *ExcitationFile = 0;
+// output-definition stuff
+  char *EPFiles[MAXEPF];             int nEPFiles;
   char *PolFile     = 0;
   char *CapFile     = 0;
   char *CMatrixFile = 0;
   char *CMatrixHDF5File = 0;
   int lMax          = 2;             int nlMax;
-  char *PotFile     = 0;
-  char *PhiExt      = 0;
-  char *EPFiles[MAXEPF];             int nEPFiles;
-  char *FileBase    = 0;
   char *PlotFile    = 0;
-  char *SolutionFile= 0;
-  char *SolutionName= 0;
-  char *ConstField  = 0;
   char *FVMeshes[MAXFVM];            int nFVMeshes;
   char *FVMeshTransFiles[MAXFVM];    int nFVMeshTransFiles;
   memset(FVMeshTransFiles, 0, MAXFVM*sizeof(char *));
+  char *FileBase    = 0;
+// other misc stuff
+  char *SolutionFile= 0;
+  char *SolutionName= 0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
      {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file\n"},
      {"Substrate",      PA_STRING,  1, 1,       (void *)&SubstrateFile,  0,             "substrate file\n"},
-/**/
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometry transformations\n"},
 /**/
+     {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials\n"},
+     {"ConstField",     PA_STRING,  1, 1,       (void *)&ConstField, 0,             "direction of constant unit-strength E field (x,y,z)\n"},
+     {"Monopole",       PA_DOUBLE,  4, MAX_MONOPOLES, (void *)Monopoles, &nMonopoles, "(x0,y0,z0,Q) for point-source excitation\n"},
+     {"Dipole",         PA_DOUBLE,  6, MAX_DIPOLES,  (void *)Dipoles, &nDipoles, "(x0,y0,z0,px,py,pz) for point-dipole excitation\n"},
+     {"PhiExt",         PA_STRING,  1, 1,       (void *)&PhiExt,     0,  "user-specified external potential\n"},
+     {"ExcitationFile", PA_STRING,  1, 1,       (void *)&ExcitationFile,     0,  "list of excitations\n"},
+/**/
+     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file\n"},
-/**/
      {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance matrix output file\n"},
-/**/
      {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "C-matrix text output file"},
      {"CMatrixHDF5File", PA_STRING, 1, 1,       (void *)&CMatrixHDF5File, 0,        "C-matrix HDF5 output file"},
      {"lMax",           PA_INT,     1, 1,       (void *)&lMax,       &nlMax,        "maximum l-value of spherical harmonic in C-matrix\n"},
-/**/
-     {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials\n"},
-/**/
-     {"PhiExternal",    PA_STRING,  1, 1,       (void *)&PhiExt,     0,             "functional form of external potential"},
-     {"ConstField",     PA_STRING,  1, 1,       (void *)&ConstField, 0,             "direction of constant unit-strength E field (x,y,z)\n"},
-/**/
-     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
-     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EP file output"},
      {"PlotFile",       PA_STRING,  1, 1,       (void *)&PlotFile,   0,             "surface charge visualization output file\n"},
-/**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
      {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh\n"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EP file output"},
 /**/
      {"SolutionFile",   PA_STRING,  1, 1,       (void *)&SolutionFile, 0,           "name of HDF5 file for solution input/output"},
      {"SolutionName",   PA_STRING,  1, 1,       (void *)&SolutionName, 0,           "name of dataset within HDF5 file\n"},
@@ -266,24 +273,11 @@ int main(int argc, char *argv[])
    ErrExit("--lMax option can only be used with --CMatrixFile or --CMatrixHDF5File");
 
   /*******************************************************************/
-  /*******************************************************************/
-  /*******************************************************************/
-  int ConstFieldDirection=-1;
-  if (ConstField)
-   { switch(tolower(ConstField[0]))
-      { case 'x': ConstFieldDirection=0; break;
-        case 'y': ConstFieldDirection=1; break;
-        case 'z': ConstFieldDirection=2; break;
-        default:  ErrExit("invalid --ConstField specification");
-      };
-   };
-
-  /*******************************************************************/
   /* sanity checks on input arguments ********************************/
   /*******************************************************************/
   bool HaveType1Outputs = (PolFile || CapFile || CMatrixFile || CMatrixHDF5File);
   bool HaveType2Outputs = (nEPFiles>0 || nFVMeshes>0 || PlotFile!=0);
-  bool HaveType2Inputs  = (PotFile!=0 || PhiExt!=0 || ConstFieldDirection!=-1);
+  bool HaveType2Inputs  = (ExcitationFile!=0 || PotFile!=0 || ConstField!=0);
 
   if ( (!HaveType1Outputs) && (!HaveType2Outputs) )
    OSUsage(argv[0], OSArray, "you have not selected any type of calculation");
@@ -308,6 +302,25 @@ int main(int argc, char *argv[])
   HMatrix *M      = 0;
   HVector *Sigma  = SSS->AllocateRHSVector();
   RWGGeometry *G  = SSS->G;
+
+  /*******************************************************************/
+  /* read in information about excitations ***************************/
+  /*******************************************************************/
+  StaticExcitation **SEList=0;
+  int NumExcitations=0;
+  if (ExcitationFile)
+   { 
+     SEList = ReadExcitationFile(SSS, ExcitationFile, &NumExcitations);
+   };
+  if (PotFile || ConstField || nMonopoles>0 || nDipoles>0 || PhiExt )
+   { 
+     if (ExcitationFile)
+      ErrExit("--ExcitationFile is incompatible with [--PotFile | --ConstField | --Monopole | --Dipole | --PhiExt]");
+     SEList = CreateSimpleSEList(G, PotFile, ConstField,
+                                 nMonopoles, Monopoles,
+                                 nDipoles,   Dipoles, PhiExt);
+     NumExcitations=1;
+   };
 
   /****************************************************************/
   /*- read the transformation file if one was specified and check */
@@ -370,22 +383,27 @@ int main(int argc, char *argv[])
      /* The remaining options do require user-specified external       */
      /* fields unless the user supplied a precomputed solution vector. */
      /******************************************************************/
-     if (!HaveSolution)
-      { Solve(SSS, M, Sigma, PotFile, PhiExt, ConstFieldDirection);
-        if (SolutionFile)
-         FileOp(FILEOP_WRITE, Sigma, SolutionFile, SolutionName, TransformStr);
+     for(int n=0; n<NumExcitations; n++)
+      { 
+        StaticExcitation *SE=SEList[n];
+        if (!HaveSolution)
+         { 
+           SSS->AssembleRHSVector(SE, Sigma);
+           M->LUSolve(Sigma);
+           if (SolutionFile)
+            FileOp(FILEOP_WRITE, Sigma, SolutionFile, SolutionName, TransformStr);
+         };
+
+        if (PlotFile)
+         SSS->PlotChargeDensity(Sigma, PlotFile, 0);
+
+        if (nEPFiles>0 || PlotFile )
+         WriteFields(SSS, Sigma, SE, EPFiles, nEPFiles);
+
+        for(int nfm=0; nfm<nFVMeshes; nfm++)
+         SSS->VisualizeFields(Sigma, FVMeshes[nfm], SE,
+                              FVMeshTransFiles[nfm]);
       };
-
-     if (PlotFile)
-      SSS->PlotChargeDensity(Sigma, PlotFile, 0);
-
-     if (nEPFiles>0 || PlotFile )
-      WriteFields(SSS, Sigma, PhiExt, ConstFieldDirection, EPFiles, nEPFiles);
-
-     for(int nfm=0; nfm<nFVMeshes; nfm++)
-      SSS->VisualizeFields(Sigma, 
-                           FVMeshes[nfm], FVMeshTransFiles[nfm],
-                           PhiExt, ConstFieldDirection);
 
      /*******************************************************************/
      /*******************************************************************/

@@ -52,10 +52,26 @@ namespace scuff {
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-typedef void (StaticField)(double *x, void *UserData, double PhiE[4]);
-
 enum SurfType     { PEC = 0, DIELECTRIC=1, LAMBDASURFACE=2 };
 enum IntegralType { PHIINTEGRAL = 0, ENORMALINTEGRAL=1 };
+
+/****************************************************************/
+/* A 'StaticExcitation' is the externally-defined stimulus for  */
+/* the electrostatics problem (analogous to the incident field  */
+/* in a full-wave scattering problem). An excitation is defined */
+/* by a set of potential values (one for each conductor in the  */
+/* geometry) plus an optional externally-sourced electrostatic  */
+/* field.                                                       */
+/****************************************************************/
+typedef void (*StaticField)(double *x, void *UserData, double PhiE[4]);
+
+typedef struct StaticExcitation
+ { char *Label;
+   double *Potentials;
+   StaticField *SFs;
+   void **SFData;
+   int NumSFs;
+ } StaticExcitation;
 
 /****************************************************************/
 /****************************************************************/
@@ -83,8 +99,7 @@ class SSSolver
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector();
-   HVector *AssembleRHSVector(double *Potentials, StaticField *SF,
-                              void *UserData, HVector *RHS = NULL);
+   HVector *AssembleRHSVector(StaticExcitation *SE, HVector *RHS = NULL);
    HVector *AssembleRHSVector(double *Potentials, HVector *RHS = NULL);
 
    /* routine for calculating electric dipole moment */
@@ -94,7 +109,8 @@ class SSSolver
                                 int lMax, HVector *Moments);
 
    /* compute fields */
-   HMatrix *GetFields(StaticField *SF, void *UserData, HVector *Sigma, HMatrix *X, HMatrix *PhiE);
+   HMatrix *GetFields(StaticExcitation *SE, HVector *Sigma, HMatrix *X, HMatrix *PhiE=0);
+   HMatrix *GetFields(HVector *Sigma, HMatrix *X, HMatrix *PhiE=0);
 
    /* compute capacitance matrix */
    HMatrix *GetCapacitanceMatrix(HMatrix *M=0, HVector *Sigma=0,
@@ -103,8 +119,7 @@ class SSSolver
    /* visualization */
    void PlotChargeDensity(HVector *Sigma, const char *format, ...);
    void VisualizeFields(HVector *Sigma,  char *FVMeshFile,
-                        char *TransFile,
-                        char *PhiExt=0, int ConstFieldDirection=0);
+                        StaticExcitation *SE=0, char *TransFile=0);
 
    /*--------------------------------------------------------------------*/ 
    /*- class methods intended for internal use only, i.e. which          */ 
@@ -137,13 +152,11 @@ class SSSolver
 
  };
 
-}
-
 /***************************************************************/
 /* a few types of built-in implementations of the StaticField  */
 /* function to be passed to AssembleRHSVector()                */
 /***************************************************************/
-typedef struct UserSFData 
+typedef struct UserSFData
  { void *PhiEvaluator;
    void *EEvaluator[3];
  } UserSFData;
@@ -154,6 +167,35 @@ typedef struct SphericalSFData
  } SphericalSFData;
 void SphericalStaticField(double *x, void *UserData, double PhiE[4]);
 
+typedef struct ConstantSFData
+ { double E0[3];
+ } ConstantSFData;
 void ConstantStaticField(double *x, void *UserData, double PhiE[4]);
+
+typedef struct MonopoleSFData
+ { double x0[3];
+   double Q;
+ } MonopoleSFData;
+void MonopoleStaticField(double *x, void *UserData, double PhiE[4]);
+
+typedef struct DipoleSFData
+ { double x0[3];
+   double P[3];
+ } DipoleSFData;
+void DipoleStaticField(double *x, void *UserData, double PhiE[4]);
+
+void EvalStaticField(StaticExcitation *SE, double *x, double *PhiE);
+
+StaticExcitation **ReadExcitationFile(SSSolver *SSS, char *FileName,
+                                      int *pNumExcitations);
+
+StaticExcitation **CreateSimpleSEList(RWGGeometry *G,
+                                      char *PotFile,
+                                      char *ConstField,
+                                      int nMonopoles, double *Monopoles,
+                                      int nDipoles, double *Dipoles,
+                                      char *PhiExt);
+
+} // namespace scuff
 
 #endif // #ifndef SSGEOMETRY_H

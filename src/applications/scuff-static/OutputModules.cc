@@ -36,101 +36,9 @@
 using namespace scuff;
 
 /***************************************************************/
-/* Parse a "potential" file to read a list of conductor        */
-/* potentials.                                                 */
-/* The file should look something like                         */
-/*                                                             */
-/*  BottomSurface 3.2                                          */
-/*  TopSurface    1.4                                          */
-/*                                                             */
-/* where the first string is the name of a PEC object/surface  */
-/* specified in the .scuffgeo file, and the second string is   */
-/* the potential in volts at which that object will be held    */
-/* in the scuff-static calculation.                            */
-/***************************************************************/
-void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
-{ 
-  FILE *f=fopen(PotFile,"r");
-  if (!f)
-   ErrExit("could not open file %s",PotFile);
-
-  int LineNum=0;
-  char Line[100];
-  while (fgets(Line,100,f))
-   { 
-     LineNum++;
-
-     char *Tokens[3];
-     int NumTokens=Tokenize(Line, Tokens, 3);
-
-     if (NumTokens==0 || Tokens[0][0]=='#') 
-      continue; // skip blank lines and comments
-
-     if (NumTokens!=2) 
-      ErrExit("%s:%i: syntax error",PotFile,LineNum);
-
-     int ns;
-     if (G->GetSurfaceByLabel(Tokens[0],&ns)==0)
-      ErrExit("%s:%i: unknown surface",PotFile,LineNum,Tokens[0]);
-     if ( ! (G->Surfaces[ns]->IsPEC) )
-      ErrExit("%s:%i: attempt to assign potential to non-PEC surface %s",Tokens[0]);
-
-     double V;
-     if (1!=sscanf(Tokens[1],"%le",&V))
-      ErrExit("%s:%i: invalid potential specification",PotFile,LineNum);
-
-     Potentials[ns]=V;
-     Log("Setting potential of surface %s to %e volts.\n",Tokens[0],V);
-   }; 
-
-  fclose(f); 
-}
-
-/***************************************************************/
-/* solve the BEM electrostatics problem to fill in Sigma.      */
-/* on entry, M is the LU-factorized BEM matrix.                */
-/***************************************************************/
-void Solve(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-           char *PotFile, char *PhiExt, int ConstFieldDirection)
-{
-  /***************************************************************/
-  /* process user's conductor potential file if present          */
-  /***************************************************************/
-  RWGGeometry *G=SSS->G;
-  double *Potentials = new double[G->NumSurfaces];
-  memset(Potentials, 0.0, G->NumSurfaces*sizeof(double));
-  if (PotFile)
-   ParsePotentialFile(G, PotFile, Potentials);
-
-  /***************************************************************/
-  /* process user's external-field specification if present      */
-  /***************************************************************/
-  if (PhiExt)
-   { 
-     ErrExit("--phiexternal option not yet supported");
-     /*
-     USFData MyData, *D = &MyData;
-     D->PhiEvaluator = cevaluator_create(PhiExt);
-     D->EEvaluator[0] = D->EEvaluator[1] = D->EEvaluator[2] = 0;
-     SSS->AssembleRHSVector(Potentials, UserStaticField, (void *)D, Sigma);
-     */
-   }
-  else if ( ConstFieldDirection!=-1 )
-   SSS->AssembleRHSVector(Potentials, ConstantStaticField, &ConstFieldDirection, Sigma);
-  else
-   SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
-
-  /***************************************************************/
-  /* solve the problem *******************************************/
-  /***************************************************************/
-  M->LUSolve(Sigma);
-}
-
 /***************************************************************/
 /***************************************************************/
-/***************************************************************/
-void WriteFields(SSSolver *SSS, HVector *Sigma,
-                 char *PhiExt, int ConstFieldDirection,
+void WriteFields(SSSolver *SSS, HVector *Sigma, StaticExcitation *SE,
                  char **EPFiles, int nEPFiles)
 { 
   /***************************************************************/
@@ -144,13 +52,7 @@ void WriteFields(SSSolver *SSS, HVector *Sigma,
      if (X->ErrMsg)
       ErrExit(X->ErrMsg);
 
-     HMatrix *PhiE;
-     if (PhiExt)
-      ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
-     if ( ConstFieldDirection!=-1 )
-      PhiE = SSS->GetFields(ConstantStaticField, &ConstFieldDirection, Sigma, X, 0);
-     else
-      PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
+     HMatrix *PhiE = SSS->GetFields(SE, Sigma, X);
 
      FILE *f=vfopen("%s.%s.out","w",FileBase,GetFileBase(EPFiles[nepf]));
      fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
@@ -183,13 +85,27 @@ void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *File
 
   HMatrix *PolMatrix = new HMatrix(NS, 9);
 
+  ConstantSFData Data;
+  StaticField SFs[1] = {ConstantStaticField};
+  void *SFData [1]   = {(void *)&Data};
+
+  StaticExcitation SE;
+  SE.Label=0;
+  SE.Potentials=0;
+  SE.SFs    = SFs;
+  SE.SFData = SFData;
+  SE.NumSFs=1;
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *QP        = new HMatrix(NS, 4);
   for(int Mu=0; Mu<3; Mu++)
    { 
-     SSS->AssembleRHSVector(0, ConstantStaticField, (void *)(&Mu), Sigma);
+     memset(Data.E0, 0, 3*sizeof(double));
+     Data.E0[Mu]=1.0;
+  
+     SSS->AssembleRHSVector(&SE, Sigma);
      M->LUSolve(Sigma);
      SSS->GetCartesianMoments(Sigma, QP);
      for(int ns=0; ns<NS; ns++)
@@ -317,7 +233,9 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
       SphericalSFData MyData, *Data=&MyData;
       Data->l = l;
       Data->m = m;
-      SSS->AssembleRHSVector(0, SphericalStaticField, (void *)Data, Sigma);
+      StaticField SFs[1]={SphericalStaticField};
+      StaticExcitation SE={0,0,SFs,(void **)(&Data),1};
+      SSS->AssembleRHSVector(&SE, Sigma);
       M->LUSolve(Sigma);
 
       /*--------------------------------------------------------------*/

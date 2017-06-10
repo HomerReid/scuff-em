@@ -45,7 +45,7 @@ namespace scuff {
 /* This is a helper routine for VisualizeFields() below.       */
 /***************************************************************/
 void WriteFVMesh(SSSolver *SSS, RWGSurface *S, HVector *Sigma,
-                 char *PhiExt, int ConstFieldDirection,
+                 StaticExcitation *SE,
                  char *TransformLabel, FILE *f)
 {
   /*--------------------------------------------------------------*/
@@ -80,13 +80,7 @@ void WriteFVMesh(SSSolver *SSS, RWGSurface *S, HVector *Sigma,
   /*--------------------------------------------------------------*/
   /*- get the total fields at the panel vertices                 -*/
   /*--------------------------------------------------------------*/
-  HMatrix *PhiE=0;
-  if (PhiExt)
-   ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
-  else if ( ConstFieldDirection!=-1 )
-   PhiE = SSS->GetFields(ConstantStaticField, &ConstFieldDirection, Sigma, XMatrix, 0);
-  else
-   PhiE = SSS->GetFields(0, 0, Sigma, XMatrix, 0);
+  HMatrix *PhiE = SSS->GetFields(SE, Sigma, XMatrix);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -139,9 +133,10 @@ const char *FieldTitles[]={"Phi","Ex","Ey","Ez"};
 /* and E field on a user-specified surface mesh for GMSH       */
 /* visualization.                                              */
 /***************************************************************/
-void SSSolver::VisualizeFields(HVector *Sigma, char *FVMeshFile,
-                               char *TransFile,
-                               char *PhiExt, int ConstFieldDirection)
+void SSSolver::VisualizeFields(HVector *Sigma,
+                               char *FVMeshFile,
+                               StaticExcitation *SE,
+                               char *TransFile)
 { 
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/
@@ -156,6 +151,11 @@ void SSSolver::VisualizeFields(HVector *Sigma, char *FVMeshFile,
 
   char *GeoFileBase=FileBase;
   char *FVMFileBase=GetFileBase(FVMeshFile);
+  char PPFileBase[1000];
+  if (SE && SE->Label)
+   snprintf(PPFileBase,1000,"%s.%s.%s",GeoFileBase,SE->Label,FVMFileBase);
+  else
+   snprintf(PPFileBase,1000,"%s.%s",GeoFileBase,FVMFileBase);
   for(int nt=0; nt<NumFVMeshTransforms; nt++)
    {
      GTComplex *GTC=FVMeshGTCList[nt];
@@ -164,11 +164,11 @@ void SSSolver::VisualizeFields(HVector *Sigma, char *FVMeshFile,
      char PPFileName[100];
      if (NumFVMeshTransforms>1)
       { 
-        snprintf(PPFileName,100,"%s.%s.%s.pp",GeoFileBase,FVMFileBase,Tag);
+        snprintf(PPFileName,100,"%s.%s.pp",PPFileBase,Tag);
         Log("Creating flux plot for surface %s, transform %s...",FVMeshFile,Tag);
       }
      else
-      {  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,FVMFileBase);
+      {  snprintf(PPFileName,100,"%s.pp",PPFileBase);
          Log("Creating flux plot for surface %s...",FVMeshFile);
       };
      FILE *f=fopen(PPFileName,"a");
@@ -178,7 +178,7 @@ void SSSolver::VisualizeFields(HVector *Sigma, char *FVMeshFile,
       };
 
      if (GT) S->Transform(GT);
-     WriteFVMesh(this, S, Sigma, PhiExt, ConstFieldDirection, Tag, f);
+     WriteFVMesh(this, S, Sigma, SE, Tag, f);
      if (GT) S->UnTransform();
 
      fclose(f);
@@ -243,7 +243,7 @@ HMatrix *SSSolver::GetCapacitanceMatrix(HMatrix *M,
 
      memset(Potentials, 0, NS*sizeof(double));
      Potentials[ns]=1.0;
-     AssembleRHSVector(Potentials, 0, 0, Sigma);
+     AssembleRHSVector(Potentials, Sigma);
      M->LUSolve(Sigma);
      GetCartesianMoments(Sigma, QP);
 
@@ -261,6 +261,48 @@ HMatrix *SSSolver::GetCapacitanceMatrix(HMatrix *M,
   if (OwnsSigma) delete Sigma;
 
   return CMatrix;
+}
+
+/***********************************************************************/
+/***********************************************************************/
+/***********************************************************************/
+void SSSolver::PlotChargeDensity(HVector *Sigma, const char *format, ...)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  va_list ap;
+  char FileName[100];
+  va_start(ap,format);
+  vsnprintfEC(FileName,100,format,ap);
+  va_end(ap);
+  FILE *f=fopen(FileName,"a");
+  if (!f) return;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S;
+  int np;
+  fprintf(f,"View \"%s\" {\n","Surface Charge Density");
+  for(int ns=0, nbf=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], np=0; np<S->NumPanels; np++, nbf++)
+    { 
+      RWGPanel *P=S->Panels[np];
+      double *PV[3];
+      PV[0]=S->Vertices + 3*P->VI[0];
+      PV[1]=S->Vertices + 3*P->VI[1];
+      PV[2]=S->Vertices + 3*P->VI[2];
+      double Val = Sigma->GetEntryD( nbf );
+      fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   PV[0][0], PV[0][1], PV[0][2],
+                   PV[1][0], PV[1][1], PV[1][2],
+                   PV[2][0], PV[2][1], PV[2][2],
+                   Val, Val, Val);
+   }; 
+  fprintf(f,"};\n");
+  fclose(f);
+ 
 }
 
 } // namespace scuff

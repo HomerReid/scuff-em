@@ -199,8 +199,7 @@ void SSSolver::AssembleBEMMatrixBlock(int nsa, int nsb,
 /* (IntType==ENORMALINTEGRAL) over the given panel, where Phi, E are   */
 /* the potential and field computed by the user's function.            */
 /***********************************************************************/
-double GetRHSIntegral(RWGSurface *S, int np, 
-                      StaticField* SF, void *UserData,
+double GetRHSIntegral(RWGSurface *S, int np, StaticExcitation *SE,
                       IntegralType IntType)
 {
   /*--------------------------------------------------------------*/
@@ -239,7 +238,7 @@ double GetRHSIntegral(RWGSurface *S, int np,
      X[2] = V0[2] + u*A[2] + v*B[2];
 
      double PhiE[4];
-     SF(X, UserData, PhiE);
+     EvalStaticField(SE, X, PhiE);
  
      if (IntType==PHIINTEGRAL)
       Result += w * PhiE[0];
@@ -263,8 +262,7 @@ HVector *SSSolver::AllocateRHSVector()
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-HVector *SSSolver::AssembleRHSVector(double *Potentials,
-                                     StaticField *SF, void *UD,
+HVector *SSSolver::AssembleRHSVector(StaticExcitation *SE,
                                      HVector *RHS)
 {
   int Dim = G->TotalPanels;
@@ -282,22 +280,6 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
 
   RHS->Zero();
   Log("Computing RHS vector...");
-
-  /***************************************************************/
-  /* add contributions of conductor potentials if present        */
-  /***************************************************************/
-#if 0
-  if(Potentials) 
-   { for(int ns=0; ns<G->NumSurfaces; ns++)
-      { RWGSurface *S=G->Surfaces[ns];
-        if (!S->IsPEC) continue;
-        int Offset = G->PanelIndexOffset[ns];
-        double V = Potentials[ns];
-        for(int np=0; np<S->NumPanels; np++)
-         RHS->SetEntry(Offset + np, V * S->Panels[np]->Area);
-      };
-   };
-#endif
 
   /***************************************************************/
   /* add contributions of external field if present **************/
@@ -344,16 +326,17 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
      /*--------------------------------------------------------------*/
      /*- contributions of fixed potentials --------------------------*/
      /*--------------------------------------------------------------*/
+     double *Potentials = SE->Potentials;
      if ( Potentials && IntType!=ENORMALINTEGRAL )
       for(int np=0; np<S->NumPanels; np++)
        RHS->AddEntry(Offset+np, PotentialPreFactor*(S->Panels[np]->Area)*Potentials[ns]);
 
      /*--------------------------------------------------------------*/
-     /*- contributions of external field ----------------------------*/
+     /*- contributions of external field sources if present ---------*/
      /*--------------------------------------------------------------*/
-     if (SF)
+     if (SE->NumSFs>0)
       for(int np=0; np<S->NumPanels; np++)
-       RHS->AddEntry(Offset+np, IntegralPreFactor*GetRHSIntegral(S,np,SF,UD,IntType) );
+       RHS->AddEntry(Offset+np, IntegralPreFactor*GetRHSIntegral(S,np,SE,IntType) );
 
    };
 
@@ -362,7 +345,9 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
 }
 
 HVector *SSSolver::AssembleRHSVector(double *Potentials, HVector *RHS)
- { return AssembleRHSVector(Potentials, 0, 0, RHS); }
+ { StaticExcitation SE={0, Potentials, 0, 0, 0};
+   return AssembleRHSVector(&SE, RHS);
+ }
 
 /***********************************************************************/
 /***********************************************************************/
@@ -503,56 +488,13 @@ HVector *SSSolver::GetSphericalMoments(HVector *Sigma,
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-void SSSolver::PlotChargeDensity(HVector *Sigma, const char *format, ...)
+HMatrix *SSSolver::GetFields(StaticExcitation *SE, HVector *Sigma, 
+                             HMatrix *X, HMatrix *PhiE)
 {
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  va_list ap;
-  char FileName[100];
-  va_start(ap,format);
-  vsnprintfEC(FileName,100,format,ap);
-  va_end(ap);
-  FILE *f=fopen(FileName,"a");
-  if (!f) return;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S;
-  int np;
-  fprintf(f,"View \"%s\" {\n","Surface Charge Density");
-  for(int ns=0, nbf=0; ns<G->NumSurfaces; ns++)
-   for(S=G->Surfaces[ns], np=0; np<S->NumPanels; np++, nbf++)
-    { 
-      RWGPanel *P=S->Panels[np];
-      double *PV[3];
-      PV[0]=S->Vertices + 3*P->VI[0];
-      PV[1]=S->Vertices + 3*P->VI[1];
-      PV[2]=S->Vertices + 3*P->VI[2];
-      double Val = Sigma->GetEntryD( nbf );
-      fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   PV[0][0], PV[0][1], PV[0][2],
-                   PV[1][0], PV[1][1], PV[1][2],
-                   PV[2][0], PV[2][1], PV[2][2],
-                   Val, Val, Val);
-   }; 
-  fprintf(f,"};\n");
-  fclose(f);
- 
-}
-
-/***********************************************************************/
-/***********************************************************************/
-/***********************************************************************/
-HMatrix *SSSolver::GetFields(StaticField *SF, void *UserData, HVector *Sigma, HMatrix *X, HMatrix *PhiE)
-{
-
-  int NX = X->NR;
-
   /*--------------------------------------------------------------*/
   /*- (re)allocate PhiE matrix as necessary ----------------------*/
   /*--------------------------------------------------------------*/
+  int NX = X->NR;
   if ( PhiE && (PhiE->NR!=NX || PhiE->NC!=4) )
    { Warn("GetFields() called with incorrect PhiE matrix (reallocating)");
      delete PhiE;
@@ -577,12 +519,11 @@ HMatrix *SSSolver::GetFields(StaticField *SF, void *UserData, HVector *Sigma, HM
      R[2]=X->GetEntryD(nx,2);
 
      /*--------------------------------------------------------------*/
-     /*- contribution of external field if present ------------------*/
+     /*- contribution of external field sources if present    ------*/
      /*--------------------------------------------------------------*/
-     if (SF)
-      { 
-        double DeltaPhiE[4];
-        SF(R, UserData, DeltaPhiE);
+     if (SE && SE->NumSFs)
+      { double DeltaPhiE[4];
+        EvalStaticField(SE, R, DeltaPhiE);
         PhiE->SetEntry(nx, 0, DeltaPhiE[0] );
         PhiE->SetEntry(nx, 1, DeltaPhiE[1] );
         PhiE->SetEntry(nx, 2, DeltaPhiE[2] );
@@ -608,6 +549,10 @@ HMatrix *SSSolver::GetFields(StaticField *SF, void *UserData, HVector *Sigma, HM
 
   return PhiE;
   
+}
+
+HMatrix *SSSolver::GetFields(HVector *Sigma, HMatrix *X, HMatrix *PhiE)
+{ return GetFields(0, Sigma, X, PhiE);
 }
 
 } // namespace scuff
