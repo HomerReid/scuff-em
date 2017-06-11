@@ -365,10 +365,10 @@ StaticExcitation **ReadExcitationFile(SSSolver *SSS, char *FileName,
   /* read and parse lines from the file one by one ***************/
   /***************************************************************/
   FILE *f;
-  if ( !FileName || !(f=fopen(FileName,"r") ) )
-   { *pNumExcitations=0;
-     return 0;
-   };
+  if ( !FileName )
+   ErrExit("no --ExcitationFile specified");
+  if ( !(f=fopen(FileName,"r") ) )
+   ErrExit("could not open file %s",FileName);
   char Line[MAXSTR];
   int LineNum=0;
   while( fgets(Line, MAXSTR, f) )
