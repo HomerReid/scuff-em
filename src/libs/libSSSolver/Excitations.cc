@@ -305,7 +305,7 @@ StaticExcitation *ParseExcitationSection(SSSolver *SSS,
            )
          ErrExit("%s:%i: invalid dipole specification",FileName,*LineNum);
         AddStaticField(SE, DipoleStaticField, (void *)Data);
-        Log("Excitation %s: added dipole field (x0={%e,%e,%e}, P={%e,%i,%e)",Label,Data->x0[0],Data->x0[1],Data->x0[2],Data->P[0],Data->P[1],Data->P[2]);
+        Log("Excitation %s: added dipole field (x0={%e,%e,%e}, P={%e,%e,%e)",Label,Data->x0[0],Data->x0[1],Data->x0[2],Data->P[0],Data->P[1],Data->P[2]);
       } 
     /*--------------------------------------------------------------*/
     /*--------------------------------------------------------------*/
