@@ -371,7 +371,7 @@ char *vstrappend(char *s, const char *format, ...)
   else
    { int NS=strlen(s), NB=strlen(buffer);
      s = (char *)reallocEC(s, NS+NB+1);
-     strcpy( s + NS, buffer);
+     strcpy(s + NS, buffer);
    };
   return s;
 }

@@ -316,10 +316,11 @@ StaticExcitation *ParseExcitationSection(SSSolver *SSS,
          ErrExit("%s:%i: invalid PHI specification",FileName,*LineNum);
 
         UserSFData *Data = (UserSFData *)mallocEC(sizeof *Data);
-        char str[MAXSTR]="";
+        char *str=0;
         for(int nt=1; nt<NumTokens; nt++)
-         snprintf(str,MAXSTR,"%s %s",str,Tokens[nt]);
+         str=vstrappend(str, " %s",Tokens[nt]);
         Data->PhiEvaluator=cevaluator_create(str);
+        free(str);
         AddStaticField(SE, UserStaticField, (void *)Data);
         Log("Excitation %s: added user-defined field Phi(x,y,z)=%s",Label,str);
       } 
