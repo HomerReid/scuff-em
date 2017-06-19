@@ -76,6 +76,7 @@ typedef struct StaticExcitation
 /****************************************************************/
 /****************************************************************/
 /***************************************************************/
+#define MAXSTR 1000
 class SSSolver   
  { 
    /*--------------------------------------------------------------*/ 
@@ -117,9 +118,10 @@ class SSSolver
                                  HMatrix *CMatrix=0);
 
    /* visualization */
-   void PlotChargeDensity(HVector *Sigma, const char *format, ...);
+   void PlotChargeDensity(HVector *Sigma, char *FileName);
    void VisualizeFields(HVector *Sigma,  char *FVMeshFile,
-                        StaticExcitation *SE=0, char *TransFile=0);
+                        char *OutFileBase=0, StaticExcitation *SE=0,
+                        char *TransFile=0);
 
    /*--------------------------------------------------------------------*/ 
    /*- class methods intended for internal use only, i.e. which          */ 
@@ -138,7 +140,8 @@ class SSSolver
    SubstrateData *Substrate;
 
    char *TransformLabel;
-   char *FileBase;
+   char *ExcitationLabel;
+   bool SeparateOutputFiles;
 
    /*--------------------------------------------------------------*/
    /*- helper functions for contributions of layered dielectric    */

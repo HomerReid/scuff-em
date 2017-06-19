@@ -599,7 +599,6 @@ void GetVSWRadialFunctions(int LMax, cdouble k, double r,
 
   cdouble z=k*r;
 
-
   char Func =   (WaveType==LS_INCOMING) ? 't'
               : (WaveType==LS_OUTGOING) ? 'o'
               :                           'j'; // LS_REGULAR;
@@ -626,7 +625,6 @@ void GetVSWRadialFunctions(int LMax, cdouble k, double r,
    for(int n=0; n<3*(LMax+1); n++)
     RFArray[n]=conj(RFArray[n]);
 
-  
 }
 
 /***************************************************************/

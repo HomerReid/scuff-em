@@ -320,9 +320,9 @@ StaticExcitation *ParseExcitationSection(SSSolver *SSS,
         for(int nt=1; nt<NumTokens; nt++)
          str=vstrappend(str, " %s",Tokens[nt]);
         Data->PhiEvaluator=cevaluator_create(str);
-        free(str);
         AddStaticField(SE, UserStaticField, (void *)Data);
         Log("Excitation %s: added user-defined field Phi(x,y,z)=%s",Label,str);
+        free(str);
       } 
     /*--------------------------------------------------------------*/
     /*- try to interpret the line as CONDUCTOR_NAME VOLTAGE         */

@@ -37,6 +37,21 @@
 using namespace scuff;
 
 /***************************************************************/
+/* routines in BMAccelerator.cc ********************************/
+/***************************************************************/
+typedef struct BMAccelerator
+ {
+   HMatrix **TBlocks;
+   HMatrix **UBlocks;
+   HMatrix **PairMatrices;
+ } BMAccelerator;
+BMAccelerator *CreateBMAccelerator(SSSolver *SSS,
+                                   GTComplex **GTCList, int NT,
+                                   bool UsePairEquivalence);
+void ReassembleBEMMatrix(SSSolver *SSS, HMatrix **pM,
+                         BMAccelerator *BMA=0, int nt=0);
+
+/***************************************************************/
 /* routines in OutputModules.cc ********************************/
 /***************************************************************/
 void WritePolarizabilities(SSSolver *SSS, HMatrix *M,
@@ -51,6 +66,6 @@ void WriteCMatrix(SSSolver *SSS, HMatrix *M,
 
 void WriteFields(SSSolver *SSS, HVector *Sigma,
                  StaticExcitation *SE,
-                 char **EPFiles, int nEPFiles);
+                 char **EPFiles, int nEPFiles, char *OutFileBase);
 
 #endif

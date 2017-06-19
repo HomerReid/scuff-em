@@ -285,6 +285,7 @@ AC_CONFIG_FILES([
  examples/HalfSpaceLDOS/mshFiles/Makefile
  examples/HalfSpaceLDOS/scuffgeoFiles/Makefile
  examples/GetTMatrix/Makefile
+ examples/PaulTrap/Makefile
  examples/PlateWithHole/Makefile
  examples/PerforatedThinFilm/Makefile
  examples/PlatonicSolids/Makefile

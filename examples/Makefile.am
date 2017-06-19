@@ -5,6 +5,7 @@ SUBDIRS =            	\
  GetTMatrix             \
  HalfSpaceLDOS          \
  ImplicitSubstrate      \
+ PaulTrap               \
  PlateWithHole          \
  PerforatedThinFilm     \
  PlatonicSolids         \

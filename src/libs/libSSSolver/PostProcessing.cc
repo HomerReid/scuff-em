@@ -41,12 +41,13 @@
 
 namespace scuff {
 
+#define MAXSTR 1000
+
 /***************************************************************/
 /* This is a helper routine for VisualizeFields() below.       */
 /***************************************************************/
 void WriteFVMesh(SSSolver *SSS, RWGSurface *S, HVector *Sigma,
-                 StaticExcitation *SE,
-                 char *TransformLabel, FILE *f)
+                 StaticExcitation *SE, FILE *f)
 {
   /*--------------------------------------------------------------*/
   /*- create an Nx3 HMatrix whose columns are the coordinates of  */
@@ -90,8 +91,10 @@ const char *FieldTitles[]={"Phi","Ex","Ey","Ez"};
   for(int nff=0; nff<NUMFIELDFUNCS; nff++)
    { 
      fprintf(f,"View \"%s",FieldTitles[nff]);
-     if (TransformLabel)
-      fprintf(f,"(%s)",TransformLabel);
+     if (!SSS->SeparateOutputFiles && SSS->TransformLabel)
+      fprintf(f,"{%s}",SSS->TransformLabel);
+     if (!SSS->SeparateOutputFiles && SSS->ExcitationLabel)
+      fprintf(f,"{%s}",SSS->ExcitationLabel);
      fprintf(f,"\" {\n");
 
      /*--------------------------------------------------------------*/
@@ -135,6 +138,7 @@ const char *FieldTitles[]={"Phi","Ex","Ey","Ez"};
 /***************************************************************/
 void SSSolver::VisualizeFields(HVector *Sigma,
                                char *FVMeshFile,
+                               char *OutFileBase,
                                StaticExcitation *SE,
                                char *TransFile)
 { 
@@ -149,22 +153,28 @@ void SSSolver::VisualizeFields(HVector *Sigma,
   int NumFVMeshTransforms;
   GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
 
-  char *GeoFileBase=FileBase;
+  if (!OutFileBase)
+   OutFileBase=strdup(GetFileBase(G->GeoFileName));
+
+  char PPFileBase[MAXSTR];
   char *FVMFileBase=GetFileBase(FVMeshFile);
-  char PPFileBase[1000];
-  if (SE && SE->Label)
-   snprintf(PPFileBase,1000,"%s.%s.%s",GeoFileBase,SE->Label,FVMFileBase);
+  if (SeparateOutputFiles && (TransformLabel && ExcitationLabel) )
+   snprintf(PPFileBase,MAXSTR,"%s.%s.%s.%s",OutFileBase,TransformLabel,ExcitationLabel,FVMFileBase);
+  else if (SeparateOutputFiles && TransformLabel)
+   snprintf(PPFileBase,MAXSTR,"%s.%s.%s",OutFileBase,TransformLabel,FVMFileBase);
+  else if (SeparateOutputFiles && ExcitationLabel)
+   snprintf(PPFileBase,MAXSTR,"%s.%s.%s",OutFileBase,ExcitationLabel,FVMFileBase);
   else
-   snprintf(PPFileBase,1000,"%s.%s",GeoFileBase,FVMFileBase);
+   snprintf(PPFileBase,MAXSTR,"%s.%s",OutFileBase,FVMFileBase);
   for(int nt=0; nt<NumFVMeshTransforms; nt++)
    {
      GTComplex *GTC=FVMeshGTCList[nt];
      GTransformation *GT=GTC->GT;
      char *Tag = GTC->Tag;
-     char PPFileName[100];
+     char PPFileName[MAXSTR];
      if (NumFVMeshTransforms>1)
       { 
-        snprintf(PPFileName,100,"%s.%s.pp",PPFileBase,Tag);
+        snprintf(PPFileName,MAXSTR,"%s.%s.pp",PPFileBase,Tag);
         Log("Creating flux plot for surface %s, transform %s...",FVMeshFile,Tag);
       }
      else
@@ -178,7 +188,7 @@ void SSSolver::VisualizeFields(HVector *Sigma,
       };
 
      if (GT) S->Transform(GT);
-     WriteFVMesh(this, S, Sigma, SE, Tag, f);
+     WriteFVMesh(this, S, Sigma, SE, f);
      if (GT) S->UnTransform();
 
      fclose(f);
@@ -266,16 +276,25 @@ HMatrix *SSSolver::GetCapacitanceMatrix(HMatrix *M,
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-void SSSolver::PlotChargeDensity(HVector *Sigma, const char *format, ...)
+void SSSolver::PlotChargeDensity(HVector *Sigma, char *BaseFileName)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  va_list ap;
-  char FileName[100];
-  va_start(ap,format);
-  vsnprintfEC(FileName,100,format,ap);
-  va_end(ap);
+  char FileName[MAXSTR];
+  strncpy(FileName, BaseFileName, MAXSTR-1);
+  if (SeparateOutputFiles && (TransformLabel || ExcitationLabel) )
+   { char Extension[MAXSTR];
+     strncpy(Extension, GetFileExtension(FileName), MAXSTR-1);
+     RemoveExtension(FileName);
+     if (TransformLabel && ExcitationLabel)
+      snprintf(FileName,MAXSTR,"%s.%s.%s.%s",FileName,TransformLabel,ExcitationLabel,Extension);
+     else if (TransformLabel)
+      snprintf(FileName,MAXSTR,"%s.%s.%s",FileName,TransformLabel,Extension);
+     else if (ExcitationLabel)
+      snprintf(FileName,MAXSTR,"%s.%s.%s",FileName,ExcitationLabel,Extension);
+   };
+
   FILE *f=fopen(FileName,"a");
   if (!f) return;
 
@@ -284,7 +303,12 @@ void SSSolver::PlotChargeDensity(HVector *Sigma, const char *format, ...)
   /*--------------------------------------------------------------*/
   RWGSurface *S;
   int np;
-  fprintf(f,"View \"%s\" {\n","Surface Charge Density");
+  fprintf(f,"View \"Surface Charge Density");
+  if (!SeparateOutputFiles && TransformLabel)
+   fprintf(f,"{%s}",TransformLabel);
+  if (!SeparateOutputFiles && ExcitationLabel)
+   fprintf(f,"{%s}",ExcitationLabel);
+  fprintf(f,"\" {\n");
   for(int ns=0, nbf=0; ns<G->NumSurfaces; ns++)
    for(S=G->Surfaces[ns], np=0; np<S->NumPanels; np++, nbf++)
     { 

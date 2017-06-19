@@ -2,6 +2,7 @@ bin_PROGRAMS = scuff-static
 
 scuff_static_SOURCES = 		\
  scuff-static.h			\
+ BMAccelerator.cc		\
  OutputModules.cc		\
  scuff-static.cc
 

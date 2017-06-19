@@ -51,7 +51,8 @@ SSSolver::SSSolver(const char *GeoFileName, const char *SubstrateFile, int LogLe
 {
   Substrate=0;
   TransformLabel=0;
-  FileBase=0;
+  ExcitationLabel=0;
+  SeparateOutputFiles=false;
 
   G=new RWGGeometry(GeoFileName, LogLevel);
   if (G->LDim>0)

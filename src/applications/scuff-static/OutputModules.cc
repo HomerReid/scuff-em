@@ -35,17 +35,20 @@
 
 using namespace scuff;
 
+#define MAXSTR 1000
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void WriteFields(SSSolver *SSS, HVector *Sigma, StaticExcitation *SE,
-                 char **EPFiles, int nEPFiles)
+                 char **EPFiles, int nEPFiles, char *OutFileBase)
 { 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  char *TransformLabel = SSS->TransformLabel;
-  char *FileBase       = SSS->FileBase;
+  char *TransformLabel  = SSS->TransformLabel;
+  char *ExcitationLabel = SSS->ExcitationLabel;
+  bool Separate         = SSS->SeparateOutputFiles;
   for(int nepf=0; nepf<nEPFiles; nepf++)
    {
      HMatrix *X = new HMatrix(EPFiles[nepf]);
@@ -54,17 +57,29 @@ void WriteFields(SSSolver *SSS, HVector *Sigma, StaticExcitation *SE,
 
      HMatrix *PhiE = SSS->GetFields(SE, Sigma, X);
 
-     FILE *f=vfopen("%s.%s.out","w",FileBase,GetFileBase(EPFiles[nepf]));
+     char FileName[MAXSTR];
+     if (Separate && TransformLabel && ExcitationLabel)
+      snprintf(FileName, MAXSTR, "%s.%s.%s.%s.out",OutFileBase,TransformLabel,ExcitationLabel,GetFileBase(EPFiles[nepf]));
+     else if (Separate && TransformLabel)
+      snprintf(FileName, MAXSTR, "%s.%s.%s.out",OutFileBase,TransformLabel,GetFileBase(EPFiles[nepf]));
+     else if (Separate && ExcitationLabel)
+      snprintf(FileName, MAXSTR, "%s.%s.%s.out",OutFileBase,ExcitationLabel,GetFileBase(EPFiles[nepf]));
+     else 
+      snprintf(FileName, MAXSTR, "%s.%s.out",OutFileBase,GetFileBase(EPFiles[nepf]));
+     FILE *f=fopen(FileName,Separate ? "w" : "a");
      fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
      int nc=1;
-     if (TransformLabel) 
+     if (!Separate && TransformLabel) 
       fprintf(f,"# %i: transform label\n",nc++);
+     if (!Separate && ExcitationLabel)
+      fprintf(f,"# %i: excitation label\n",nc++);
      fprintf(f,"# %i, %i, %i: x, y, z (evaluation point coordinates)\n",nc,nc+1,nc+2); nc+=3;
      fprintf(f,"# %i:       Phi      (electrostatic potential)\n",nc++);
      fprintf(f,"# %i, %i, %i: Ex,Ey,Ez (electrostatic field components)\n",nc,nc+1,nc+2); nc+=3;
      for(int nr=0; nr<X->NR; nr++)
-      { if (TransformLabel) fprintf(f,"%s ",TransformLabel);
+      { if (!Separate && TransformLabel)  fprintf(f,"%s ",TransformLabel);
+        if (!Separate && ExcitationLabel) fprintf(f,"%s ",ExcitationLabel);
         fprintf(f,"%e %e %e %e %e %e %e\n",
                  X->GetEntryD(nr,0), X->GetEntryD(nr,1), X->GetEntryD(nr,2),
                  PhiE->GetEntryD(nr,0), PhiE->GetEntryD(nr,1), 
@@ -78,7 +93,7 @@ void WriteFields(SSSolver *SSS, HVector *Sigma, StaticExcitation *SE,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
+void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *PolFile)
 {
   RWGGeometry *G = SSS->G;
   int NS = G->NumSurfaces;
@@ -120,7 +135,7 @@ void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *File
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   static bool WroteHeader=false;
-  FILE *f=fopen(FileName,"a");
+  FILE *f=fopen(PolFile,"a");
   if (!WroteHeader)
    { WroteHeader=true;
      fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
