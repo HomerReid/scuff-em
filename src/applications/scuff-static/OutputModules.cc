@@ -117,7 +117,7 @@ void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *PolF
   HMatrix *QP        = new HMatrix(NS, 4);
   for(int Mu=0; Mu<3; Mu++)
    { 
-     memset(Data.E0, 0, 3*sizeof(double));
+     Data.E0[0]=Data.E0[1]=Data.E0[2]=0.0;
      Data.E0[Mu]=1.0;
   
      SSS->AssembleRHSVector(&SE, Sigma);

@@ -74,19 +74,19 @@ structure of this memo is as follows:
 \begin{itemize}
 \item 
 In Section \ref{ImplementationSection} I discuss the usage
-of this new feature in {\sc scuff-em} electrostatics calculations.
+of this new feature in {\sc scuff-static} electrostatics calculations.
 
 \item 
 In Section \ref{TheorySection} I discuss the physics and
 mathematics of the underlying method and some technical details
-regarding its implementation in {\sc scuff-em}.
+regarding its implementation in {\sc scuff-static}.
 \end{itemize}
 
 %====================================================================%
 %====================================================================%
 %====================================================================%
 \newpage
-\section{Practice: Running {\sc scuff-em} calculations
+\section{Practice: Running {\sc scuff-static} calculations
          with implicit substrates}
 \label{ImplementationSection}
 
@@ -103,7 +103,7 @@ a substrate geometry is specified by
  \item the $z$-coordinate of the optional ground plane.
 \end{itemize}
 
-This data is specified to {\sc scuff-em} in the
+This data is specified to {\sc scuff-static} in the
 form of a simple text file (conventionally given file
 extension \texttt{.substrate}) consisting of one line for each
 dielelectric layer plus an optional line specifying the ground 
@@ -222,10 +222,10 @@ the silicon layer:
 %=================================================
 %=================================================
 %=================================================
-\subsection{Including implicit substrates in {\sc scuff-em} electrostatics
+\subsection{Including implicit substrates in {\sc scuff-static} electrostatics
             calculations}
 
-To run {\sc scuff-em} electrostatics calculations with an implicit 
+To run {\sc scuff-static} electrostatics calculations with an implicit 
 substrate described by a file \texttt{MySubstrate.substrate},
 there are two ways to proceed.
 
@@ -271,7 +271,7 @@ This discussion consists of two parts:
 
  \item
  Then I discuss how the discretized surface-integral-equation
- system assembled by {\sc scuff-em} is modified to accommodate
+ system assembled by {\sc scuff-static} is modified to accommodate
  this modified Green's function.
 \end{itemize}
 
