@@ -1,0 +1,1 @@
+gmsh -2 -setnumber ELCNT 4 Trap.geo -o Trap_4.msh

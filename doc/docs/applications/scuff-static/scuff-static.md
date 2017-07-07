@@ -179,6 +179,7 @@ you request will be repeated once for each
 geometric transformation.
 
 ### Options defining individual excitations for type-1 calculations
+<a name="Type1Excitations"></a>
 
 To run a "type-1" calculation with just a single
 excitation, you may specify any combination
@@ -224,6 +225,7 @@ are maintained at 0 volts by default.
     coordinates `x`, `y`, `z`. Example: `--PhiExt cos(3*x)*cosh(3*y)`
 
 ### Options defining multiple excitations for type-1 calculations
+<a href="ExcitationFile"></a>
 
 ````bash
  --ExcitationFile MyExcitationFile

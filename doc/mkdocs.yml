@@ -40,6 +40,7 @@ pages:
     - 'Capacitance of a PCB stripline trace': 'examples/StriplineCapacitor/StriplineCapacitor.md'
     - 'Implicit handling of multilayer dielectric substrates': 'examples/ImplicitSubstrate/ImplicitSubstrate.md'
     - 'Finite-size effects in stripline capacitors': 'examples/pythonCapacitance/pythonCapacitance.md'
+    - 'Electrostatic fields of an electrode array': 'examples/PaulTrap/PaulTrap.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'

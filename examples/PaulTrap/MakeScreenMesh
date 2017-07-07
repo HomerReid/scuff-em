@@ -1,0 +1,1 @@
+gmsh -2 Screen.geo -setnumber LX 860 -setnumber LY 2660 -setnumber N 0.05

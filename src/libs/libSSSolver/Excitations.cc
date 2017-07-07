@@ -47,15 +47,28 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#define NUMVARS 7
+static const char *VariableNames[NUMVARS] = 
+ { "x", "y", "z", "r", "Rho", "Theta", "Phi" };
+
+void SetVars(double x[3], cdouble VariableValues[NUMVARS])
+{
+  double Rho2  = x[0]*x[0] + x[1]*x[1], Rho=sqrt(Rho2);
+  double r     = sqrt(Rho2 + x[2]*x[2]);
+  double Theta = (r==0.0) ? 0.0 : acos(x[2]/r);
+  double Phi   = atan2(x[1],x[0]);
+  VariableValues[0] = x[0];
+  VariableValues[1] = x[1];
+  VariableValues[2] = x[2];
+  VariableValues[3] = r;
+  VariableValues[4] = Rho;
+  VariableValues[5] = Theta;
+  VariableValues[6] = Phi;
+}
+
 void UserStaticField(double *x, void *UserData, double PhiE[4])
 {
   UserSFData *Data = (UserSFData *)UserData;
-
-  static const char *VariableNames[3] = { "x", "y", "z" };
-  cdouble VariableValues[3];
-  VariableValues[0] = cdouble(x[0], 0.0 );
-  VariableValues[1] = cdouble(x[1], 0.0 );
-  VariableValues[2] = cdouble(x[2], 0.0 );
 
   memset(PhiE, 0, 4*sizeof(double));
   if ( Data==0 || Data->PhiEvaluator==0 ) return;
@@ -63,7 +76,9 @@ void UserStaticField(double *x, void *UserData, double PhiE[4])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  PhiE[0] = real( cevaluator_evaluate(Data->PhiEvaluator, 3, 
+  cdouble VariableValues[NUMVARS];
+  SetVars(x, VariableValues);
+  PhiE[0] = real( cevaluator_evaluate(Data->PhiEvaluator, NUMVARS,
                                       const_cast<char **>(VariableNames), 
                                       VariableValues) );
 
@@ -71,26 +86,37 @@ void UserStaticField(double *x, void *UserData, double PhiE[4])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   for(int Mu=0; Mu<3; Mu++)
-   { if (Data->EEvaluator[Mu])
-      { PhiE[1+Mu] = real( cevaluator_evaluate(Data->EEvaluator[Mu], 3, 
+   { 
+     if (Data->EEvaluator[Mu])
+      { 
+        SetVars(x, VariableValues);
+        PhiE[1+Mu] = real( cevaluator_evaluate(Data->EEvaluator[Mu], NUMVARS, 
                                                const_cast<char **>(VariableNames), 
                                                VariableValues) 
                          );
       }
      else
-      { double Delta = 1.0e-4*abs(VariableValues[Mu]);
+      { 
+        double xp[3];
+        xp[0]=x[0];
+        xp[1]=x[1];
+        xp[2]=x[2];
+
+        double Delta = 1.0e-4*fabs(x[Mu]);
         if (Delta==0.0) Delta=1.0e-4;
-        VariableValues[Mu] += Delta;
-        double PhiPlus = real( cevaluator_evaluate(Data->PhiEvaluator, 3,
+        xp[Mu] += Delta;
+        SetVars(xp, VariableValues);
+        double PhiPlus = real( cevaluator_evaluate(Data->PhiEvaluator, NUMVARS,
                                                    const_cast<char **>(VariableNames), 
                                                    VariableValues) 
                              );
-        VariableValues[Mu] -= 2.0*Delta;
-        double PhiMinus= real( cevaluator_evaluate(Data->PhiEvaluator, 3,
+
+        xp[Mu] += Delta;
+        SetVars(xp, VariableValues);
+        double PhiMinus= real( cevaluator_evaluate(Data->PhiEvaluator, NUMVARS,
                                                    const_cast<char **>(VariableNames), 
                                                    VariableValues) 
                              );
-        VariableValues[Mu] += Delta;
         PhiE[1+Mu] = (PhiMinus - PhiPlus) / (2.0*Delta);
       };
    };
@@ -321,7 +347,7 @@ StaticExcitation *ParseExcitationSection(SSSolver *SSS,
          str=vstrappend(str, " %s",Tokens[nt]);
         Data->PhiEvaluator=cevaluator_create(str);
         AddStaticField(SE, UserStaticField, (void *)Data);
-        Log("Excitation %s: added user-defined field Phi(x,y,z)=%s",Label,str);
+        Log("Excitation %s: added user-defined field Phi=%s",Label,str);
         free(str);
       } 
     /*--------------------------------------------------------------*/

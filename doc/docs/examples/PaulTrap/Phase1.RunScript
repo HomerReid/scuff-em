@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ARGS=""
+ARGS="${ARGS} --geometry Trap_4_Improved.scuffgeo"
+ARGS="${ARGS} --ExcitationFile Trap_4.IndividualExcitations"
+ARGS="${ARGS} --EPFile MyEPFile"
+ARGS="${ARGS} --PlotFile MyPlotFile.pp"
+scuff-static ${ARGS}

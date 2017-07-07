@@ -1,0 +1,26 @@
+EXCITATION KitchenSink
+
+# conductor potentials 
+
+	UpperDC1   0.5
+	LowerDC1  -0.7
+	UpperDC2  -0.3
+	LowerDC2   0.5
+	UpperDC3   0.2
+	LowerDC3  -0.4
+	UpperDC4  -0.6
+	LowerDC4   1.0
+
+# point charge at X=(-400,1000,250) with charge -300
+	monopole -400.0 1000.0 250.0   -300
+
+# z-directed point dipole at X=(-400,-1000,-400)
+	dipole  -300.0 -1000.0 -400.0  0.0 0.0 10000.0
+
+# small constant background field in Z-direction
+	constant_field 0 0.0 1.0e-4
+
+# arbitrary user-specified function of x, y, z, r, Rho, Theta Phi
+        phi 1.0e-8*Rho*Rho*cos(2.0*Phi)
+
+ENDEXCITATION

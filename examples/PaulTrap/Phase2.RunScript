@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ARGS=""
+ARGS="${ARGS} --geometry Trap_4_Improved.scuffgeo"
+ARGS="${ARGS} --ExcitationFile Phase2.Excitations"
+ARGS="${ARGS} --FVMesh Screen.msh"
+ARGS="${ARGS} --FVMeshTransFile Screen.trans"
+scuff-static ${ARGS}
