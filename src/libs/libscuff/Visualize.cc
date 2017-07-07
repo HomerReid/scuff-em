@@ -1096,8 +1096,8 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
       fprintf(f,"View \"%i\"{",nd);
      for(int np=0; np<S->NumPanels; np++)
       { 
-        double *V[3];        // vertices
-        double Q[3];         // quantities
+        double *V[3];              // vertices
+        double Q[3]={0.0,0.0,0.0}; // quantities
         double QAvg=0.0;     // average quantity, excluding absurd vertices
         int nAvg=0;          // # vertices that contributed to average
         for(int iv=0; iv<3; iv++)

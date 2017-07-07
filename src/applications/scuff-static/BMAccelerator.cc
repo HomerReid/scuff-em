@@ -41,6 +41,7 @@ bool IsIdentity(GTransformation *GT,
   return true;
 }
 
+// index of off-diagonal matrix block (ns,nsp) where nsp>ns
 int OffDiagonalBlockIndex(int NS, int ns, int nsp)
 { return ns*NS - ns*(ns+1)/2 + nsp - ns - 1; }
 
@@ -137,7 +138,14 @@ HMatrix *GetEquivalentPairMatrix(RWGGeometry *G, HMatrix *M=0)
                                      VecDistance(SB->RMax, SB->RMin)
                                    );
           if ( IsIdentity(&T, Lengthscale) )
-           { M->SetEntry(nsAlpha, nsBeta, (double)OffDiagonalBlockIndex(NS, nsA, nsB));
+           { double Sign=1.0;
+             if (nsB<nsA)
+              { int temp = nsA; nsA=nsB; nsB=temp;
+                SA=G->Surfaces[nsA];
+                SB=G->Surfaces[nsB];
+                Sign=-1.0;
+              };
+             M->SetEntry(nsAlpha, nsBeta, Sign * (double)OffDiagonalBlockIndex(NS, nsA, nsB));
              Log(" %10s<-->%-10s === %10s<-->%-10s",SAlpha->Label,SBeta->Label,SA->Label,SB->Label);
              nsA=nsAlpha; nsB=nsBeta; // to break out of inner loop
            };
@@ -270,11 +278,22 @@ void ReassembleBEMMatrix(SSSolver *SSS, HMatrix **pM,
         M->InsertBlock(TBlocks[ns], RowOffset, RowOffset);
         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
          { int ColOffset=G->PanelIndexOffset[nsp];
+
            int nbEffective=nb;
+           bool Flip=false;
            if (PairMatrix && (PairMatrix->GetEntryD(ns,nsp)!=0.0))
-            nbEffective=(int)(PairMatrix->GetEntryD(ns,nsp));
-           M->InsertBlock(UBlocks[nbEffective], RowOffset, ColOffset);
-           M->InsertBlockTranspose(UBlocks[nbEffective], ColOffset, RowOffset);
+            { nbEffective=(int)(fabs(PairMatrix->GetEntryD(ns,nsp)));
+              Flip = (PairMatrix->GetEntryD(ns,nsp) < 0.0 );
+            };
+
+           if (Flip)
+            { M->InsertBlockTranspose(UBlocks[nbEffective], RowOffset, ColOffset);
+              M->InsertBlock(UBlocks[nbEffective], ColOffset, RowOffset);
+            }
+           else
+            { M->InsertBlock(UBlocks[nbEffective], RowOffset, ColOffset);
+              M->InsertBlockTranspose(UBlocks[nbEffective], ColOffset, RowOffset);
+            };
          };
       };
    };

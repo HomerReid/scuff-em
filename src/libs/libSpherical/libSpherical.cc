@@ -504,6 +504,8 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
    { kr=k*r;
      if ( WaveType == LS_REGULAR )
       AmosBessel('j',kr,0.0,lMax+2,false,R,Workspace);
+     else if ( WaveType == LS_IRREGULAR )
+      AmosBessel('y',kr,0.0,lMax+2,false,R,Workspace);
      else if ( WaveType == LS_OUTGOING ) 
       AmosBessel('o',kr,0.0,lMax+2,false,R,Workspace);
      else  // ( WaveType == LS_INCOMING ) 
@@ -575,6 +577,7 @@ void GetRadialFunction(int l, cdouble k, double r, int WaveType,
 /* RFArray[3*L + 2] = -Sqrt[L*(L+1)]*R(kr)/kr                  */
 /*                                                             */
 /* where R(kr) = j_\ell(kr)     for WaveType=LS_REGULAR        */
+/*               y_\ell(kr)     for WaveType=LS_IRREGULAR      */
 /*               h^(1)_\ell(kr) for WaveType=LS_OUTGOING       */
 /*               h^(2)_\ell(kr) for WaveType=LS_INCOMING       */
 /*                                                             */
@@ -599,9 +602,10 @@ void GetVSWRadialFunctions(int LMax, cdouble k, double r,
 
   cdouble z=k*r;
 
-  char Func =   (WaveType==LS_INCOMING) ? 't'
-              : (WaveType==LS_OUTGOING) ? 'o'
-              :                           'j'; // LS_REGULAR;
+  char Func =   (WaveType==LS_INCOMING)  ? 't'
+              : (WaveType==LS_OUTGOING)  ? 'o'
+              : (WaveType==LS_IRREGULAR) ? 'y'
+              :                            'j'; // LS_REGULAR;
 
   AmosBessel(Func,z,0.0,LMax+2,false,RFArray,Workspace);
 
@@ -905,7 +909,7 @@ void GetMNlmArray(int lMax, cdouble k,
 }
 
 /***************************************************************/
-/***************************************************************/
+/* this function does not work for WaveType==LS_IRREGULAR!     */
 /***************************************************************/
 void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Phi, 
                       int WaveType, cdouble M[3], cdouble N[3])

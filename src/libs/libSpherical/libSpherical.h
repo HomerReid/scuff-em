@@ -44,9 +44,10 @@
 #endif
 
 // values for the 'WaveType' flag passed to functions below
-#define LS_REGULAR  0
-#define LS_OUTGOING 1
-#define LS_INCOMING 2
+#define LS_REGULAR   0
+#define LS_OUTGOING  1
+#define LS_INCOMING  2
+#define LS_IRREGULAR 3
 
 /***************************************************************/
 /* my routines for computing spherical harmonics and other     */
