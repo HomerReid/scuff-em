@@ -184,7 +184,7 @@ void GetCPIntegrand(void *pSCPD, cdouble Omega, double *kBloch, double *U)
        GetPECPlateDGF(R[2], Xi, GE);
 
       if (f) fprintf(f,"%e %e %e %e %e ",R[0],R[1],R[2],Xi,kBloch[0]);
-      if (G->LDim==2) fprintf(f,"%e ",kBloch[1]);
+      if (G && G->LDim==2) fprintf(f,"%e ",kBloch[1]);
       for(int na=0; na<NumAtoms; na++)
        { 
          HMatrix *Alpha = Alphas[na];
@@ -228,7 +228,8 @@ void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/ 
   /***************************************************************/ 
   cdouble Omega=cdouble(0.0,Xi);
-  if (G->LDim==0)
+  int LDim = G ? G->LDim : 0;
+  if (LDim==0)
    GetCPIntegrand((void *)SCPD, Omega, 0, U);
   else 
    GetBZIntegral(SCPD->BZIArgs, Omega, U);

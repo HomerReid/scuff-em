@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
   SCPD->AbsTol = AbsTol;
   SCPD->RelTol = RelTol;
 
-  if (SCPD->G->LDim>=1)
+  if (SCPD->G && SCPD->G->LDim>=1)
    { UpdateBZIArgs(BZIArgs, SCPD->G->RLBasis, SCPD->G->RLVolume);
      BZIArgs->BZIFunc  = GetCPIntegrand;
      BZIArgs->UserData = (void *)SCPD;
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   HVector *XiList=0;
   HMatrix *XikList=0;
-  int LDim=SCPD->G->LDim;
+  int LDim = (SCPD->G) ? SCPD->G->LDim : 0;
   if ( XikBlochFile )
    { if (LDim==0) 
       ErrExit("--XikBloch file cannot be used with non-periodic geometries");
@@ -345,7 +345,8 @@ int main(int argc, char *argv[])
   if (XiList==0)
    { 
      char OutFileName[MAXSTR];
-     snprintf(OutFileName, MAXSTR, "%s.out",GetFileBase(GeoFile));
+     snprintf(OutFileName, MAXSTR, "%s.out",GeoFile ? GetFileBase(GeoFile)
+                                                    : "PECPlate");
      WriteFilePreamble(SCPD, OutFileName, argc, argv, FILETYPE_OUT);
 
      FILE *f=fopen(OutFileName,"a");

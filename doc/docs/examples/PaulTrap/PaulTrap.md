@@ -40,7 +40,7 @@ of your [[scuff-em]] installation.
 ## <span class=SC>gmsh</span> geometry and mesh files
 
 The [<span class=SC>gmsh</span>][GMSH]
-geometry file [Trap.geo](Trap.geo) describes
+geometry file [`Trap.geo`](Trap.geo) describes
 a collection of conductor surfaces constituting a Paul trap.
 This file contains a user-specifiable parameter `ELCNT`
 that may be used to set the number of electrodes; to create
@@ -73,7 +73,7 @@ write a [<span class=SC>scuff-em</span> geometry file][scuffEMGeometries]
 for this geometry would be simply to include each of the 15
 distinct surfaces in `OBJECT...ENDOBJECT` clauses, each clause
 referencing a unique entity in the mesh. This strategy
-is pursued by the file [Trap_4.scuffgeo](Trap_4.scuffgeo),
+is pursued by the file [`Trap_4.scuffgeo`](Trap_4.scuffgeo),
 which looks like this:
 
 ````bash
@@ -151,10 +151,11 @@ ENDOBJECT
 Note that, although each of the `OBJECT` clauses references
 the same mesh file, the different values of the `MESHTAG`
 field select distinct entities within that file, so that each
-of the 15 `OBJECT`s are treated by [[scuff-em]] as
+of the 15 `OBJECTs` are treated by [[scuff-em]] as
+distinct identities.
 (The values of the `MESHTAG` identifiers are defined
 in `.geo` files by [[gmsh]]'s `Physical Surface` construct;
-see [Trap.geo](Trap.geo) for an example).
+see [`Trap.geo`](Trap.geo) for an example).`
 
 ## Improved <span class=SC>scuff-em</span> geometry file
 
@@ -203,7 +204,7 @@ identical diagonal blocks to the BEM system matrix; if
 [[scuff-em]] knows that an object in a geometry has 7 identical
 mates, then it need only compute the corresponding matrix
 block *once* instead of 8 times, yielding huge cost reductions.
-[[scuff-em]] also detects and exploits redundancies in *off-diagonal*
+[[scuff-static]] also detects and exploits redundancies in *off-diagonal*
 matrix blocks.)
 
 The file that implements this improved strategy is [`Trap_4_Improved.scuffgeo`](Trap_4_Improved.scuffgeo),
@@ -487,13 +488,13 @@ EXCITATION KitchenSink
 # point charge at X=(-400,1000,250) with charge -300
 	monopole -400.0 1000.0 250.0   -300
 
-# z-directed point dipole at X=(-400,-1000,-400)
+# z-directed point dipole at X=(-300,-1000,-400)
 	dipole  -300.0 -1000.0 -400.0  0.0 0.0 10000.0
 
 # small constant background field in Z-direction
-	constant_field 0 0.0 1.0e-4
+	constant_field 0 0 1.0e-4
 
-# arbitrary user-specified function of x, y, z, r, Rho, Theta Phi
+# arbitrary user-specified function of x, y, z, r, Rho, Theta, Phi
         phi 1.0e-8*Rho*Rho*cos(2.0*Phi)
 
 ENDEXCITATION
@@ -503,12 +504,12 @@ ENDEXCITATION
 Item **(c)** is handled by using [[gmsh]] to define a *field-visualization
 mesh*---in essence, a screen on which we want an image of the electrostatic
 field configuration, although it need not be planar---together with a
-set of [geometrical transformations] specifying how the screen is to
-be moved throughout space to yield quasi-3D visual information on the 
+set of [geometrical transformations][Transformations] specifying how the screen 
+is to be replicated throughout space to yield quasi-3D visual information on the 
 field configuration. In this case, the mesh is described by 
 the simple [[gmsh]] geometry file [`Screen.geo`](Screen.geo),
-which we turn into `Screen.msh` by running `gmsh -2 Screen.geo`,
-and the transformation file [`Screen.trans`](Screen.trans)
+which we turn into `Screen.msh` by running `gmsh -2 Screen.geo`.
+Then, the transformation file [`Screen.trans`](Screen.trans)
 specifies three geometrical transformations in which the screen
 is rotated and displaced to define the three walls of the diorama
 shown in the figure below.
@@ -541,6 +542,7 @@ Click the image below for higher resolution:
 
 [GMSH]:                 	http://www.geuz.org/gmsh
 [scuffEMGeometries]: 		../../reference/Geometries
+[Transformations]: 		../../reference/Transformations
 [scuffAnalyze]: 		../../applications/scuff-analyze/scuff-analyze.md
 [Type1Excitations]: 		../../applications/scuff-static/scuff-static.md#Type1Excitations
 [ExcitationFile]:   		../../applications/scuff-static/scuff-static.md#ExcitationFile
