@@ -714,9 +714,9 @@ void EnableAllCPUs()
 /* wait for keypress *******************************************/
 /***************************************************************/
 void KeyPause()
-{ char buffer[100], *c;
+{ char buffer[100];
   printf("press any key to continue...");
-  c=fgets(buffer,100,stdin);
+  fgets(buffer,100,stdin);
 }
 
 /***************************************************************/

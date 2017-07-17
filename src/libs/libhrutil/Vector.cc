@@ -170,6 +170,29 @@ cdouble VecHDot(const cdouble *v1, const cdouble *v2, int N)
   return HDot;
 }
 
+double VecNorm2(const cdouble *v, int N)
+{ return real(VecHDot(v,v,N)); }
+
+double VecNorm(const cdouble *v, int N)
+{ return sqrt(VecNorm2(v,N)); }
+
+double VecNormalize(cdouble *v, int N)
+{ double d=VecNorm(v, N); 
+  VecScale(v, 1.0/d, N);
+  return d;
+}
+
+double VecDistance2(const cdouble *v1, const cdouble *v2, int N)
+{ double d=0.0;
+  for(int n=0; n<N; n++) 
+   d += norm(v1[n]-v2[n]);
+  return d;
+}
+
+double VecDistance(const cdouble *v1, const cdouble *v2, int N)
+{ return sqrt(VecDistance2(v1,v2,N));
+}
+
 /***************************************************************/
 /* finite-difference derivatives of vector-valued functions    */
 /***************************************************************/

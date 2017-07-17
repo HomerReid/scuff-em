@@ -158,6 +158,11 @@ cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const double *v2, int N=3);
 cdouble *VecSub(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
 cdouble *VecAdd(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
 cdouble VecHDot(const cdouble *v1, const cdouble *v2, int N=3);
+double VecNorm2(const cdouble *v, int N);
+double VecNorm(const cdouble *v, int N);
+double VecNormalize(cdouble *v, int N);
+double VecDistance2(const cdouble *v1, const cdouble *v2, int N);
+double VecDistance(const cdouble *v1, const cdouble *v2, int N);
 
 /***************************************************************/
 /* finite-difference derivatives *******************************/

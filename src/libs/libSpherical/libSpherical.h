@@ -84,6 +84,20 @@ void VectorS2C(double Theta, double Phi, double V[3]);
 void VectorS2C(double Theta, double Phi, cdouble V[3]);
 
 /***************************************************************/
+/* finite-difference vector-calculus operators                 */
+/***************************************************************/
+void GetDiv(double r, double Theta, double Phi,
+            void (*F)(double r, double Theta, double Phi, cdouble *V),
+            cdouble Terms[3], cdouble *DivF);
+
+cdouble GetDiv(double r, double Theta, double Phi,
+               void (*F)(double r, double Theta, double Phi, cdouble *V));
+
+void GetCurl(double r, double Theta, double Phi,
+             void (*F)(double r, double Theta, double Phi, cdouble *V),
+             cdouble *CurlF, cdouble *CurlF2);
+
+/***************************************************************/
 /* spherical harmonics                                         */
 /***************************************************************/
 void GetYlmArray(int lMax, double Theta, double Phi, cdouble *Ylm);
@@ -111,18 +125,62 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
 void GetRadialFunction(int l, cdouble k, double r, int WaveType,
                        cdouble *R, cdouble *dRdr=0, cdouble *RlSlash=0);
 
-void GetVSWRadialFunctions(int LMax, cdouble k, double r,
-                           int WaveType, cdouble *RFArray,
-                           double *Workspace=0,
-                           bool TimesrFactor=false,
-                           bool Conjugate=false);
-
 /***************************************************************/
 /* scalar helmholtz solutions **********************************/
 /***************************************************************/
 void GetScalarHelmholtzSolutions(int lMax, cdouble k,
                                  double r, double Theta, double Phi,
                                  int WaveType, cdouble *Psi);
+
+/***************************************************************/
+/* vector helmholtz solutions: spherical waves / Maxwell waves */
+/***************************************************************/
+int GetMWIndex(int L, int M, int T); // maxwell-wave index
+int GetSWIndex(int L, int M, int P); // spherical-wave index
+int GetRFIndex(int L, int P);        // radial-function index
+
+void GetAngularFunctionArray(int LMax, double Theta, double Phi,
+                             cdouble *Workspace, HMatrix *AAMatrix);
+
+void GetAngularFunctionArray(int LMax, double X[3],
+                             cdouble *Workspace, HMatrix *AAMatrix);
+
+void GetVSWRadialFunctions(int LMax, cdouble k, double r,
+                           int WaveType, cdouble *RFArray,
+                           double *Workspace=0,
+                           bool TimesrFactor=false,
+                           bool Conjugate=false);
+
+HMatrix *GetWaveMatrix(double r, double Theta, double Phi,
+                       cdouble k, int LMax, int WaveType,
+                       HMatrix *WaveMatrix=0, bool MaxwellWaves=true,
+                       cdouble *Workspace=0, bool RConjugate=false);
+
+HMatrix *GetWaveMatrix(double X[3],
+                       cdouble k, int LMax, int WaveType,
+                       HMatrix *WaveMatrix=0, bool MaxwellWaves=true,
+                       cdouble *Workspace=0, bool RConjugate=0);
+
+HMatrix *GetMWMatrix(double r, double Theta, double Phi,
+                     cdouble k, int LMax, int WaveType,
+                     HMatrix *WaveMatrix=0, cdouble *Workspace=0,
+                     bool RConjugate=false);
+
+HMatrix *GetMWMatrix(double X[3], cdouble k, int LMax, int WaveType,
+                     HMatrix *WaveMatrix=0, cdouble *Workspace=0, 
+                     bool RConjugate=false);
+
+double GetdzVSWCoefficient(int L,  int M,  int T,
+                           int LP, int MP, int TP);
+
+void GetTranslationMatrices(double Xij[3], cdouble k, int lMax, 
+                            HMatrix *A, HMatrix *B, HMatrix *C);
+
+/***************************************************************/
+/* stuff below this line is legacy, replaced by stuff in new   */
+/* file VectorSphericalWaves.cc, and should eventually be      */
+/* removed                                                     */
+/***************************************************************/
 
 /***************************************************************/
 /* vector spherical harmonics                                  */
@@ -141,37 +199,11 @@ void GetMNlmArray(int lMax, cdouble k,
                   int WaveType, cdouble *M, cdouble *N, 
                   double *Workspace=0, cdouble *LL=0, cdouble *DivLL=0);
 
-double GetdzVSWCoefficient(int L,  int M,  int T,
-                           int LP, int MP, int TP);
-
 /***************************************************************/
 /***************************************************************/
 /* differential operators **************************************/
 /***************************************************************/
 /***************************************************************/
-
-/***************************************************************/
-/* compute the divergence of a vector-valued function **********/
-/***************************************************************/
-void GetDiv(double r, double Theta, double Phi,
-            void (*F)(double r, double Theta, double Phi, cdouble *V),
-            cdouble Terms[3], cdouble *DivF);
-
-cdouble GetDiv(double r, double Theta, double Phi,
-               void (*F)(double r, double Theta, double Phi, cdouble *V));
-
-/***************************************************************/
-/* compute the curl of a vector-valued function ****************/
-/***************************************************************/
-void GetCurl(double r, double Theta, double Phi,
-             void (*F)(double r, double Theta, double Phi, cdouble *V),
-             cdouble *CurlF, cdouble *CurlF2);
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetTranslationMatrices(double Xij[3], cdouble k, int lMax, 
-                            HMatrix *A, HMatrix *B, HMatrix *C);
 
 /***************************************************************/
 /* bessel and airy functions in AmosBessel.cc                  */
