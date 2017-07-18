@@ -289,6 +289,41 @@ HMatrix *RWGGeometry::GetPFTMatrix(HVector *KN, cdouble Omega,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *GetPFTByRegion(RWGGeometry *G, HMatrix *PFTBySurface,
+                        HMatrix *PFTByRegion)
+{
+  int NS = G->NumSurfaces;
+  int NR = G->NumRegions;
+  if (PFTByRegion && (PFTByRegion->NR!=NR || PFTByRegion->NC!=NUMPFT))
+   { Warn("wrong-size matrix in GetPFTByRegion (reallocating)");
+     delete PFTByRegion;
+     PFTByRegion=0;
+   };
+  if (PFTByRegion==0)
+   PFTByRegion = new HMatrix(NR, NUMPFT);
+
+  PFTByRegion->Zero();
+  for(int nr=0; nr<NR; nr++)
+   for(int ns=0; ns<NS; ns++)
+    { 
+      RWGSurface *S=G->Surfaces[ns];
+      if (S->IsPEC) continue;
+      double Sign = 0.0;
+      if (S->RegionIndices[0]==nr) 
+       Sign=1.0;
+      else if (S->RegionIndices[1]==nr) 
+       Sign=-1.0;
+      else
+       continue;
+      for(int nq=0; nq<NUMPFT; nq++)
+       PFTByRegion->AddEntry(nr, nq, Sign*PFTBySurface->GetEntry(ns, nq));
+    };
+  return PFTByRegion;
+} 
+
+/***************************************************************/
 /* routine for initializing a PFTOptions structure to default  */
 /* values; creates and returns a new default structure if      */
 /* called with Options=NULL or with no argument                */

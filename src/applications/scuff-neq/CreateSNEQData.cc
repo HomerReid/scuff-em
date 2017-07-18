@@ -42,9 +42,9 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName)
+void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName, bool ByRegion=false)
 {
-  FILE *f=fopen(FileName,"a");
+  FILE *f = ByRegion ? vfopen("%s.byRegion","a",FileName) : fopen(FileName,"a");
   fprintf(f,"\n");
   fprintf(f,"# scuff-neq run on ");
   fprintf(f,"%s (%s)\n",GetHostName(),GetTimeString());
@@ -57,7 +57,10 @@ void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName)
    fprintf(f,"# %i kBloch_x \n",nq++);
   if (LDim>=2)
    fprintf(f,"# %i kBloch_y \n",nq++);
-  fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
+  if (ByRegion)
+   fprintf(f,"# %i (sourceRegion,destRegion) \n",nq++);
+  else
+   fprintf(f,"# %i (sourceSurface,destSurface) \n",nq++);
   for(int nPFT=0; nPFT<NUMPFT; nPFT++)
    fprintf(f,"# %i %s flux spectral density\n",
   nq++,QuantityNames[nPFT]);
@@ -128,6 +131,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   
   int NT = SNEQD->NumTransformations;
   int NS = SNEQD->G->NumSurfaces;
+  int NR = SNEQD->G->NumRegions;
 
   /*--------------------------------------------------------------*/
   /*- read the list of evaluation points for spatially-resolved  -*/
@@ -206,6 +210,20 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      fprintf(f,"# %2i %2i %2i Tyx,   Tyy,   Tyz \n",nq,nq+1,nq+2); nq+=3;
      fprintf(f,"# %2i %2i %2i Tzx,   Tzy,   Tzz \n",nq,nq+1,nq+2); nq+=3;
      fclose(f);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  SNEQD->PFTByRegion=0;
+  SNEQD->RegionRegionPFT=0;
+  if( NS > (NR-1) ) 
+   { SNEQD->PFTByRegion = new HMatrix(NR, NUMPFT);
+     SNEQD->RegionRegionPFT = (HMatrix **)mallocEC( NumPFTMethods*sizeof(HMatrix *));
+     for(int npm=0; npm<NumPFTMethods; npm++)
+      { SNEQD->RegionRegionPFT[npm]=new HMatrix( (NR+1)*(NR+1), NUMPFT);
+        WriteSIFluxFilePreamble(SNEQD, SNEQD->SIFluxFileNames[npm], true);
+      };
    };
 
   Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);

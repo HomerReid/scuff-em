@@ -40,11 +40,11 @@ namespace scuff {
 #define PFT_PABS    0  // absorbed power
 #define PFT_PSCAT   1  // scattered power
 #define PFT_XFORCE  2  // force components
-#define PFT_YFORCE  3  // 
-#define PFT_ZFORCE  4  // 
+#define PFT_YFORCE  3  //
+#define PFT_ZFORCE  4  //
 #define PFT_XTORQUE 5  // torque components
 #define PFT_YTORQUE 6  // 
-#define PFT_ZTORQUE 7  // 
+#define PFT_ZTORQUE 7  //
 #define NUMPFT      8
 
 // for NEQ calculations, radiated power goes in the PSCAT slot
@@ -145,6 +145,9 @@ void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
                     bool IsPECA, int KNIndexA,
                     bool IsPECB, int KNIndexB,
                     cdouble Bilinears[4]);
+
+HMatrix *GetPFTByRegion(RWGGeometry *G, HMatrix *PFTBySurface,
+                        HMatrix *PFTByRegion);
 
 } // namespace scuff 
 

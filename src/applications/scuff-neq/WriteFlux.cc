@@ -300,9 +300,15 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
      /*- note: nss = 'num surface, source'                          -*/
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
-     int NumPFTMethods  = SNEQD->NumPFTMethods;
-     int *PFTMethods    = SNEQD->PFTMethods;
-     HMatrix *PFTMatrix = SNEQD->PFTMatrix;
+     int NumPFTMethods         = SNEQD->NumPFTMethods;
+     int *PFTMethods           = SNEQD->PFTMethods;
+     HMatrix *PFTMatrix        = SNEQD->PFTMatrix;
+     HMatrix *PFTByRegion      = SNEQD->PFTByRegion;
+     HMatrix **RegionRegionPFT = SNEQD->RegionRegionPFT;
+     int NR = G->NumRegions;
+     if (RegionRegionPFT)
+      for(int npm=0; npm<NumPFTMethods; npm++)
+       RegionRegionPFT[npm]->Zero();
      for(int nss=0; nss<NS; nss++)
       {
         // PEC bodies do not act as thermal sources
@@ -324,7 +330,8 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
 
            FILE *f=vfopen(SNEQD->SIFluxFileNames[npm],"a");
            for(int nsd=0; nsd<NS; nsd++)
-            { fprintf(f,"%s %e ",Tag,real(Omega));
+            { 
+              fprintf(f,"%s %e ",Tag,real(Omega));
               if (kBloch) fprintVec(f,kBloch,G->LDim);
               fprintf(f,"%i%i ",nss+1,nsd+1);
               for(int nq=0; nq<NUMPFT; nq++)
@@ -333,6 +340,19 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
             };
            fclose(f);
 
+           if (PFTByRegion)
+            { GetPFTByRegion(G, PFTMatrix, PFTByRegion);
+              int nsr1 = G->Surfaces[nss]->RegionIndices[0]; // source region 1
+              int nsr2 = G->Surfaces[nss]->RegionIndices[1]; // source region 2
+              for(int ndr=0; ndr<NR; ndr++) // ndr = destination region
+               for(int nq=0; nq<NUMPFT; nq++)
+                { double PFT = PFTByRegion->GetEntryD(ndr, nq);
+                  if (nsr1!=0)
+                   RegionRegionPFT[npm]->AddEntry( (nsr1+1)*(NR+1) + ndr+1, nq, PFT);
+                  if (nsr2!=0)
+                   RegionRegionPFT[npm]->AddEntry( (nsr2+1)*(NR+1) + ndr+1, nq, PFT);
+                };
+            };
          };
 
         // compute spatially-resolved flux quantities for
@@ -362,7 +382,32 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
             fclose(f);
           };
 
-      };
+      }; // for(int nss=0; nss<NS; nss++)
+
+     if (PFTByRegion)
+      for(int npm=0; npm<NumPFTMethods; npm++)
+       { 
+         for(int nsr=0; nsr<NR; nsr++)
+          for(int ndr=0; ndr<NR; ndr++)
+           for(int nq=0; nq<NUMPFT; nq++)
+            { double PFT=RegionRegionPFT[npm]->GetEntryD( (nsr+1)*(NR+1) + ndr+1, nq);
+              RegionRegionPFT[npm]->AddEntry( 0*(NR+1) + ndr+1, nq, PFT );
+              RegionRegionPFT[npm]->AddEntry( 0*(NR+1) +     0, nq, PFT );
+            };
+
+         FILE *f=vfopen("%s.byRegion","a",SNEQD->SIFluxFileNames[npm]);
+         for(int nsr=0; nsr<=NR; nsr++) // ndr = number of destination region
+          for(int ndr=0; ndr<=NR; ndr++) // ndr = number of destination region
+           { fprintf(f,"%s %e ",Tag,real(Omega));
+             if (kBloch) fprintVec(f,kBloch,G->LDim);
+             fprintf(f,"%i%i ",nsr,ndr);
+             for(int nq=0; nq<NUMPFT; nq++)
+              fprintf(f,"%+.8e ",RegionRegionPFT[npm]->GetEntryD( nsr*(NR+1) + ndr, nq));
+             fprintf(f,"\n");
+           };
+          fclose(f);
+       };
+         
 
      /*--------------------------------------------------------------*/
      /* untransform the geometry                                     */

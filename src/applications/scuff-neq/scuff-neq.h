@@ -94,6 +94,7 @@ typedef struct SNEQData
    /*--------------------------------------------------------------*/
    PFTOptions PFTOpts;
    HMatrix *PFTMatrix;
+   HMatrix *PFTByRegion, **RegionRegionPFT;
    int NumPFTMethods;
    int PFTMethods[MAXPFTMETHODS];
    char *SIFluxFileNames[MAXPFTMETHODS];
