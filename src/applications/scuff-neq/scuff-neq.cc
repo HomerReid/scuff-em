@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   int DSIPoints    = 0;
   int DSIPoints2   = 0;
   char *DSIMesh    = 0;
-  double DSIRadius = 10.0;
+  double DSIRadius = 0.0;
   bool DSIFarField = false;
   char *DSIOmegaFile = 0;
 

@@ -244,12 +244,12 @@ HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 /* this surface by doing a one-point cubature over each panel. */
 /*                                                             */
 /* Otherwise, the cubature rule describes a Lebedev cubature   */
-/* rule with NumPoints cubature points on a sphere of radius R.*/
+/* rule with DSIPoints cubature points on a sphere of radius R.*/
 /*                                                             */
 /* If GT1 and/or GT2 are non-null, then each cubature point    */
 /* normal vector is transformed by GT1 (first) and then GT2.   */
 /***************************************************************/
-HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
+HMatrix *GetSCRMatrix(char *DSIMesh, double DSIRadius, int DSIPoints,
                       GTransformation *GT1=0, GTransformation *GT2=0)
 {
   HMatrix *SCRMatrix;
@@ -257,9 +257,9 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (BSMesh)
+  if (DSIMesh)
    { 
-     RWGSurface *BS=new RWGSurface(BSMesh);
+     RWGSurface *BS=new RWGSurface(DSIMesh);
      SCRMatrix = new HMatrix(BS->NumPanels, 7);
      for(int np=0; np<BS->NumPanels; np++)
       { 
@@ -289,17 +289,18 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   else
-   { double *LRule = GetLebedevRule(NumPoints);
-     if (LRule==0) ErrExit("no Lebedev rule with %i points",NumPoints);
-     SCRMatrix = new HMatrix(NumPoints, 7);
-     for(int np=0; np<NumPoints; np++)
+   { double *LRule = GetLebedevRule(DSIPoints);
+     if (LRule==0) ErrExit("no Lebedev rule with %i points",DSIPoints);
+     SCRMatrix = new HMatrix(DSIPoints, 7);
+     double R=DSIRadius, R2=R*R;
+     for(int np=0; np<DSIPoints; np++)
       { SCRMatrix->SetEntry(np,0, R*LRule[4*np + 0]);
         SCRMatrix->SetEntry(np,1, R*LRule[4*np + 1]);
         SCRMatrix->SetEntry(np,2, R*LRule[4*np + 2]);
         SCRMatrix->SetEntry(np,3, LRule[4*np + 0]);
         SCRMatrix->SetEntry(np,4, LRule[4*np + 1]);
         SCRMatrix->SetEntry(np,5, LRule[4*np + 2]);
-        SCRMatrix->SetEntry(np,6, R*R*LRule[4*np + 3]);
+        SCRMatrix->SetEntry(np,6, R2*LRule[4*np + 3]);
       };
    };
 
@@ -432,12 +433,29 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+double AutodetectDSIRadius(RWGGeometry *G, GTransformation *GT1, GTransformation *GT2)
+{
+  double X0[3]={0.0, 0.0, 0.0};
+  if (GT1) GT1->Apply(X0);
+  if (GT2) GT2->Apply(X0);
+  double Radius=0.0;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
+    { double *XP=G->Surfaces[ns]->Panels[np]->Centroid;
+      Radius = fmax(Radius, VecDistance(X0, XP));
+    };
+  return 1.5*Radius;
+}
+
+/***************************************************************/
 /* Get power, force, and torque by the displaced               */
 /* surface-integral method.                                    */
 /***************************************************************/
 void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                HVector *KN, IncField *IF, double PFT[NUMPFT],
-               char *BSMesh, double R, int NumPoints,
+               char *DSIMesh, double DSIRadius, int DSIPoints,
                bool FarField, char *PlotFileName, 
                GTransformation *GT1, GTransformation *GT2)
 {
@@ -446,15 +464,21 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (BSMesh)
-   Log("Computing DSIPFT over bounding surface %s...",BSMesh);
+  if (DSIRadius==0.0)
+   DSIRadius = AutodetectDSIRadius(G, GT1, GT2);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (DSIMesh)
+   Log("Computing DSIPFT over bounding surface %s...",DSIMesh);
   else
-   Log("Computing DSIPFT: (R,NPts)=(%e,%i)",R, NumPoints);
+   Log("Computing DSIPFT: (Radius,# Pts)=(%e,%i)",DSIRadius,DSIPoints);
 
   /***************************************************************/
   /* get cubature-rule matrix ************************************/
   /***************************************************************/
-  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, GT1, GT2);
+  HMatrix *SCRMatrix = GetSCRMatrix(DSIMesh, DSIRadius, DSIPoints, GT1, GT2);
 
   /***************************************************************/
   /* we assume that all cubature points lie in the same region   */
@@ -500,8 +524,8 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
   /***************************************************************/
   double **ByPanel=0;
   RWGSurface *BS=0;
-  if (BSMesh && PlotFileName)
-   { BS=new RWGSurface(BSMesh);
+  if (DSIMesh && PlotFileName)
+   { BS=new RWGSurface(DSIMesh);
      if (GT1) BS->Transform(GT1);
      if (GT2) BS->Transform(GT2);
      ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
@@ -585,7 +609,7 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
 /***************************************************************/
 void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
-                    char *BSMesh, double R, int NumPoints,
+                    char *DSIMesh, double DSIRadius, int DSIPoints,
                     bool FarField, char *PlotFileName,
                     GTransformation *GT1, GTransformation *GT2)
 {
@@ -593,14 +617,17 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   (void) PlotFileName;
   (void) NeedQuantity;
 
+  if (DSIRadius==0.0)
+   DSIRadius = AutodetectDSIRadius(G, GT1, GT2);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   Log("Computing DSIPFT: ");
-  if (BSMesh)
-   LogC(" (BS mesh %s)",BSMesh);
+  if (DSIMesh)
+   LogC(" (BS mesh %s)",DSIMesh);
   else
-   LogC(" (R=%e, NC=%i)",R,NumPoints);
+   LogC(" (R=%e, NC=%i)",DSIRadius,DSIPoints);
 
   double XTorque[3] = {0.0, 0.0, 0.0};
   if (GT1) GT1->Transform(XTorque);
@@ -609,7 +636,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, GT1, GT2);
+  HMatrix *SCRMatrix = GetSCRMatrix(DSIMesh, DSIRadius, DSIPoints, GT1, GT2);
   HMatrix *SRMatrix  = GetSRFluxTrace(G, SCRMatrix, Omega, DRMatrix);
 
   /*--------------------------------------------------------------*/

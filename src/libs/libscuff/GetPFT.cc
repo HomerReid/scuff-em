@@ -183,6 +183,12 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      GTransformation *GT1 = S->OTGT;
      GTransformation *GT2 = S->GT;
 
+     if (DSIRadius==0.0)
+      { double Diag[3];
+        VecSub(S->RMax, S->RMin, Diag);
+        DSIRadius = 0.75*VecNorm(Diag);
+      };
+
      if (DRMatrix==0)
       GetDSIPFT(this, Omega, kBloch, KN, IF, PFT,
                 DSIMesh, DSIRadius, DSIPoints,
@@ -344,8 +350,9 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   Options->RHSVector = 0;
 
   // options affecting DSI PFT computation
+  // (note: DSIRadius=0 means autodetect the radius)
   Options->DSIMesh=0;
-  Options->DSIRadius=10.0;
+  Options->DSIRadius=0.0;
   Options->DSIPoints=302;
   Options->DSIFarField=false;
   for(int nq=0; nq<NUMPFT; nq++) 

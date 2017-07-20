@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
   char *MomentPFTFile=0;
   char *EMTPFTFile=0;
   char *DSIPFTFile = 0;
-  double DSIRadius = 10.0;
+  double DSIRadius = 0.0;
   int DSIPoints    = 302;
   int DSIPoints2   = 0;
   char *DSIMesh    = 0;
