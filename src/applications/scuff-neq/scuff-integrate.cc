@@ -172,12 +172,48 @@ int Integrand(unsigned ndim, const double *x, void *UserData,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void DetectDuplicates(char *FileName, double *V, int Length)
-{ 
-  for(int m=0; m<Length; m++)
-   for(int n=m+1; n<Length; n++)
-    if ( V[m] == V[n] )
-     ErrExit("%s: two or more data points both have frequency %e",FileName,V[m]);
+bool Equal(double X, double Y, double RelTol, double AbsTol)
+{
+  if ( fabs(X)<=AbsTol && fabs(Y)<=AbsTol )
+   return true;
+  double Delta = fabs(X-Y);
+  if ( Delta<=AbsTol || Delta<=RelTol*fmax(fabs(X),fabs(Y)) )
+   return true;
+  return false;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RemoveDuplicates(char *FileName,
+                      double *XValues, double *YValues, int NumData, int *NumPoints,
+                      double RelTol=1.0e-6, double AbsTol=1.0e-8)
+{
+  int N = *NumPoints;
+  int NumDuplicates = 0;
+  for(int m=0; m<N; m++)
+   for(int n=m+1; n<N; n++)
+    if ( Equal(XValues[m], XValues[n], RelTol, AbsTol) )
+     { 
+       for(int nd=0; nd<NumData; nd++)
+        if ( !Equal(YValues[ m*NumData + nd], YValues[n*NumData+nd], RelTol, AbsTol) )
+         ErrExit("%s: found incompatible {frequency,data[%i]} pairs {%e,%e}, {%e,%e}",
+                  FileName,nd,XValues[m],YValues[m*NumData+nd],XValues[n],YValues[n*NumData+nd]);
+       
+       // remove column #nd from X and Y arrays
+       NumDuplicates++;
+       for(int p=n; p<(N-1); p++)
+        { XValues[p]=XValues[p+1];
+          for(int nd=0; nd<NumData; nd++)
+           YValues[p*NumData+nd]=YValues[(p+1)*NumData+nd];
+        };
+       XValues[N-1]=0.0;
+       for(int nd=0; nd<NumData; nd++)
+        YValues[(N-1)*NumData+nd]=0.0;
+     };
+  *NumPoints -= NumDuplicates;
+  if (NumDuplicates>0)
+   Warn("removed %i duplicate frequency points",NumDuplicates);
 }
 
 /***************************************************************/
@@ -205,6 +241,8 @@ int main(int argc, char *argv[])
   double RelTol=1.0e-4;
   char *IntegrandFileName=0;
   char *OutFileName=0;
+  double DupAbsTol=0.0;
+  double DupRelTol=1.0e-6;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"DataFile",        PA_STRING,  1, 1,       (void *)&DataFileName,       0,   "data file"},
@@ -218,6 +256,8 @@ int main(int argc, char *argv[])
      {"PreFactor",       PA_DOUBLE,  1, 1,       (void *)&PreFactor,          0,   "overall multiplicative prefactor"},
      {"IntegrandFile",   PA_STRING,  1, 1,       (void *)&IntegrandFileName,  0,   "name of file for integrand data"},
      {"OutFile",         PA_STRING,  1, 1,       (void *)&OutFileName,        0,   "name of output file"},
+     {"DupRelTol",       PA_DOUBLE,  1, 1,       (void *)&DupRelTol,          0,   "relative tolerance for identifying equivalent data points"},
+     {"DupAbsTol",       PA_DOUBLE,  1, 1,       (void *)&DupAbsTol,          0,   "absolute tolerance for identifying equivalent data points"},
 //
      {0,0,0,0,0,0,0}
    };
@@ -357,7 +397,7 @@ int main(int argc, char *argv[])
             YValues[N*NumData + nd]=DataMatrix->GetEntryD(nr, DataColumns[nd]-1);
            N++;
          };
-        DetectDuplicates(DataFileName,XValues,N);
+        RemoveDuplicates(DataFileName,XValues,YValues,NumData,&N,DupRelTol,DupAbsTol);
         if (TagColumn)
          printf("tag %s | ",GetTagString(Tags[nTag]));
         if (SDColumn)
