@@ -643,8 +643,11 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   memset(PFT, 0, NUMPFT*sizeof(double));
+  double MeanPV[3]={0.0, 0.0, 0.0};
+  double MeanMST[9]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  double Area=0.0;
   for(int nx=0; nx<SCRMatrix->NR; nx++)
-   { 
+   {
      double X[3], nHat[3], Weight;
      SCRMatrix->GetEntriesD(nx, "0:2", X);
      SCRMatrix->GetEntriesD(nx, "3:5", nHat);
@@ -656,6 +659,10 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
      double PV[3], MST[9];
      SRMatrix->GetEntriesD(nx, "0:2",  PV);
      SRMatrix->GetEntriesD(nx, "3:11", MST);
+
+     Area += Weight;
+     VecPlusEquals(MeanPV,Weight,PV,3);
+     VecPlusEquals(MeanMST,Weight,MST,9);
    
      double F[3]={0.0, 0.0, 0.0};
      for(int Mu=0; Mu<3; Mu++)
@@ -670,6 +677,80 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
         PFT[PFT_XTORQUE + Mu] += XmXT[MP1]*F[MP2] - XmXT[MP2]*F[MP1];
       };
    };
+  VecScale(MeanPV, 1.0/Area, 3);
+  VecScale(MeanMST, 1.0/Area, 9);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (DSIMesh && PlotFileName)
+   { 
+     static const char *PFTNames[NUMPFT]
+      ={"PAbs","PScat","FX","FY","FZ","TX","TY","TZ"};
+
+     RWGSurface *BS=new RWGSurface(DSIMesh);
+     FILE *f=fopen(PlotFileName,"a");
+    for(int SubtractMean=0; SubtractMean<2; SubtractMean++)
+     for(int nq=0; nq<NUMPFT; nq++)
+      { 
+        if (nq==PFT_PSCAT) continue;
+
+        const char *Suffix = (SubtractMean==0 ? "" : "Bar");
+         fprintf(f,"View \"%s%s(Omega=%s)\" {\n",PFTNames[nq],Suffix,z2s(Omega));
+        for(int np=0; np<BS->NumPanels; np++)
+         { 
+           RWGPanel *P=BS->Panels[np];
+           double *X0   = BS->Panels[np]->Centroid;
+           double *nHat = BS->Panels[np]->ZHat;
+           double *TV[3]; // triangle vertices
+           TV[0]=BS->Vertices + 3*P->VI[0];
+           TV[1]=BS->Vertices + 3*P->VI[1];
+           TV[2]=BS->Vertices + 3*P->VI[2];
+
+           double XmXT[3];
+           VecSub(X0, XTorque, XmXT);
+           double PV[3], MST[9];
+           SRMatrix->GetEntriesD(np, "0:2",  PV);
+           SRMatrix->GetEntriesD(np, "3:11", MST);
+
+           if (SubtractMean)
+            { VecPlusEquals(PV,  -1.0,  MeanPV, 3);
+              VecPlusEquals(MST, -1.0, MeanMST, 9);
+            };
+
+           double PFlux, FFlux[3]; 
+           PFlux    = VecDot(PV, nHat);
+           FFlux[0] = VecDot(MST + 0*3, nHat);
+           FFlux[1] = VecDot(MST + 1*3, nHat);
+           FFlux[2] = VecDot(MST + 2*3, nHat);
+
+           double Val;
+           if (nq==PFT_PABS)
+            Val = PFlux;
+           else if (PFT_XFORCE<=nq && nq<=PFT_ZFORCE)
+            Val = FFlux[nq-PFT_XFORCE];
+           else if (PFT_XTORQUE<=nq && nq<=PFT_ZTORQUE)
+            { int Mu  = nq - PFT_XTORQUE;
+              int MP1 = (Mu+1)%3; 
+              int MP2 = (Mu+2)%3;
+              Val = XmXT[MP1]*FFlux[MP2] - XmXT[MP2]*FFlux[MP1];
+            };
+
+           fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                      TV[0][0], TV[0][1], TV[0][2],
+                      TV[1][0], TV[1][1], TV[1][2],
+                      TV[2][0], TV[2][1], TV[2][2],
+                      Val,Val,Val);
+         }; // for(int np=0; np<BS->NumPanels; np++)
+       fprintf(f,"};\n");
+       fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=1;\n");
+   
+      }; // for(int SubtractMean=0; SubtractMean<2; SubtractMean++), for(int nq=0; nq<NUMPFT; nq++)
+
+     delete BS;
+     fclose(f);
+
+   }; // if (DSIMesh && PlotFileName)
 
   delete SCRMatrix;
   delete SRMatrix;
