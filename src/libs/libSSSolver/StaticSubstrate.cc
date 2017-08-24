@@ -37,182 +37,9 @@
 #include "libSpherical.h"
 #include "SSSolver.h"
 #include "PanelCubature.h"
-#include "StaticSubstrate.h"
+#include "Substrate.h"
 
 using namespace scuff;
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg)
-{
-  MatProp *MPMedium=0;
-  MatProp **MPLayer=0;
-  double *zLayer=0;
-  int NumLayers=0;
-  double zGP=HUGE_VAL;
-
-  char *Dir=0;
-  FILE *f=fopenPath(getenv("SCUFF_SUBSTRATE_PATH"), FileName,"r",&Dir);
-  if (!f)
-   { *pErrMsg=vstrdup("could not open file %s",FileName);
-     return 0;
-   };
-  Log("Reading substrate definition from %s/%s.",Dir ? Dir : ".",FileName);
-
-#define MAXSTR 1000
-  char Line[MAXSTR];
-  int LineNum=0;
-  while( fgets(Line,MAXSTR,f) )
-   { 
-     /*--------------------------------------------------------------*/
-     /*- skip blank lines and constants -----------------------------*/
-     /*--------------------------------------------------------------*/
-     LineNum++;
-     int NumTokens;
-     char *Tokens[2];
-     int Length=strlen(Line);
-     if (Length==0) continue;
-     Line[(Length-1)]=0; // remove trailing carriage return
-     NumTokens=Tokenize(Line, Tokens, 2);
-     if ( NumTokens==0 || Tokens[0][0]=='#' )
-      continue; 
-
-     /*--------------------------------------------------------------*/
-     /*- all lines must be of the form   ----------------------------*/
-     /*-   zValue  MaterialName          ----------------------------*/
-     /*- or                              ----------------------------*/
-     /*-   MEDIUM  MaterialName          ----------------------------*/
-     /*- or                              ----------------------------*/
-     /*-   zValue  GROUNDPLANE           ----------------------------*/
-     /*--------------------------------------------------------------*/
-     if ( NumTokens!=2 )
-      { *pErrMsg=vstrdup("%s:%i syntax error",FileName,LineNum);
-        return 0;
-      };
-
-     if ( !strcasecmp(Tokens[0],"MEDIUM") )
-      { MPMedium = new MatProp(Tokens[1]);
-        if (MPMedium->ErrMsg)
-          { *pErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MPMedium->ErrMsg);
-            return 0;
-          }
-        Log("Setting upper half-space medium to %s.",MPMedium->Name);
-        continue;
-      };
-
-     double z;
-     if ( 1!=sscanf(Tokens[0],"%le",&z) )
-      { *pErrMsg=vstrdup("%s:%i bad z-value %s",FileName,LineNum,Tokens[0]);
-        return 0;
-      };
-
-     if ( !strcasecmp(Tokens[1],"GROUNDPLANE") )
-      { zGP = z;
-        Log(" Ground plane at z=%e.",zGP);
-      }
-     else
-      { MatProp *MP = new MatProp(Tokens[1]);
-        if (MP->ErrMsg)
-         { *pErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MP->ErrMsg);
-            return 0;
-         };
-        if (NumLayers==MAXLAYER)
-         { *pErrMsg=vstrdup("%s:%i: too many layers",FileName,LineNum);
-            return 0;
-         };
-        NumLayers++;
-        MPLayer=(MatProp **)reallocEC(MPLayer,NumLayers*sizeof(MatProp *));
-         zLayer=(double  *)reallocEC(zLayer, NumLayers*sizeof(double));
-        MPLayer[NumLayers-1]=MP;
-         zLayer[NumLayers-1]=z;
-        Log(" Layer #%i: %s at z=%e.",NumLayers,MP->Name,z);
-      };
-   };
-  fclose(f);
-
-  /*--------------------------------------------------------------*/
-  /*- sanity check that ground plane lies below all layers       -*/
-  /*--------------------------------------------------------------*/
-  if (zGP!=HUGE_VAL)
-   for(int n=0; n<NumLayers; n++)
-    if ( zLayer[n] < zGP )
-     { *pErrMsg=vstrdup("%s: ground plane must lie below all dielectric layers",FileName);
-       return 0;
-     };
-
-  /*--------------------------------------------------------------*/
-  /*- prefill buffer of DC permittivities for each layer ---------*/
-  /*--------------------------------------------------------------*/
-  cdouble EpsMedium = (MPMedium) ? MPMedium->GetEps(0.0) : 1.0;
-  cdouble *EpsLayer = (cdouble *)mallocEC(NumLayers*sizeof(cdouble));
-  for(int n=0; n<NumLayers; n++)
-   EpsLayer[n]=MPLayer[n]->GetEps(0.0);
-
-  int qMaxEval     = 10000;
-  double qAbsTol   = 1.0e-12;
-  double qRelTol   = 1.0e-8;
-  int PPIOrder     = 9;
-  int PhiEOrder    = 9;
-  //double PPIAbsTol = 1.0e-12;
-  //double PPIRelTol = 1.0e-8;
-  char *s;
-  if ((s=getenv("SCUFF_SUBSTRATE_QMAXEVAL")))
-   sscanf(s,"%i",&qMaxEval);
-  if ((s=getenv("SCUFF_SUBSTRATE_QABSTOL")))
-   sscanf(s,"%le",&qAbsTol);
-  if ((s=getenv("SCUFF_SUBSTRATE_QRELTOL")))
-   sscanf(s,"%le",&qRelTol);
-  if ((s=getenv("SCUFF_SUBSTRATE_PPIORDER")))
-   sscanf(s,"%i",&PPIOrder);
-  if ((s=getenv("SCUFF_SUBSTRATE_PHIEORDER")))
-   sscanf(s,"%i",&PhiEOrder);
-  // if ((s=getenv("SCUFF_SUBSTRATE_PPIABSTOL")))
-  // sscanf(s,"%le",&PPIAbsTol);
-  // if ((s=getenv("SCUFF_SUBSTRATE_PPIRELTOL")))
-  // sscanf(s,"%le",&PPIRelTol);
-
-  /*--------------------------------------------------------------*/
-  /*- create and return data structure ---------------------------*/
-  /*--------------------------------------------------------------*/
-  SubstrateData *SD = (SubstrateData *)mallocEC(sizeof(SubstrateData));
-  SD->NumLayers     = NumLayers;
-  SD->MPMedium      = MPMedium;
-  SD->EpsMedium     = EpsMedium;
-  SD->MPLayer       = MPLayer;
-  SD->EpsLayer      = EpsLayer;
-  SD->zLayer        = zLayer;
-  SD->zGP           = zGP;
-  SD->qMaxEval      = qMaxEval;
-  SD->qAbsTol       = qAbsTol;
-  SD->qRelTol       = qRelTol;
-  SD->PPIOrder      = PPIOrder;
-  SD->PhiEOrder     = PhiEOrder;
-  //SD->PPIAbsTol     = PPIAbsTol;
-  //SD->PPIRelTol     = PPIRelTol;
-
-  SD->I1D = 0;
-  SD->I1DRhoMin=HUGE_VAL;
-  SD->I1DRhoMax=0;
-
-  *pErrMsg=0;
-  return SD;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void DestroySubstrateData(SubstrateData *SD)
-{
-  if (SD->MPMedium)
-   delete SD->MPMedium;
-  for(int n=0; n<SD->NumLayers; n++)
-   delete SD->MPLayer[n];
-  free(SD->MPLayer);
-  free(SD->EpsLayer);
-  free(SD->zLayer);
-  free(SD);
-}
 
 /*****************************************************************/
 /* add the contributions of a charge of strength Q at (xs,ys,zs) */
@@ -236,8 +63,10 @@ void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double
 /*****************************************************************/
 /*****************************************************************/
 /*****************************************************************/
-double GetG0Correction(SubstrateData *SD, double z)
+double GetStaticG0Correction(SubstrateData *SD, double z)
 {
+  UpdateCachedEpsMu(SD, 0.0);
+
   for(int n=0; n<SD->NumLayers; n++)
    if ( EqualFloat(z,SD->zLayer[n]) )
     { 
@@ -250,11 +79,11 @@ double GetG0Correction(SubstrateData *SD, double z)
  return 1.0;
 }
 
-double GetG0Correction(SubstrateData *SD, double zD, double zS)
+double GetStaticG0Correction(SubstrateData *SD, double zD, double zS)
 { 
   if (!EqualFloat(zD, zS))
    return 1.0;
-  return GetG0Correction(SD, zD);
+  return GetStaticG0Correction(SD, zD);
 }
 
 /***************************************************************/
@@ -279,6 +108,8 @@ void GetZetaXi(SubstrateData *SD, double q, double zD, double zS, double ZetaXi[
 /***************************************************************/
 void GetSigmaTwiddle(SubstrateData *SD, double zS, double q, double *SigmaTwiddle)
 {
+  UpdateCachedEpsMu(SD, 0.0);
+
   int NumLayers     = SD->NumLayers;
   cdouble *EpsLayer = SD->EpsLayer;
   double EpsMedium  = real(SD->EpsMedium);
@@ -573,7 +404,7 @@ void GetDeltaPhiESubstrate(SubstrateData *SD,
   PhiE[2] = SinTheta*qIntegral[1];
   PhiE[3] = qIntegral[2];
   if (pG0Correction)
-   *pG0Correction=GetG0Correction(SD,ZD,ZS);
+   *pG0Correction=GetStaticG0Correction(SD,ZD,ZS);
 
   // contribution of image charge if present
   double zGP = SD->zGP;
@@ -625,7 +456,7 @@ double GetSubstratePPI(RWGSurface *SA, int npA,
      if (    EqualFloat(zA, zB)
           && EqualFloat(fabs(zHatA[2]), 1.0)
           && EqualFloat(fabs(zHatB[2]), 1.0)
-        ) G0Correction=GetG0Correction(Substrate, zA);
+        ) G0Correction=GetStaticG0Correction(Substrate, zA);
 
      *pG0Correction=G0Correction;
    };

@@ -35,9 +35,8 @@
 
 #include <libhrutil.h>
 #include <libhmat.h>
+#include <libSubstrate.h>
 #include <libscuff.h>
-
-#include "StaticSubstrate.h"
 
 #ifdef HAVE_CONFIG_H
 	#include <config.h>
@@ -137,7 +136,7 @@ class SSSolver
    /*--------------------------------------------------------------------*/ 
    RWGGeometry *G;
 
-   SubstrateData *Substrate;
+   LayeredSubstrate *Substrate;
 
    char *TransformLabel;
    char *ExcitationLabel;

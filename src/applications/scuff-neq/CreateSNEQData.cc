@@ -115,7 +115,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      SNEQD->PFTMethods[npm] = PFTMethods[npm];
 
      char PFTName[20];
-     if (PFTMethods[npm]>20)
+     if (PFTMethods[npm] == -SCUFF_PFT_DSI)
+      { SNEQD->PFTMethods[npm] = SCUFF_PFT_DSI;
+        snprintf(PFTName,20,"DSIMesh");
+      }
+     else if (PFTMethods[npm]>20)
       { SNEQD->PFTMethods[npm]=SCUFF_PFT_DSI;
         snprintf(PFTName,20,"DSI%i",PFTMethods[npm]);
       }

@@ -1,5 +1,5 @@
 SUBDIRS = libhrutil libhmat libSGJC libMDInterp libMatProp libTriInt \
-          libSpherical libIncField libSSSolver libscuff
+          libSpherical libIncField libSubstrate libSSSolver libscuff
 
 if WITH_PYTHON
   SUBDIRS += python

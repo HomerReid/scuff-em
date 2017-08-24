@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
   if(OPFT)
    PFTMethods[NumPFTMethods++] = SCUFF_PFT_OVERLAP;
   if(DSIMesh)
-   PFTMethods[NumPFTMethods++] = SCUFF_PFT_DSI;
+   PFTMethods[NumPFTMethods++] = -SCUFF_PFT_DSI;
   if(DSIPoints)
    PFTMethods[NumPFTMethods++] = DSIPoints;
   if(DSIPoints2)
@@ -156,6 +156,9 @@ int main(int argc, char *argv[])
 
   if (NumPFTMethods==0 && EPFile==0)
    PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
+
+  if (DSIMesh) 
+   PlotFlux=true;
 
   /*******************************************************************/
   /*******************************************************************/

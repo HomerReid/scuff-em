@@ -258,6 +258,7 @@ AC_CONFIG_FILES([
  src/libs/libMatProp/Makefile
  src/libs/libMatProp/cmatheval/Makefile
  src/libs/libSGJC/Makefile
+ src/libs/libSubstrate/Makefile
  src/libs/libTriInt/Makefile
  src/libs/libhmat/Makefile
  src/libs/libhrutil/Makefile

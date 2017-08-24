@@ -35,9 +35,10 @@
 #include <libSpherical.h>
 #include <libTriInt.h>
 
-#include "libscuff.h"
+#include <libscuff.h>
+#include <PanelCubature.h>
+#include <libSubstrate.h>
 #include "SSSolver.h"
-#include "StaticSubstrate.h"
 
 namespace scuff {
 
@@ -61,11 +62,11 @@ SSSolver::SSSolver(const char *GeoFileName, const char *SubstrateFile, int LogLe
   if (SubstrateFile)
    { 
      if (Substrate)
-      DestroySubstrateData(Substrate);
+      delete Substrate;
 
      char *ErrMsg=0;
-     Substrate=CreateSubstrateData(SubstrateFile, &ErrMsg);
-     if (ErrMsg) 
+     Substrate=new LayeredSubstrate(SubstrateFile);
+     if (Substrate->ErrMsg)
       ErrExit(ErrMsg);
    };
 }
@@ -554,6 +555,188 @@ HMatrix *SSSolver::GetFields(StaticExcitation *SE, HVector *Sigma,
 
 HMatrix *SSSolver::GetFields(HVector *Sigma, HMatrix *X, HMatrix *PhiE)
 { return GetFields(0, Sigma, X, PhiE);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+typedef struct SPEIntegrandData
+ {
+   LayeredSubstrate *Substrate;
+   double *XDest;
+ } SPEIntegrandData;
+
+void SubstratePhiEIntegrand(double XS[3], void *UserData,
+                            double Weight, double *Integral)
+{
+  SPEIntegrandData *SPEIData  = (SPEIntegrandData *) UserData;
+  LayeredSubstrate *Substrate = SPEIData->Substrate;
+  double *XD                  = SPEIData->XDest;
+
+  double DeltaPhiE[4];
+  Substrate->GetDeltaPhiE(XD, XS, DeltaPhiE);
+  VecPlusEquals(Integral, Weight, DeltaPhiE, 4);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SSSolver::AddSubstrateContributionToPanelPhiE(int ns, int np, double *XD, double PhiE[4])
+{
+  SPEIntegrandData MyData, *SPEIData = &MyData;
+  SPEIData->Substrate = Substrate;
+  SPEIData->XDest     = XD;
+
+  int IDim=4;
+  int Order = Substrate->PhiEOrder;
+  double DeltaPhiE[4];
+  GetPanelCubature2(G->Surfaces[ns], np, SubstratePhiEIntegrand,
+                    (void *)SPEIData, IDim, Order, DeltaPhiE);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGPanel *P = G->Surfaces[ns]->Panels[np];
+  if ( EqualFloat(P->ZHat[2], 1.0) && EqualFloat(P->Centroid[2], XD[2]) )
+   { double G0Correction = Substrate->GetStaticG0Correction(XD[2]);
+     if (G0Correction!=1.0)
+      VecScale(PhiE, G0Correction, 4);
+   };
+
+  VecPlusEquals(PhiE, 1.0, DeltaPhiE, 4);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SubstratePPIntegrand(double *xA, double *xB, void *UserData, 
+                          double Weight, double *Result)
+{
+  LayeredSubstrate *S = (LayeredSubstrate *) UserData;
+
+  double PhiE[4];
+  S->GetDeltaPhiE(xA, xB, PhiE);
+  double Integrand = (S->WhichIntegral==0) ? PhiE[0] : PhiE[3];
+  Result[0] += Weight*Integrand;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+double GetSubstratePPI(RWGSurface *SA, int npA,
+                       RWGSurface *SB, int npB,
+                       LayeredSubstrate *Substrate,
+                       double *pG0Correction)
+{
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int IDim=1;
+  int PPIOrder = Substrate->PPIOrder;
+  double Result;
+  GetPanelPanelCubature2(SA, npA, SB, npB, SubstratePPIntegrand,
+                         (void *)Substrate, IDim, PPIOrder, &Result);
+
+  /***************************************************************/
+  /* test for source and destination panel on dielectric intrface*/
+  /***************************************************************/
+  if (pG0Correction)
+   {   
+     double G0Correction=1.0;
+
+     RWGPanel *PA = SA->Panels[npA], *PB = SB->Panels[npB];
+     double zA = PA->Centroid[2], *zHatA = PA->ZHat;
+     double zB = PB->Centroid[2], *zHatB = PB->ZHat;
+     if (    EqualFloat(zA, zB)
+          && EqualFloat(fabs(zHatA[2]), 1.0)
+          && EqualFloat(fabs(zHatB[2]), 1.0)
+        ) G0Correction=Substrate->GetStaticG0Correction(zA);
+
+     *pG0Correction=G0Correction;
+   };
+
+  return Result;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatrix *M, int RowOffset, int ColOffset)
+{
+  Log("Adding substrate to M(%i,%i)...",nsa,nsb);
+
+  RWGSurface *Sa = G->Surfaces[nsa];
+  RWGSurface *Sb = G->Surfaces[nsb];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double Rho2Min=HUGE_VAL, Rho2Max=0.0;
+  double DeltazMin=HUGE_VAL, DeltazMax=0.0;
+  double z=HUGE_VAL;
+  for(int npa=0; npa<Sa->NumPanels; npa++)
+   for(int via=0; via<3; via++)
+    for(int npb=0; npb<Sb->NumPanels; npb++)
+     for(int vib=0; vib<3; vib++)
+      { double *VA = Sa->Vertices + 3*(Sa->Panels[npa]->VI[via]);
+        double *VB = Sb->Vertices + 3*(Sb->Panels[npb]->VI[vib]);
+        double Rho2 = (VA[0]-VB[0])*(VA[0]-VB[0]) 
+                     +(VA[1]-VB[1])*(VA[1]-VB[1]); 
+        Rho2Min = fmin(Rho2, Rho2Min);
+        Rho2Max = fmax(Rho2, Rho2Max);
+        double Deltaz = fabs(VA[2]-VB[2]);
+        DeltazMin=fmin(Deltaz, DeltazMin);
+        DeltazMax=fmax(Deltaz, DeltazMax);
+        if (z==HUGE_VAL)
+         z=VA[2];
+      };
+  double RhoMin = sqrt(Rho2Min), RhoMax=sqrt(Rho2Max);
+  if (DeltazMax==0.0)
+   Substrate->InitStaticAccelerator1D(RhoMin, RhoMax,Sa->Panels[0]->Centroid[2]);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  SurfType SurfaceType;
+  double Delta=0.0;
+  if (Sa->IsPEC)
+   SurfaceType = PEC;
+  else
+   { SurfaceType = DIELECTRIC;
+     double EpsR  = real( G->RegionMPs[ Sa->RegionIndices[0] ] -> GetEps(0.0) );
+     double EpsRP = real( G->RegionMPs[ Sa->RegionIndices[1] ] -> GetEps(0.0) );
+     Delta = 2.0*(EpsR - EpsRP) / (EpsR + EpsRP);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+#ifdef USE_OPENMP
+  int NumThreads = GetNumThreads();
+  Log("OpenMP multithreading (%i threads)",NumThreads);
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+  for(int npa=0; npa<Sa->NumPanels; npa++)
+   for(int npb=0; npb<Sb->NumPanels; npb++)
+    { 
+      if (npb==0) LogPercent(npa, Sa->NumPanels);
+
+      double MEPreFactor=1.0;
+      if (SurfaceType==PEC)
+       {
+         Substrate->WhichIntegral = PHIINTEGRAL;
+         MEPreFactor = 1.0;
+       }
+      else // SurfaceType==DIELECTRIC
+       { Substrate->WhichIntegral = ENORMALINTEGRAL;
+         MEPreFactor = Delta;
+       };
+      double G0Correction=1.0;
+      double MatrixEntry = MEPreFactor*GetSubstratePPI(Sa,npa,Sb,npb,Substrate,&G0Correction);
+      if (G0Correction!=1.0)
+       M->ScaleEntry(RowOffset + npa, ColOffset + npb, G0Correction);
+      M->AddEntry(RowOffset + npa, ColOffset + npb, MatrixEntry);
+    };
 }
 
 } // namespace scuff

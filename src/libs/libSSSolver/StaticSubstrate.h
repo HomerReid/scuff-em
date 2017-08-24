@@ -70,12 +70,4 @@ typedef struct SubstrateData
 SubstrateData *CreateSubstrateData(const char *FileName, char **pErrMsg);
 void DestroySubstrateData(SubstrateData *SD);
 
-void GetDeltaPhiESubstrate(SubstrateData *SD,
-                           double XD[3], double XS[3],
-                           double PhiE[4], double *pG0Correction=0);
-
-void InitSubstrateAccelerator1D(SubstrateData *SD,
-                                double RhoMin, double RhoMax,
-                                double z);
-
 #endif // STATICSUBSTRATE_H

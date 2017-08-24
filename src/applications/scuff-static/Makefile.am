@@ -9,6 +9,7 @@ scuff_static_SOURCES = 		\
 scuff_static_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libscuff      \
+              -I$(top_srcdir)/src/libs/libSubstrate  \
               -I$(top_srcdir)/src/libs/libIncField   \
               -I$(top_srcdir)/src/libs/libMatProp    \
               -I$(top_srcdir)/src/libs/libMatProp/cmatheval \
