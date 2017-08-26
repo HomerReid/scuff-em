@@ -190,8 +190,7 @@ class HMatrix
    void ExportToText(const char *FileName, const char *Options = "");
 
    /* destructor */
-   ~HMatrix();
-
+   ~HMatrix(); 
    /* get the value of an entry */
    cdouble GetEntry(size_t nr, size_t nc);
    double GetEntryD(size_t nr, size_t nc);
