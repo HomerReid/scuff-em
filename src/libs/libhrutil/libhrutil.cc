@@ -499,15 +499,20 @@ void LogC(const char *format, ...)
   if ( !LogFileName )
    return; // LogFileName=strdup("libhrutil.log");
 
-  if ( !(f=fopen(LogFileName,"r+")) )
-   return;
-
-  fseek(f,-2,SEEK_END);
-
   va_start(ap,format);
   vsnprintfEC(buffer,MAXSTR,format,ap);
   fprintf(f,"%s \n",buffer);
   va_end(ap);
+
+  if (LogToConsole)
+   { Log(buffer);
+     return;
+   };
+
+  if ( !(f=fopen(LogFileName,"r+")) )
+   return;
+
+  fseek(f,-2,SEEK_END);
 
   fclose(f);
 }

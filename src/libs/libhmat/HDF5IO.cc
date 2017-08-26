@@ -544,6 +544,192 @@ void HVector::ImportFromHDF5(const char *FileName, const char *Name)
   
 }  
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SMatrix::ExportToHDF5(void *pHC, const char *format, ...)
+{ 
+  HDF5Context *HC=(HDF5Context *)pHC;
+  if (!HC) return;
+
+  va_list ap;
+  char Name[1000];
+  va_start(ap,format);
+  vsnprintfEC(Name,1000,format,ap);
+  va_end(ap);
+
+  // turn off the HDF5 console error messages
+  H5Eset_auto2( 0, 0, 0 );
+
+  /*--------------------------------------------------------------*/
+  /*- write the data ---------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  hsize_t dims[1];
+  herr_t status;
+  char FullName[1020];
+
+  snprintf(FullName,1020,"%s_RowStart",Name);
+  dims[0]=NR+1;
+  status=H5LTmake_dataset_int(HC->file_id, FullName, 1, dims, RowStart);
+  if (status)
+   ErrExit("error %i",status);
+
+  snprintf(FullName,1020,"%s_ColIndices",Name);
+  dims[0]=nnz_alloc;
+  status=H5LTmake_dataset_int(HC->file_id, FullName, 1, dims, ColIndices);
+  if (status)
+   ErrExit("error %i",status);
+
+  snprintf(FullName,1020,"%s_Entries",Name);
+  if (RealComplex==LHM_REAL)
+   { dims[0] = nnz;
+     H5LTmake_dataset_double(HC->file_id, FullName, 1, dims, DM);
+   }
+  else
+   { dims[0] = 2*nnz;
+     H5LTmake_dataset_double(HC->file_id, FullName, 1, dims, (double *)ZM);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- write the attributes ---------------------------------------*/
+  /*--------------------------------------------------------------*/
+  H5LTset_attribute_int(HC->file_id, Name, "NC", &NC, 1);
+  H5LTset_attribute_int(HC->file_id, Name, "RealComplex", &RealComplex, 1);
+  
+} 
+
+void SMatrix::ExportToHDF5(char *FileName, const char *format, ...)
+{ 
+  va_list ap;
+  char Name[1000];
+  va_start(ap,format);
+  vsnprintfEC(Name,1000,format,ap);
+  va_end(ap);
+
+  void *pHC = HMatrix::OpenHDF5Context(FileName);
+  ExportToHDF5(pHC,Name);
+  HMatrix::CloseHDF5Context(pHC);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SMatrix::ImportFromHDF5(const char *FileName, const char *Name)
+{
+  // turn off the HDF5 console error messages
+  H5Eset_auto2( 0, 0, 0 );
+
+  /*--------------------------------------------------------------*/
+  /*- try to open the file ---------------------------------------*/
+  /*--------------------------------------------------------------*/
+  hid_t file_id = H5Fopen(FileName, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0 )
+   { ErrMsg=vstrdup("could not open file %s",FileName); 
+     return; 
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- look for datasets with the right names                      */
+  /*--------------------------------------------------------------*/
+  char FullName[1020];
+  const char *Suffix[3]={"RowStart", "ColIndices", "Entries"};
+  int Sizes[3]={0, 0, 0};
+  for(int n=0; n<3; n++)
+   { 
+     snprintf(FullName,1020,"%s_%s",Name,Suffix[n]);
+
+     herr_t status=H5LTfind_dataset(file_id, FullName);
+     int Rank;
+     if (status!=0) H5LTget_dataset_ndims(file_id, FullName, &Rank);
+     if (status==0 || Rank!=1)
+      { ErrMsg=vstrdup("file %s does not contain a vector named %s",FileName,FullName); 
+        return; 
+      };
+
+     H5T_class_t class_id;
+     hsize_t dims[1];
+     size_t type_size;
+     status=H5LTget_dataset_info(file_id, FullName, dims, &class_id, &type_size);
+     if (status<0 || dims[0]==0)
+      { ErrMsg=vstrdup("file %s: dataset %s has incorrect type/size",FileName,FullName); 
+        return; 
+      };
+
+     Sizes[n]=dims[0];
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- try to read attributes from file. note that these will only-*/
+  /*- be present if the HDF5 file was created by the libhmat     -*/
+  /*- export routines; otherwise, we suppose the file was created-*/
+  /*- by another application and assume it describes a real-valued*/
+  /*- matrix.                                                     */
+  /*--------------------------------------------------------------*/
+  herr_t status=H5LTget_attribute_int(file_id, Name, "RealComplex", &RealComplex);
+  if (status<0)
+   RealComplex=LHM_REAL; 
+
+  /*--------------------------------------------------------------*/
+  /*- read dataset sizes and allocate space ----------------------*/
+  /*--------------------------------------------------------------*/
+  cur_nr=Sizes[0];
+  NR=cur_nr-1;
+  nnz=nnz_alloc=Sizes[1];
+  int Mult = (RealComplex==LHM_REAL) ? 1 : 2;
+  if ( Sizes[2] != Mult*nnz)
+   { ErrMsg=vstrdup("file %s: number of nonzero matrix entries (%i) disagrees with number of nonzero column indices (%i)",FileName,Sizes[2]/Mult, nnz);
+     return;
+   };
+  RowStart=(int *)mallocEC( (NR+1)*sizeof(int));
+  ColIndices=(int *)mallocEC( nnz*sizeof(int));
+  if (RealComplex==LHM_REAL)
+   { DM=(double *)mallocEC( nnz*sizeof(double) );
+     ZM=0;
+   }
+  else
+   { DM=0;
+     ZM=(cdouble *)mallocEC( nnz*sizeof(cdouble) );
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- read data --------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  snprintf(FullName,1020,"%s_RowStart",Name);
+  status=H5LTread_dataset_int(file_id, FullName, RowStart);
+  if (status<0)
+   { ErrMsg=vstrdup("file %s: error reading %s",FileName,FullName);
+     return;
+   };
+  snprintf(FullName,1020,"%s_ColIndices",Name);
+  status=H5LTread_dataset_int(file_id, FullName, ColIndices);
+  if (status<0)
+   { ErrMsg=vstrdup("file %s: error reading %s",FileName,FullName);
+     return;
+   };
+  snprintf(FullName,1020,"%s_Entries",Name);
+  double *Entries = (RealComplex==LHM_REAL) ? DM : (double *)ZM;
+  status=H5LTread_dataset_double(file_id, FullName, Entries);
+  if (status<0)
+   { ErrMsg=vstrdup("file %s: error reading %s",FileName,FullName);
+     return;
+   };
+
+  // if NC was not specified as an attribute, get it from maximum column index
+  status=H5LTget_attribute_int(file_id, Name, "NC", &NC);
+  if (status<0)
+   { NC=ColIndices[0];
+     for(int n=1; n<nnz; n++)
+      if (ColIndices[n]>NC) 
+       NC=ColIndices[n];
+     NC++; 
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- close up the data file -------------------------------------*/
+  /*--------------------------------------------------------------*/
+  H5Fclose(file_id);
+}
+
 #else // HAVE_HDF5
 
 void WarnNoHDF5()
@@ -577,6 +763,12 @@ void HVector::ExportToHDF5(const char *FileName, const char *format, ...)
 { WarnNoHDF5(); }
 
 void HVector::ImportFromHDF5(const char *FileName, const char *Name)
+{ WarnNoHDF5(); }
+
+void SMatrix::ExportToHDF5(const char *FileName, const char *format, ...)
+{ WarnNoHDF5(); }
+
+void SMatrix::ImportFromHDF5(const char *FileName, const char *Name)
 { WarnNoHDF5(); }
 
 

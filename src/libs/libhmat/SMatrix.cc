@@ -57,6 +57,48 @@ SMatrix::SMatrix(int pNR, int pNC, int pRealComplex)
 
   RowStart = (int *) mallocEC(sizeof(int) * (NR + 1));
   cur_nr = 0;
+  
+  ErrMsg=0;
+}
+
+/***************************************************************/
+/* SMatrix constructor *****************************************/
+/***************************************************************/
+SMatrix::SMatrix(const char *FileName, char *MatrixName)
+{ ReadFromFile(FileName, LHM_HDF5, MatrixName); }
+
+/***************************************************************/
+/* read-from-file constructor **********************************/
+/***************************************************************/
+void SMatrix::ReadFromFile(const char *FileName, int FileType, const char *MatrixName)
+{
+  NR=NC=nnz=nnz_alloc=RealComplex=cur_nr=0;
+  RowStart=ColIndices=0;
+  DM=0;
+  ZM=0;
+  ErrMsg=0;
+
+  if (FileName==0 || MatrixName==0)
+   { ErrMsg=strdup("no file/matrix name specified for matrix import");
+     if (HMatrix::AbortOnIOError) 
+      ErrExit(ErrMsg);
+     return;
+   };
+
+  if (FileType==LHM_AUTO) 
+   FileType=LHM_HDF5;
+
+  if (FileType!=LHM_HDF5)
+   { ErrMsg=strdup("only HDF5 input format supported for SMatrix");
+     if (HMatrix::AbortOnIOError)
+      ErrExit(ErrMsg);
+     return;
+   }
+
+  ImportFromHDF5(FileName,MatrixName);
+
+  if (ErrMsg && HMatrix::AbortOnIOError)
+   ErrExit(ErrMsg);
 }
 
 /***************************************************************/
@@ -67,6 +109,7 @@ SMatrix::~SMatrix()
   Zero();
   free(RowStart);
 }
+
 
 /***************************************************************/
 /***************************************************************/

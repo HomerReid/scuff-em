@@ -24,7 +24,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil \
 # tInvert_SOURCES = tInvert.cc
 # tInvert_LDADD = libhmat.la ../libhrutil/libhrutil.la
 
-noinst_PROGRAMS = tLUSolve tMultiply tReadFromFile tTextIO tlibhmat2 tQR tGetEntries
+noinst_PROGRAMS = tLUSolve tMultiply tReadFromFile tTextIO tlibhmat2 tQR tGetEntries tSMatrix
 tQR_SOURCES = tQR.cc
 tQR_LDADD = libhmat.la ../libhrutil/libhrutil.la
 tLUSolve_SOURCES = tLUSolve.cc
@@ -39,6 +39,8 @@ tlibhmat2_SOURCES = tlibhmat2.cc
 tlibhmat2_LDADD = libhmat.la ../libhrutil/libhrutil.la
 tGetEntries_SOURCES = tGetEntries.cc
 tGetEntries_LDADD = libhmat.la ../libhrutil/libhrutil.la
+tSMatrix_SOURCES = tSMatrix.cc
+tSMatrix_LDADD = libhmat.la ../libhrutil/libhrutil.la
 
 BUILT_SOURCES = lapack_names.h
 

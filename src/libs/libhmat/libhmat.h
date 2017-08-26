@@ -401,6 +401,13 @@ class SMatrix
     SMatrix(int NR, int NC, int RealComplex = LHM_REAL);
     ~SMatrix();
 
+    SMatrix(const char *FileName, char *MatrixName);
+
+    void ExportToHDF5(void *pHC, const char *format, ...);
+    void ExportToHDF5(char *FileName, const char *format, ...);
+    void ImportFromHDF5(const char *FileName, const char *Name);
+    void ReadFromFile(const char *FileName, int FileType, const char *Options);
+
     // return the number of nonzero entries in a given row
     int GetNNZ(int nr);
 
@@ -450,6 +457,8 @@ class SMatrix
     int *RowStart; // if non-NULL, array of length NR+1
     double *DM; cdouble *ZM; // if non-NULL, array of length nnz_alloc
     int *ColIndices; // if non-NULL, array of length nnz_alloc
+
+    char *ErrMsg;
 
  private:
     void Reallocate(int nnz_alloc); // internal allocation function
