@@ -423,7 +423,8 @@ class SMatrix
     double GetEntryD(int nr, int nc) { return real(GetEntry(nr,nc)); }
 
     // MX = S * X
-    void Apply(HVector *X, HVector *MX);
+    cdouble Apply(HVector *X, HVector *MX);
+    double ApplyD(HVector *X, HVector *MX);
     HVector *Apply(HVector *X); // return new MX
     void Apply(HMatrix *X, HMatrix *MX);
     HMatrix *Apply(HMatrix *X); // return new MX

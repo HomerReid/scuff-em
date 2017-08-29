@@ -298,13 +298,14 @@ void SMatrix::AddEntry(int nr, int nc, cdouble Entry, bool compress)
 } 
 
 /***************************************************************/
+/* return value is <X|this|X>  *********************************/
 /***************************************************************/
-/***************************************************************/
-void SMatrix::Apply(HVector *X, HVector *MX)
+cdouble SMatrix::Apply(HVector *X, HVector *MX)
 { 
   if ( MX->N != NR || X->N != NC)
    ErrExit("size mismatch in SMatrix::Apply");
 
+  cdouble XMX=0.0;
   if (RealComplex == LHM_REAL) { 
      for (int nr = 0; nr < NR; ++nr) {
        int iend = RowStart[nr+1];
@@ -312,6 +313,7 @@ void SMatrix::Apply(HVector *X, HVector *MX)
        for (int i = RowStart[nr]; i < iend; ++i)
 	 sum += DM[i] * X->GetEntry(ColIndices[i]);
        MX->SetEntry(nr, sum);
+       XMX+=X->GetEntry(nr)*sum;
      }
    }
   else { 
@@ -321,9 +323,14 @@ void SMatrix::Apply(HVector *X, HVector *MX)
        for (int i = RowStart[nr]; i < iend; ++i)
 	 sum += ZM[i] * X->GetEntry(ColIndices[i]);
        MX->SetEntry(nr, sum);
+       XMX+=conj(X->GetEntry(nr))*sum;
      }
    }
+  return XMX;
 }
+
+double SMatrix::ApplyD(HVector *X, HVector *MX)
+ { return real(Apply(X,MX)); }
 
 HVector *SMatrix::Apply(HVector *X)
 {

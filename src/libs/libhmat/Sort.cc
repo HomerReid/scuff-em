@@ -105,7 +105,6 @@ int ComplexDescendingSort(const void *p1, const void *p2)
 /***************************************************************/
 void HMatrix::Sort(int WhichColumn, const char *Options)
 {
-
   int Ascending=1;
 
   /***************************************************************/
