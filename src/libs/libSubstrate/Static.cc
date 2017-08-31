@@ -61,13 +61,13 @@ double LayeredSubstrate::GetStaticG0Correction(double z)
 {
   UpdateCachedEpsMu(0.0);
 
-  for(int n=0; n<NumLayers; n++)
-   if ( EqualFloat(z,zLayer[n]) )
+  for(int n=0; n<NumInterfaces; n++)
+   if ( EqualFloat(z,zInterface[n]) )
     { 
       // break ties by assuming source and observation points
       // lie in whichever region has the lower permittivity
-      double EpsA = real( (n==0) ? EpsMedium : EpsLayer[n-1]);
-      double EpsB = real(EpsLayer[n]);
+      double EpsA = real(EpsLayer[n]);
+      double EpsB = real(EpsLayer[n+1]);
       return 2.0*fmin(EpsA, EpsB)/(EpsA + EpsB);
     };
  return 1.0;
@@ -107,46 +107,46 @@ void LayeredSubstrate::GetSigmaTwiddle(double zS, double q, double *SigmaTwiddle
   /*--------------------------------------------------------------*/
   /* assemble RHS vector                                          */
   /*--------------------------------------------------------------*/
-  double *RHS = new double[NumLayers];
-  for(int m=0; m<NumLayers; m++)
+  double *RHS = new double[NumInterfaces];
+  for(int m=0; m<NumInterfaces; m++)
    { 
      double Sign=0.0;
-     if (EqualFloat(zLayer[m], zS))
-      { double EpsA = real( (m==0) ? EpsMedium : EpsLayer[m-1]);
-        double EpsB = real( EpsLayer[m]);
+     if (EqualFloat(zInterface[m], zS))
+      { double EpsA = real( EpsLayer[m]);
+        double EpsB = real( EpsLayer[m+1]);
         Sign = (EpsA < EpsB) ? -1.0 : 1.0;
       };
 
      double ZetaXi[2];
-     GetZetaXi(q, zLayer[m], zS, zGP, ZetaXi, Sign);
+     GetZetaXi(q, zInterface[m], zS, zGP, ZetaXi, Sign);
      RHS[m] = -1.0*ZetaXi[1];
    };
 
   /*--------------------------------------------------------------*/
   /* assemble M matrix                                           -*/
   /*--------------------------------------------------------------*/
-  double *M = new double[NumLayers*NumLayers];
+  double *M = new double[NumInterfaces*NumInterfaces];
   bool Degenerate=false;
-  for(int m=0; m<NumLayers; m++)
-   for(int n=0; n<NumLayers; n++)
+  for(int m=0; m<NumInterfaces; m++)
+   for(int n=0; n<NumInterfaces; n++)
     { 
       if (m==n)
-       { double Epsmm1   = real((m==0) ? EpsMedium : EpsLayer[m-1]);
-         double Epsm     = real(EpsLayer[m]);
-         double DeltaEps = Epsmm1 - Epsm;
+       { double EpsA     = real(EpsLayer[m]);
+         double EpsB     = real(EpsLayer[m+1]);
+         double DeltaEps = EpsA   - EpsB;
          if (DeltaEps==0.0)
           { Degenerate=true;
             continue; // this is handled below
           };
          double ZetaXiP[2], ZetaXiM[2];
-         GetZetaXi(q, zLayer[m], zLayer[m], zGP, ZetaXiP, +1.0);
-         GetZetaXi(q, zLayer[m], zLayer[m], zGP, ZetaXiM, -1.0);
-         M[m+m*NumLayers] = (Epsmm1*ZetaXiP[1] - Epsm*ZetaXiM[1])/DeltaEps;
+         GetZetaXi(q, zInterface[m], zInterface[m], zGP, ZetaXiP, +1.0);
+         GetZetaXi(q, zInterface[m], zInterface[m], zGP, ZetaXiM, -1.0);
+         M[m+m*NumInterfaces] = (EpsA*ZetaXiP[1] - EpsB*ZetaXiM[1])/DeltaEps;
        }
       else
        { double ZetaXi[2];
-         GetZetaXi(q, zLayer[m], zLayer[n], zGP, ZetaXi);
-         M[m+n*NumLayers]=ZetaXi[1];
+         GetZetaXi(q, zInterface[m], zInterface[n], zGP, ZetaXi);
+         M[m+n*NumInterfaces]=ZetaXi[1];
        };
     };
 
@@ -155,24 +155,24 @@ void LayeredSubstrate::GetSigmaTwiddle(double zS, double q, double *SigmaTwiddle
   /*- replacing equation #m with 1*Sigma_m = 0                    */
   /*--------------------------------------------------------------*/
   if (Degenerate)
-   for(int m=0; m<NumLayers; m++)
-    { double Epsmm1 = (m==0) ? 1.0 : real(EpsLayer[m-1]);
-      double Epsm   = real(EpsLayer[m]);
-      if (EqualFloat(Epsm, Epsmm1))
+   for(int m=0; m<NumInterfaces; m++)
+    { double EpsA   = real(EpsLayer[m]);
+      double EpsB   = real(EpsLayer[m+1]);
+      if (EqualFloat(EpsA, EpsB))
        { RHS[m]=0.0;
-         for(int n=0; n<NumLayers; n++)
-          M[m + n*NumLayers]=(m==n) ? 1.0 : 0.0;
+         for(int n=0; n<NumInterfaces; n++)
+          M[m + n*NumInterfaces]=(m==n) ? 1.0 : 0.0;
       };
    };
 
   /*--------------------------------------------------------------*/
   /*- solve the system--------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (NumLayers==1)
+  if (NumInterfaces==1)
    { 
      SigmaTwiddle[0] = RHS[0] / M[0];
    }
-  else if (NumLayers==2)
+  else if (NumInterfaces==2)
    { double M11=M[0], M21=M[1], M12=M[2], M22=M[3];
      double R1=RHS[0], R2=RHS[1];
      double Denom = M11*M22 - M21*M12;
@@ -180,11 +180,11 @@ void LayeredSubstrate::GetSigmaTwiddle(double zS, double q, double *SigmaTwiddle
      SigmaTwiddle[1] = (-M21*R1 + M11*R2 )/Denom;
    }
   else
-   { HMatrix MMatrix(NumLayers, NumLayers, LHM_REAL, M);
-     HVector RVector(NumLayers, LHM_REAL, RHS);
+   { HMatrix MMatrix(NumInterfaces, NumInterfaces, LHM_REAL, M);
+     HVector RVector(NumInterfaces, LHM_REAL, RHS);
      MMatrix.LUFactorize();
      MMatrix.LUSolve(&RVector);
-     memcpy(SigmaTwiddle, RHS, NumLayers*sizeof(double));
+     memcpy(SigmaTwiddle, RHS, NumInterfaces*sizeof(double));
    };
 
   delete[] RHS;
@@ -232,16 +232,15 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
   double zD            = qID->zD;
   double zS            = qID->zS;
   LayeredSubstrate *S  = qID->S;
-  int NumLayers        = S->NumLayers;
-  double *zLayer       = S->zLayer;
+  int NumInterfaces    = S->NumInterfaces;
+  double *zInterface   = S->zInterface;
   double zGP           = S->zGP;
-  cdouble EpsMedium    = S->EpsMedium;
   cdouble *EpsLayer    = S->EpsLayer;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double *SigmaTwiddle = new double[NumLayers];
+  double *SigmaTwiddle = new double[NumInterfaces];
   S->GetSigmaTwiddle(zS, q, SigmaTwiddle);
 
   /*--------------------------------------------------------------*/
@@ -273,18 +272,18 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  for(int n=0; n<NumLayers; n++)
+  for(int n=0; n<NumInterfaces; n++)
    { 
      double ZetaXi[2];
-     GetZetaXi(q, zD, zLayer[n], zGP, ZetaXi);
+     GetZetaXi(q, zD, zInterface[n], zGP, ZetaXi);
 
      qIntegral[0] +=     J0 * ZetaXi[0] * SigmaTwiddle[n];
      qIntegral[1] += q * J1 * ZetaXi[0] * SigmaTwiddle[n];
      qIntegral[2] += q * J0 * ZetaXi[1] * SigmaTwiddle[n];
 
-     if ( EqualFloat(zD,zLayer[n]) && EqualFloat(zS,zLayer[n]) )
-      { double EpsA   = real( (n==0) ? EpsMedium : EpsLayer[n-1]);
-        double EpsB   = real(EpsLayer[n]);
+     if ( EqualFloat(zD,zInterface[n]) && EqualFloat(zS,zInterface[n]) )
+      { double EpsA   = real(EpsLayer[n]);
+        double EpsB   = real(EpsLayer[n+1]);
         double Sign   = (EpsA < EpsB) ? 1.0 : -1.0;
         double Factor = Sign*(EpsA- EpsB) / (EpsA + EpsB);
         qIntegral[0] -= J0*Factor;
@@ -310,9 +309,9 @@ int qIntegrand(unsigned ndim, const double *u, void *UserData,
      fprintf(LogFile,"%e %e %e %e ", q, RhoMag, zD, zS);
      fprintf(LogFile,"%e %e ", J0, J1);
      fprintf(LogFile,"%e %e %e ",qIntegral[0],qIntegral[1],qIntegral[2]);
-     for(int n=0; n<NumLayers; n++)
+     for(int n=0; n<NumInterfaces; n++)
       { double ZetaXi[2];
-        GetZetaXi(q, zD, zLayer[n], zGP, ZetaXi);
+        GetZetaXi(q, zD, zInterface[n], zGP, ZetaXi);
         fprintf(LogFile,"%e %e %e ",SigmaTwiddle[n],ZetaXi[0],ZetaXi[1]);  
       };
      fprintf(LogFile,"\n");

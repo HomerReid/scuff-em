@@ -385,6 +385,8 @@ HMatrix *SMatrix::Apply(HMatrix *X)
 /***************************************************************/
 cdouble SMatrix::BilinearProduct(HVector *X, HVector *Y)
 {
+  if (Y==0) Y=X;
+
   if ( (X->N != NR) || (Y->N != NC) )
    ErrExit("size mismatch in SMatrix::BilinearProduct: %i x (%ix%i) x %i",X->N,NR,NC,Y->N);
 

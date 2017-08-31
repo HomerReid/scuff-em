@@ -35,8 +35,6 @@
 #include "libSGJC.h"
 #include "libSubstrate.h"
 
-//using namespace scuff;
-
 /***************************************************************/
 /* if the ErrMsg field of the class instance is nonzero on     */
 /* return, something went wrong                                */
@@ -51,10 +49,10 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
    };
   Log("Reading substrate definition from %s/%s.",Dir ? Dir : ".",FileName);
 
-  NumLayers=0;
-  MPMedium=0;
-  MPLayer=0;
-  zLayer=0;
+  NumInterfaces=0;
+  MPLayer=(MatProp **)mallocEC(1*sizeof(MatProp *));
+  MPLayer[0]=new MatProp("VACUUM");
+  zInterface=0;
   zGP=HUGE_VAL;
 
 #define MAXSTR 1000
@@ -89,12 +87,12 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
       };
 
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
-      { MPMedium = new MatProp(Tokens[1]);
-        if (MPMedium->ErrMsg)
-          { ErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MPMedium->ErrMsg);
+      { MPLayer[0] = new MatProp(Tokens[1]);
+        if (MPLayer[0]->ErrMsg)
+          { ErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MPLayer[0]->ErrMsg);
             return;
           }
-        Log("Setting upper half-space medium to %s.",MPMedium->Name);
+        Log("Setting upper half-space medium to %s.",MPLayer[0]->Name);
         continue;
       };
 
@@ -109,43 +107,40 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
         Log(" Ground plane at z=%e.",zGP);
       }
      else
-      { MatProp *MP = new MatProp(Tokens[1]);
+      { 
+        if (NumInterfaces>0 && z>zInterface[NumInterfaces-1])
+         { ErrMsg=vstrdup("%s:%i: z coordinate lies above previous layer");
+           return;
+         };
+
+        MatProp *MP = new MatProp(Tokens[1]);
         if (MP->ErrMsg)
          { ErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MP->ErrMsg);
            return;
          };
-/*
-        if (NumLayers==MAXLAYER)
-         { ErrMsg=vstrdup("%s:%i: too many layers",FileName,LineNum);
-           return;
-         };
-*/
-        NumLayers++;
-        MPLayer=(MatProp **)reallocEC(MPLayer,NumLayers*sizeof(MatProp *));
-         zLayer=(double  *)reallocEC(zLayer, NumLayers*sizeof(double));
-        MPLayer[NumLayers-1]=MP;
-         zLayer[NumLayers-1]=z;
-        Log(" Layer #%i: %s at z=%e.",NumLayers,MP->Name,z);
+        NumInterfaces++;
+        MPLayer=(MatProp **)reallocEC(MPLayer,(NumInterfaces+1)*sizeof(MatProp *));
+        zInterface=(double  *)reallocEC(zInterface, NumInterfaces*sizeof(double));
+        MPLayer[NumInterfaces]=MP;
+         zInterface[NumInterfaces-1]=z;
+        Log(" Layer #%i: %s at z=%e.",NumInterfaces,MP->Name,z);
       };
    };
   fclose(f);
 
   /*--------------------------------------------------------------*/
-  /*- sanity check that ground plane lies below all layers       -*/
+  /*- sanity check                                               -*/
   /*--------------------------------------------------------------*/
-  if (zGP!=HUGE_VAL)
-   for(int n=0; n<NumLayers; n++)
-    if ( zLayer[n] < zGP )
-     { ErrMsg=vstrdup("%s: ground plane must lie below all dielectric layers",FileName);
-       return;
-     };
+  if (zGP!=HUGE_VAL && zGP>zInterface[NumInterfaces-1])
+   { ErrMsg=vstrdup("%s: ground plane must lie below all dielectric layers",FileName);
+     return;
+   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  EpsMedium  = 1.0;
-  EpsLayer   = (cdouble *)mallocEC(NumLayers*sizeof(cdouble));
-  MuLayer    = (cdouble *)mallocEC(NumLayers*sizeof(cdouble));
+  EpsLayer   = (cdouble *)mallocEC((NumInterfaces+1)*sizeof(cdouble));
+  MuLayer    = (cdouble *)mallocEC((NumInterfaces+1)*sizeof(cdouble));
   OmegaCache = -1.0;
 
   qMaxEval  = 10000;
@@ -175,14 +170,12 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
 /***************************************************************/
 LayeredSubstrate::~LayeredSubstrate()
 {
-  if (MPMedium)
-   delete MPMedium;
-  for(int n=0; n<NumLayers; n++)
+  for(int n=0; n<=NumInterfaces; n++)
    delete MPLayer[n];
   free(MPLayer);
   free(EpsLayer);
   free(MuLayer);
-  free(zLayer);
+  free(zInterface);
   if (I1D)
    delete I1D;
 }
@@ -195,8 +188,6 @@ void LayeredSubstrate::UpdateCachedEpsMu(cdouble Omega)
   if ( EqualFloat(OmegaCache, Omega) )
    return;
   OmegaCache=Omega;
-  if (MPMedium)
-   EpsMedium = MPMedium->GetEps(Omega);
-  for(int n=0; n<NumLayers; n++)
+  for(int n=0; n<=NumInterfaces; n++)
    MPLayer[n]->GetEpsMu(Omega, EpsLayer+n, MuLayer+n);
 }

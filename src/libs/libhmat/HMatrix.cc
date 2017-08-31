@@ -832,6 +832,7 @@ HMatrix *Concat(HMatrix *A, HMatrix *B, int How)
 /***************************************************************/
 cdouble HMatrix::BilinearProduct(HVector *X, HVector *Y)
 {
+  if (Y==0) Y=X;
   cdouble Sum=0.0;
   for(size_t nr=0; nr<NR; nr++)
    for(size_t nc=0; nc<NC; nc++)

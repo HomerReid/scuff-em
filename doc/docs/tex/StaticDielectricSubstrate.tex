@@ -43,12 +43,20 @@
 %####################################################################%
 \begin{figure}
 \begin{center}
-\resizebox{\textwidth}{!}{\includegraphics{DielectricSubstrateCartoon.pdf}}
-\caption{Geometry of the layered dielectric substrate. The $n$th layer
-has relative DC permittivity $\epsilon_n$, and its upper surface
-lies at $z=z_n$. The ground plane, if present, lies
-at $z=z\subt{GP}.$ The upper medium, if not vacuum, has permittivity
-$\epsilon\subt{A}.$}
+\resizebox{\textwidth}{!}{\includegraphics{StaticSubstrate.pdf}}
+\caption{Geometry of the layered dielectric substrate. The
+substrate consists of $N$ media layers including the upper
+semi-infinite half space (which will usually be vacuum).
+The $n$th layer
+has relative DC permittivity $\epsilon_n$, and its lower surface
+lies at $z=z_n$. 
+The ground plane, if present, lies at $z=z\subt{GP}\equiv z\subt{N}.$
+If the ground plane is absent, we have $z\subt{N}=-\infty$.
+For a material substrate consisting of $M$ finite-thickness
+layers suspended in vacuum (no ground plane), 
+the {\sc scuff-em} description would involve $N=M+1$
+layers with the bottommost layer being a semi-infinite vacuum half-space.
+}
 \label{SubstrateGeometryFigure}
 \end{center}
 \end{figure}
@@ -63,7 +71,9 @@ perfectly conducting ground plane (Figure 1).\footnote{Note
 that, if there is no ground plane, then the bottommost 
 layer in Figure \ref{SubstrateGeometryFigure}
 (layer $N$) is assumed
-to be infinitely thick (it has no lower surface). Thus, a physical 
+to be infinitely thick (it has no lower surface,
+or equivalently its lower surface is at $z\subt{N}=-\infty.$)
+Thus, a physical 
 substrate consisting of $M$ finite-thickness dielectric layers with 
 no ground plane is treated here as a stack of $N=M+1$ layers in which
 the bottommost layer is vacuum, i.e. $\epsilon\subt{$N$}=1.$}
@@ -113,11 +123,11 @@ plane, of the form
 
 %====================================================================%
 \begin{verbcode}
-z1  Material1
-z2  Material2
+z1    SomeMaterial
+z2    AnotherMaterial
 ...
-zN  MaterialN
-zGP GROUNDPLANE
+zN-1  MyMaterial
+zGP   GROUNDPLANE
 \end{verbcode}
 %====================================================================%
 
@@ -126,17 +136,17 @@ zGP GROUNDPLANE
 where e.g.
 %====================================================================%
 \begin{itemize}
- \item \texttt{z1} is the $z$-coordinate of the upper surface of
-       layer 1
- \item \texttt{Material1} is a {\sc scuff-em} material designation
-       describing the material of layer 1
+ \item \texttt{z2} is the $z$-coordinate of the upper surface of
+       one of the material layers
+ \item \texttt{AnotherMaterial} is a {\sc scuff-em} material designation
  \item The optional 
        final line, which invokes the fixed keyword \texttt{GROUNDPLANE},
        specifies that a perfectly-conducting ground plane lives at 
        coordinate $z=\texttt{zGP}$.
 \end{itemize}
 If the medium above the uppermost dielectric layer is not vacuum,
-its permittivity may be specified by including a line of the form
+its permittivity ($\epsilon_1$ in Figure \ref{SubstrateGeometryFigure})
+may be specified by including a line of the form
 $\texttt{MEDIUM UpperMaterial}.$
 %====================================================================%
 
@@ -283,12 +293,12 @@ This discussion consists of two parts:
 %####################################################################%
 \begin{figure}
 \begin{center}
-\resizebox{\textwidth}{!}{\includegraphics{DielectricSubstrateSigmaLayers.pdf}}
+\resizebox{\textwidth}{!}{\includegraphics{SigmaLayers.pdf}}
 \caption{In the surface-integral-equation picture of the geometry of Figure
          \ref{SubstrateGeometryFigure}, the effect of the dielectric substrate
          is represented by a collection of surface-charge layers
          $\{\sigma_{n}(\vbrho)\}$, where $\sigma_n$ lives at the 
-         upper surface of dielectric layer $n$, i.e. at $z=z_n$.}
+         lower surface of dielectric layer $n$, i.e. at $z=z_n$.}
 \label{SigmaLayersFigure}
 \end{center}
 \end{figure}
@@ -302,7 +312,7 @@ proceed by determining the effective surface-charge densities
 induced at each dielectric interface by the point source
 (Figure \ref{SigmaLayersFigure}). For an $N$-layer substrate
 there are $N$ such layers, with the surface-charge density at
-the interface between layers $n-1$ and $n$ denoted by $\sigma_n(\vbrho)$.
+the interface between layers $n$ and $n+1$ denoted by $\sigma_n(\vbrho)$.
 Note that I do not include a
 surface-charge layer for the ground plane, whose effect I capture
 implicitly via the method of images. 
@@ -393,28 +403,26 @@ Appendix \ref{SurfaceChargeLayerAppendix}.
 \subsubsection{Applying boundary conditions to determine $\sigma$}
 
 The boundary condition at the interface between dielectric
-layers $m-1$ and $m$ reads
+layers $m$ and $m+1$ reads
 %====================================================================%
-$$ \epsilon_{m-1} 
+$$ \epsilon_{m} 
    E_{z}\Big(\rho; z_m^+; z\subt{S}\Big)
- = \epsilon_{m} 
+ = \epsilon_{m+1} 
    E_{z}\Big(\rho; z_m^-; z\subt{S}\Big)
 $$
 %====================================================================%
-with $z^\pm_m$ denoting points lying just above or just below $z_m$
-and with the convention $\epsilon_{0-1}=\epsilon\subt{A}$ (the permittivity
-of the uppermost region in Figure \ref{SubstrateGeometryFigure}).
+with $z^\pm_m$ denoting points lying just above or just below $z_m$.
 Using the above results, we have
 %====================================================================%
 \begin{align*}
 &\int \frac{qdq}{4\pi } J_0(q\rho)
    \sum_{n}
-   \Big[ \epsilon_{m-1} \xi(q; z_m^+; z_n)
-        -\epsilon_{m  } \xi(q; z_m^-; z_n)
+   \Big[ \epsilon_{m} \xi(q; z_m^+; z_n)
+        -\epsilon_{m+1 } \xi(q; z_m^-; z_n)
    \Big]\wt{\sigma}_n(q)
 \\
 &\qquad
-  =\big( \epsilon_{m} - \epsilon_{m-1}\big)
+  =\big( \epsilon_{m+1} - \epsilon_{m}\big)
     \Big[                  E_{z0}(\rho; z_m; z\subt{S}) 
           - \delta\subt{GP}E_{z0}(\rho; z_m, z\subt{S}^*)
     \Big]
@@ -432,9 +440,9 @@ $$} and rearranging slightly,
 \sum_n
  \underbrace{
  \left[
- \frac{ \epsilon_{m-1} \xi(q; z_m^+; z_n)
-        -\epsilon_{m  } \xi(q; z_m^-; z_n)
-      }{ \epsilon_{m-1}-\epsilon_m}
+ \frac{ \epsilon_{m} \xi(q; z_m^+; z_n)
+        -\epsilon_{m+1  } \xi(q; z_m^-; z_n)
+      }{ \epsilon_{m}-\epsilon_m+1}
  \right]}_{M_{mn}} \wt{\sigma}_n(q)
 =-\underbrace{4\pi\Big[ 
                   \wt{E_{z0}}(q, z_m, z\subt{S}) 
@@ -467,9 +475,9 @@ The elements of the $\bmc M$ matrix and $\vb e$ vector read
 &= \begin{dcases}
     \xi(q; z_m; z_n), \qquad &m\ne n 
     \\
-    \frac{  \epsilon_{m-1} \xi(q; z_m^+; z_m)
-           -\epsilon_{m  } \xi(q; z_m^-; z_m)
-         }{ \epsilon_{m-1}-\epsilon_m}, \qquad &m=n \\
+    \frac{  \epsilon_{m  } \xi(q; z_m^+; z_m)
+           -\epsilon_{m+1} \xi(q; z_m^-; z_m)
+         }{ \epsilon_{m  }-\epsilon_{m+1}}, \qquad &m=n \\
   \end{dcases}
 \\
 e_m&=-\xi(q; z_m; z\subt{S}).
@@ -531,7 +539,7 @@ decay rapidly with $q$ and yield convergent numerical quadrature.
 \subsubsection*{Case A: Infinite dielectric slab}
 
 I first consider the special case in which the substrate consists
-of an infinite-thickness slab with permittivity $\epsilon_1$,
+of an infinite-thickness slab with permittivity $\epsilon_2$,
 so that there is only a single dielectric interface
 layer at $z_1$. If $z\subt{S}=z\subt{D}=z_1^+$ (both source
 and evaluation point approach interface layer from above),
@@ -542,7 +550,7 @@ by a positive point source is \textit{negative}, as expected.}
 %====================================================================%
 \numeq{SigmaSingleLayer}
 {\wt{\sigma}(q)
-   = -\pf{\epsilon_1 - \epsilon\subt{A}}{\epsilon_1+\epsilon\subt{A}}
+   = -\pf{\epsilon_2 - \epsilon_1}{\epsilon_2+\epsilon_1}
    \qtq{(independent of $q$)}
 }
 %====================================================================%
@@ -558,7 +566,7 @@ in closed form to read
    -\partial_z \mc G^\sigma(\vbrho)
    \end{array}\right\}
    = -\frac{1}{4\pi}
-      \pf{\epsilon_1 - \epsilon\subt{A}}{\epsilon_1+\epsilon\subt{A}}
+      \pf{\epsilon_2 - \epsilon_1}{\epsilon_2+\epsilon_1}
    \left\{
    \begin{array}{c} 1/\rho \\ x/\rho^3 \\ y/\rho^3 \\ \pm \delta(\rho)
    \end{array}\right\}
@@ -574,11 +582,11 @@ contribution of the point source, equation (\ref{GTotal}):
  G(\vbrho)&= G_0(\vbrho) + \mc G^\sigma(\vbrho)
 \nn
  &=\frac{1}{4\pi|\vbrho|}
-   \left[ 1 - \frac{\epsilon_1 - \epsilon\subt{A}}{\epsilon_1 + \epsilon\subt{A}}\right]
+   \left[ 1 - \frac{\epsilon_2 - \epsilon_1}{\epsilon_2 + \epsilon_1}\right]
 \nn
  &=\frac{1}{4\pi \epsilon\sups{effective}|\vbrho|}
  \qtq{where} \epsilon\sups{effective}
-     \equiv \frac{\epsilon_1 + \epsilon\subt{A}}{2\epsilon\subt{A}}
+     \equiv \frac{\epsilon_2 + \epsilon_1}{2\epsilon_1}
 \\
  &=\frac{1}{\epsilon\sups{effective}} G_0(\vbrho)
    \qquad\text{(exactly.)}
@@ -650,7 +658,7 @@ evaluated in closed form:
 $$ \wt\sigma_p(\infty) Z_p(\infty)
    \int \frac{dq}{4\pi} R(q)
    = -\frac{1}{4\pi}
-      \pf{\epsilon_p - \epsilon_{p-1}}{\epsilon_p + \epsilon_{p-1}}
+      \pf{\epsilon_{p+1} - \epsilon_{p}}{\epsilon_{p+1} + \epsilon_{p}}
       \left\{\begin{array}{c}
           1/\rho   \\
           x/\rho^3 \\
@@ -716,10 +724,10 @@ The take-home messages of Figure \ref{SiOnE2Figure} are
        at dielectric-interface layers and properly vanishes at 
        the ground plane (green curve in upper plot).
  \item The $E_z$ field properly exhibits jumps of magnitude
-       $\frac{\epsilon_1}{}=12$ at the upper dielectric 
+       $\frac{\epsilon_2}{\epsilon_1}=12$ at the upper dielectric 
        interface $(z=0)$ and 
-       $\frac{\epsilon_1}{\epsilon_2}=6$ at the lower dielectric interface
-       ($z=1$).
+       $\frac{\epsilon_2}{\epsilon_3}=6$ at the lower dielectric interface
+       ($z=-1$).
 \end{itemize}
 
 %\paragraph{Single infinite-thickness dielectric slab.}
@@ -1128,80 +1136,5 @@ $$\epsilon_0  \to \frac{1}{1+\frac{\epsilon_1}{\epsilon_0}}.$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Extension to the full-wave case}
-\label{FullWaveSection}
-
-\subsection{2D Fourier representation of dyadic Green's functions}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{subequations}
-\begin{align}
- \vb G(k; \vbrho; z\subt{D}, z\subt{S})
-&= \int \frac{d\vb q}{(2\pi)^2}
-   \,
-   \vb{\wt G}^\pm (k; \vb q)
-      e^{i\vb q\cdot \vbrho}
-     e^{\pm iq_z(z\subt{D}-z\subt{S})}
-\\
- \vb C(k; \vbrho; z\subt{D}, z\subt{S})
-&=\int \frac{d\vb q}{(2\pi)^2}
-  \, 
-  \vb{\wt C}^\pm (k; \vb q) e^{i\vb q\cdot \vbrho}
-                   e^{\pm iq_z(z\subt{D}-z\subt{S})}
-\end{align}
-\label{SpectralGFs}%
-\end{subequations}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where $\vb q=(q_x,q_y)$ is a two-dimensional Fourier wavevector,
-$d\vb q=dq_x dq_y$,
-$q_z=\sqrt{k^2-|\vb q|^2}$, $\pm = \text{sign}(z-z^\prime)$,
-and
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- \vb{\wt G}^\pm(k; \vb q)
-   &=\frac{i}{2 q_z}
-     \left[
-     \left(\begin{array}{ccc}
-      1 & 0 & 0 \\ 
-      0 & 1 & 0 \\ 
-      0 & 0 & 1
-     \end{array}\right)
-     -\frac{1}{k^2}
-     \left(\begin{array}{ccc}
-      q_x^2       & q_x q_y     & \pm q_x q_z \\
-      q_yq_x      & q_y^2       & \pm q_y q_z \\
-      \pm q_z q_x & \pm q_z q_y & q_z^2
-     \end{array}\right)\right]
-\\
- \vb{\wt C}^\pm (k; \vb q)
-   &=\frac{i}{2q_z k}
-     \left(\begin{array}{ccc}
-           0 & \pm q_z & -q_y \\
-     \mp q_z &       0 &  q_x \\
-         q_y &    -q_x &    0
-     \end{array}\right).
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{align*}
-  \vb E &= i k^r Z_0 Z^r \vb G \star \vb K + ik^r \vb C \star \vb N 
-\\
-  \vb H &= -i k^r        \vb C \star \vb K + \frac{ik^r}{Z_0Z^r} \vb G \star \vb N
-\end{align*}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
-\wt F_\parallel=
- \left(\begin{array}{c} E_x \\ E_y \\ H_x \\ H_y\end{array}\right)
- &=ik
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-Tangential fields due to
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
-\end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}

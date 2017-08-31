@@ -18,7 +18,7 @@
  */
 
 /*
- * tlibSubstrate.cc -- unit test for libSubstrate
+ * tFullWaveSubstrate.cc -- unit test for libSubstrate
  *
  * homer reid       -- 8/2017
  *
@@ -32,10 +32,9 @@
 #include "libhrutil.h"
 #include "libSubstrate.h"
 
-// freestanding silicon slab of thickness 1 length unit
+// infinite silicon half-space
 const char SISubstrateFile[]=
- "0.0 CONST_EPS_11.7\n"
- "-1.0 VACUUM\n";
+ "0.0 CONST_EPS_11.7\n";
 
 /***************************************************************/
 /***************************************************************/
@@ -82,26 +81,24 @@ int main(int argc, char *argv[])
      #define XMIN   -1.5
      #define XMAX    1.5
      #define DX      (XMAX - XMIN)/(NUMPTS-1)
-     XMatrix = new HMatrix(NUMPTS, 3);
-     for(int n=0; n<NUMPTS; n++)
-      XMatrix->SetEntry(n, 2, XMIN + ((double)n)*DX);
+     XMatrix = new HMatrix(NUMPTS, 6);
+     double XXP[6] = {0.0, 0.0, 0.0, 0.25, 0.5, 1.0};
+     for(int nx=0; nx<NUMPTS; nx++)
+      { XXP[2] = XMIN + ((double)nx)*DX;
+        XMatrix->SetEntriesD(nx, "0:5", XXP);
+      };
    };
 
-  double XS[3]={0.5, 0.0, 1.0};
-  FILE *f=fopen("tlibSubstrate.out","w");
+  HMatrix *GMatrix=new HMatrix(XMatrix->NR, 18, LHM_COMPLEX);
+  S->GetHalfSpaceDGFs_SC(Omega, XMatrix, GMatrix);
+  FILE *f=fopen("tFullWaveSubstrate.out","w");
   for(int nx=0; nx<XMatrix->NR; nx++)
-   { double XD[3];
-     XMatrix->GetEntriesD(nx,"0:2",XD);
-     if (Omega==0.0)
-      { double G0Correction=0.0;
-        double PhiE[4]={0.0, 0.0, 0.0, 0.0}, DeltaPhiE[4];
-        S->GetDeltaPhiE(XD, XS, DeltaPhiE, &G0Correction);
-        AddPhiE0(XD, XS[0], XS[1], XS[2], 1.0, PhiE);
-        if (G0Correction) PhiE[0]*=G0Correction;
-        VecPlusEquals(PhiE, 1.0, DeltaPhiE, 4);
-        fprintVec(f,XD,3);
-        fprintVecCR(f,PhiE,4);
-      };
+   { double XXP[6];
+     XMatrix->GetEntriesD(nx,"0:5",XXP);
+     fprintVec(f,XXP,6);
+     cdouble GVector[18];
+     GMatrix->GetEntries(nx,":",GVector);
+     fprintVecCR(f,GVector,18);
    };
   fclose(f);
   printf("Thank you for your support.\n");

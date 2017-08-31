@@ -37,6 +37,10 @@
 #include <libMatProp.h>
 #include <libMDInterp.h>
 
+// plane-wave polarizations
+#define POL_TE 0
+#define POL_TM 1
+
 /***************************************************************/
 /* data structure for layered material substrate               */
 /***************************************************************/
@@ -50,8 +54,13 @@ public:
    //                 to the 6x6 dyadic Green's function
    //                 giving the E,H fields at XD due to 
    //                 J, M currents at XS
+#if 0
    void GetDeltaG(cdouble Omega, double XD[3], double XS[3],
                   cdouble DeltaG[6][6]);
+
+   void GetDeltaG(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix);
+#endif
+   void GetHalfSpaceDGFs_SC(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix) {}
 
    // electrostatic case: get the contribution of the substrate
    //                     to the potential and electrostatic field
@@ -71,16 +80,17 @@ public:
    void GetqIntegral(double RhoMag, double zD, double zS,
                      double qIntegral[3]);
 
+   void GetReflectionCoefficients(double Omega, double *q,
+                                  cdouble r[2][2]);
+
 // internal ("private") class data
    char *ErrMsg;
-   int NumLayers;
-   MatProp *MPMedium;   // material properties of ambient (uppermost) medium
-   MatProp **MPLayer;   // MPLayer[n] = properties of layer #(n+1)
-   cdouble EpsMedium;   // 
-   cdouble  *EpsLayer;  // EpsLayer[n] = permittivity of layer #(n+1)
-   cdouble  *MuLayer;   // MuLayer[n]  = permeability of layer #(n+1)
+   int NumInterfaces;
+   MatProp **MPLayer;   // MPLayer[n] = properties of layer n
+   cdouble  *EpsLayer;  // EpsLayer[n] = permittivity of layer n
+   cdouble  *MuLayer;   // MuLayer[n]  = permeability of layer n
    cdouble OmegaCache;  // frequency at which EpsMedium, EpsLayer, MuLayer were cached
-   double *zLayer;      // z[n] = z-coordinate of upper surface of layer #(n+1)
+   double *zInterface;  // z-coordinates of layer interfaces
    double zGP;
    int qMaxEval;        // convergence parameters for q integration
    double qAbsTol;

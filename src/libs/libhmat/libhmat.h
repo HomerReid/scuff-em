@@ -275,8 +275,8 @@ class HMatrix
    void Sort(int WhichColumn);
 
    // compute vector-matrix-vector product X'*this*Y
-   cdouble BilinearProduct(HVector *X, HVector *Y);
-   double BilinearProductD(HVector *X, HVector *Y);
+   cdouble BilinearProduct(HVector *X, HVector *Y=0);
+   double BilinearProductD(HVector *X, HVector *Y=0);
 
    /*--------------------------------------------------------------*/
    /*- the following routines are wrappers around LAPACK or BLAS   */
@@ -430,8 +430,8 @@ class SMatrix
     HMatrix *Apply(HMatrix *X); // return new MX
 
     // compute vector-matrix-vector product X'*this*Y
-    cdouble BilinearProduct(HVector *X, HVector *Y);
-    double BilinearProductD(HVector *X, HVector *Y);
+    cdouble BilinearProduct(HVector *X, HVector *Y=0);
+    double BilinearProductD(HVector *X, HVector *Y=0);
 
     // matrix assembly:
     //     BeginAssembly(estimate of # nonzero entries)
