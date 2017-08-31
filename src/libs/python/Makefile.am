@@ -21,6 +21,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libTriInt    \
               -I$(top_srcdir)/src/libs/libscuff     \
               -I$(top_srcdir)/src/libs/libSSSolver  \
+              -I$(top_srcdir)/src/libs/libSubstrate \
               -I$(top_builddir) # for config.h
 
 ##############################################################################

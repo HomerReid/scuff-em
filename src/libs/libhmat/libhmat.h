@@ -410,6 +410,8 @@ class SMatrix
     // return the number of nonzero entries in a given row
     int GetNNZ(int nr);
 
+    bool isNZ(int nr, int nc);
+
     void Zero();
 
     // return pointers to arrays of column indices and nonzero 

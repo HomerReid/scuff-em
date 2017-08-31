@@ -133,6 +133,18 @@ int SMatrix::GetNNZ(int nr)
   return RowStart[nr+1] - RowStart[nr];
 } 
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool SMatrix::isNZ(int nr, int nc)
+{ 
+  if (nr<0 || nr>=NR) return false;
+  for(int n=RowStart[nr]; n<RowStart[nr+1]; n++)
+   if (ColIndices[n]==nc)
+    return true;
+  return false;
+}
+
 
 /***************************************************************/
 /* return pointers to an integer array and a double or cdouble */
