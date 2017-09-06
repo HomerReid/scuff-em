@@ -47,6 +47,8 @@
 class LayeredSubstrate
  {
 public:
+
+   // constructor/destructor
    LayeredSubstrate(const char *SubstrateFile);
    ~LayeredSubstrate();
 
@@ -60,8 +62,6 @@ public:
 
    void GetDeltaG(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix);
 #endif
-   void GetHalfSpaceDGFs_SC(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix) {}
-
    // electrostatic case: get the contribution of the substrate
    //                     to the potential and electrostatic field
    //                     at XD due to a point source at XS 
@@ -80,8 +80,13 @@ public:
    void GetqIntegral(double RhoMag, double zD, double zS,
                      double qIntegral[3]);
 
+   void AssembleMF2SMatrix(cdouble Omega, double q[2], HMatrix *MF2S);
+   void GetScriptGTwiddle_SC(cdouble Omega, double q2D[2],
+                             double zDest, double zSource,
+                             cdouble ScriptGTwiddle[6][6]);
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
+   int GetRegionIndex(double z);
 
 // internal ("private") class data
    char *ErrMsg;
@@ -89,7 +94,7 @@ public:
    MatProp **MPLayer;   // MPLayer[n] = properties of layer n
    cdouble  *EpsLayer;  // EpsLayer[n] = permittivity of layer n
    cdouble  *MuLayer;   // MuLayer[n]  = permeability of layer n
-   cdouble OmegaCache;  // frequency at which EpsMedium, EpsLayer, MuLayer were cached
+   cdouble OmegaCache;  // frequency at which EpsLayer, MuLayer were cached
    double *zInterface;  // z-coordinates of layer interfaces
    double zGP;
    int qMaxEval;        // convergence parameters for q integration

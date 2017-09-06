@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
    };
 
   HMatrix *GMatrix=new HMatrix(XMatrix->NR, 18, LHM_COMPLEX);
-  S->GetHalfSpaceDGFs_SC(Omega, XMatrix, GMatrix);
+  //S->GetHalfSpaceDGFs_SC(Omega, XMatrix, GMatrix);
   FILE *f=fopen("tFullWaveSubstrate.out","w");
   for(int nx=0; nx<XMatrix->NR; nx++)
    { double XXP[6];

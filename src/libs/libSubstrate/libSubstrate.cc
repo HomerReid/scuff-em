@@ -191,3 +191,12 @@ void LayeredSubstrate::UpdateCachedEpsMu(cdouble Omega)
   for(int n=0; n<=NumInterfaces; n++)
    MPLayer[n]->GetEpsMu(Omega, EpsLayer+n, MuLayer+n);
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int LayeredSubstrate::GetRegionIndex(double z)
+{ for(int ni=0; ni<NumInterfaces; ni++)
+   if (z>zInterface[ni]) return ni;
+  return NumInterfaces;
+}

@@ -2,8 +2,9 @@ noinst_LTLIBRARIES = libSubstrate.la
 pkginclude_HEADERS = libSubstrate.h
 
 libSubstrate_la_SOURCES = 	\
- libSubstrate.h		\
- libSubstrate.cc	\
+ libSubstrate.h			\
+ libSubstrate.cc		\
+ FullWave_SurfaceCurrents.cc	\
  Static.cc     		
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
