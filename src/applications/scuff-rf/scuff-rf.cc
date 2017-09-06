@@ -46,16 +46,22 @@ extern int WriteLogFile;
 
 using namespace scuff;
 
-#define MAXFREQ  10    // max number of frequencies 
+#define MAXFREQ  10    // max number of frequencies
 #define MAXCACHE 10    // max number of cache files for preload
 #define MAXSTR   1000
+#define MAXEPF   10    // max number of field visualization files
+#define MAXFVM   10    // max number of field visualization meshes
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega, 
                    RWGPort **Ports, int NumPorts, cdouble *PortCurrents, 
-                   char *EPFile);
+                   char *EPFile, char *FileBase);
+
+void ProcessFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega,
+                   RWGPort **Ports, int NumPorts, cdouble *PortCurrents, 
+                   char *FVMesh, char *FileBase);
 
 /***************************************************************/
 /***************************************************************/
@@ -82,7 +88,8 @@ int main(int argc, char *argv[])
   char *GeoFile=0;
   char *PortFile=0;
   char *PCFile=0;
-  char *EPFile=0;
+  char *EPFiles[MAXEPF];                int nEPFiles;
+  char *FVMeshes[MAXFVM];               int nFVMeshes;
   int PlotPorts=0;
   int ZParameters=0; 
   int SParameters=0;
@@ -97,6 +104,7 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
   char *ContribOnly=0;
+  char *FileBase=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
@@ -116,7 +124,11 @@ int main(int argc, char *argv[])
      {"Moments",        PA_BOOL,    0, 1,       (void *)&Moments,     0,            "output dipole moments"},
 //
      {"portcurrentfile", PA_STRING,  1, 1,      (void *)&PCFile,     0,             "port current file"},
-     {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile,     0,             "list of evaluation points"},
+     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,             "list of evaluation points"},
+//
+     {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
+//
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,     0,           "base name for output files"},
 //
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -126,9 +138,14 @@ int main(int argc, char *argv[])
 //
      {"ContribOnly",    PA_STRING,  1, 1,       (void *)&ContribOnly,  0,           "select port voltage contributors"},
 //
+//
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
+  if (GeoFile==0)
+   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+  if (!FileBase)
+   FileBase=strdup(GetFileBase(GeoFile));
 
   /***************************************************************/
   /* create the log file *****************************************/
@@ -149,8 +166,6 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* create the geometry                                         */
   /***************************************************************/
-  if (GeoFile==0)
-   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
   RWGGeometry::UseHRWGFunctions=false;
   RWGGeometry *G=new RWGGeometry(GeoFile);
  
@@ -235,8 +250,8 @@ int main(int argc, char *argv[])
    OSUsage(argv[0],OSArray,"--zparameters and/or --sparameters must be specified if a frequency specification is present");
   if (PCFile!=0 && (ZParameters!=0 || SParameters!=0) )
    OSUsage(argv[0],OSArray,"--zparameters and --sparameters may not be used with --portcurrentfile");
-  if (PCList!=0 && EPFile==0)
-   OSUsage(argv[0],OSArray,"--EPFile must be specified if --portcurrentfile is specified");
+  if (PCList!=0 && nEPFiles==0 && nFVMeshes==0)
+   OSUsage(argv[0],OSArray,"--EPFile or --FVMesh must be specified if --portcurrentfile is specified");
 
   /***************************************************************/
   /* create output files *****************************************/
@@ -455,9 +470,10 @@ int main(int argc, char *argv[])
 
       /*--------------------------------------------------------------*/
       /*- if the user gave us driving port currents and asked for the */
-      /*- radiated fields at a list of points...                      */
+      /*- radiated fields at a list of points/and or on a user-       */
+      /*- specified flux-mesh surface, handle that                    */
       /*--------------------------------------------------------------*/
-      if (EPFile)
+      if (nEPFiles!=0 || nFVMeshes!=0)
        { 
          Log(" Computing radiated fields..."); 
 
@@ -477,8 +493,12 @@ int main(int argc, char *argv[])
          /*--------------------------------------------------------------*/
          Log("  solving the BEM system");
          M->LUSolve(KN);
-         Log("  evaluating fields at user-specified evaluation points");
-         ProcessEPFile(G, KN, Omega, Ports, NumPorts, PortCurrents, EPFile);
+         
+         for(int n=0; n<nEPFiles; n++)
+          ProcessEPFile(G, KN, Omega, Ports, NumPorts, PortCurrents, EPFiles[n], FileBase);
+
+         for(int n=0; n<nFVMeshes; n++)
+          ProcessFVMesh(G, KN, Omega, Ports, NumPorts, PortCurrents, FVMeshes[n], FileBase);
 
        };
 

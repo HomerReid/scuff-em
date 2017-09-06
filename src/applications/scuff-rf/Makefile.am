@@ -5,7 +5,7 @@ scuff_rf_SOURCES =		\
  EdgePanelInteractions.cc	\
  GetPanelPotentials.cc		\
  GetPortVoltages.cc		\
- ProcessEPFile.cc		\
+ OutputModules.cc		\
  RWGPorts.cc			\
  RWGPorts.h 	 		\
  ZSConvert.cc

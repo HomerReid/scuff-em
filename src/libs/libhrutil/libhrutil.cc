@@ -501,7 +501,6 @@ void LogC(const char *format, ...)
 
   va_start(ap,format);
   vsnprintfEC(buffer,MAXSTR,format,ap);
-  fprintf(f,"%s \n",buffer);
   va_end(ap);
 
   if (LogToConsole)
@@ -513,7 +512,7 @@ void LogC(const char *format, ...)
    return;
 
   fseek(f,-2,SEEK_END);
-
+  fprintf(f,"%s \n",buffer);
   fclose(f);
 }
 
