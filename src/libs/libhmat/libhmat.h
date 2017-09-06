@@ -403,7 +403,7 @@ class SMatrix
     SMatrix(const char *FileName, char *MatrixName);
 
     void ExportToHDF5(void *pHC, const char *format, ...);
-    void ExportToHDF5(char *FileName, const char *format, ...);
+    void ExportToHDF5(const char *FileName, const char *format, ...);
     void ImportFromHDF5(const char *FileName, const char *Name);
     void ReadFromFile(const char *FileName, int FileType, const char *Options);
 

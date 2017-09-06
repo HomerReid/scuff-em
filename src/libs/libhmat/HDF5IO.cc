@@ -598,7 +598,7 @@ void SMatrix::ExportToHDF5(void *pHC, const char *format, ...)
   
 } 
 
-void SMatrix::ExportToHDF5(char *FileName, const char *format, ...)
+void SMatrix::ExportToHDF5(const char *FileName, const char *format, ...)
 { 
   va_list ap;
   char Name[1000];
@@ -766,6 +766,9 @@ void HVector::ImportFromHDF5(const char *FileName, const char *Name)
 { WarnNoHDF5(); }
 
 void SMatrix::ExportToHDF5(const char *FileName, const char *format, ...)
+{ WarnNoHDF5(); }
+
+void SMatrix::ExportToHDF5(void *pHC, const char *format, ...)
 { WarnNoHDF5(); }
 
 void SMatrix::ImportFromHDF5(const char *FileName, const char *Name)
