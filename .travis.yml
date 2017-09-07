@@ -8,6 +8,7 @@ addons:
     - python-numpy
     - swig
 script:
-  - ./autogen.sh --enable-shared --with-python
+#  - ./autogen.sh --enable-shared --with-python
+  - ./autogen.sh --enable-shared
   - make
-  - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'
+#  - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'
