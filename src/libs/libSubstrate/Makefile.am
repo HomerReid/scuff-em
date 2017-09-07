@@ -23,7 +23,7 @@ OTHER_LIBS=                      \
  ../libSpherical/libSpherical.la \
  ../libhrutil/libhrutil.la     
 
-noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tGTwiddle
+noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate
 
 tStaticSubstrate_SOURCES = tStaticSubstrate.cc
 tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
@@ -31,5 +31,5 @@ tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 
-tGTwiddle_SOURCES = tGTwiddle.cc
-tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)
+#tGTwiddle_SOURCES = tGTwiddle.cc
+#tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)
