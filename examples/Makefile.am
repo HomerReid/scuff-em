@@ -16,4 +16,5 @@ SUBDIRS =            	\
  StriplineCapacitor     \
  ThinFilm               \
  TwoBodyCapacitors      \
- WireAntenna         
+ WireAntenna		\
+ YagiUdaAntennas     

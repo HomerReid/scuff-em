@@ -299,7 +299,7 @@ void GetGC0Twiddle(cdouble k2, double q2D[3], cdouble qz, double Sign,
    CT[0][2]=CT[2][0]=CT[1][2]=CT[2][1]=0.0;
   else
    { CT[0][2] =      qy/qz;  CT[2][0]=-1.0*CT[0][2];
-     CT[1][2] = -1.0*qx/qz;  CT[2][1]=-1.0*CT[1][1];
+     CT[1][2] = -1.0*qx/qz;  CT[2][1]=-1.0*CT[1][2];
    };
 }
 
@@ -326,6 +326,7 @@ void AddScriptG0Twiddle(cdouble Omega, cdouble Eps, cdouble Mu, double q2D[2],
       ScriptG0Twiddle[3+i][0+j] += MEPrefac * CT[i][j];
       ScriptG0Twiddle[3+i][3+j] += MMPrefac * GT[i][j];
     };
+
 }
 
 /***************************************************************/

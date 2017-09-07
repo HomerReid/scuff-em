@@ -21,7 +21,7 @@
 
 # Tutorial Examples
 
-### Photonics, imaging 
+### Photonics, plasmonics, transmission, imaging
 
 * [Mie scattering](examples/MieScattering/MieScattering.md)
 * [Electrostatics of a spherical dielectric shell](examples/DielectricShell/DielectricShell.md)
@@ -31,6 +31,10 @@
 * [Plane-wave transmission with rotation of polarization: Chiral metasurface rotator](http://homerreid.github.io/SCUFFEMTutorialSymposium/ChiralMetasurfaceRotator)
 * [Imaging diffraction patterns of discs, disc arrays, and hole arrays in metal screens](examples/DiffractionPatterns/DiffractionPatterns.md)
 * [Imaging diffraction patterns of aperiodic arrays: Vogel spirals](http://homerreid.github.io/SCUFFEMTutorialSymposium/SpiralArrays/)
+
+### RF device modeling
+
+* [S-parameters, directivity, and radiated field patterns of Yagi-Uda antennas](examples/YagiUdaAntennas/YagiUdaAntennas.md)
 
 ### Fluctuation-induced phenomena
 

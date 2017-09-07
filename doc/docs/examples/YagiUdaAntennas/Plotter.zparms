@@ -1,0 +1,17 @@
+FILE1='DipoleAntenna_Medium.zparms'
+FILE2='YUAntenna_N2_Medium.zparms'
+
+set xlabel 'Frequency (GHz)'
+set ylabel '$Z_{11}$ ($\Omega$)'
+
+set terminal x11 1
+set key at 2.5, 300 spacing 4
+plot FILE1 u 1:2 t 'Re $Z_{11}$' w lp pt 7 ps 1 \
+    ,FILE1 u 1:3 t 'Im $Z_{11}$' w lp pt 7 ps 1
+call 'latex' 'DipoleAntennaZParameters'
+
+set terminal x11 2
+set key at 2.5, 300 spacing 4
+plot FILE2 u 1:2 t 'Re $Z_{11}$' w lp pt 7 ps 1 \
+    ,FILE2 u 1:3 t 'Im $Z_{11}$' w lp pt 7 ps 1
+call 'latex' 'YUAntennaZParameters'

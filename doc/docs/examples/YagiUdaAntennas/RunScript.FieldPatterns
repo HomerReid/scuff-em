@@ -1,0 +1,17 @@
+#!/bin/bash
+
+CODE=scuff-rf
+
+BASE=.
+export GEODIR=${BASE}/scuffgeoFiles
+export SCUFF_MESH_PATH=${BASE}/mshFiles
+
+ARGS=""
+ARGS="${ARGS} --portfile ${BASE}/portFiles/Dipole.ports"
+ARGS="${ARGS} --portcurrentFile ${BASE}/portcurrentFiles/Dipole.PortCurrents"
+ARGS="${ARGS} --FVMesh Hemisphere.msh"
+
+for GEOM in DipoleAntenna YUAntenna_N2 YUAntenna_N4
+do
+  ${CODE} ${ARGS} --geometry ${GEODIR}/${GEOM}_Medium.scuffgeo
+done

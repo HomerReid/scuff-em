@@ -1,0 +1,4 @@
+OBJECT Dipole
+	MESHFILE PlanarYUAntenna_Medium.msh
+	MESHTAG  1
+ENDOBJECT
