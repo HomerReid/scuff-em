@@ -1,0 +1,20 @@
+#!/bin/bash
+
+CODE=scuff-rf
+
+BASE=.
+export GEODIR=${BASE}/scuffgeoFiles
+export SCUFF_MESH_PATH=${BASE}/mshFiles
+
+ARGS=""
+ARGS="${ARGS} --portfile ${BASE}/portFiles/Dipole.ports"
+ARGS="${ARGS} --minfreq 2.0"
+ARGS="${ARGS} --maxfreq 4.0"
+ARGS="${ARGS} --numfreqs 100"
+ARGS="${ARGS} --ZParameters"
+ARGS="${ARGS} --SParameters"
+
+for GEOM in DipoleAntenna YUAntenna_N2 YUAntenna_N4
+do
+  ${CODE} ${ARGS} --geometry ${GEODIR}/${GEOM}_Medium.scuffgeo
+done

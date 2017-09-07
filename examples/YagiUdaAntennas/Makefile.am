@@ -8,7 +8,8 @@ EXTRA_DIST=				                         \
  scuffgeoFiles/DipoleAntenna_Medium.scuffgeo \
  scuffgeoFiles/YUAntenna_N2_Medium.scuffgeo \
  scuffgeoFiles/YUAntenna_N4_Medium.scuffgeo \
- RunScript.FieldPatterns
+ RunScript.FieldPatterns                    \
+ RunScript.SZParms
 
 pkgdatadir = $(datadir)/scuff-em/examples/YagiUdaAntennas
 nodist_pkgdata_DATA = ${EXTRA_DIST}

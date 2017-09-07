@@ -300,7 +300,7 @@ AC_CONFIG_FILES([
  examples/TwoDimensionalCylinders/Makefile
  examples/ThinFilm/Makefile
  examples/WireAntenna/Makefile
-# examples/YagiUdaAntennas/Makefile
+ examples/YagiUdaAntennas/Makefile
  interactiveTests/Makefile
  unitTests/Makefile
 ])
