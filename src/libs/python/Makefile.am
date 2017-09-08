@@ -24,6 +24,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libSubstrate \
               -I$(top_builddir) # for config.h
 
+AM_CFLAGS=-W
+AM_CXXFLAGS=-W
+
 ##############################################################################
 # Generate wrappers via SWIG:
 

@@ -350,39 +350,31 @@ void LayeredSubstrate::AssembleMF2SMatrix(cdouble Omega, double q2D[2],
   MF2S->Zero();
   for(int a=0; a<NumInterfaces; a++)
    {
-     int RowOffset = 4*a + 0;
+     int RowOffset = 4*a;
      for(int b=a-1; b<=a+1; b++)
       { 
         if (b<0 || b>=NumInterfaces) continue;
-        int ColOffset = 4*b + 0;
+        int ColOffset = 4*b;
 
         // contributions of surface currents on interface z_b
         // to tangential-field matching equations at interface z_a
         cdouble ScriptG0Twiddle[6][6];
-        double Sign;
+        double Sign=-1.0;
         if ( b==(a-1) )
-         { 
-           GetScriptG0Twiddle(Omega, EpsLayer[a], MuLayer[a], q2D, zInterface[a]-zInterface[b], ScriptG0Twiddle);
-           Sign=-1.0;
-         }
-        else if (b==a)
+         GetScriptG0Twiddle(Omega, EpsLayer[a], MuLayer[a], q2D, zInterface[a]-zInterface[b], ScriptG0Twiddle);
+        else if ( b==(a+1) )
+         GetScriptG0Twiddle(Omega, EpsLayer[a+1], MuLayer[a+1], q2D, zInterface[a]-zInterface[b], ScriptG0Twiddle);
+        else // (b==a)
          { GetScriptG0Twiddle(Omega, EpsLayer[a],   MuLayer[a],   q2D, +1.0e-12, ScriptG0Twiddle);
            AddScriptG0Twiddle(Omega, EpsLayer[a+1], MuLayer[a+1], q2D, -1.0e-12, ScriptG0Twiddle);
            Sign=1.0;
-         }
-        else // ( b==(a+1) )
-         { 
-           GetScriptG0Twiddle(Omega, EpsLayer[a+1], MuLayer[a+1], q2D, zInterface[a]-zInterface[b], ScriptG0Twiddle);
-           Sign=-1.0;
          };
 
-        for(int i=0; i<2; i++)
-         for(int j=0; j<2; j++)
-          { MF2S->AddEntry(RowOffset+2*i+0, ColOffset+2*j+0, Sign*ScriptG0Twiddle[0+i][0+j]);
-            MF2S->AddEntry(RowOffset+2*i+0, ColOffset+2*j+1, Sign*ScriptG0Twiddle[0+i][3+j]);
-            MF2S->AddEntry(RowOffset+2*i+1, ColOffset+2*j+0, Sign*ScriptG0Twiddle[3+i][0+j]);
-            MF2S->AddEntry(RowOffset+2*i+1, ColOffset+2*j+1, Sign*ScriptG0Twiddle[3+i][3+j]);
-          };
+        for(int EH=0; EH<2; EH++)
+         for(int KN=0; KN<2; KN++)
+          for(int i=0; i<2; i++)
+           for(int j=0; j<2; j++)
+            MF2S->AddEntry(RowOffset+2*EH+0, ColOffset+2*KN+0, Sign*ScriptG0Twiddle[3*EH+i][3*KN+j]);
       };
    };
 
@@ -391,7 +383,8 @@ void LayeredSubstrate::AssembleMF2SMatrix(cdouble Omega, double q2D[2],
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double zDest, double zSource, cdouble ScriptGTwiddle[6][6])
+void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double zDest, double zSource,
+                                            cdouble ScriptGTwiddle[2][6][6])
 {
   UpdateCachedEpsMu(Omega);
  
@@ -399,7 +392,7 @@ void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double
   /* assemble F->S matrix ***********************************************/
   /**********************************************************************/
   int NumVars = 4*NumInterfaces;
-  HMatrix MF2S( NumVars, NumVars, LHM_COMPLEX);
+  HMatrix MF2S(NumVars, NumVars, LHM_COMPLEX);
   AssembleMF2SMatrix(Omega, q2D, &MF2S);
   MF2S.LUFactorize();
 
@@ -434,10 +427,9 @@ void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double
         if (nr<0 || nr>=NumInterfaces) continue;
         int RowOffset = 4*nr;  
         double Sign   = (Which == 1 ? -1.0 : 1.0);
-        KNTwiddle.SetEntry(RowOffset + 2*0 + 0, Sign*ScriptG0TSource[Which][0+0][Nu]);
-        KNTwiddle.SetEntry(RowOffset + 2*0 + 1, Sign*ScriptG0TSource[Which][3+0][Nu]);
-        KNTwiddle.SetEntry(RowOffset + 2*1 + 0, Sign*ScriptG0TSource[Which][0+1][Nu]);
-        KNTwiddle.SetEntry(RowOffset + 2*1 + 1, Sign*ScriptG0TSource[Which][3+1][Nu]);
+        for(int EH=0; EH<2; EH++)
+         for(int i=0; i<2; i++)
+          KNTwiddle.SetEntry(RowOffset + 2*EH + i, Sign*ScriptG0TSource[Which][3*EH+i][Nu]);
       };
 
      // solve for surface currents on all layers
@@ -449,17 +441,10 @@ void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double
         if (nr<0 || nr>=NumInterfaces) continue;
         int RowOffset = 4*nr;
         double Sign   = (Which == 1 ? +1.0 : -1.0);
-        cdouble KX = KNTwiddle.GetEntry(RowOffset + 2*0 + 0);
-        cdouble NX = KNTwiddle.GetEntry(RowOffset + 2*0 + 1);
-        cdouble KY = KNTwiddle.GetEntry(RowOffset + 2*1 + 0);
-        cdouble NY = KNTwiddle.GetEntry(RowOffset + 2*1 + 1);
         for(int Mu=0; Mu<6; Mu++)
-         ScriptGTwiddle[Mu][Nu] 
-          += Sign * ( ScriptG0TDest[Which][Mu][0]*KX +
-                      ScriptG0TDest[Which][Mu][3]*NX +
-                      ScriptG0TDest[Which][Mu][1]*KY +
-                      ScriptG0TDest[Which][Mu][4]*NY
-                    );
+         for(int EH=0; EH<2; EH++)
+          for(int i=0; i<2; i++)
+           ScriptGTwiddle[Which][Mu][Nu] += Sign*ScriptG0TDest[Which][Mu][3*EH+i]*KNTwiddle.GetEntry(RowOffset+2*EH+i);
       }; // for (Which=0 ...)
 
    }; // for(int Nu=0; Nu<6; Nu++)

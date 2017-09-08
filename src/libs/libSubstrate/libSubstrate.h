@@ -83,7 +83,7 @@ public:
    void AssembleMF2SMatrix(cdouble Omega, double q[2], HMatrix *MF2S);
    void GetScriptGTwiddle_SC(cdouble Omega, double q2D[2],
                              double zDest, double zSource,
-                             cdouble ScriptGTwiddle[6][6]);
+                             cdouble ScriptGTwiddle[2][6][6]);
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
    int GetRegionIndex(double z);
