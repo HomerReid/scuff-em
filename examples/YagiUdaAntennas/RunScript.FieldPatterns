@@ -11,7 +11,8 @@ ARGS="${ARGS} --portfile ${BASE}/portFiles/Dipole.ports"
 ARGS="${ARGS} --portcurrentFile ${BASE}/portcurrentFiles/Dipole.PortCurrents"
 ARGS="${ARGS} --FVMesh Hemisphere.msh"
 
-for GEOM in DipoleAntenna YUAntenna_N2 YUAntenna_N4
+#for GEOM in DipoleAntenna YUAntenna_N2 YUAntenna_N4
+for GEOM in DipoleAntenna YUAntenna_N2
 do
   ${CODE} ${ARGS} --geometry ${GEODIR}/${GEOM}_Medium.scuffgeo
 done

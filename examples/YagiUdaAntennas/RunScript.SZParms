@@ -14,7 +14,7 @@ ARGS="${ARGS} --numfreqs 100"
 ARGS="${ARGS} --ZParameters"
 ARGS="${ARGS} --SParameters"
 
-for GEOM in DipoleAntenna YUAntenna_N2 YUAntenna_N4
+for GEOM in DipoleAntenna YUAntenna_N2
 do
   ${CODE} ${ARGS} --geometry ${GEODIR}/${GEOM}_Medium.scuffgeo
 done
