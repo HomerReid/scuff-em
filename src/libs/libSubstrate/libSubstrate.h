@@ -41,6 +41,13 @@
 #define POL_TE 0
 #define POL_TM 1
 
+// methods for full-wave DGF computation
+enum DGFMethod {AUTO, PLANE_WAVE, SURFACE_CURRENT, STATIC};
+
+#ifndef ZVAC
+#define ZVAC 376.73031346177
+#endif
+
 /***************************************************************/
 /* data structure for layered material substrate               */
 /***************************************************************/
@@ -52,16 +59,6 @@ public:
    LayeredSubstrate(const char *SubstrateFile);
    ~LayeredSubstrate();
 
-   // full-wave case: get the contribution of the substrate
-   //                 to the 6x6 dyadic Green's function
-   //                 giving the E,H fields at XD due to 
-   //                 J, M currents at XS
-#if 0
-   void GetDeltaG(cdouble Omega, double XD[3], double XS[3],
-                  cdouble DeltaG[6][6]);
-
-   void GetDeltaG(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix);
-#endif
    // electrostatic case: get the contribution of the substrate
    //                     to the potential and electrostatic field
    //                     at XD due to a point source at XS 
@@ -69,6 +66,27 @@ public:
                      double PhiE[4], double *pG0Correction=0);
 
    void InitStaticAccelerator1D(double RhoMin, double RhoMax, double z);
+
+   // full-wave case: get the contribution of the substrate
+   //                 to the 6x6 dyadic Green's function
+   //                 giving the E,H fields at XD due to
+   //                 J, M currents at XS
+   void GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3],
+                        cdouble ScriptG[6][6], DGFMethod Method=AUTO);
+
+   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
+                            HMatrix *GMatrix=0, DGFMethod Method=AUTO);
+
+   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, DGFMethod Method);
+
+   // various implementations of the full-wave calculation
+   void GetFullWaveDGF_Static(cdouble Omega, double *XD, double *XS,
+                              cdouble ScriptG[6][6]);
+   void GetFullWaveDGF_Static(cdouble Omega, HMatrix *XMatrix,
+                              HMatrix *GMatrix);
+
+   void GetFullWaveDGF_PlaneWave(cdouble Omega, HMatrix *XMatrix,
+                                 HMatrix *GMatrix);
 
 // private:
 
@@ -103,7 +121,7 @@ public:
    int PPIOrder;
    int PhiEOrder;
    int WhichIntegral;
-
+  
    Interp1D *I1D;
    double I1DRhoMin, I1DRhoMax, I1DZ;
  };

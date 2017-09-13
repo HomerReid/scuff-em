@@ -4,6 +4,8 @@ pkginclude_HEADERS = libSubstrate.h
 libSubstrate_la_SOURCES = 	\
  libSubstrate.h			\
  libSubstrate.cc		\
+ FullWave.cc                	\
+ FullWave_PlaneWave.cc		\
  FullWave_SurfaceCurrents.cc	\
  Static.cc     		
 
@@ -13,6 +15,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libMDInterp  \
               -I$(top_srcdir)/src/libs/libSGJC      \
               -I$(top_srcdir)/src/libs/libSpherical \
+              -I$(top_srcdir)/src/libs/libIncField  \
+              -I$(top_srcdir)/src/libs/libscuff     \
               -I$(top_builddir) # for config.h
 
 OTHER_LIBS=                      \
@@ -21,9 +25,10 @@ OTHER_LIBS=                      \
  ../libhmat/libhmat.la           \
  ../libSGJC/libSGJC.la           \
  ../libSpherical/libSpherical.la \
- ../libhrutil/libhrutil.la     
+ ../libhrutil/libhrutil.la       \
+ ../libscuff/libscuff.la      
 
-noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tGTwiddle
+noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate 
 
 tStaticSubstrate_SOURCES = tStaticSubstrate.cc
 tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
@@ -31,5 +36,6 @@ tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 
-tGTwiddle_SOURCES = tGTwiddle.cc
-tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)
+#tGTwiddle
+#tGTwiddle_SOURCES = tGTwiddle.cc
+#tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)
