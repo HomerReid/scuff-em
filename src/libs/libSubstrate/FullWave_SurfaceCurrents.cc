@@ -395,7 +395,7 @@ void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double
   HMatrix MF2S(NumVars, NumVars, LHM_COMPLEX);
   AssembleMF2SMatrix(Omega, q2D, &MF2S);
   MF2S.LUFactorize();
-  MF2S.LUSolve();
+  MF2S.LUInvert();
 
   /**********************************************************************/
   /* assemble RHS vector for each (source point, polarization, orientation) */
