@@ -135,11 +135,10 @@ int main(int argc, char *argv[])
   HMatrix *GPW= S->GetSubstrateDGF(Omega, XMatrix, PLANE_WAVE);
   //HMatrix *GSC= S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
 
-  HMatrix *G0 = new HMatrix(XMatrix->NR, 36, LHM_COMPLEX);
-  AddScriptG0(S, Omega, XMatrix, G0);
+  HMatrix *G0Matrix = new HMatrix(XMatrix->NR, 36, LHM_COMPLEX);
+  AddScriptG0Matrix(S, Omega, XMatrix, G0Matrix);
 
-  //HMatrix *GMatrix=new HMatrix(XMatrix->NR, 36, LHM_COMPLEX);
-  HMatrix *GStatic  = S->GetSubstrateDGF(Omega, XMatrix);
+  HMatrix *GMatrix = S->GetSubstrateDGF(Omega, XMatrix);
   FILE *f=fopen("tFullWaveSubstrate.out","w");
   for(int nx=0; nx<XMatrix->NR; nx++)
    { double XXP[6];

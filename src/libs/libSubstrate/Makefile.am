@@ -5,9 +5,14 @@ libSubstrate_la_SOURCES = 	\
  libSubstrate.h			\
  libSubstrate.cc		\
  FullWave.cc                	\
- FullWave_PlaneWave.cc		\
  FullWave_SurfaceCurrents.cc	\
  Static.cc     		
+
+# FullWave_PlaneWave.cc		
+
+
+AM_CXXFLAGS = -ggdb -O0
+CXXFLAGS = -ggdb -O0
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libhmat      \
@@ -28,13 +33,16 @@ OTHER_LIBS=                      \
  ../libhrutil/libhrutil.la       \
  ../libscuff/libscuff.la      
 
-noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate 
+noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tKNDecomposition
 
 tStaticSubstrate_SOURCES = tStaticSubstrate.cc
 tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
+
+tKNDecomposition_SOURCES = tKNDecomposition.cc
+tKNDecomposition_LDADD = libSubstrate.la $(OTHER_LIBS)
 
 #tGTwiddle
 #tGTwiddle_SOURCES = tGTwiddle.cc

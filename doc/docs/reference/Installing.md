@@ -1,20 +1,14 @@
 ## Installing [[scuff-em]]
 
-## 0. Try <span class="SC">scuff-em</span> online before installing anything!
+The <span class=SC>scuff-em</span> source distribution is packaged with the standard
+[<span class=SC>gnu autotools</span>](https://www.gnu.org/software/automake/manual/html_node/Autotools-Introduction.html)
+build environment. If you have experience installing <span class=SC>autotools</span>-based
+software packages, you should have no trouble installing <span class=SC>scuff-em</span>.
+If you *aren't* an <span class=SC>autotools</span> expert you should still be
+able to install <span class=SC>scuff-em</span> with little difficulty.
 
-[Johannes Feist](http://www.johannesfeist.eu/) has set up
-an interactive online notebook using [MyBinder](http://mybinder.org/)
-that you can use to run some simple [[scuff-em]] calculations on
-the cloud without having to install anything. This free service
-offers limited computing power, so you won't want to attempt any
-heavy calculations here, but you can follow Johannes' tutorial
-to observe the flow of a typical [[scuff-em]] calculation,
-play around with your own calculations, and get a feel for what 
-using [[scuff-em]] will like once you have installed it on your 
-machine.
-
-Here's the link:
-[http://mybinder.org/repo/jfeist/scuff-em-mybinder](http://mybinder.org/repo/jfeist/scuff-em-mybinder).
+**If you have any trouble installing <span class=SC>scuff-em</span>, please
+[file an issue on the <span class=SC>scuff-em</span> GitHub page.][Issues].**
 
 ## 1. External packages
 
@@ -23,9 +17,14 @@ software packages to implement certain non-essential functionality.
 [[scuff-em]] can be compiled and installed without any of these packages, 
 but in this case the code will be somewhat crippled.
 
-+ If you actually want to solve scattering problems (instead of 
++ If you actually want to solve scattering problems (instead of
   just setting them up), you will need
-  [LAPACK/BLAS](http://www.netlib.org/lapack).
+  [LAPACK/BLAS](http://www.netlib.org/lapack) or an equivalent
+  replacement such as the Intel MKL. If you do not already have your
+  own favorite solution for this, I highly recommend the excellent
+  open-source (<span class=SC>openblas</span>)(http://www.openblas.net/)
+  package, which includes both LAPACK and BLAS and automatically
+  tunes itself for optimal performance on your hardware.
 
 + If you want the capacity to write output files in the 
   standard HDF5 binary format, you will need
@@ -41,7 +40,7 @@ but in this case the code will be somewhat crippled.
   tool that is used throughout the
   [[scuff-em]] documentation.
 
-On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a 
+On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a
 
 ````bash
 % sudo apt-get install liblapack-dev libblas-dev libhdf5-serial-dev python-dev gmsh
@@ -82,9 +81,8 @@ will be in ``PREFIX/share/scuff-em/examples``
 (where ``PREFIX`` is the directory you specified using the 
 ``--prefix`` option above).
 
-If you have trouble installing [[scuff-em]],
-please file an issue on the 
-[<span class="SC">scuff-em</span> GitHub page][GitHub].
+**If you have trouble installing [[scuff-em]], please 
+[file an issue on the [<span class="SC">scuff-em</span> GitHub page][Issues].**
 
 ### Build options
 
@@ -94,39 +92,33 @@ For a full list of available options,
 type ``configure --help.`` Here we summarize some of the
 more salient possibilities.
 
-<a name="Threading"></a>
-#### Multithreading: [[openmp]] vs. [[pthreads]] 
+#### Using the MPI compilers
 
-The [[scuff-em]] core library 
-uses multithreading for all steps in the
-<a href="scuff-em/libscuff/MainFlow.shtml">main flow</a> of
-the BEM scattering procedure. You can use ``configure``
-options to select whether this multithreading is implemented
-using [[openmp]] or [[pthreads]]. The former is the default,
-while the latter may be enabled like this:
+In some cases---in particular, if the HDF5 installation on your
+system is built for an MPI environment instead of a serial
+environment---you may need to use the MPI-aware compilers
+when building <span class=SC>scuff-em</span>. To do this,
+just set the `CC` and `CXX` environment variables to
+the names of the MPI C and C++ compilers (usually `mpicc` and `mpic++`). For example:
 
 ````bash
-% ./configure --without-openmp --with-pthreads
+% export CC=mpicc
+% export CXX=mpic++
+% ./configure [usual configure options]
 ````
 
-The default [[openmp]]
-multithreading tends to play better with other multithreaded 
-software packages and is definitely the right choice if you 
-will be operating on a shared machine with some CPU cores 
-occupied by other users. 
-(You can monitor performance by inspecting
-[`.log` files][LogFiles].
+#### Disabling OpenMP
 
-Support for [[pthreads]]
-is a legacy feature that will be discontinued in future versions of 
-[[scuff-em]].
+<span class=SC>scuff-em</span> makes heavy use
+[<span class=SC>openmp</span>-based shared-memory multithreading](http://www.openmp.org/) to accelerate tasks such as BEM matrix assembly. Compiling with OpenMP support is enabled by default, but if you wish to *disable* it you may use the `--without-openmp` option to `configure.` (But you will be sacrificing a lot of speed if your system has more than one CPU core available!)
 
-Note: in some cases you may need to tweak certain environment 
-variables to achieve maximal 
-[[openmp]] performance.
+Note: after building with OpenMP support, in some cases you 
+may need to tweak
+certain environment variables to achieve maximal
+[[openmp]] performance when running <span class=SC>scuff-em</span>
+codes.
 For example, on my workstation (which has 8 CPU cores),
-in order to get [[openmp]] codes
-to use all 8 cores I need to set the following environment
+in order to use all 8 cores I need to set the following environment
 variable:
 
 ````bash
@@ -157,8 +149,8 @@ Here is the script that works for me to achieve these goals:
 ````bash
 #!/bin/bash
 
-CC="gcc -ggdb -O0"
-CXX="g++ -ggdb -O0"
+export CC="gcc -ggdb -O0"
+export CXX="g++ -ggdb -O0"
 export CFLAGS="-O0"
 export CXXFLAGS="-O0"
 sh autogen.sh --enable-debug --without-openmp --disable-shared
@@ -222,4 +214,5 @@ assembly, and then it takes forever for the code to run
 in the debugger to get there.
 
 [GitHub]:                      https://github.com/HomerReid/scuff-em/
+[Issues]:                      https://github.com/HomerReid/scuff-em/issues
 [LogFiles]:                    ../applications/GeneralReference.md#LogFiles

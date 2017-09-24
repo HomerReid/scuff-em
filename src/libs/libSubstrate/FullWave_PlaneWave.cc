@@ -41,8 +41,8 @@
 /*             due to unit-strength Nu-polarized downward-traveling*/
 /*             wave impinging on uppermost substrate surface   */
 /***************************************************************/
-void Substrate::GetReflectionCoefficients(double Omega, double *q2D,
-                                          cdouble r[2][2])
+void LayeredSubstrate::GetReflectionCoefficients(double Omega, double *q2D,
+                                                 cdouble r[2][2])
 {
   UpdateCachedEpsMu(Omega);
 
@@ -53,20 +53,20 @@ void Substrate::GetReflectionCoefficients(double Omega, double *q2D,
   /* handle the simple case of Fresnel scattering from a single  */
   /* semi-infinite dielectric half-space                         */
   /***************************************************************/
-  if (NumLayers==0 && zGP!=HUGE_VAL)
+  if (NumInterfaces==0 && zGP!=HUGE_VAL)
    { r[POL_TE][POL_TE] = -1.0;
      r[POL_TM][POL_TM] = +1.0;
      return;
    }
-  else if (NumLayers==1 && zGP==HUGE_VAL)
+  else if (NumInterfaces==1 && zGP==HUGE_VAL)
    { 
-     cdouble k2Above = EpsMedium*Omega*Omega;
-     cdouble k2Below = EpsLayer[0]*MuLayer[0]*Omega;
+     cdouble k2Above = EpsLayer[0]*MuLayer[0]*Omega*Omega;
+     cdouble k2Below = EpsLayer[1]*MuLayer[1]*Omega*Omega;
      double qMag2 = q2D[0]*q2D[0] + q2D[1]*q2D[1];
      cdouble qzAbove = sqrt( k2Above - qMag2 );
      cdouble qzBelow = sqrt( k2Below - qMag2 );
-     cdouble Eps = EpsLayer[0] / EpsMedium;
-     cdouble Mu  = MuLayer[0];
+     cdouble Eps = EpsLayer[1] / EpsLayer[0];
+     cdouble Mu  = MuLayer[1] / MuLayer[0];
      r[POL_TE][POL_TE] = (Mu*qzAbove - qzBelow) / (Mu*qzAbove + qzBelow);
      r[POL_TM][POL_TM] = (Eps*qzAbove - qzBelow) / (Eps*qzAbove + qzBelow);
      return;
@@ -112,7 +112,7 @@ int SubstrateDGFIntegrand_PlaneWave(unsigned ndim, const double *q,
 
   int IDim = 36*XMatrix->NR;
   if (Data->Accumulate == false)
-   memset(Integrand, 0, IDim*sizeof(cdouble));
+   memset(fval, 0, IDim*sizeof(cdouble));
 
   // Polar = true --> we have already integrated out 
   //                  q_Theta to yield Bessel functions,
@@ -123,15 +123,18 @@ int SubstrateDGFIntegrand_PlaneWave(unsigned ndim, const double *q,
   // Polar = false--> we are evaluating the 2-dimensional
   //                  (qx,qy) integral
   //
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   double q2, qMag, Jacobian=1.0;
   cdouble One, Cos, Sin, Cos2, Sin2, CosSin;
   if (Polar)
    { 
      if (Data->Propagating)
-      qMag     = q[0]*real(k0);
+      qMag     = q[0]*real(Omega);
      else 
       { double Denom = 1.0/(1.0-q[0]);
-        qMag = real(k0) * (1.0 + q[0]*Denom);
+        qMag = real(Omega) * (1.0 + q[0]*Denom);
         Jacobian = Denom*Denom;
       };
    }
@@ -151,10 +154,10 @@ int SubstrateDGFIntegrand_PlaneWave(unsigned ndim, const double *q,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  cdouble k02 = EpsMedium*Omega*Omega;
+  cdouble k02 = Substrate->EpsLayer[0]*Substrate->MuLayer[0]*Omega*Omega;
   cdouble qz2 = k02 - q2;
   if (qz2==0.0)
-   return;
+   return 1;
   cdouble qz = sqrt(qz2);
   if ( imag(qz)<0.0 )
    qz*=-1.0;
@@ -169,9 +172,11 @@ int SubstrateDGFIntegrand_PlaneWave(unsigned ndim, const double *q,
 
   bool TwoPointDGF = (XMatrix->NC>=6);
 
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  cdouble *Integrand=(cdouble *)fval;
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
      double XDest[3], XSourceBuffer[3];

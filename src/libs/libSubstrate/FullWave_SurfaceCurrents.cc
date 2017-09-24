@@ -343,11 +343,10 @@ void GetScriptG0Twiddle(cdouble Omega, cdouble Eps, cdouble Mu, double q2D[2],
 /* Fourier coefficients in all regions to yield the vector of         */
 /* surface-current Fourier coefficients on all material interfaces    */
 /**********************************************************************/
-void LayeredSubstrate::AssembleMF2SMatrix(cdouble Omega, double q2D[2],
-                                          HMatrix *MF2S)
+void LayeredSubstrate::ComputeW(cdouble Omega, double q2D[2], HMatrix *W)
 {
   UpdateCachedEpsMu(Omega);
-  MF2S->Zero();
+  W->Zero();
   for(int a=0; a<NumInterfaces; a++)
    {
      int RowOffset = 4*a;
@@ -374,30 +373,30 @@ void LayeredSubstrate::AssembleMF2SMatrix(cdouble Omega, double q2D[2],
          for(int KN=0; KN<2; KN++)
           for(int i=0; i<2; i++)
            for(int j=0; j<2; j++)
-            MF2S->AddEntry(RowOffset+2*EH+0, ColOffset+2*KN+0, Sign*ScriptG0Twiddle[3*EH+i][3*KN+j]);
+            W->AddEntry(RowOffset+2*EH+i, ColOffset+2*KN+j, Sign*ScriptG0Twiddle[3*EH+i][3*KN+j]);
       };
    };
+  W->LUFactorize();
 
 }
 
 /***************************************************************/
+/* W = 4*N x 4*N                                               */
+/* STwiddle = 4*N x 6                                          */
+/* where N = number of interfaces                              */
 /***************************************************************/
-/***************************************************************/
-void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double zDest, double zSource,
-                                            cdouble ScriptGTwiddle[2][6][6])
+void LayeredSubstrate::GetSTwiddle(cdouble Omega, double q2D[2], double zSource,
+                                   HMatrix *W, HMatrix *STwiddle)
 {
   UpdateCachedEpsMu(Omega);
  
   /**********************************************************************/
-  /* assemble F->S matrix ***********************************************/
+  /* assemble W matrix ***********************************************/
   /**********************************************************************/
-  int NumVars = 4*NumInterfaces;
-  HMatrix MF2S(NumVars, NumVars, LHM_COMPLEX);
-  AssembleMF2SMatrix(Omega, q2D, &MF2S);
-  MF2S.LUFactorize();
-
+  ComputeW(Omega, q2D,  W);
+  
   /**********************************************************************/
-  /* assemble RHS vector for each (pource point, polarization, orientation) */
+  /* prefetch homogeneous DGFs for source and dest regions              */
   /**********************************************************************/
   int nrSource = GetRegionIndex(zSource);
   cdouble EpsSource=EpsLayer[nrSource];
@@ -408,6 +407,7 @@ void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double
   if (nrSource<NumInterfaces)
    GetScriptG0Twiddle(Omega, EpsSource, MuSource, q2D, zInterface[nrSource]-zSource, ScriptG0TSource[1]);
 
+#if 0
   int nrDest = GetRegionIndex(zDest);
   cdouble EpsDest=EpsLayer[nrDest];
   cdouble  MuDest=MuLayer[nrDest];
@@ -416,39 +416,31 @@ void LayeredSubstrate::GetScriptGTwiddle_SC(cdouble Omega, double q2D[2], double
    GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest-1], ScriptG0TDest[0]);
   if (nrDest<NumInterfaces)
    GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest], ScriptG0TDest[1]);
+#endif
 
-  HVector KNTwiddle(NumVars, LHM_COMPLEX);
+  /**********************************************************************/
+  /* assemble RHS vectors for all 6 point-source orientations           */
+  /**********************************************************************/
+  STwiddle->Zero();
   for(int Nu=0; Nu<6; Nu++)
    {
      // fill in RHS vector describing fields sourced by point in region #nrSource
-     KNTwiddle.Zero();
-     for (int Which=0; Which<=1; Which++)
-      { int nr = nrSource-1+Which;
-        if (nr<0 || nr>=NumInterfaces) continue;
-        int RowOffset = 4*nr;  
-        double Sign   = (Which == 1 ? -1.0 : 1.0);
+     // AB = above or below
+     for (int AB=0; AB<=1; AB++)
+      { int nInterface = nrSource-1+AB;
+        if (nInterface<0 || nInterface>=NumInterfaces) continue;
+        int RowOffset = 4*nInterface;
+        double Sign   = (AB == 1 ? -1.0 : 1.0);
         for(int EH=0; EH<2; EH++)
          for(int i=0; i<2; i++)
-          KNTwiddle.SetEntry(RowOffset + 2*EH + i, Sign*ScriptG0TSource[Which][3*EH+i][Nu]);
+          STwiddle->SetEntry(RowOffset + 2*EH + i, Nu, Sign*ScriptG0TSource[AB][3*EH+i][Nu]);
       };
+   };
 
-     // solve for surface currents on all layers
-     MF2S.LUSolve(&KNTwiddle); 
-
-     // convolve surface currents with GF to yield fields at eval point
-     for (int Which=0; Which<=1; Which++)
-      { int nr = nrDest-1+Which;
-        if (nr<0 || nr>=NumInterfaces) continue;
-        int RowOffset = 4*nr;
-        double Sign   = (Which == 1 ? +1.0 : -1.0);
-        for(int Mu=0; Mu<6; Mu++)
-         for(int EH=0; EH<2; EH++)
-          for(int i=0; i<2; i++)
-           ScriptGTwiddle[Which][Mu][Nu] += Sign*ScriptG0TDest[Which][Mu][3*EH+i]*KNTwiddle.GetEntry(RowOffset+2*EH+i);
-      }; // for (Which=0 ...)
-
-   }; // for(int Nu=0; Nu<6; Nu++)
-
+  /**********************************************************************/
+  /* solve for surface currents on all layers                           */
+  /**********************************************************************/
+  W->LUSolve(STwiddle);
 }
 
 /***************************************************************/

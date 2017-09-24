@@ -338,8 +338,8 @@ and
 &=                G_0(\vb x\subt{D}, \vb x\subt{S}) 
  \underbrace{
  - \delta\subt{GP}G_0(\vb x\subt{D}, \vb x\subt{S}^*)
- + \sum_n \mc G^{\sigma_n}(\vb x\subt{D})
-            }_{\mc G(\vb x\subt{D}, \vb x\subt{S})}
+ + \sum_n G^{\sigma_n}(\vb x\subt{D})
+            }_{G\supt{subs}(\vb x\subt{D}, \vb x\subt{S})}
 \label{GTotal}
 %--------------------------------------------------------------------%
 \intertext{where}
@@ -349,7 +349,7 @@ and
 \nonumber
 %--------------------------------------------------------------------%
 \intertext{is the bare vacuum Green's function
-           [and $\mc G(\vb x\subt{D},\vb x\subt{S})$ is the correction
+           [and $G\supt{subs}(\vb x\subt{D},\vb x\subt{S})$ is the correction
             due to the substrate],}
 %--------------------------------------------------------------------%
 \vb x\subt{S}^* 
@@ -497,10 +497,10 @@ Green's function and its derivatives are given by
 \numeq{BesselFunctionIntegrals}
 {
 \left(\begin{array}{c}
-      \mc G^\sigma \\
-      -\partial_x \mc G^\sigma \\
-      -\partial_y \mc G^\sigma \\
-      -\partial_z \mc G^\sigma
+      G^\sigma \\
+      -\partial_x G^\sigma \\
+      -\partial_y G^\sigma \\
+      -\partial_z G^\sigma
    \end{array}\right)
 =\int \sum_n \frac{dq}{4\pi}\wt\sigma_n(q)
   \underbrace{
@@ -545,7 +545,7 @@ layer at $z_1$. If $z\subt{S}=z\subt{D}=z_1^+$ (both source
 and evaluation point approach interface layer from above),
 then equation
 (\ref{SystemForSigma}) becomes simply\footnote{Note that
-for $\epsilon_1>\epsilon\supt{A}$ the surface-charge density induced
+for $\epsilon_2>\epsilon_1$ the surface-charge density induced
 by a positive point source is \textit{negative}, as expected.}
 %====================================================================%
 \numeq{SigmaSingleLayer}
@@ -559,11 +559,11 @@ in closed form to read
 %====================================================================%
 \numeq{ScriptGSingleLayer}
 {
-\left\{\begin{array}{c}
-               \mc G^\sigma(\vbrho) \\
-   -\partial_x \mc G^\sigma(\vbrho) \\
-   -\partial_y \mc G^\sigma(\vbrho) \\
-   -\partial_z \mc G^\sigma(\vbrho)
+   \left\{\begin{array}{c}
+               G^\sigma(\vbrho) \\
+   -\partial_x G^\sigma(\vbrho) \\
+   -\partial_y G^\sigma(\vbrho) \\
+   -\partial_z G^\sigma(\vbrho)
    \end{array}\right\}
    = -\frac{1}{4\pi}
       \pf{\epsilon_2 - \epsilon_1}{\epsilon_2+\epsilon_1}
@@ -572,14 +572,15 @@ in closed form to read
    \end{array}\right\}
 }
 %====================================================================%
-Equation (\ref{ScriptGSingleLayer}) gives just the contribution
-to the potential from the induced surface charge at the dielectric
-interface.
-The \textit{total} potential is the sum of this plus the free-space
-contribution of the point source, equation (\ref{GTotal}):
+Notice that the substrate contribution $G^\sigma$ has the
+same $\rho$ dependence as the \text{free} Green's function
+$G_0$, with no exponential damping factors; the
+total Green's function, obtained by summing substrate and free-space
+contributions, looks like the free Green's function but with
+an overall multiplicative renormalization:
 %====================================================================%
 \begin{align}
- G(\vbrho)&= G_0(\vbrho) + \mc G^\sigma(\vbrho)
+ G(\vbrho)&= G_0(\vbrho) + G^\sigma(\vbrho)
 \nn
  &=\frac{1}{4\pi|\vbrho|}
    \left[ 1 - \frac{\epsilon_2 - \epsilon_1}{\epsilon_2 + \epsilon_1}\right]
@@ -598,6 +599,15 @@ surface of an infinite-thickness dielectric slab is \textit{exactly}
 equivalent to their electrostatics in vacuum, but with the
 vacuum permittivity replaced by the average of the permittivities
 above and below the slab.
+
+\paragraph{Consequences for BEM matrix assembly}
+One consequence of this for {\sc scuff-em} electrostatics
+calculations is that, for planar conductors on infinite dielectric
+substrates, we don't need to introduce any fancy technology
+or evaluate any new integrals to compute BEM matrix elements;
+we just use the existing {\sc scuff-em} codes for computing
+matrix elements in vacuum and divide the result by
+$\epsilon\sups{effective}.$
 
 \subsubsection*{Case B: Multiple dielectric interfaces}
 
@@ -666,6 +676,11 @@ $$ \wt\sigma_p(\infty) Z_p(\infty)
           2\pi\delta(\rho)
       \end{array}\right\}
 $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+which, when added to $G_0$, again amounts to a multiplicative
+rescaling of the free-space result.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

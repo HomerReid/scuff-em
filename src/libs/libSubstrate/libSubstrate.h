@@ -98,7 +98,8 @@ public:
    void GetqIntegral(double RhoMag, double zD, double zS,
                      double qIntegral[3]);
 
-   void AssembleMF2SMatrix(cdouble Omega, double q[2], HMatrix *MF2S);
+   void ComputeW(cdouble Omega, double q[2], HMatrix *W);
+   void GetSTwiddle(cdouble Omega, double q2D[2], double zSource, HMatrix *W, HMatrix *STwiddle);
    void GetScriptGTwiddle_SC(cdouble Omega, double q2D[2],
                              double zDest, double zSource,
                              cdouble ScriptGTwiddle[2][6][6]);
@@ -107,7 +108,10 @@ public:
    int GetRegionIndex(double z);
 
 // internal ("private") class data
+
    char *ErrMsg;
+
+   // info on substrate geometry
    int NumInterfaces;
    MatProp **MPLayer;   // MPLayer[n] = properties of layer n
    cdouble  *EpsLayer;  // EpsLayer[n] = permittivity of layer n
@@ -115,15 +119,19 @@ public:
    cdouble OmegaCache;  // frequency at which EpsLayer, MuLayer were cached
    double *zInterface;  // z-coordinates of layer interfaces
    double zGP;
-   int qMaxEval;        // convergence parameters for q integration
+
+   // convergence parameters for q integration
+   int qMaxEval;
    double qAbsTol;
    double qRelTol;
    int PPIOrder;
    int PhiEOrder;
    int WhichIntegral;
-  
+
+   // internal storage buffers 
    Interp1D *I1D;
    double I1DRhoMin, I1DRhoMax, I1DZ;
+   
  };
 
 void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double PhiE[4]);
