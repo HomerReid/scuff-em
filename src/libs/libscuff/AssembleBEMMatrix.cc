@@ -144,18 +144,21 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
   if (G->LDim>=2)
    vstrappend(K4VStr,"_%.6e",kBloch[1]);
 
-  int nr1=G->Surfaces[ns]->RegionIndices[0];
-  int nr2=G->Surfaces[ns]->RegionIndices[1];
+  RWGSurface *S=G->Surfaces[ns];
+  int nr1=S->RegionIndices[0];
+  int nr2=S->RegionIndices[1];
   if (G->RegionMPs[nr1]->Zeroed)
    strcat(K4VStr,"_Interior");
   else if (nr2!=-1 && G->RegionMPs[nr2]->Zeroed)
    strcat(K4VStr,"_Exterior");
     
-  char *FileBase = GetFileBase(G->Surfaces[ns]->MeshFileName); 
-  const char *Addendum = G->TBlockCacheNameAddendum;
-  if (Addendum==0) Addendum="";
+  char *FileBase = GetFileBase(S->MeshFileName); 
+  int MeshTag    = S->MeshTag;
   char FileName[200];
-  snprintf(FileName,200,"%s/%s%s_%s.hdf5",Dir,FileBase,Addendum,K4VStr);
+  if (MeshTag != -1)
+   snprintf(FileName,200,"%s/%s_%i_%s.hdf5",Dir,FileBase,MeshTag,K4VStr);
+  else
+   snprintf(FileName,200,"%s/%s_%s.hdf5",Dir,FileBase,K4VStr);
 
   /***************************************************************/
   /***************************************************************/
