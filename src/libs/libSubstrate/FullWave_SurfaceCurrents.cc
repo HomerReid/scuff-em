@@ -41,242 +41,11 @@
 #define ZVAC 376.73031346177
 #endif
 
-#if 0
+#define SQRT2 1.41421356237309504880
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-typedef struct SCData 
- {
-   LayeredSubstrate *Substrate;
-   HMatrix *XMatrix;
-   double Omega;
-   bool Polar;
-   bool Accumulate;
-   bool Propagating;
-   int nCalls;
-
- } SCData;
-
-/***************************************************************/
-/* Integrand[ 18*nx + 0*9 + 3*Mu + Nu ] = G^{E}_{Mu,Nu}        */
-/* Integrand[ 18*nx + 1*9 + 3*Mu + Nu ] = G^{M}_{Mu,Nu}        */
-/***************************************************************/
-int SubstrateDGFIntegrand_SC(unsigned ndim, const double *q,
-                             void *UserData, unsigned fdim, double *fval)
-{
-
-  SCData *Data                = (SCData *)UserData;
-  Data->nCalls++;
-
-  LayeredSubstrate *Substrate = Data->Substrate;
-  HMatrix *XMatrix            = Data->XMatrix;
-  cdouble Omega               = Data->Omega;
-  bool Polar                  = Data->Polar;
-
-  cdouble EpsMedium           = Data->Substrate->EpsMedium
-
-  int IDim = 18*XMatrix->NR;
-  if (Data->Accumulate == false)
-   memset(Integrand, 0, IDim*sizeof(cdouble));
-
-  // Polar = true --> we have already integrated out 
-  //                  q_Theta to yield Bessel functions,
-  //                  and what we are evaluating here 
-  //                  is just the integrand of the 1-dimensional
-  //                  q_r integral 
-  //
-  // Polar = false--> we are evaluating the 2-dimensional
-  //                  (qx,qy) integral
-  //
-  double q2, qMag, Jacobian=1.0;
-  cdouble One, Cos, Sin, Cos2, Sin2, CosSin;
-  if (Polar)
-   { 
-     if (Data->Propagating)
-      qMag     = q[0]*real(k0);
-     else 
-      { double Denom = 1.0/(1.0-q[0]);
-        qMag = real(k0) * (1.0 + q[0]*Denom);
-        Jacobian = Denom*Denom;
-      };
-   }
-  else
-   { q2       = q[0]*q[0] + q[1]*q[1];
-     qMag     = sqrt(q2);
-     double qxHat = (qMag==0.0) ? 1.0 : q[0] / qMag;
-     double qyHat = (qMag==0.0) ? 0.0 : q[1] / qMag;
-     One      = 1.0;
-     Cos      = qxHat;
-     Sin      = qyHat;
-     Cos2     = qxHat*qxHat;
-     CosSin   = qxHat*qyHat;
-     Sin2     = qyHat*qyHat;
-   };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  cdouble k02 = EpsMedium*Omega*Omega;
-  cdouble qz2 = k02 - q2;
-  if (qz2==0.0)
-   return;
-  cdouble qz = sqrt(qz2);
-  if ( imag(qz)<0.0 )
-   qz*=-1.0;
-
-  cdouble rr[4];
-  GetReflectionCoefficients(Omega, q, rr);
-  cdouble rTE = rr[POL_TE][POL_TE];
-  cdouble rTM = rr[POL_TM][POL_TM];
-
-  cdouble MTE[3][3], MTM[3][3];
-  MTE[0][2] = MTE[1][2] = MTE[2][0] = MTE[2][1] = MTE[2][2] = 0.0;
-
-  bool TwoPointDGF = (XMatrix->NC>=6);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  for(int nx=0; nx<XMatrix->NR; nx++)
-   { 
-     double XDest[3], XSourceBuffer[3];
-     double *XSource = (TwoPointDGF) ? XSourceBuffer : XDest;
-     XMatrix->GetEntriesD(nx,"0:2",XDest);
-     if (TwoPointDGF)
-      XMatrix->GetEntriesD(nx,"3:5",XSource);
-
-     if ( abs(imag(qz*(XSource[2] + XDest[2])) > 40.0 ) )
-      continue;
-
-     double R[3];
-     VecSub(XDest, XSource, R);
-     double Rho=sqrt( R[0]*R[0] + R[1]*R[1] );
-     double xHat = (Rho==0.0) ? 1.0 : R[0] / Rho;
-     double yHat = (Rho==0.0) ? 0.0 : R[1] / Rho;
-
-     double qDotRho=0.0;
-     if (Polar)
-      { cdouble J[3];
-        double qRho = qMag*Rho;
-        double TPQ = 2.0*M_PI*qMag;
-        AmosBessel('J', qRho, 0.0, 3, false, J, Data->Workspace);
-        cdouble J1oqRho = (qRho==0.0 ? 0.0 : J[1]/qRho);
-        cdouble Bracket = (J[0] - 2.0*J1oqRho - J[2]);
-        One     = TPQ*J[0];
-        Cos     = II*TPQ*J[1]*xHat;
-        Sin     = II*TPQ*J[1]*yHat;
-        Cos2    = TPQ*(0.5*Bracket*xHat*xHat + J1oqRho);
-        CosSin  = TPQ*0.5*Bracket*xHat*yHat;
-        Sin2    = TPQ*(0.5*Bracket*yHat*yHat + J1oqRho);
-      }
-     else
-      qDotRho = q[0]*R[0] + q[1]*R[1];
-     
-     MTE[0][0] = Sin2;
-     MTE[1][1] = Cos2;
-     MTE[0][1] = MTE[1][0] = -1.0*CosSin;
-
-     MTM[0][0] = -qz2*Cos2 / k02;
-     MTM[1][1] = -qz2*Sin2 / k02;
-     MTM[2][2] = q2*One  / k02;
-     MTM[0][1] = MTM[1][0] = -qz2*CosSin / k02;
-     MTM[2][0] =      qMag*qz*Cos / k02;
-     MTM[0][2] = -1.0*MTM[2][0];
-     MTM[2][1] =      qMag*qz*Sin / k02;
-     MTM[1][2] = -1.0*MTM[2][1];
-
-     cdouble ExpArg = II*( qDotRho + qz*(XSource[2]+XDest[2]) );
-     cdouble Factor = II*exp(ExpArg) / (8.0*M_PI*M_PI*qz);
-  
-     for(int Mu=0; Mu<3; Mu++)
-      for(int Nu=0; Nu<3; Nu++)
-       { Integrand[18*nx + 0*9 + 3*Mu + Nu] 
-          += Jacobian * Factor * (rTE*MTE[Mu][Nu] + rTM*MTM[Mu][Nu]);
-         Integrand[18*nx + 1*9 + 3*Mu + Nu] 
-          += Jacobian * Factor * (rTM*MTE[Mu][Nu] + rTE*MTM[Mu][Nu]);
-       };
-
-     if (LogFile)
-      { fprintf(LogFile,"%e %e ",qMag/real(k0),XSource[2]);
-        fprintf(LogFile,"%e %e %e %e ",real(rTE),imag(rTE),real(rTM),imag(rTM));
-        fprintf(LogFile,"%e ",imag(Factor*rTE*MTE[0][0]));
-        fprintf(LogFile,"%e ",imag(Factor*rTE*MTE[1][1]));
-        fprintf(LogFile,"%e ",imag(Factor*rTE*MTE[2][2]));
-        fprintf(LogFile,"%e ",imag(Factor*rTM*MTM[0][0]));
-        fprintf(LogFile,"%e ",imag(Factor*rTM*MTM[1][1]));
-        fprintf(LogFile,"%e ",imag(Factor*rTM*MTM[2][2]));
-        fprintf(LogFile,"\n");
-      };
-
-
-   };
-}
-
-/***************************************************************/
-/* get half-space DGFs via plane-wave decomposition approach   */
-/***************************************************************/
-void LayeredSubstrate::GetHalfSpaceDGFs_SC(cdouble Omega,
-                                           HMatrix *XMatrix,
-                                           HMatrix *GMatrix)
-{ 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int NX = XMatrix->NR;
-  int IDim = 18*NX;
-  static int IDimSave=0;
-  static cdouble *Integral1=0, *Integral2=0, *Error=0;
-  if (IDimSave!=IDim)
-   { IDimSave = IDim;
-     Integral1 = (cdouble *)reallocEC(Integral1, IDim * sizeof(cdouble));
-     Integral2 = (cdouble *)reallocEC(Integral2, IDim * sizeof(cdouble));
-     Error     = (cdouble *)reallocEC(Error, IDim * sizeof(cdouble));
-   };
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  Log("Evaluating qr integral for DGFs at %i points...",NX);
-
-  double Lower, Upper;
-  HalfSpaceData MyData, *Data=&MyData;
-  Data->XMatrix    = XMatrix;
-  Data->Omega      = Omega; 
-  Data->Epsilon    = Epsilon;
-  Data->Mu         = Mu;     
-  Data->Polar      = true;
-  Data->Accumulate = false;
-
-  Lower=0.0;
-  Upper=1.0;
-  Data->nCalls      = 0;
-  Data->Propagating= true;
-  hcubature(2*IDim, HalfSpaceDGFIntegrand_Polar, (void *)Data, 1,
-            &Lower, &Upper, MaxEvals, AbsTol, RelTol, 
-            ERROR_INDIVIDUAL, (double *)Integral1, (double *)Error);
-  Log(" small-q integral: %i calls",Data->nCalls);
-
-  Lower=0.0;
-  Upper=1.0;
-  Data->nCalls      = 0;
-  Data->Propagating = false;
-  hcubature(2*IDim, HalfSpaceDGFIntegrand_Polar, (void *)Data, 1, 
-            &Lower, &Upper, MaxEvals, AbsTol, RelTol, 
-            ERROR_INDIVIDUAL, (double *)Integral2, (double *)Error);
-  Log(" large-q integral: %i calls",Data->nCalls);
-
- 
-  for(int nx=0; nx<NX; nx++)
-   for(int ng=0; ng<18; ng++)
-    GMatrix->SetEntry(nx, ng, Integral1[18*nx + ng] + Integral2[18*nx + ng]);
-  
-}
-
-#endif
-
-/***************************************************************/
-/***************************************************************/
+/* compute the 3x3 submatrices that enter the quadrants of the */
+/* Fourier-transform of the (6x6) homogeneous DGF              */
 /***************************************************************/
 void GetGC0Twiddle(cdouble k2, double q2D[3], cdouble qz, double Sign,
                    cdouble GT[3][3], cdouble CT[3][3])
@@ -298,13 +67,13 @@ void GetGC0Twiddle(cdouble k2, double q2D[3], cdouble qz, double Sign,
   if (qz==0.0)
    CT[0][2]=CT[2][0]=CT[1][2]=CT[2][1]=0.0;
   else
-   { CT[0][2] =      qy/qz;  CT[2][0]=-1.0*CT[0][2];
-     CT[1][2] = -1.0*qx/qz;  CT[2][1]=-1.0*CT[1][2];
+   { CT[0][2] =      Sign*qy/qz;  CT[2][0]=-1.0*CT[0][2];
+     CT[1][2] = -1.0*Sign*qx/qz;  CT[2][1]=-1.0*CT[1][2];
    };
 }
 
 /***************************************************************/
-/***************************************************************/
+/* add the (Fourier-space) 6x6 homogeneous DGF *****************/
 /***************************************************************/
 void AddScriptG0Twiddle(cdouble Omega, cdouble Eps, cdouble Mu, double q2D[2],
                         double zDmS, cdouble ScriptG0Twiddle[6][6])
@@ -312,6 +81,7 @@ void AddScriptG0Twiddle(cdouble Omega, cdouble Eps, cdouble Mu, double q2D[2],
   cdouble GT[3][3], CT[3][3];
   cdouble k2=Eps*Mu*Omega*Omega;
   cdouble qz = sqrt(k2 - q2D[0]*q2D[0] - q2D[1]*q2D[1]);
+if (imag(qz)<0.0) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
   double Sign = (zDmS > 0.0) ? 1.0 : -1.0;
   GetGC0Twiddle(k2, q2D, qz, Sign, GT, CT);
   cdouble ExpFac = exp(II*qz*fabs(zDmS));
@@ -381,19 +151,34 @@ void LayeredSubstrate::ComputeW(cdouble Omega, double q2D[2], HMatrix *W)
 }
 
 /***************************************************************/
-/* W = 4*N x 4*N                                               */
-/* STwiddle = 4*N x 6                                          */
-/* where N = number of interfaces                              */
 /***************************************************************/
-void LayeredSubstrate::GetSTwiddle(cdouble Omega, double q2D[2], double zSource,
-                                   HMatrix *W, HMatrix *STwiddle)
+/***************************************************************/
+void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
+                                         double zDest, double zSource,
+                                         HMatrix *WMatrix,
+                                         HMatrix *STwiddle,
+                                         HMatrix *GTwiddle)
 {
   UpdateCachedEpsMu(Omega);
+
+  /**********************************************************************/
+  /**********************************************************************/
+  /**********************************************************************/
+  if (ForceFreeSpace)
+   { 
+     cdouble ScriptG0Twiddle[6][6];
+     cdouble EpsRel=1.0, MuRel=1.0;
+     GetScriptG0Twiddle(Omega, EpsRel, MuRel, q2D, zDest-zSource, ScriptG0Twiddle);
+     for(int Mu=0; Mu<6; Mu++)
+      for(int Nu=0; Nu<6; Nu++)
+       GTwiddle->SetEntry(Mu,Nu,ScriptG0Twiddle[Mu][Nu]);
+     return;
+   };
  
   /**********************************************************************/
   /* assemble W matrix ***********************************************/
   /**********************************************************************/
-  ComputeW(Omega, q2D,  W);
+  ComputeW(Omega, q2D,  WMatrix);
   
   /**********************************************************************/
   /* prefetch homogeneous DGFs for source and dest regions              */
@@ -407,7 +192,6 @@ void LayeredSubstrate::GetSTwiddle(cdouble Omega, double q2D[2], double zSource,
   if (nrSource<NumInterfaces)
    GetScriptG0Twiddle(Omega, EpsSource, MuSource, q2D, zInterface[nrSource]-zSource, ScriptG0TSource[1]);
 
-#if 0
   int nrDest = GetRegionIndex(zDest);
   cdouble EpsDest=EpsLayer[nrDest];
   cdouble  MuDest=MuLayer[nrDest];
@@ -416,7 +200,6 @@ void LayeredSubstrate::GetSTwiddle(cdouble Omega, double q2D[2], double zSource,
    GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest-1], ScriptG0TDest[0]);
   if (nrDest<NumInterfaces)
    GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest], ScriptG0TDest[1]);
-#endif
 
   /**********************************************************************/
   /* assemble RHS vectors for all 6 point-source orientations           */
@@ -440,11 +223,317 @@ void LayeredSubstrate::GetSTwiddle(cdouble Omega, double q2D[2], double zSource,
   /**********************************************************************/
   /* solve for surface currents on all layers                           */
   /**********************************************************************/
-  W->LUSolve(STwiddle);
+  WMatrix->LUSolve(STwiddle);
+
+  /**********************************************************************/
+  /* get Fourier components of fields at destination point due          */
+  /**********************************************************************/
+  GTwiddle->Zero();
+  for(int Mu=0; Mu<6; Mu++)
+   for (int AB=0; AB<=1; AB++)
+    { int nInterface = nrDest-1+AB;
+      if (nInterface<0 || nInterface>=NumInterfaces) continue;
+      int RowOffset = 4*nInterface;
+      double Sign   = (AB == 1 ?  1.0 : -1.0);
+      for(int Nu=0; Nu<6; Nu++)
+       for(int KN=0; KN<2; KN++)
+        for(int i=0; i<2; i++)
+         GTwiddle->AddEntry(Mu, Nu, Sign*ScriptG0TDest[AB][Mu][3*KN+i]
+                                        *STwiddle->GetEntry(RowOffset+2*KN+i,Nu)
+                           );
+    };
+}
+
+void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double qx, double qy,
+                                         double zDest, double zSource,
+                                         HMatrix *WMatrix, 
+                                         HMatrix *STwiddle,
+                                         HMatrix *GTwiddle)
+{ double q2D[2];
+  q2D[0]=qx;
+  q2D[1]=qy;
+  GetScriptGTwiddle(Omega, q2D, zDest, zSource,
+                    WMatrix, STwiddle, GTwiddle);
+}
+
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::Getg012(cdouble Omega, double qMag,
+                               double zDest, double zSource,
+                               HMatrix *WMatrix, HMatrix *STwiddle,
+                               HMatrix *g012[3])
+{
+  // qx=qMag, qy=0
+  HMatrix GT10(6,6,LHM_COMPLEX);
+  GetScriptGTwiddle(Omega, qMag,       0.0,        zDest, zSource, WMatrix, STwiddle, &GT10);
+
+  // qx=qMag/sqrt[2], qy=qMag/sqrt[2]
+  HMatrix GT11(6,6,LHM_COMPLEX);
+  GetScriptGTwiddle(Omega, qMag/SQRT2, qMag/SQRT2, zDest, zSource, WMatrix, STwiddle, &GT11);
+
+  // qx=0, qy=qMag
+  HMatrix GT01(6,6,LHM_COMPLEX);
+  GetScriptGTwiddle(Omega, 0.0,        qMag,       zDest, zSource, WMatrix, STwiddle, &GT01);
+
+  HMatrix *g0 = g012[0], *g1=g012[1], *g2=g012[2];
+  g0->Zero();
+  g1->Zero();
+  g2->Zero();
+  
+  for(int p=0; p<2; p++)
+   for(int q=0; q<2; q++)
+    { 
+      int ROfs = 3*p;
+      int COfs = 3*q;
+
+      g0->SetEntry(ROfs+0,COfs+0,GT01.GetEntry(ROfs+0,COfs+0));
+      g0->SetEntry(ROfs+0,COfs+1,GT01.GetEntry(ROfs+0,COfs+1));
+      g0->SetEntry(ROfs+0,COfs+2,GT01.GetEntry(ROfs+0,COfs+2));
+      g0->SetEntry(ROfs+1,COfs+0,GT01.GetEntry(ROfs+1,COfs+0));
+      g0->SetEntry(ROfs+1,COfs+1,GT10.GetEntry(ROfs+1,COfs+1));
+      g0->SetEntry(ROfs+1,COfs+2,GT10.GetEntry(ROfs+1,COfs+2));
+      g0->SetEntry(ROfs+2,COfs+0,GT01.GetEntry(ROfs+2,COfs+0));
+      g0->SetEntry(ROfs+2,COfs+1,GT10.GetEntry(ROfs+2,COfs+1));
+      g0->SetEntry(ROfs+2,COfs+2,GT01.GetEntry(ROfs+2,COfs+2));
+
+      g1->SetEntry(ROfs+0,COfs+2, GT10.GetEntry(ROfs+0, COfs+2)
+                                 -GT01.GetEntry(ROfs+0, COfs+2));
+
+      g1->SetEntry(ROfs+1,COfs+2, GT01.GetEntry(ROfs+1, COfs+2)
+                                 -GT10.GetEntry(ROfs+1, COfs+2));
+
+      g1->SetEntry(ROfs+2,COfs+0, GT10.GetEntry(ROfs+2, COfs+0)
+                                 -GT01.GetEntry(ROfs+2, COfs+0));
+
+      g1->SetEntry(ROfs+2,COfs+1, GT01.GetEntry(ROfs+2, COfs+1)
+                                 -GT10.GetEntry(ROfs+2, COfs+1));
+
+      g2->SetEntry(ROfs+0,COfs+0, GT10.GetEntry(ROfs+0, COfs+0)
+                                 -GT01.GetEntry(ROfs+0, COfs+0));
+
+      g2->SetEntry(ROfs+0,COfs+1, ( GT11.GetEntry(ROfs+0, COfs+1)
+                                   -GT01.GetEntry(ROfs+0, COfs+1)
+                                  ) / 2.0);
+
+      g2->SetEntry(ROfs+1,COfs+0, ( GT11.GetEntry(ROfs+1, COfs+0)
+                                   -GT01.GetEntry(ROfs+1, COfs+0)
+                                   ) / 2.0);
+
+      g2->SetEntry(ROfs+1,COfs+1, GT01.GetEntry(ROfs+1, COfs+1)
+                                 -GT10.GetEntry(ROfs+1, COfs+1));
+
+    };
+
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-//void LayeredSubstrate::GetHalfSpaceDGFs_SC(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix)
-//{}
+typedef struct IntegrandData 
+ {
+   LayeredSubstrate *Substrate;
+   HMatrix *XMatrix;
+   HMatrix *WMatrix;
+   HMatrix *STwiddle;
+   cdouble Omega;
+   FILE *LogFile;
+   bool Propagating;
+   int nCalls;
+
+ } IntegrandData;
+
+int SubstrateDGFIntegrand_SC(unsigned ndim, const double *uVector,
+                             void *UserData, unsigned fdim, double *fval)
+{
+  IntegrandData *Data         = (IntegrandData *)UserData;
+  Data->nCalls++;
+
+  LayeredSubstrate *Substrate = Data->Substrate;
+  HMatrix *XMatrix            = Data->XMatrix;
+  HMatrix *WMatrix            = Data->WMatrix;
+  HMatrix *STwiddle           = Data->STwiddle;
+  cdouble Omega               = Data->Omega;
+  FILE *LogFile               = Data->LogFile;
+
+  cdouble *Integrand = (cdouble *)fval;
+  memset(Integrand, 0, fdim*sizeof(double));
+
+  double k0 = real(Omega), k02=k0*k0;
+
+  double Jacobian = 1.0, u=uVector[0], qMag;
+  cdouble qz;
+#define UMIN 1.0e-3
+  if (Data->Propagating)
+   { 
+     if (u==0.0)
+      u=UMIN;
+     if (u==1.0) 
+      u=1.0-UMIN;
+     qz        = u*k0;
+     qMag      = real(sqrt(k02 - qz*qz));
+     Jacobian  = k0*real(qz)/(2.0*M_PI);
+   }
+  else // evanescent
+   { 
+     if (u==1.0) 
+      return 0;    // integrand vanishes at qMag=iqz=infinity
+     if (u==0.0) 
+      u=UMIN;
+     double Denom = 1.0 / (1.0-u);
+     double Alpha = u * Denom;
+     qMag         = k0*(1.0 + Alpha);
+     qz           = II*k0*sqrt(Alpha*(2.0+Alpha));
+     Jacobian     = k0*k0*Denom*Denom*Denom/(2.0*M_PI);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double LastzDest = 1.0e100, LastzSource=1.0e100;
+  int nrDest, nrSource;
+  for(int nx=0, ni=0; nx<XMatrix->NR; nx++)
+   { 
+     double Rho[2];
+     Rho[0]          = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
+     Rho[1]          = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
+     double RhoMag   = sqrt( Rho[0]*Rho[0] + Rho[1]*Rho[1] );
+     double CosTheta = (RhoMag==0.0) ? 0.0 : Rho[0] / RhoMag;
+     double SinTheta = (RhoMag==0.0) ? 0.0 : Rho[1] / RhoMag;
+     double zDest    = XMatrix->GetEntryD(nx,2);
+     double zSource  = XMatrix->GetEntryD(nx,5);
+
+     // fetch scalar quantities
+     HMatrix g0(6, 6, LHM_COMPLEX);
+     HMatrix g1(6, 6, LHM_COMPLEX);
+     HMatrix g2(6, 6, LHM_COMPLEX);
+     HMatrix *g012[3];
+     g012[0]=&g0;
+     g012[1]=&g1;
+     g012[2]=&g2;
+     Substrate->Getg012(Omega, qMag, zDest, zSource, WMatrix, STwiddle, g012);
+
+     // fetch bessel functions
+     cdouble J[3];
+     double qRho = qMag*RhoMag;
+     double Workspace[12];
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if(qRho>10000.0)
+ memset(J,0,3*sizeof(cdouble));
+else
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     AmosBessel('J', qRho, 0.0, 3, false, J, Workspace);
+     cdouble J0, J1[2], J2[2][2], J1oqRho, JSlash;
+     J0      = J[0];
+     J1[0]   = II*CosTheta*J[1];
+     J1[1]   = II*SinTheta*J[1];
+     J1oqRho = (qRho<1.0e-3) ? 0.5 : J[1]/qRho;
+     JSlash  = (qRho==0.0) ? 0.0 : 0.5*(J[0] - 2.0*J1oqRho - J[2]);
+     J2[0][0] = CosTheta*CosTheta*JSlash + J1oqRho;
+     J2[0][1] = J2[1][0] = CosTheta*SinTheta*JSlash;
+     J2[1][1] = SinTheta*SinTheta*JSlash + J1oqRho;
+     
+     // assemble GTwiddle
+     cdouble GTwiddle[6][6];
+     for(int p=0; p<2; p++)
+      for(int q=0; q<2; q++)
+       for(int Mu=0; Mu<3; Mu++)
+        for(int Nu=0; Nu<3; Nu++)
+         { 
+           cdouble g0MuNu = g0.GetEntry(3*p+Mu, 3*q+Nu);
+           cdouble g1MuNu = g1.GetEntry(3*p+Mu, 3*q+Nu);
+           cdouble g2MuNu = g2.GetEntry(3*p+Mu, 3*q+Nu);
+
+           GTwiddle[3*p+Mu][3*q+Nu] = g0MuNu;
+
+           if (Mu<2 && Nu<2)
+            GTwiddle[3*p+Mu][3*q+Nu] += g2MuNu * J2[Mu][Nu];
+           else if (Mu<2 && Nu==2)
+            GTwiddle[3*p+Mu][3*q+Nu] += g1MuNu * J1[Mu];
+           else if (Mu==2 && Nu<2)
+            GTwiddle[3*p+Mu][3*q+Nu] += g1MuNu * J1[Nu];
+         };
+
+     // stamp into integrand vector
+     for(int Mu=0; Mu<6; Mu++)
+      for(int Nu=0; Nu<6; Nu++)
+       Integrand[ni++] = Jacobian * GTwiddle[Mu][Nu];
+
+     if (LogFile)
+      { fprintf(LogFile,"%e %e %e ",qMag,real(qz),imag(qz));
+        fprintf(LogFile,"%e %e %e %e ",Rho[0],Rho[1],zDest,zSource);
+        fprintf(LogFile,"%e %e ",real(J[0]),imag(J[0]));
+        fprintf(LogFile,"%e %e ",real(J1oqRho),imag(J1oqRho));
+        fprintf(LogFile,"%e %e ",real(JSlash), imag(JSlash));
+        fprintVecCR(LogFile,Integrand+ni-36,36);
+        fflush(LogFile);
+      };
+
+   }; // for(int nx=0, ni=0; nx<XMatrix->NR; nx++)
+
+  return 0;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
+                                                      HMatrix *XMatrix,
+                                                      HMatrix *GMatrix)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int NX = XMatrix->NR;
+  int IDim = 36*NX;
+
+  HMatrix *WMatrix   = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
+  HMatrix *STwiddle  = new HMatrix(4*NumInterfaces, 6, LHM_COMPLEX);
+  cdouble *Integral1 = new cdouble[IDim];
+  cdouble *Integral2 = new cdouble[IDim];
+  cdouble *Integral3 = new cdouble[IDim];
+  cdouble *Error     = new cdouble[IDim];
+
+  double Lower=0.0, Upper=1.0;
+  IntegrandData MyData, *Data=&MyData;
+  Data->Substrate  = this;
+  Data->XMatrix    = XMatrix;
+  Data->WMatrix    = WMatrix;
+  Data->STwiddle   = STwiddle;
+  Data->Omega      = Omega;
+  Data->LogFile    = 0;
+
+  Data->nCalls      = 0;
+  Data->Propagating = true;
+  Data->LogFile     = fopen("/tmp/Propagating.log","w");
+  pcubature(2*IDim, SubstrateDGFIntegrand_SC, (void *)Data, 1,
+            &Lower, &Upper, qMaxEval, qAbsTol, qRelTol, 
+            ERROR_PAIRED, (double *)Integral1, (double *)Error);
+  Log(" propagating integral: %i calls, Gxx,Gzz=%s,%s",Data->nCalls,CD2S(Integral1[0]),CD2S(Integral1[15]));
+  if (Data->LogFile) fclose(Data->LogFile);
+  Data->LogFile=0;
+
+  Data->nCalls      = 0;
+  Data->Propagating = false;
+  Data->LogFile     = fopen("/tmp/Evanescent.log","w");
+  pcubature(2*IDim, SubstrateDGFIntegrand_SC, (void *)Data, 1,
+            &Lower, &Upper, qMaxEval, qAbsTol, qRelTol,
+            ERROR_PAIRED, (double *)Integral2, (double *)Error);
+  Log(" evanescent integral: %i calls, Gxx,Gzz=%s,%s",Data->nCalls,CD2S(Integral2[0]),CD2S(Integral2[15]));
+  if (Data->LogFile) fclose(Data->LogFile);
+  Data->LogFile=0;
+
+  for(int nx=0; nx<NX; nx++)
+   for(int ng=0; ng<36; ng++)
+    GMatrix->SetEntry(nx, ng, Integral1[36*nx + ng] + Integral2[36*nx + ng]);
+  
+  delete[] Error;
+  delete[] Integral1;
+  delete[] Integral2;
+  delete[] Integral3;
+  delete WMatrix;
+  delete STwiddle;
+  
+}

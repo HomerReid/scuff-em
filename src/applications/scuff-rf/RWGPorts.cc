@@ -554,8 +554,8 @@ RWGPort **ParsePortFile(RWGGeometry *G,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AddPortContributionsToRHS(RWGGeometry *G, 
-                               RWGPort **Ports, int NumPorts, cdouble *PortCurrents, 
+void AddPortContributionsToRHS(RWGGeometry *G,
+                               RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
                                cdouble Omega, HVector *KN)
 {
   int ns, ne, npe, BFIndex, nPort;

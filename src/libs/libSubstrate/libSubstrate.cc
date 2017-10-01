@@ -144,8 +144,8 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
   OmegaCache = -1.0;
 
   qMaxEval  = 10000;
-  qAbsTol   = 1.0e-12;
-  qRelTol   = 1.0e-6;
+  qAbsTol   = 1.0e-8;
+  qRelTol   = 1.0e-4;
   PPIOrder  = 9;
   PhiEOrder = 9;
   char *s;
@@ -162,6 +162,7 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
   I1D=0;
   I1DRhoMin=HUGE_VAL;
   I1DRhoMax=0;
+  ForceFreeSpace=false;
   ErrMsg=0;
 }
 

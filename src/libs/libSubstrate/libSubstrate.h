@@ -42,7 +42,7 @@
 #define POL_TM 1
 
 // methods for full-wave DGF computation
-enum DGFMethod {AUTO, PLANE_WAVE, SURFACE_CURRENT, STATIC};
+enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT, PLANE_WAVE};
 
 #ifndef ZVAC
 #define ZVAC 376.73031346177
@@ -65,28 +65,33 @@ public:
    void GetDeltaPhiE(double XD[3], double XS[3],
                      double PhiE[4], double *pG0Correction=0);
 
+   // get total (free-space + substrate) potential and E-field  
+   void GetTotalPhiE(double XD[3], double XS[3], double PhiE[4]);
+
    void InitStaticAccelerator1D(double RhoMin, double RhoMax, double z);
 
    // full-wave case: get the contribution of the substrate
    //                 to the 6x6 dyadic Green's function
    //                 giving the E,H fields at XD due to
    //                 J, M currents at XS
+   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
+                            HMatrix *GMatrix=0, DGFMethod Method=AUTO);
+   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, DGFMethod Method);
+
    void GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3],
                         cdouble ScriptG[6][6], DGFMethod Method=AUTO);
 
-   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
-                            HMatrix *GMatrix=0, DGFMethod Method=AUTO);
-
-   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, DGFMethod Method);
-
    // various implementations of the full-wave calculation
-   void GetFullWaveDGF_Static(cdouble Omega, double *XD, double *XS,
-                              cdouble ScriptG[6][6]);
-   void GetFullWaveDGF_Static(cdouble Omega, HMatrix *XMatrix,
-                              HMatrix *GMatrix);
+   void GetSubstrateDGF_StaticLimit(cdouble Omega,
+                                    double *XD, double *XS,
+                                    cdouble Gij[6][6]);
 
-   void GetFullWaveDGF_PlaneWave(cdouble Omega, HMatrix *XMatrix,
-                                 HMatrix *GMatrix);
+  /***************************************************************/
+   void GetSubstrateDGF_StaticLimit(cdouble Omega, HMatrix *XMatrix,
+                                    HMatrix *GMatrix);
+
+   void GetSubstrateDGF_SurfaceCurrent(cdouble Omega, HMatrix *XMatrix,
+                                       HMatrix *GMatrix);
 
 // private:
 
@@ -100,9 +105,19 @@ public:
 
    void ComputeW(cdouble Omega, double q[2], HMatrix *W);
    void GetSTwiddle(cdouble Omega, double q2D[2], double zSource, HMatrix *W, HMatrix *STwiddle);
-   void GetScriptGTwiddle_SC(cdouble Omega, double q2D[2],
-                             double zDest, double zSource,
-                             cdouble ScriptGTwiddle[2][6][6]);
+   void GetScriptGTwiddle(cdouble Omega, double q2D[2],
+                          double zDest, double zSource,
+                          HMatrix *WMatrix, HMatrix *STwiddle,
+                          HMatrix *GTwiddle);
+   void GetScriptGTwiddle(cdouble Omega, double qx, double qy,
+                          double zDest, double zSource,
+                          HMatrix *WMatrix, HMatrix *STwiddle,
+                          HMatrix *GTwiddle);
+   void Getg012(cdouble Omega, double qMag,
+                double zDest, double zSource,
+                HMatrix *WMatrix, HMatrix *STwiddle,
+                HMatrix *g012[3]);
+ 
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
    int GetRegionIndex(double z);
@@ -131,9 +146,12 @@ public:
    // internal storage buffers 
    Interp1D *I1D;
    double I1DRhoMin, I1DRhoMax, I1DZ;
+ 
+   bool ForceFreeSpace;
    
  };
 
 void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double PhiE[4]);
+void AddPhiE0(double XDest[3], double XSource[3], double Q, double PhiE[4]);
 
 #endif // LIBSUBSTRATE_H

@@ -39,73 +39,70 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LayeredSubstrate::GetFullWaveDGF_Static(cdouble Omega,
-                                             double *XD, double *XS,
-                                             cdouble ScriptG[6][6])
+void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
+                                                   double *XD, double *XS,
+                                                   cdouble Gij[6][6])
 {
-  int nrDest  = GetRegionIndex(XD[2]);
-  cdouble EpsDest, MuDest;
-  MPLayer[nrDest]->GetEpsMu(Omega, &EpsDest, &MuDest);
-  cdouble k2 = EpsDest*MuDest*Omega*Omega;
+  /***************************************************************/
+  /* EM, ME quadrants determined by E-fields of electrostatic    */
+  /* monopole                                                    */
+  /***************************************************************/
+  double PhiE0[4], *E0=PhiE0+1;
+  GetTotalPhiE(XD, XS, PhiE0);
+  for(int i=0; i<3; i++)
+   { int j=(i+1)%3, k=(i+2)%3;
+     Gij[i][3+i] = Gij[3+i][i] = 0.0;
+     Gij[i][3+j] = Gij[3+j][i] = +1.0*E0[1+k];
+     Gij[j][3+i] = Gij[3+i][j] = -1.0*E0[1+k];
+   };
 
-  // finite-differencing of electrostatic monopole fields
-  // with respect to source location
-  cdouble GradG0[3];
-  cdouble Gij[3][3];
-  for(int Nu=0; Nu<3; Nu++)
+  /***************************************************************/
+  /* EE, MM quadrants determined by E-fields of electrostatic    */
+  /* dipole = derivatives of monopole fields wrt source point    */
+  /***************************************************************/
+  for(int j=0; j<3; j++)
    { 
      double XSP[3], XSM[3];
      XSP[0] = XSM[0] = XS[0];
      XSP[1] = XSM[1] = XS[1];
      XSP[2] = XSM[2] = XS[2];
 
-     double DeltaX = 1.0e-4*fabs(XS[Nu]);
+     double DeltaX = 1.0e-4*fabs(XS[j]);
      if (DeltaX==0.0)
       DeltaX=1.0e-4;
-     XSP[Nu] += DeltaX;
-     XSM[Nu] -= DeltaX;
+     XSP[j] += DeltaX;
+     XSM[j] -= DeltaX;
 
-     double PhiEP[4], PhiEM[4];
-     GetDeltaPhiE(XD, XSP, PhiEP);
-     GetDeltaPhiE(XD, XSM, PhiEM);
-     GradG0[Nu] = (PhiEP[0] - PhiEM[0]) / (2.0*DeltaX);
+     double PhiEP[4], *EP=PhiEP+1, PhiEM[4], *EM=PhiEM+1, djEi[3];
+     GetTotalPhiE(XD, XSP, PhiEP);
+     GetTotalPhiE(XD, XSM, PhiEM);
+     djEi[0] = (EP[0] - EM[0]) / (2.0*DeltaX);
+     djEi[1] = (EP[1] - EM[1]) / (2.0*DeltaX);
+     djEi[2] = (EP[2] - EM[2]) / (2.0*DeltaX);
 
-     for(int Mu=0; Mu<3; Mu++)
-      Gij[Mu][Nu] = (PhiEP[1+Mu] - PhiEM[1+Mu])/(2.0*DeltaX);
+     cdouble EEPrefac = II*ZVAC / Omega;
+     cdouble MMPrefac = II/(ZVAC*Omega);
+     for(int i=0; i<3; i++)
+       { Gij[0+i][0+j] = EEPrefac * djEi[i];
+         Gij[3+i][3+j] = MMPrefac * djEi[i];
+       };
    };
-
-  cdouble ikCij[3][3];
-  ikCij[0][1] = GradG0[2];    ikCij[1][0] = -1.0*ikCij[0][1];
-  ikCij[1][2] = GradG0[0];    ikCij[2][1] = -1.0*ikCij[1][2];
-  ikCij[2][0] = GradG0[1];    ikCij[0][2] = -1.0*ikCij[2][0];
-  ikCij[0][0] = ikCij[1][1] = ikCij[2][2] = 0.0;
-
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { ScriptG[0+Mu][0+Nu] = EpsDest*ZVAC*Gij[Mu][Nu] / k2;
-      ScriptG[0+Mu][3+Nu] = +ikCij[Mu][Nu];
-      ScriptG[3+Mu][0+Nu] = -ikCij[Mu][Nu];
-      ScriptG[3+Mu][3+Nu] = MuDest*ZVAC*Gij[Mu][Nu] / k2;
-    };
-
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LayeredSubstrate::GetFullWaveDGF_Static(cdouble Omega,
-                                             HMatrix *XMatrix,
-                                             HMatrix *GMatrix)
+void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
+                                                   HMatrix *XMatrix,
+                                                   HMatrix *GMatrix)
 {
   for(int nx=0; nx<XMatrix->NR; nx++)
    {
      double XD[6], *XS=XD+3;
      XMatrix->GetEntriesD(nx,":",XD);
-     if (XMatrix->NC==3)
-      memcpy(XS, XD, 3*sizeof(double));
 
      cdouble ScriptG[6][6];
-     GetFullWaveDGF_Static(Omega, XD, XS, ScriptG);
+     GetSubstrateDGF_StaticLimit(Omega, XD, XS, ScriptG);
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
        GMatrix->SetEntry(nx, 6*Mu+Nu, ScriptG[Mu][Nu] );
@@ -137,20 +134,20 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (Omega==0.0) Method=STATIC;
+  if (Omega==0.0) Method=STATIC_LIMIT;
   switch(Method)
    { 
-     case PLANE_WAVE:
-       GetFullWaveDGF_PlaneWave(Omega, XMatrix, GMatrix);
+     case SURFACE_CURRENT:
+       GetSubstrateDGF_SurfaceCurrent(Omega, XMatrix, GMatrix);
        break;
 
-     case STATIC:
+     case STATIC_LIMIT:
      default:
-       GetFullWaveDGF_Static(Omega, XMatrix, GMatrix);
+       GetSubstrateDGF_StaticLimit(Omega, XMatrix, GMatrix);
        break;
 
   //   case PLANE_WAVE:
-  //      GetFullWaveDGF_PlaneWave(Omega, XMatrix, GMatrix);
+  //      GetSubstrateDGF_PlaneWave(Omega, XMatrix, GMatrix);
   //     break;
    };
      

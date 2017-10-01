@@ -54,14 +54,15 @@ void AddScriptG0(LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix, HMatrix *
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
      double XD[6], *XS=XD+3;
-     XMatrix->GetEntriesD(nx, ":", XD);
-     if (XMatrix->NC==3)
-      { XS[0]=XD[0]; XS[1]=XD[1]; XS[2]=XD[2]; };
+     XMatrix->GetEntriesD(nx, "0:5", XD);
+     int nrDest   = S->GetRegionIndex(XD[2]);
+     int nrSource = S->GetRegionIndex(XS[2]);
+     if (nrDest!=nrSource) continue;
+
      double R[3];
      VecSub(XD, XS, R);
-     int nr = S->GetRegionIndex(XS[2]);
      cdouble EpsRel, MuRel;
-     S->MPLayer[nr]->GetEpsMu(Omega, &EpsRel, &MuRel);
+     S->MPLayer[nrDest]->GetEpsMu(Omega, &EpsRel, &MuRel);
      cdouble k=sqrt(EpsRel*MuRel)*Omega;
      cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
      scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
@@ -84,21 +85,29 @@ void AddScriptG0(LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix, HMatrix *
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  InstallHRSignalHandler();
+  InitializeLog(argv[0]);
+
   /*--------------------------------------------------------------*/
   /*- process command-line arguments -----------------------------*/
   /*--------------------------------------------------------------*/
   char *SubstrateFile=0;
   char *EPFile=0;
-  double Omega=0.01;
+  double Omega=0.1;
+  bool FreeSpace=false;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
-     {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile, 0, "list of evaluation points"},  
-     {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,  0, "angular frequency"},
+     {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},  
+     {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
+     {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   bool OwnsSubstrateFile=false;
   if (SubstrateFile==0)
    { SubstrateFile=strdup("XXXXXX");
@@ -114,7 +123,15 @@ int main(int argc, char *argv[])
   if (S->ErrMsg)
    ErrExit(S->ErrMsg);
   if (OwnsSubstrateFile) unlink(SubstrateFile);
+
+  if (FreeSpace) 
+   { S->ForceFreeSpace=true;
+     printf("Doing the free-space case foryaf.\n");
+   };
   
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   HMatrix *XMatrix;
   if (EPFile)
    XMatrix = new HMatrix(EPFile);
@@ -132,24 +149,69 @@ int main(int argc, char *argv[])
       };
    };
 
-  HMatrix *GPW= S->GetSubstrateDGF(Omega, XMatrix, PLANE_WAVE);
-  //HMatrix *GSC= S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  FILE *ff=fopen("tFullWaveSubstrate.gp","w");
+  fprintf(ff,"XD(x)=(column(1))\n");
+  fprintf(ff,"YD(x)=(column(2))\n");
+  fprintf(ff,"ZD(x)=(column(3))\n");
+  fprintf(ff,"XS(x)=(column(4))\n");
+  fprintf(ff,"YS(x)=(column(5))\n");
+  fprintf(ff,"ZS(x)=(column(6))\n");
+  const char *EM="EM";
+  const char *xyz="xyz";
+  for(int pMu=0, nc=7; pMu<6; pMu++)
+   for(int qNu=0; qNu<6; qNu++, nc+=2)
+    { int p  = pMu/3;
+      int Mu = pMu%3;
+      int q  = qNu/3;
+      int Nu = qNu%3;
+      fprintf(ff,"rG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+0);
+      fprintf(ff,"iG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+1);
+      fprintf(ff,"mG%c%c%c%cHR(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+0,nc+1);
+      fprintf(ff,"rG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72);
+      fprintf(ff,"iG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+73);
+      fprintf(ff,"mG%c%c%c%cRef(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72,nc+73);
+    };
+  fclose(ff);
 
-  HMatrix *G0Matrix = new HMatrix(XMatrix->NR, 36, LHM_COMPLEX);
-  AddScriptG0Matrix(S, Omega, XMatrix, G0Matrix);
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HMatrix *GSL= S->GetSubstrateDGF(Omega, XMatrix, STATIC_LIMIT);
 
-  HMatrix *GMatrix = S->GetSubstrateDGF(Omega, XMatrix);
+  HMatrix *GSC= S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
+  if (!FreeSpace)
+   AddScriptG0(S, Omega, XMatrix, GSC);
+
   FILE *f=fopen("tFullWaveSubstrate.out","w");
   for(int nx=0; nx<XMatrix->NR; nx++)
-   { double XXP[6];
+   { 
+     double XXP[6];
      XMatrix->GetEntriesD(nx,"0:5",XXP);
      fprintVec(f,XXP,6);
 
      cdouble GVector[36];
-     GMatrix->GetEntries(nx,":",GVector);
+     GSC->GetEntries(nx,":",GVector);
      fprintVec(f,GVector,36);
 
-     G0Matrix->GetEntries(nx,":",GVector);
+     if (FreeSpace)
+      { cdouble GMuNu[3][3], CMuNu[3][3], GMuNuRho[3][3][3], CMuNuRho[3][3][3];
+        double R[3]; 
+        VecSub(XXP+0, XXP+3, R);
+        cdouble EpsRel=1.0, MuRel=1.0;
+        scuff::CalcGC(R, Omega, EpsRel, MuRel, GMuNu, CMuNu, GMuNuRho, CMuNuRho);
+        for(int Mu=0; Mu<3; Mu++)
+         for(int Nu=0; Nu<3; Nu++)
+          { GVector[(0*3 + Mu)*6 + (0*3 + Nu)]=II*Omega*ZVAC*MuRel*GMuNu[Mu][Nu];
+            GVector[(0*3 + Mu)*6 + (1*3 + Nu)]=+1.0*II*Omega*CMuNu[Mu][Nu];
+            GVector[(1*3 + Mu)*6 + (0*3 + Nu)]=-1.0*II*Omega*CMuNu[Mu][Nu];
+            GVector[(1*3 + Mu)*6 + (1*3 + Nu)]=II*Omega*ZVAC*EpsRel*GMuNu[Mu][Nu];
+          };
+      }
+     else 
+      GSL->GetEntries(nx,":",GVector);
      fprintVec(f,GVector,36);
 
      fprintf(f,"\n");

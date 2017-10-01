@@ -54,6 +54,9 @@ void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double
   PhiE[3] += R[2]*Term;
 }
 
+void AddPhiE0(double XDest[3], double XSource[3], double Q, double PhiE[4])
+{ AddPhiE0(XDest, XSource[0], XSource[1], XSource[2], Q, PhiE); }
+
 /*****************************************************************/
 /*****************************************************************/
 /*****************************************************************/
@@ -70,7 +73,8 @@ double LayeredSubstrate::GetStaticG0Correction(double z)
       double EpsB = real(EpsLayer[n+1]);
       return 2.0*fmin(EpsA, EpsB)/(EpsA + EpsB);
     };
- return 1.0;
+
+  return 1.0;
 }
 
 double LayeredSubstrate::GetStaticG0Correction(double zD, double zS)
@@ -360,7 +364,8 @@ void LayeredSubstrate::GetqIntegral(double RhoMag, double zD, double zS,
 /* contributions of the point charge in vacuum.                */
 /***************************************************************/
 void LayeredSubstrate::GetDeltaPhiE(double XD[3], double XS[3],
-                             double PhiE[4], double *pG0Correction)
+                                    double PhiE[4], 
+                                    double *pG0Correction)
 {  
   double Rho[2], ZD=XD[2], ZS=XS[2];
   Rho[0] = XD[0]-XS[0];
@@ -402,6 +407,17 @@ void LayeredSubstrate::GetDeltaPhiE(double XD[3], double XS[3],
   // contribution of image charge if present
   if (zGP != HUGE_VAL)
    AddPhiE0(XD, XS[0], XS[1], 2.0*zGP-XS[2], -1.0, PhiE);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::GetTotalPhiE(double XD[3], double XS[3],
+                                    double PhiE[4])
+{
+  double G0Correction;
+  GetDeltaPhiE(XD, XS, PhiE, &G0Correction);
+  AddPhiE0(XD, XS, G0Correction, PhiE);
 }
 
 /***************************************************************/
