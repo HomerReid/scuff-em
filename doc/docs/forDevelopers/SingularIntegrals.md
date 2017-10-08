@@ -25,6 +25,12 @@ it is contained in a single `C++` file named
 This code calls the `pcubature` code from 
 [Steven G. Johnson's numerical cubature package.](http://ab-initio.mit.edu/wiki/index.php/Cubature)
 
+Also, here are the [[mathematica]] codes mentioned in the paper above:
+
++ [`CommonPanel.math`](SingularIntegrals/CommonPanel.math)
++ [`CommonEdge.math`](SingularIntegrals/CommonEdge.math)
++ [`CommonVertex.math`](SingularIntegrals/CommonVertex.math)
+
 This page is intended for developers who would like 
 to use the [[scuff-em]] implementation of the generalized Taylor-Duffy
 method in their own codes.

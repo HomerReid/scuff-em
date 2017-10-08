@@ -1,0 +1,37 @@
+\begin{verbatim}
+
+(********************************************)
+(* P polynomial for the case                *)
+(*  P(x,xp) = (x-Q) \cdot (xp - QP)         *)
+(********************************************) 
+P[Xi1_, Xi2_, Eta1_, Eta2_] :=               \
+   Xi1*Eta1*A*A  + Xi1*Eta2*AdB  + Xi1*AdDP  \
+ + Xi2*Eta1*AdB  + Xi2*Eta2*B*B  + Xi2*BdDP  \
+ +     Eta1*AdD  +     Eta2*BdD  +     DdDP;
+
+(*************************************************************)
+(* region-dependent integration limits and u functions,      *)
+(* equations (19) and (21)                                   *)
+(*************************************************************)
+If[ d==
+     u1a[x_] := 1; u2a[x_] := x;
+     u1b[x_] := x; u2b[x_] := (x-1);
+     u1c[x_] := x; u2c[x_] := 1;
+  ]
+
+(*************************************************************)
+(* big H function, equation (20) *****************************)
+(*************************************************************)
+H[u1_, u2_] :=                                                 \
+ Integrate[                                                    \
+  Integrate[                                                   \
+    P[Xi1, Xi2, u1+Xi1, u2+Xi2] + P[u1+Xi1,u2+Xi2, Xi1, Xi2 ], \
+   {Xi2Lower, 0, Xi2Upper }], \
+  {Xi1Lower, 0, Xi1Upper}];
+
+(*************************************************************)
+(* P_{dn} functions, equation (22)                           *)
+(*************************************************************)
+wSeries = Series[ H[ w*u1[x], w*u2[x] ], {w,0,10} ];
+P[n_,x_] := SeriesCoefficient[ wSeries, n];
+\end{verbatim}

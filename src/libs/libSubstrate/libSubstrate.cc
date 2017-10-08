@@ -163,6 +163,7 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
   I1DRhoMin=HUGE_VAL;
   I1DRhoMax=0;
   ForceFreeSpace=false;
+  EvanescentOnly=PropagatingOnly=0;
   ErrMsg=0;
 }
 

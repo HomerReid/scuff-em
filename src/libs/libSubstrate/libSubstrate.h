@@ -113,10 +113,10 @@ public:
                           double zDest, double zSource,
                           HMatrix *WMatrix, HMatrix *STwiddle,
                           HMatrix *GTwiddle);
-   void Getg012(cdouble Omega, double qMag,
-                double zDest, double zSource,
-                HMatrix *WMatrix, HMatrix *STwiddle,
-                HMatrix *g012[3]);
+   void Getg0112(cdouble Omega, double qMag,
+                 double zDest, double zSource,
+                 HMatrix *WMatrix, HMatrix *STwiddle,
+                 HMatrix *g012[4]);
  
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
@@ -147,7 +147,9 @@ public:
    Interp1D *I1D;
    double I1DRhoMin, I1DRhoMax, I1DZ;
  
+   // flags to help in debugging
    bool ForceFreeSpace;
+   bool EvanescentOnly, PropagatingOnly;
    
  };
 

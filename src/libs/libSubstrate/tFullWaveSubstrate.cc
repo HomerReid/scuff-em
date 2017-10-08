@@ -66,16 +66,16 @@ void AddScriptG0(LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix, HMatrix *
      cdouble k=sqrt(EpsRel*MuRel)*Omega;
      cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
      scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
+     cdouble EEPreFac = II*Omega*ZVAC*MuRel;
+     cdouble EMPreFac = II*k;
+     cdouble MEPreFac = -1.0*II*k;
+     cdouble MMPreFac = II*Omega*EpsRel/ZVAC;
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
-       { GMatrix->AddEntry(nx, 6*(0+Mu) + 0+Nu,
-                           II*Omega*MuRel*G[Mu][Nu]);
-         GMatrix->AddEntry(nx, 6*(0+Mu) + 3+Nu,
-                           II*k*C[Mu][Nu]);
-         GMatrix->AddEntry(nx, 6*(3+Mu) + 0+Nu,
-                           -1.0*II*k*C[Mu][Nu]);
-         GMatrix->AddEntry(nx, 6*(3+Mu) + 3+Nu,
-                           II*Omega*EpsRel*G[Mu][Nu]);
+       { GMatrix->AddEntry(nx, 6*(0+Mu) + 0+Nu, EEPreFac*G[Mu][Nu]);
+         GMatrix->AddEntry(nx, 6*(0+Mu) + 3+Nu, EMPreFac*C[Mu][Nu]);
+         GMatrix->AddEntry(nx, 6*(3+Mu) + 0+Nu, MEPreFac*C[Mu][Nu]);
+         GMatrix->AddEntry(nx, 6*(3+Mu) + 3+Nu, MMPreFac*G[Mu][Nu]);
        };
    };
 }
@@ -93,14 +93,16 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   char *SubstrateFile=0;
   char *EPFile=0;
-  double Omega=0.1;
+  cdouble Omega=0.9;
   bool FreeSpace=false;
+  double XDS[6]={1.0, 0.0, 1.0, 0.0, 0.0, 0.5}; int nXDS=1;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
      {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},  
      {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
      {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
+     {"XDS",           PA_DOUBLE,  6, 1, (void *)XDS,         &nXDS, ""},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -135,6 +137,12 @@ int main(int argc, char *argv[])
   HMatrix *XMatrix;
   if (EPFile)
    XMatrix = new HMatrix(EPFile);
+  else if (nXDS)
+   { 
+     XMatrix = new HMatrix(1,6);
+     XMatrix->SetEntriesD(0,":",XDS);
+     printf("Rho={%e,%e}, ZDest=%e, ZSource=%e\n",XDS[0]-XDS[3],XDS[1]-XDS[4],XDS[2],XDS[5]);
+   }
   else
    { 
      #define NUMPTS  150
@@ -167,12 +175,18 @@ int main(int argc, char *argv[])
       int Mu = pMu%3;
       int q  = qNu/3;
       int Nu = qNu%3;
-      fprintf(ff,"rG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+0);
-      fprintf(ff,"iG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+1);
-      fprintf(ff,"mG%c%c%c%cHR(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+0,nc+1);
-      fprintf(ff,"rG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72);
-      fprintf(ff,"iG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+73);
-      fprintf(ff,"mG%c%c%c%cRef(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72,nc+73);
+      fprintf(ff,"rG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc);
+      fprintf(ff,"iG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc);
+      fprintf(ff,"mG%c%c%c%cRef(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc,nc);
+      fprintf(ff,"rG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72);
+      fprintf(ff,"iG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+73);
+      fprintf(ff,"mG%c%c%c%cHR(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72,nc+73);
+      fprintf(ff,"rG%c%c%c%cSC(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+216);
+      fprintf(ff,"iG%c%c%c%cSC(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+217);
+      fprintf(ff,"mG%c%c%c%cSC(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+216,nc+217);
+      fprintf(ff,"rG%c%c%c%cFS(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+144);
+      fprintf(ff,"iG%c%c%c%cFS(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+145);
+      fprintf(ff,"mG%c%c%c%cFS(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+144,nc+145);
     };
   fclose(ff);
 
@@ -181,9 +195,11 @@ int main(int argc, char *argv[])
   /***************************************************************/
   HMatrix *GSL= S->GetSubstrateDGF(Omega, XMatrix, STATIC_LIMIT);
 
-  HMatrix *GSC= S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
+  HMatrix *GSC = S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
+
+  HMatrix *GFS = new HMatrix(GSC->NR, GSC->NC);
   if (!FreeSpace)
-   AddScriptG0(S, Omega, XMatrix, GSC);
+   AddScriptG0(S, Omega, XMatrix, GFS);
 
   FILE *f=fopen("tFullWaveSubstrate.out","w");
   for(int nx=0; nx<XMatrix->NR; nx++)
@@ -193,11 +209,10 @@ int main(int argc, char *argv[])
      fprintVec(f,XXP,6);
 
      cdouble GVector[36];
-     GSC->GetEntries(nx,":",GVector);
-     fprintVec(f,GVector,36);
 
      if (FreeSpace)
-      { cdouble GMuNu[3][3], CMuNu[3][3], GMuNuRho[3][3][3], CMuNuRho[3][3][3];
+      { 
+        cdouble GMuNu[3][3], CMuNu[3][3], GMuNuRho[3][3][3], CMuNuRho[3][3][3];
         double R[3]; 
         VecSub(XXP+0, XXP+3, R);
         cdouble EpsRel=1.0, MuRel=1.0;
@@ -207,11 +222,22 @@ int main(int argc, char *argv[])
           { GVector[(0*3 + Mu)*6 + (0*3 + Nu)]=II*Omega*ZVAC*MuRel*GMuNu[Mu][Nu];
             GVector[(0*3 + Mu)*6 + (1*3 + Nu)]=+1.0*II*Omega*CMuNu[Mu][Nu];
             GVector[(1*3 + Mu)*6 + (0*3 + Nu)]=-1.0*II*Omega*CMuNu[Mu][Nu];
-            GVector[(1*3 + Mu)*6 + (1*3 + Nu)]=II*Omega*ZVAC*EpsRel*GMuNu[Mu][Nu];
+            GVector[(1*3 + Mu)*6 + (1*3 + Nu)]=II*Omega*EpsRel*GMuNu[Mu][Nu]/ZVAC;
           };
       }
      else 
       GSL->GetEntries(nx,":",GVector);
+     fprintVec(f,GVector,36);
+
+     GSC->GetEntries(nx,":",GVector);
+     for(int nc=0; nc<36; nc++)
+      GVector[nc]+=GFS->GetEntry(nx,nc);
+     fprintVec(f,GVector,36);
+
+     GSC->GetEntries(nx,":",GVector);
+     fprintVec(f,GVector,36);
+
+     GFS->GetEntries(nx,":",GVector);
      fprintVec(f,GVector,36);
 
      fprintf(f,"\n");
