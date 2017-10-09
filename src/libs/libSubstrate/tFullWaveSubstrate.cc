@@ -197,7 +197,8 @@ int main(int argc, char *argv[])
 
   HMatrix *GSC = S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
 
-  HMatrix *GFS = new HMatrix(GSC->NR, GSC->NC);
+  HMatrix *GFS = new HMatrix(GSC->NR, GSC->NC, LHM_COMPLEX);
+  GFS->Zero();
   if (!FreeSpace)
    AddScriptG0(S, Omega, XMatrix, GFS);
 
