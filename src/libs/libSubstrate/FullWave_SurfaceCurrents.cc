@@ -45,7 +45,7 @@
 
 /***************************************************************/
 /* compute the 3x3 submatrices that enter the quadrants of the */
-/* Fourier-transform of the (6x6) homogeneous DGF              */
+/* Fourier transform of the (6x6) homogeneous DGF              */
 /***************************************************************/
 void GetGC0Twiddle(cdouble k2, double q2D[2], cdouble qz, double Sign,
                    cdouble GT[3][3], cdouble CT[3][3])

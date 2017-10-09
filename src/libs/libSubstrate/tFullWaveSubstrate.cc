@@ -93,13 +93,13 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   char *SubstrateFile=0;
   char *EPFile=0;
-  cdouble Omega=0.9;
+  cdouble Omega=0.1;
   bool FreeSpace=false;
   double XDS[6]={1.0, 0.0, 1.0, 0.0, 0.0, 0.5}; int nXDS=1;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
-     {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},  
+     {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},
      {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
      {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
      {"XDS",           PA_DOUBLE,  6, 1, (void *)XDS,         &nXDS, ""},
@@ -176,8 +176,8 @@ int main(int argc, char *argv[])
       int q  = qNu/3;
       int Nu = qNu%3;
       fprintf(ff,"rG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc);
-      fprintf(ff,"iG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc);
-      fprintf(ff,"mG%c%c%c%cRef(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc,nc);
+      fprintf(ff,"iG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+1);
+      fprintf(ff,"mG%c%c%c%cRef(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc,nc+1);
       fprintf(ff,"rG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72);
       fprintf(ff,"iG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+73);
       fprintf(ff,"mG%c%c%c%cHR(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72,nc+73);

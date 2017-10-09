@@ -1298,6 +1298,123 @@ coefficients:
 \end{subequations}
 %====================================================================%
 
+%=================================================
+%=================================================
+%=================================================
+\subsection{Frequencies of spherical resonant cavities}
+
+Frequencies at which the denominator of one of the
+scattering coefficients (\ref{ABCDOutside}) vanishes
+correspond to cavity resonances, in which the fields
+inside the sphere can be nonzero even for vanishing
+incident-field coefficients $\{P,Q\}_\alpha$.
+For a sphere of given frequency-dependent 
+refractive index
+$n(\omega)=\sqrt{\epsilon(\omega)}$,
+the values of
+$a=\frac{\omega R}{c}$ at which resonances occur
+may be labeled by a wave type (M or N) and a 
+pair of integers $\{\ell, p\}$,
+where $a^{M}_{\ell,p}$ and $a^{N}_{\ell, p}$
+($p=1,2,\cdots$) are the $p$th smallest-magnitude roots of the 
+equations (assuming here the non-magnetic case $\mu=1$)
+%====================================================================%
+\begin{align*}
+   R_\ell\sups{reg}\big( n a\supt{M}_{\ell n} \big)
+        \RBar_\ell\sups{out}\big(a\supt{M}_{\ell n}\big)
+    - n \RBar_\ell\sups{reg}\big( n a\supt{M}_{\ell n} \big)
+     R_\ell\sups{out}\big(a\supt{M}_{\ell n}\big)
+&=0
+\\[5pt]
+  n R_\ell\sups{reg}\big( n a\supt{N}_{\ell n} \big)
+        \RBar_\ell\sups{out}\big(a\supt{N}_{\ell n}\big)
+    -  \RBar_\ell\sups{reg}\big( n a\supt{N}_{\ell n} \big)
+     R_\ell\sups{out}\big(a\supt{N}_{\ell n}\big)
+&=0.
+\end{align*}
+%====================================================================%
+This can be solved numerically using the {\sc mathematica} code
+shown below, with results tabulated in Table \ref{ResonantFrequencyTable}
+for the particular case of a lossless dielectric
+sphere with frequency-independent relative 
+permittivity $\epsilon\equiv 4.$
+
+\begin{figure}[h]
+\begin{verbcode}
+ROut[L_, a_]:=SphericalHankelH1[L,a];
+RBarOut[L_, a_] := ROut[L,a]/a + (D[ROut[L,aa],aa] /. {aa->a});
+
+RReg[L_, a_]:=SphericalBesselJ[L,a]
+RBarReg[L_, a_] := RReg[L,a]/a + (D[RReg[L,aa],aa] /. {aa->a});
+
+aMEquation[L_,n_,a_]:=\
+ (RReg[L,n*a]*RBarOut[L,a] - n*RBarReg[L,n*a]*ROut[L,a]);
+
+aNEquation[L_,n_,a_]:=\
+ (RBarReg[L,n*a]*ROut[L,a] - n*RReg[L,n*a]*RBarOut[L,a]);
+
+aEquation[MN_,L_,n_,a_]:=\
+If[MN==0, aMEquation[L,n,a], aNEquation[L,n,a]];
+ 
+(* find an M- or N-type root near a0 *)
+aNear[MN_,L_,n_,a0_]:=\
+ FindRoot[ aEquation[MN,L,n,a]==0, {a,a0}, AccuracyGoal->10,
+                                           PrecisionGoal->10,
+                                           WorkingPrecision->20];
+\end{verbcode}
+\caption{{\sc mathematica} code for computing resonant frequencies
+         of a spherical dielectric cavity.}
+\label{ResonantFrequencyMathCode}
+\end{figure}
+
+%====================================================================%
+\begin{table}
+\begin{center}
+\renewcommand{\arraystretch}{2.0}
+$$\begin{array}{|c|c|}\hline
+%--------------------------------------------------------------------%
+ a\supt{M}_{1,1}
+ & \texttt{1.4380605929872320255 - 0.20560699506583840000i}
+\\\hline
+%--------------------------------------------------------------------%
+ a\supt{M}_{1,2}
+ & \texttt{3.0650602030993358182 - 0.25639055432728332066i}
+\\\hline
+%--------------------------------------------------------------------%
+ a\supt{N}_{1,1}
+ & \texttt{1.1362178236179127949 - 0.63063395652811684886i}
+\\\hline
+%--------------------------------------------------------------------%
+ a\supt{N}_{1,2}
+ & \texttt{2.2314272341555678202 - 0.35251393660078463445i}
+ \\\hline
+%--------------------------------------------------------------------%
+ a\supt{M}_{2,1}
+ & \texttt{2.0714122747181446982 - 0.14636128063766849563i}
+\\\hline
+%--------------------------------------------------------------------%
+ a\supt{M}_{2,2}
+ & \texttt{3.7368636604700381398 - 0.23287793152977231173i}
+\\\hline
+%--------------------------------------------------------------------%
+ a\supt{N}_{2,1}
+ & \texttt{2.2025941452117729842 - 0.57522127718749665852i}
+\\\hline
+%--------------------------------------------------------------------%
+ a\supt{N}_{2,2}
+ & \texttt{2.8389707560296143889 - 0.52985636445927887339i}
+\\\hline
+\end{array}$$
+\renewcommand{\arraystretch}{1.0}
+\caption{Lowest resonant frequencies $a=\frac{\omega R}{c}$ for
+         a spherical dielectric cavity of (lossless,
+         frequency-independent) relative permittivity $\epsilon=4.$}
+\label{ResonantFrequencyTable}
+\end{center}
+\end{table}
+%====================================================================%
+
+ 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
