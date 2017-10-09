@@ -219,7 +219,7 @@ int HMatrix::LUSolve(HMatrix *X, char Trans, int nrhs)
    ErrExit("LUFactorize() must be called before LUSolve()");
   if ( Trans!='N' && StorageType!=LHM_NORMAL )
    ErrExit("transposed LU-solves not available for packed matrices");
-if ( RealComplex==LHM_REAL && StorageType==LHM_NORMAL )
+  if ( RealComplex==LHM_REAL && StorageType==LHM_NORMAL )
    dgetrs_(&Trans, &NR, &nrhs, DM, &NR, ipiv, X->DM, &NR, &info);
   else if ( RealComplex==LHM_REAL && StorageType==LHM_SYMMETRIC )
    dsptrs_("U", &NR, &nrhs, DM, ipiv, X->DM, &NR, &info);
