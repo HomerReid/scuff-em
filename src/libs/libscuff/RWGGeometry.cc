@@ -383,6 +383,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
+  Substrate=0;
 
   /***************************************************************/
   /* initially assume compact (non-periodic) geometry            */
@@ -597,6 +598,18 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         Surfaces[NumSurfaces-1]=S;
         S->Index=NumSurfaces-1;
 
+      }
+     else if ( !StrCaseCmp(Tokens[0],"SUBSTRATE") )
+      {
+        /*--------------------------------------------------------------*/
+        /* hand off to LayeredSubstrate class constructor to parse this section  */
+        /*--------------------------------------------------------------*/
+        else if ( nTokens>1 )
+         ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
+         
+        Substrate = new LayeredSubstrate(f, &LineNum);
+        if (Substrate->ErrMsg)
+         ErrExit("%s:%i: %s",GeoFileName,LineNum,Substrate->ErrMsg);
       }
      else 
       { 

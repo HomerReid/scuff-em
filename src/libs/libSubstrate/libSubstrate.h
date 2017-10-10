@@ -55,8 +55,19 @@ class LayeredSubstrate
  {
 public:
 
-   // constructor/destructor
+   // constructor entry point for the case in which we read in the
+   // substrate definition from a .Substrate file
    LayeredSubstrate(const char *SubstrateFile);
+
+   // constructor entry point for the case in which we read in the
+   // substrate definition from a SUBSTRATE...ENDSUBSTRATE
+   // section of a .scuffgeo file
+   LayeredSubstrate(FILE *f, int LineNum);
+
+   // actual body of constructor
+   int LayeredSubstrate::Initialize(FILE *f, int *LineNum);
+
+   // destructor
    ~LayeredSubstrate();
 
    // electrostatic case: get the contribution of the substrate

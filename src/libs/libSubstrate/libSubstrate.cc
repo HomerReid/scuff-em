@@ -36,8 +36,7 @@
 #include "libSubstrate.h"
 
 /***************************************************************/
-/* if the ErrMsg field of the class instance is nonzero on     */
-/* return, something went wrong                                */
+/* constructor entry point 1: construct from a .substrate file */
 /***************************************************************/
 LayeredSubstrate::LayeredSubstrate(const char *FileName)
 {
@@ -49,13 +48,42 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
    };
   Log("Reading substrate definition from %s/%s.",Dir ? Dir : ".",FileName);
 
+  int LineNum=0;
+  int Status=Initialize(f,&LineNum);
+}
+
+/***************************************************************/
+/* constructor entry point 2: construct starting from the      */
+/* second line of a SUBSTRATE ... ENDSUBSTRATE section in a    */
+/* previously opened file                                      */
+/***************************************************************/
+LayeredSubstrate::LayeredSubstrate(FILE *f, int &LineNum)
+{
+  int Status=Initialize(f,LineNum);
+}
+
+/***************************************************************/
+/* main body of constructor.                                   */
+/* if the ErrMsg field of the class instance is nonzero on     */
+/* return, something went wrong.                               */
+/* Otherwise, the return value has the following significance: */
+/*  0: we 
+/***************************************************************/
+int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
+{
+  /*--------------------------------------------------------------*/
+  /*- initialize class fields ------------------------------------*/
+  /*--------------------------------------------------------------*/
   NumInterfaces=0;
   MPLayer=(MatProp **)mallocEC(1*sizeof(MatProp *));
   MPLayer[0]=new MatProp("VACUUM");
   zInterface=0;
   zGP=HUGE_VAL;
 
-#define MAXSTR 1000
+  /*--------------------------------------------------------------*/
+  /*- read and parse lines from the file one at a time -----------*/
+  /*--------------------------------------------------------------*/
+  #define MAXSTR 1000
   char Line[MAXSTR];
   int LineNum=0;
   while( fgets(Line,MAXSTR,f) )

@@ -270,6 +270,8 @@ class RWGSurface
    /* describing surface impedance in units of ZVAC               */
    void *SurfaceZeta;
 
+   LayeredSubstrate *Substrate;
+
    // the following fields are used to pass some data items up to the 
    // higher-level routine that calls the RWGSurface constructor
    char *ErrMsg;                   /* used to indicate to a calling routine that an error has occurred */
