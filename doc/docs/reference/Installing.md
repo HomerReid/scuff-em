@@ -3,14 +3,6 @@
 The <span class=SC>scuff-em</span> source distribution is packaged with the standard
 [<span class=SC>gnu autotools</span>](https://www.gnu.org/software/automake/manual/html_node/Autotools-Introduction.html)
 build environment. If you have experience installing <span class=SC>autotools</span>-based
-<<<<<<< HEAD
-software packages, you should have no trouble installing <span class=SC>scuff-em</span>.
-If you *aren't* an <span class=SC>autotools</span> expert you should still be
-able to install <span class=SC>scuff-em</span> with little difficulty.
-
-**If you have any trouble installing <span class=SC>scuff-em</span>, please
-[file an issue on the <span class=SC>scuff-em</span> GitHub page.][Issues].**
-=======
 software packages, you should have no trouble installing <span class=SC>scuff-em</span>
 via your typical procedures, although you are encouraged to skim 
 the [general comments](#GeneralComments) section below before you start.
@@ -21,7 +13,6 @@ the OS-specific instructions below.
 
 **In either case, if you have any trouble installing <span class=SC>scuff-em</span>,
 please [file an issue on the <span class=SC>scuff-em</span> GitHub page][Issues].**
->>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
 
 [TOC]
 
@@ -46,11 +37,7 @@ but in this case the code will be somewhat crippled.
   package, which includes both LAPACK and BLAS and automatically
   tunes itself for optimal performance on your hardware.
 
-<<<<<<< HEAD
-+ If you want the capacity to write output files in the 
-=======
 + If you want the capacity to write output files in the
->>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
   standard HDF5 binary format, you will need
   [HDF5](http://www.hdfgroup.org/HDF5).
 
@@ -64,25 +51,7 @@ but in this case the code will be somewhat crippled.
   tool that is used throughout the
   [[scuff-em]] documentation.
 
-<<<<<<< HEAD
-On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a
-
-````bash
-% sudo apt-get install liblapack-dev libblas-dev libhdf5-serial-dev python-dev gmsh
-````
-
-> Note: In some cases it seems the ``gmsh`` package conflicts with 
-> the ``libhdf5-serial-dev`` package. In this case, just 
-> remove ``gmsh`` from the above ``apt-get`` statement; you can 
-> install it by hand following the instructions
-> on the [GMSH website](http://geuz.org/gmsh).
-> (Note that [[gmsh]], though very useful, 
-> is not necessary to compile or run [[scuff-em]].)
-
-## 2. Cloning the GitHub repository and building the code
-=======
 ## Status of the GitHub repository
->>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
 
 After installing external packages, you will fetch the <span class=SC>scuff-em</span>
 source code from its repository hosted on [GitHub][GitHub] (see specific
@@ -214,16 +183,11 @@ configuring:
 <a name="Disabling Python"></a>
 #### Disabling the python interface to speed the build process
 
-<<<<<<< HEAD
-**If you have trouble installing [[scuff-em]], please 
-[file an issue on the [<span class="SC">scuff-em</span> GitHub page][Issues].**
-=======
 Compiling the python interface is slow---it accounts for
 more than half of the build time on some systems.
 If you don't need the python interface to [[scuff-em]],
 use the configure option `--without-python` 
 to accelerate the build process.
->>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
 
 #### Parallel make
 
@@ -233,36 +197,6 @@ to proceed with the actual build and installation of the code.
 If your machine has more than one CPU core, you can accelerate
 this process by saying e.g.
 
-<<<<<<< HEAD
-#### Using the MPI compilers
-
-In some cases---in particular, if the HDF5 installation on your
-system is built for an MPI environment instead of a serial
-environment---you may need to use the MPI-aware compilers
-when building <span class=SC>scuff-em</span>. To do this,
-just set the `CC` and `CXX` environment variables to
-the names of the MPI C and C++ compilers (usually `mpicc` and `mpic++`). For example:
-
-````bash
-% export CC=mpicc
-% export CXX=mpic++
-% ./configure [usual configure options]
-````
-
-#### Disabling OpenMP
-
-<span class=SC>scuff-em</span> makes heavy use
-[<span class=SC>openmp</span>-based shared-memory multithreading](http://www.openmp.org/) to accelerate tasks such as BEM matrix assembly. Compiling with OpenMP support is enabled by default, but if you wish to *disable* it you may use the `--without-openmp` option to `configure.` (But you will be sacrificing a lot of speed if your system has more than one CPU core available!)
-
-Note: after building with OpenMP support, in some cases you 
-may need to tweak
-certain environment variables to achieve maximal
-[[openmp]] performance when running <span class=SC>scuff-em</span>
-codes.
-For example, on my workstation (which has 8 CPU cores),
-in order to use all 8 cores I need to set the following environment
-variable:
-=======
 ````bash
 % make -j 8 install
 ````
@@ -286,7 +220,6 @@ On Debian/Ubuntu Linux systems, you can fetch all of the external packages menti
 ###B. Clone the GitHub repository and build the code
 
 The procedure should now be as simple as 
->>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
 
 ````bash
 % git clone https://github.com/HomerReid/scuff-em.git
@@ -452,8 +385,8 @@ Here is the script that works for me to achieve these goals:
 ````bash
 #!/bin/bash
 
-export CC="gcc -ggdb -O0"
-export CXX="g++ -ggdb -O0"
+CC="gcc -ggdb -O0"
+CXX="g++ -ggdb -O0"
 export CFLAGS="-O0"
 export CXXFLAGS="-O0"
 sh autogen.sh --enable-debug --without-openmp --disable-shared
