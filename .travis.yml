@@ -8,10 +8,7 @@ addons:
     - python-numpy
     - swig
 before_script:
-  - wget https://repo.continuum.io/miniconda/Miniconda3-4.3.14-Linux-x86_64.sh
-  - bash Miniconda3-4.3.14-Linux-x86_64.sh -b -p ${HOME}/miniconda3
-  - ${HOME}/miniconda3/bin/conda install -y numpy
 script:
-  - (PYTHON=${HOME}/miniconda3/bin/python ./autogen.sh --enable-shared --with-python)
+  - ./autogen.sh --enable-shared --with-python
   - make
   - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'

@@ -35,8 +35,13 @@ OTHER_LIBS=                      \
  ../libhrutil/libhrutil.la       \
  ../libscuff/libscuff.la      
 
+<<<<<<< HEAD
 #noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tGDecomposition
 noinst_PROGRAMS = tFullWaveSubstrate
+=======
+noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate 
+#tGTwiddle
+>>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
 
 tStaticSubstrate_SOURCES = tStaticSubstrate.cc
 tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
@@ -44,9 +49,12 @@ tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 
+<<<<<<< HEAD
 tGDecomposition_SOURCES = tGDecomposition.cc
 tGDecomposition_LDADD = libSubstrate.la $(OTHER_LIBS)
 
 #tGTwiddle
+=======
+>>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
 #tGTwiddle_SOURCES = tGTwiddle.cc
 #tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)

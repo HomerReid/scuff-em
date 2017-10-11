@@ -178,10 +178,21 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
   /**********************************************************************/
   /* assemble W matrix ***********************************************/
   /**********************************************************************/
+<<<<<<< HEAD
   ComputeW(Omega, q2D,  WMatrix);
   
   /**********************************************************************/
   /* prefetch homogeneous DGFs for source and dest regions              */
+=======
+  int NumVars = 4*NumInterfaces;
+  HMatrix MF2S(NumVars, NumVars, LHM_COMPLEX);
+  AssembleMF2SMatrix(Omega, q2D, &MF2S);
+  MF2S.LUFactorize();
+  MF2S.LUInvert();
+
+  /**********************************************************************/
+  /* assemble RHS vector for each (source point, polarization, orientation) */
+>>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
   /**********************************************************************/
   int nrSource = GetRegionIndex(zSource);
   cdouble EpsSource=EpsLayer[nrSource];
