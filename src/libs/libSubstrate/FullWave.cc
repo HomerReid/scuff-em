@@ -36,6 +36,45 @@
 
 #define II cdouble(0.0,1.0)
 
+/******************************************************************/
+/* on entry                                                       */
+/*  G = G_ij in a coordinate system in which (x,y)=(Rho,0)        */
+/* on return:                                                     */
+/*  G = G_ij in a coordinate system in which (x,y)=(Rho*CP,Rho*SP)*/
+/*******************************************************************/
+void LayeredSubstrate::RotateG(cdouble G[6][6], int P, int Q, double CP, double SP)
+{
+  cdouble GP[3][3];
+
+  GP[0][0]=CP*CP*G[P+0][Q+0] - CP*SP*GP[P+0][Q+1] - CP*SP*G[P+1][Q+0] + SP*SP*G[P+1][Q+1];
+  GP[0][1]=CP*CP*G[P+0][Q+1] + CP*SP*GP[P+0][Q+0] - CP*SP*G[P+1][Q+1] - SP*SP*G[P+1][Q+0];
+  GP[1][0]=CP*CP*G[P+1][Q+0] + CP*SP*GP[P+0][Q+0] - CP*SP*G[P+1][Q+1] - SP*SP*G[P+0][Q+1];
+  GP[1][1]=CP*CP*G[P+1][Q+1] + CP*SP*GP[P+0][Q+1] + CP*SP*G[P+1][Q+0] + SP*SP*G[P+0][Q+0];
+
+  GP[0][2]=CP*G[P+0][Q+2] - SP*G[P+1][Q+2];
+  GP[2][0]=CP*G[P+2][Q+0] - SP*G[P+2][Q+1];
+
+  GP[1][2]=CP*G[P+1][Q+2] + SP*G[P+0][Q+2];
+  GP[2][1]=CP*G[P+2][Q+1] + SP*G[P+2][Q+0];
+
+  GP[2][2]=G[P+2][Q+2];
+
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    G[P+Mu][Q+Nu] = GP[Mu][Nu];
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::RotateG(cdouble Gij[6][6], double Phi)
+{
+  double CP=cos(Phi), SP=sin(Phi);
+  for(int p=0; p<2; p++)
+   for(int q=0; q<2; q++)
+    RotateG(Gij, 3*p, 3*q, CP, SP);
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/

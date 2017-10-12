@@ -44,6 +44,8 @@ void CalcGC(double R[3], cdouble Omega,
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
 }
 
+using namespace scuff;
+
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- process command-line arguments -----------------------------*/
   /*--------------------------------------------------------------*/
+  char *GeoFile=0;
   char *SubstrateFile=0;
   char *EPFile=0;
   cdouble Omega=0.1;
@@ -98,7 +101,8 @@ int main(int argc, char *argv[])
   double XDS[6]={1.0, 0.0, 1.0, 0.0, 0.0, 0.5}; int nXDS=1;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
-   { {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
+   { {"Geometry",      PA_STRING,  1, 1, (void *)&GeoFile,    0, ".scuffgeo file"},
+     {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
      {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},
      {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
      {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
@@ -108,10 +112,24 @@ int main(int argc, char *argv[])
   ProcessOptions(argc, argv, OSArray);
 
   /***************************************************************/
-  /***************************************************************/
+  /* read substrate                                              */
   /***************************************************************/
   bool OwnsSubstrateFile=false;
-  if (SubstrateFile==0)
+  LayeredSubstrate *S=0;
+  RWGGeometry *G=0;
+  if (GeoFile)
+   { G=new RWGGeometry(GeoFile);
+     S=G->Substrate;
+     printf("Read substrate definition from file %s\n",GeoFile);
+   }
+  else if (SubstrateFile)
+   { 
+     S=new LayeredSubstrate(SubstrateFile);
+     if (S->ErrMsg)
+      ErrExit(S->ErrMsg);
+     printf("Read substrate definition from file %s\n",SubstrateFile);
+   }
+  else
    { SubstrateFile=strdup("XXXXXX");
      if ( mkstemp(SubstrateFile) == -1 )
       ErrExit("could not create temporary file");
@@ -119,12 +137,10 @@ int main(int argc, char *argv[])
      fprintf(f,SISubstrateFile);
      fclose(f);
      OwnsSubstrateFile=true;
+     printf("Using build-in substrate definition.\n");
+     unlink(SubstrateFile);
    };
-
-  LayeredSubstrate *S=new LayeredSubstrate(SubstrateFile);
-  if (S->ErrMsg)
-   ErrExit(S->ErrMsg);
-  if (OwnsSubstrateFile) unlink(SubstrateFile);
+  S->Describe();
 
   if (FreeSpace) 
    { S->ForceFreeSpace=true;

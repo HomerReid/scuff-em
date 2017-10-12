@@ -44,6 +44,7 @@
 #include <libhmat.h>
 #include <libMatProp.h>
 #include <libIncField.h>
+#include <libSubstrate.h>
 
 #include "GTransformation.h"
 #include "GBarAccelerator.h"
@@ -269,8 +270,6 @@ class RWGSurface
    /* user-specified function of frequency and position (w,x,y,z) */
    /* describing surface impedance in units of ZVAC               */
    void *SurfaceZeta;
-
-   LayeredSubstrate *Substrate;
 
    // the following fields are used to pass some data items up to the 
    // higher-level routine that calls the RWGSurface constructor
@@ -573,6 +572,9 @@ class RWGGeometry
    /* at which two or more distinct surfaces meet.            */
    MMJData **MultiMaterialJunctions;
    int NumMMJs;
+
+   /* Substrate is non-NULL iff a multilayered substrate is present.*/
+   LayeredSubstrate *Substrate;
   
    int LogLevel; 
    const char *TBlockCacheNameAddendum;

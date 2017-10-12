@@ -75,11 +75,34 @@ void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...)
   for(OS=OSArray; OS->Name!=0; OS++)
    { 
      sprintf(buffer,"--%s ",OS->Name);
-     for(na=0; na<OS->NumArgs; na++) 
+     for(na=0; na<OS->NumArgs; na++)
       strcat(buffer,"xx ");
      fprintf(stderr,"  %-20s",buffer);
+
      if ( OS->Description )
       fprintf(stderr,"(%s)",OS->Description);
+
+     if (OS->NumArgs==1)
+      { switch(OS->Type)
+         { case PA_INT:
+             fprintf(stderr,"(%i)",*((int *)OS->Storage));
+             break;
+
+           case PA_DOUBLE:
+             fprintf(stderr,"(%g)",*((double *)OS->Storage));
+             break;
+
+           case PA_CDOUBLE:
+             fprintf(stderr,"(%s)",z2s(*((double *)OS->Storage)));
+             break;
+
+           case PA_STRING: 
+             if ( *(char **)OS->Storage )
+              fprintf(stderr,"(%s)",*(char **)OS->Storage);
+             break;
+         }; 
+       };
+
      fprintf(stderr,"\n");
    };
 

@@ -15,5 +15,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libscuff      \
               -I$(top_srcdir)/src/libs/libMDInterp   \
               -I$(top_srcdir)/src/libs/libhmat       \
               -I$(top_srcdir)/src/libs/libSGJC       \
+              -I$(top_srcdir)/src/libs/libSubstrate  \
               -I$(top_srcdir)/src/libs/libTriInt     \
               -I$(top_srcdir)/src/libs/libhrutil

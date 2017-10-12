@@ -189,6 +189,13 @@ void AnalyzeGeometry(RWGGeometry *G)
         AnalyzeSurface(G->Surfaces[ns]);
       };
    };
+  
+  if (G->Substrate)
+   { printf("***********************************************\n");
+     printf("*  SUBSTRATE:\n");
+     printf("***********************************************\n");
+     G->Substrate->Describe();
+   };
 }
 
 /***************************************************************/

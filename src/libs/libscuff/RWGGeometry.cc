@@ -604,7 +604,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         /*--------------------------------------------------------------*/
         /* hand off to LayeredSubstrate class constructor to parse this section  */
         /*--------------------------------------------------------------*/
-        else if ( nTokens>1 )
+        if ( nTokens>1 )
          ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
          
         Substrate = new LayeredSubstrate(f, &LineNum);

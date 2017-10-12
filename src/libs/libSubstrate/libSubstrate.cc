@@ -48,8 +48,8 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
    };
   Log("Reading substrate definition from %s/%s.",Dir ? Dir : ".",FileName);
 
-  int LineNum=0;
-  int Status=Initialize(f,&LineNum);
+  Initialize(f,FileName,0);
+  fclose(f);
 }
 
 /***************************************************************/
@@ -57,19 +57,17 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
 /* second line of a SUBSTRATE ... ENDSUBSTRATE section in a    */
 /* previously opened file                                      */
 /***************************************************************/
-LayeredSubstrate::LayeredSubstrate(FILE *f, int &LineNum)
+LayeredSubstrate::LayeredSubstrate(FILE *f, int *pLineNum)
 {
-  int Status=Initialize(f,LineNum);
+  Initialize(f,0,pLineNum);
 }
 
 /***************************************************************/
 /* main body of constructor.                                   */
 /* if the ErrMsg field of the class instance is nonzero on     */
 /* return, something went wrong.                               */
-/* Otherwise, the return value has the following significance: */
-/*  0: we 
 /***************************************************************/
-int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
+void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
 {
   /*--------------------------------------------------------------*/
   /*- initialize class fields ------------------------------------*/
@@ -78,14 +76,20 @@ int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
   MPLayer=(MatProp **)mallocEC(1*sizeof(MatProp *));
   MPLayer[0]=new MatProp("VACUUM");
   zInterface=0;
-  zGP=HUGE_VAL;
+  zGP=-1.0*HUGE_VAL;
+
+  // keep track of whether we're in a .substrate file or in a
+  // SUBSTRATE...ENDSUBSTRATE section of a .scuffgeo file
+  bool InSubstrateFile = (FileName!=0);
 
   /*--------------------------------------------------------------*/
   /*- read and parse lines from the file one at a time -----------*/
   /*--------------------------------------------------------------*/
   #define MAXSTR 1000
   char Line[MAXSTR];
-  int LineNum=0;
+  int LineNum = (pLineNum ? *pLineNum : 0);
+  bool GotEndSubstrate=false;
+  char FileLine[100]="";
   while( fgets(Line,MAXSTR,f) )
    { 
      /*--------------------------------------------------------------*/
@@ -102,22 +106,32 @@ int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
       continue; 
 
      /*--------------------------------------------------------------*/
-     /*- all lines must be of the form   ----------------------------*/
+     /*- all lines must be of one of the following forms   ----------*/
      /*-   zValue  MaterialName          ----------------------------*/
-     /*- or                              ----------------------------*/
-     /*-   MEDIUM  MaterialName          ----------------------------*/
-     /*- or                              ----------------------------*/
      /*-   zValue  GROUNDPLANE           ----------------------------*/
+     /*-   MEDIUM  MaterialName          ----------------------------*/
+     /*-   ENDSUBSTRATE                  ----------------------------*/
      /*--------------------------------------------------------------*/
+     if ( !strcasecmp(Tokens[0],"ENDSUBSTRATE") )
+      { GotEndSubstrate=true;
+        break;
+      };
+
+     if (InSubstrateFile) snprintf(FileLine,100,"%s:%i: ",FileName,LineNum);
+
      if ( NumTokens!=2 )
-      { ErrMsg=vstrdup("%s:%i syntax error",FileName,LineNum);
+      { ErrMsg=vstrdup("%ssyntax error",FileLine);
         return;
       };
 
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
-      { MPLayer[0] = new MatProp(Tokens[1]);
+      { if (!InSubstrateFile)
+         { ErrMsg=vstrdup("MEDIUM keyword forbidden in SUBSTRATE...ENDSUBSTRATE sections");
+           return;
+         };
+        MPLayer[0] = new MatProp(Tokens[1]);
         if (MPLayer[0]->ErrMsg)
-          { ErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MPLayer[0]->ErrMsg);
+          { ErrMsg=vstrdup("%s%s",FileLine,MPLayer[0]->ErrMsg);
             return;
           }
         Log("Setting upper half-space medium to %s.",MPLayer[0]->Name);
@@ -126,7 +140,7 @@ int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
 
      double z;
      if ( 1!=sscanf(Tokens[0],"%le",&z) )
-      { ErrMsg=vstrdup("%s:%i bad z-value %s",FileName,LineNum,Tokens[0]);
+      { ErrMsg=vstrdup("%sbad z-value %s",FileLine,Tokens[0]);
         return;
       };
 
@@ -137,13 +151,13 @@ int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
      else
       { 
         if (NumInterfaces>0 && z>zInterface[NumInterfaces-1])
-         { ErrMsg=vstrdup("%s:%i: z coordinate lies above previous layer");
+         { ErrMsg=vstrdup("%sz coordinate lies above previous layer",FileLine);
            return;
          };
 
         MatProp *MP = new MatProp(Tokens[1]);
         if (MP->ErrMsg)
-         { ErrMsg=vstrdup("%s:%i: %s",FileName,LineNum,MP->ErrMsg);
+         { ErrMsg=vstrdup("%s%s",FileLine,MP->ErrMsg);
            return;
          };
         NumInterfaces++;
@@ -154,13 +168,27 @@ int LayeredSubstrate::Initialize(FILE *f, int *LineNum)
         Log(" Layer #%i: %s at z=%e.",NumInterfaces,MP->Name,z);
       };
    };
-  fclose(f);
+
+  /*--------------------------------------------------------------*/
+  /* for the constructor entry point in which we are reading a    */
+  /* SUBSTRATE...ENDSUBSTRATE section in a .scuffgeo file, check  */
+  /* for the closing keyword and error out if absent              */
+  /*--------------------------------------------------------------*/
+  if (InSubstrateFile && GotEndSubstrate)
+   Warn("%s:%i: ENDSUBSTRATE is not needed in .substrate files",FileName,LineNum);
+  else if (!InSubstrateFile && !GotEndSubstrate)
+   { ErrMsg=vstrdup("expected ENDSUBSTRATE before end of file");
+     return;
+   };
+  if (pLineNum) 
+   *pLineNum = LineNum;
+  if (InSubstrateFile) snprintf(FileLine,100,"%s: ",FileName);
 
   /*--------------------------------------------------------------*/
   /*- sanity check                                               -*/
   /*--------------------------------------------------------------*/
-  if (zGP!=HUGE_VAL && zGP>zInterface[NumInterfaces-1])
-   { ErrMsg=vstrdup("%s: ground plane must lie below all dielectric layers",FileName);
+  if (fabs(zGP)!=HUGE_VAL && zGP>zInterface[NumInterfaces-1])
+   { ErrMsg=vstrdup("%sground plane must lie below all dielectric layers",FileLine);
      return;
    };
 
@@ -208,6 +236,24 @@ LayeredSubstrate::~LayeredSubstrate()
   free(zInterface);
   if (I1D)
    delete I1D;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::Describe(FILE *f)
+{ 
+  if (f==0) f=stdout;
+  double zAbove=1.0/0.0, zBelow;
+  int n=0;
+  for(; n<NumInterfaces; n++)
+   { zBelow = zInterface[n];
+     printf("Region %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zBelow);
+     zAbove=zBelow;
+   };
+  printf("Region %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zGP);
+  if ( fabs(zGP) != HUGE_VAL) 
+   printf("Ground plane at z=%e.\n\n",zGP);
 }
 
 /***************************************************************/

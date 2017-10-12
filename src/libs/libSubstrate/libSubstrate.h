@@ -55,17 +55,21 @@ class LayeredSubstrate
  {
 public:
 
-   // constructor entry point for the case in which we read in the
+   // constructor entry point 1: for the case in which we read in the
    // substrate definition from a .Substrate file
-   LayeredSubstrate(const char *SubstrateFile);
+   LayeredSubstrate(const char *FileName);
 
-   // constructor entry point for the case in which we read in the
-   // substrate definition from a SUBSTRATE...ENDSUBSTRATE
-   // section of a .scuffgeo file
-   LayeredSubstrate(FILE *f, int LineNum);
+   // constructor entry point 2: for the case in which we read in the
+   // substrate definition starting from the second line of a 
+   // SUBSTRATE...ENDSUBSTRATE section in an open .scuffgeo file
+   LayeredSubstrate(FILE *f, int *pLineNum);
 
    // actual body of constructor
-   int LayeredSubstrate::Initialize(FILE *f, int *LineNum);
+   // if ErrMsg is nonzero on return, something failed
+   void Initialize(FILE *f, const char *FileName, int *pLineNum=0);
+
+   // write a text description of the substrate to f (stdout if f==0)
+   void Describe(FILE *f=0);
 
    // destructor
    ~LayeredSubstrate();
@@ -116,18 +120,27 @@ public:
 
    void ComputeW(cdouble Omega, double q[2], HMatrix *W);
    void GetSTwiddle(cdouble Omega, double q2D[2], double zSource, HMatrix *W, HMatrix *STwiddle);
+
    void GetScriptGTwiddle(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
-                          HMatrix *WMatrix, HMatrix *STwiddle,
-                          HMatrix *GTwiddle);
-   void GetScriptGTwiddle(cdouble Omega, double qx, double qy,
+                          HMatrix *WMatrix, HMatrix *GTwiddle);
+
+   void GetScriptGTwiddleBF(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
                           HMatrix *WMatrix, HMatrix *STwiddle,
                           HMatrix *GTwiddle);
+
+   void GetScriptGTwiddle(cdouble Omega, double qx, double qy,
+                          double zDest, double zSource,
+                          HMatrix *WMatrix, HMatrix *GTwiddle);
+
    void Getg0112(cdouble Omega, double qMag,
                  double zDest, double zSource,
                  HMatrix *WMatrix, HMatrix *STwiddle,
                  HMatrix *g012[4]);
+
+   void RotateG(cdouble Gij[6][6], double Phi);
+   void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);
  
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
@@ -143,8 +156,8 @@ public:
    cdouble  *EpsLayer;  // EpsLayer[n] = permittivity of layer n
    cdouble  *MuLayer;   // MuLayer[n]  = permeability of layer n
    cdouble OmegaCache;  // frequency at which EpsLayer, MuLayer were cached
-   double *zInterface;  // z-coordinates of layer interfaces
-   double zGP;
+   double *zInterface;  // z[n] = z-coordinate of layer n lower boundary
+   double zGP;          // == z-coordinate of ground plane
 
    // convergence parameters for q integration
    int qMaxEval;

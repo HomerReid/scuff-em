@@ -165,6 +165,12 @@ double VecDistance2(const cdouble *v1, const cdouble *v2, int N);
 double VecDistance(const cdouble *v1, const cdouble *v2, int N);
 
 /***************************************************************/
+/* random numbers                                              */
+/***************************************************************/
+double randU(double A=0.0, double B=1.0);
+double randN(double Sigma=1.0, double Mu=0.0);
+
+/***************************************************************/
 /* finite-difference derivatives *******************************/
 /***************************************************************/
 typedef void (*VVFunction) (void *UserData, double X[3], cdouble V[3]);

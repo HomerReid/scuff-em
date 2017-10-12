@@ -389,3 +389,18 @@ void fprintVec(FILE *f, cdouble *v, int Length, const char *format)
 
 void fprintVecCR(FILE *f, cdouble *v, int Length, const char *format)
 {  DofprintVec(f, (void *)v, true, Length, format, true); }
+
+/***************************************************************/
+/* random number uniformly distributed between A and B *********/
+/***************************************************************/
+double randU(double A, double B)
+ { return A + (B-A) * random() * (1.0 / RAND_MAX); }
+
+/***************************************************************/
+/* random number normally distributed with mean/stddev Mu/Sigma*/
+/***************************************************************/
+double randN(double Sigma, double Mu)
+ { double u1 = randU();
+   double u2 = randU();
+   return Mu + Sigma*sqrt(-2.0*log(u1))*cos(2.0*M_PI*u2);
+ }

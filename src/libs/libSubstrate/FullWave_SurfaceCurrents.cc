@@ -156,7 +156,6 @@ void LayeredSubstrate::ComputeW(cdouble Omega, double q2D[2], HMatrix *W)
 void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
                                          double zDest, double zSource,
                                          HMatrix *WMatrix,
-                                         HMatrix *STwiddle,
                                          HMatrix *GTwiddle)
 {
   UpdateCachedEpsMu(Omega);
@@ -178,93 +177,62 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
   /**********************************************************************/
   /* assemble W matrix ***********************************************/
   /**********************************************************************/
-<<<<<<< HEAD
   ComputeW(Omega, q2D,  WMatrix);
+  WMatrix->LUInvert();
   
   /**********************************************************************/
-  /* prefetch homogeneous DGFs for source and dest regions              */
-=======
-  int NumVars = 4*NumInterfaces;
-  HMatrix MF2S(NumVars, NumVars, LHM_COMPLEX);
-  AssembleMF2SMatrix(Omega, q2D, &MF2S);
-  MF2S.LUFactorize();
-  MF2S.LUInvert();
-
-  /**********************************************************************/
   /* assemble RHS vector for each (source point, polarization, orientation) */
->>>>>>> 693b027d31d12e8f3090b5360f1ee5b3aac90e75
   /**********************************************************************/
-  int nrSource = GetRegionIndex(zSource);
-  cdouble EpsSource=EpsLayer[nrSource];
-  cdouble  MuSource=MuLayer[nrSource];
-  cdouble ScriptG0TSource[2][6][6];
-  if (nrSource>0)
-   GetScriptG0Twiddle(Omega, EpsSource, MuSource, q2D, zInterface[nrSource-1]-zSource, ScriptG0TSource[0]);
-  if (nrSource<NumInterfaces)
-   GetScriptG0Twiddle(Omega, EpsSource, MuSource, q2D, zInterface[nrSource]-zSource, ScriptG0TSource[1]);
-
-  int nrDest = GetRegionIndex(zDest);
-  cdouble EpsDest=EpsLayer[nrDest];
-  cdouble  MuDest=MuLayer[nrDest];
+  int DestRegion  = GetRegionIndex(zDest);
+  cdouble EpsDest = EpsLayer[DestRegion];
+  cdouble MuDest  = MuLayer[DestRegion];
+  int pMin        = (DestRegion==0               ? 1 : 0 );
+  int pMax        = (DestRegion==NumInterfaces   ? 0 : 1 );
   cdouble ScriptG0TDest[2][6][6];
-  if (nrDest>0)
-   GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest-1], ScriptG0TDest[0]);
-  if (nrDest<NumInterfaces)
-   GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest], ScriptG0TDest[1]);
+  for(int p=pMin, nrDest=DestRegion-1+p; p<=pMax; p++, nrDest++)
+   GetScriptG0Twiddle(Omega, EpsDest, MuDest, q2D, zDest - zInterface[nrDest], ScriptG0TDest[p]);
+
+  int SourceRegion  = GetRegionIndex(zSource);
+  cdouble EpsSource = EpsLayer[SourceRegion];
+  cdouble  MuSource = MuLayer[SourceRegion];
+  int qMin          = (SourceRegion==0             ? 1 : 0 );
+  int qMax          = (SourceRegion==NumInterfaces ? 0 : 1 );
+  cdouble ScriptG0TSource[2][6][6];
+  for(int q=qMin, nrSource=SourceRegion-1+q; q<=qMax; q++, nrSource++)
+   GetScriptG0Twiddle(Omega, EpsSource, MuSource, q2D, zInterface[nrSource]-zSource, ScriptG0TSource[q]);
 
   /**********************************************************************/
-  /* assemble RHS vectors for all 6 point-source orientations           */
   /**********************************************************************/
-  STwiddle->Zero();
-  for(int Nu=0; Nu<6; Nu++)
-   {
-     // fill in RHS vector describing fields sourced by point in region #nrSource
-     // AB = above or below
-     for (int AB=0; AB<=1; AB++)
-      { int nInterface = nrSource-1+AB;
-        if (nInterface<0 || nInterface>=NumInterfaces) continue;
-        int RowOffset = 4*nInterface;
-        double Sign   = (AB == 1 ? -1.0 : 1.0);
-        for(int EH=0; EH<2; EH++)
-         for(int i=0; i<2; i++)
-          STwiddle->SetEntry(RowOffset + 2*EH + i, Nu, Sign*ScriptG0TSource[AB][3*EH+i][Nu]);
-      };
-   };
-
-  /**********************************************************************/
-  /* solve for surface currents on all layers                           */
-  /**********************************************************************/
-  WMatrix->LUSolve(STwiddle);
-
-  /**********************************************************************/
-  /* get Fourier components of fields at destination point due          */
   /**********************************************************************/
   GTwiddle->Zero();
-  for(int Mu=0; Mu<6; Mu++)
-   for (int AB=0; AB<=1; AB++)
-    { int nInterface = nrDest-1+AB;
-      if (nInterface<0 || nInterface>=NumInterfaces) continue;
-      int RowOffset = 4*nInterface;
-      double Sign   = (AB == 1 ?  1.0 : -1.0);
-      for(int Nu=0; Nu<6; Nu++)
-       for(int KN=0; KN<2; KN++)
-        for(int i=0; i<2; i++)
-         GTwiddle->AddEntry(Mu, Nu, Sign*ScriptG0TDest[AB][Mu][3*KN+i]
-                                        *STwiddle->GetEntry(RowOffset+2*KN+i,Nu)
-                           );
+  for(int p=pMin, nrDest=DestRegion-1+p; p<=pMax; p++, nrDest++)
+   for(int q=qMin, nrSource=SourceRegion-1+q; q<=qMax; q++, nrSource++)
+    { 
+      double Sign = (p==q) ? 1.0 : -1.0;
+      int RowOffset = 4*nrDest, ColOffset = 4*nrSource;
+      for(int i=0; i<6; i++)
+       for(int j=0; j<6; j++)
+        for(int k=0; k<4; k++)
+         for(int l=0; l<4; l++)
+          { int kk = k>=2 ? k+1 : k;
+            int ll = l>=2 ? l+1 : l;
+            GTwiddle->AddEntry(i,j, Sign*ScriptG0TDest[p][i][kk]
+                                        *WMatrix->GetEntry(RowOffset+k, ColOffset+l)
+                                        *ScriptG0TSource[q][ll][j]
+                              );
+         };
     };
 }
 
 void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double qx, double qy,
                                          double zDest, double zSource,
-                                         HMatrix *WMatrix, 
-                                         HMatrix *STwiddle,
+                                         HMatrix *WMatrix,
                                          HMatrix *GTwiddle)
 { double q2D[2];
   q2D[0]=qx;
   q2D[1]=qy;
   GetScriptGTwiddle(Omega, q2D, zDest, zSource,
-                    WMatrix, STwiddle, GTwiddle);
+                    WMatrix, GTwiddle);
 }
 
 
@@ -278,15 +246,15 @@ void LayeredSubstrate::Getg0112(cdouble Omega, double qMag,
 {
   // qx=qMag, qy=0
   HMatrix GT10(6,6,LHM_COMPLEX);
-  GetScriptGTwiddle(Omega, qMag,       0.0,        zDest, zSource, WMatrix, STwiddle, &GT10);
+  GetScriptGTwiddle(Omega, qMag,       0.0,        zDest, zSource, WMatrix, &GT10);
 
   // qx=qMag/sqrt[2], qy=qMag/sqrt[2]
   HMatrix GT11(6,6,LHM_COMPLEX);
-  GetScriptGTwiddle(Omega, qMag/SQRT2, qMag/SQRT2, zDest, zSource, WMatrix, STwiddle, &GT11);
+  GetScriptGTwiddle(Omega, qMag/SQRT2, qMag/SQRT2, zDest, zSource, WMatrix, &GT11);
 
   // qx=0, qy=qMag
   HMatrix GT01(6,6,LHM_COMPLEX);
-  GetScriptGTwiddle(Omega, 0.0,        qMag,       zDest, zSource, WMatrix, STwiddle, &GT01);
+  GetScriptGTwiddle(Omega, 0.0,        qMag,       zDest, zSource, WMatrix, &GT01);
 
   HMatrix *g0 = g0112[0], *g1x=g0112[1], *g1y=g0112[2], *g2=g0112[3];
   g0->Zero();
@@ -356,6 +324,8 @@ typedef struct IntegrandData
 int SubstrateDGFIntegrand_SC(unsigned ndim, const double *uVector,
                              void *UserData, unsigned fdim, double *fval)
 {
+  (void )ndim; //unused
+
   IntegrandData *Data         = (IntegrandData *)UserData;
   Data->nCalls++;
 
@@ -396,7 +366,6 @@ int SubstrateDGFIntegrand_SC(unsigned ndim, const double *uVector,
      qz           = II*Kappa;
      Jacobian     = k0*Kappa*Denom*Denom/(2.0*M_PI);
    };
-  double qMag2=qMag*qMag;
 
   /***************************************************************/
   /***************************************************************/
@@ -483,7 +452,7 @@ else
    }; // for(int nx=0, ni=0; nx<XMatrix->NR; nx++)
   return 0;
 
-};
+}
 
 /***************************************************************/
 /***************************************************************/

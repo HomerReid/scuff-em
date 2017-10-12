@@ -90,7 +90,7 @@ double LayeredSubstrate::GetStaticG0Correction(double zD, double zS)
 void GetZetaXi(double q, double zD, double zS, double zGP,
                double ZetaXi[2], double Sign=0.0)
 {
-  bool HaveGP = (zGP!=HUGE_VAL);
+  bool HaveGP = (zGP!=-1.0*HUGE_VAL);
 
   double Term1 = exp(-q*fabs(zD-zS));
   double Term2 = HaveGP ? exp(-q*(zD + zS - 2.0*zGP)) : 0.0;
@@ -405,7 +405,7 @@ void LayeredSubstrate::GetDeltaPhiE(double XD[3], double XS[3],
    *pG0Correction=GetStaticG0Correction(ZD,ZS);
 
   // contribution of image charge if present
-  if (zGP != HUGE_VAL)
+  if (zGP != -1.0*HUGE_VAL)
    AddPhiE0(XD, XS[0], XS[1], 2.0*zGP-XS[2], -1.0, PhiE);
 }
 
