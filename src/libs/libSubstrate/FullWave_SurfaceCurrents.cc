@@ -209,6 +209,7 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
    for(int q=qMin, nrSource=SourceRegion-1+q; q<=qMax; q++, nrSource++)
     { 
       double Sign = (p==q) ? 1.0 : -1.0;
+      Sign*=-1.0; // EXPLAIN ME 
       int RowOffset = 4*nrDest, ColOffset = 4*nrSource;
       for(int i=0; i<6; i++)
        for(int j=0; j<6; j++)

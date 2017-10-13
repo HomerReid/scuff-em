@@ -33,10 +33,16 @@ OTHER_LIBS=                      \
  ../libscuff/libscuff.la      
 
 #noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate
-check_PROGRAMS = tStaticSubstrate tFullWaveSubstrate
+check_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tGTwiddle tRotateG
 
 tStaticSubstrate_SOURCES = tStaticSubstrate.cc
 tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
 
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
+
+tGTwiddle_SOURCES = tGTwiddle.cc
+tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)
+
+tRotateG_SOURCES = tRotateG.cc
+tRotateG_LDADD = libSubstrate.la $(OTHER_LIBS)
