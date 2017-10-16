@@ -590,6 +590,9 @@ RWGSurface::~RWGSurface()
 /***************************************************************/
 void RWGSurface::Transform(const GTransformation *DeltaGT)
 { 
+  if (DeltaGT==0)
+   return;
+
   /***************************************************************/
   /*- first apply the transformation to all points whose         */
   /*- coordinates we store inside the RWGSurface structure:      */
