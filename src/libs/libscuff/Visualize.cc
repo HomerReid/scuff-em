@@ -811,24 +811,42 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   fprintf(f,"View \"Electric charge %s\" {\n",Tag);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
-     RWGSurface *S=Surfaces[ns];
-     int Offset = PanelIndexOffset[ns];
+     RWGSurface *S     = Surfaces[ns];
      if (WhichSurface && S!=WhichSurface)
       continue;
 
-     for(int np=0; np<S->NumPanels; np++)
+     RWGPanel **Panels = S->Panels;
+     int NumPanels     = S->NumPanels;
+     double *Vertices  = S->Vertices;
+     int Offset = PanelIndexOffset[ns];
+     for(int np=0; np<NumPanels; np++)
       { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
-        RWGPanel *P=S->Panels[np];
+        RWGPanel *P=Panels[np];
         double *PV[3];
-        PV[0]=S->Vertices + 3*P->VI[0];
-        PV[1]=S->Vertices + 3*P->VI[1];
-        PV[2]=S->Vertices + 3*P->VI[2];
-        cdouble Sigma=PSD->GetEntry( Offset + np, 4);
+        PV[0]=Vertices + 3*P->VI[0];
+        PV[1]=Vertices + 3*P->VI[1];
+        PV[2]=Vertices + 3*P->VI[2];
+
+        cdouble Sigma[3]={0.0, 0.0, 0.0};
+#if 0
+        Sigma[0]=Sigma[1]=Sigma[2]=PSD->GetEntry( Offset + np, 4);
+#else
+        int NAvg[3]={0, 0, 0};
+        for(int npp=0; npp<NumPanels; npp++)
+         for(int iv=0; iv<3; iv++)
+          for(int ivp=0; ivp<3; ivp++)
+           if ( Panels[np]->VI[iv] == Panels[npp]->VI[ivp] )
+            { NAvg[iv]++;
+              Sigma[iv]+=PSD->GetEntry(Offset + np, 4);
+            };
+        for(int i=0; i<3; i++)
+         if (NAvg[i]>0) Sigma[i]/=((double)NAvg[i]);
+#endif
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    PV[0][0], PV[0][1], PV[0][2],
                    PV[1][0], PV[1][1], PV[1][2],
                    PV[2][0], PV[2][1], PV[2][2],
-                   real(Sigma),real(Sigma),real(Sigma));
+                   real(Sigma[0]),real(Sigma[1]),real(Sigma[2]));
       };
    }; 
   fprintf(f,"};\n");

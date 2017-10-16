@@ -62,6 +62,7 @@ pages:
     - 'scuff-neq':             'applications/scuff-neq/scuff-neq.md'
     - 'scuff-RF':              'applications/scuff-RF/scuff-RF.md'
     - 'scuff-static':          'applications/scuff-static/scuff-static.md'
+    - 'scuff-spectrum':        'applications/scuff-spectrum/scuff-spectrum.md'
     - 'scuff-analyze':         'applications/scuff-analyze/scuff-analyze.md'
     - 'scuff-integrate':       'applications/scuff-integrate/scuff-integrate.md'
 - Validation tests:

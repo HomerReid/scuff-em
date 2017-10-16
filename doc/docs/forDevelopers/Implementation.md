@@ -104,6 +104,7 @@ Having introduced a discrete basis of expansion functions,
 our integral equation becomes a simultaneous system of 
 linear equations: 
 
+<a href="PMCHWTSystem"></a>
 ![matrix equation](MatrixEquation.png)
  
 This approach to solving surface integral equations is known 

@@ -18,7 +18,7 @@
  */
 
 /*
- * tFullWaveSubstrate.cc -- unit test for libSubstrate
+ * FullWaveSubstrate.cc -- unit test for libSubstrate
  *
  * homer reid       -- 8/2017
  *
@@ -66,6 +66,21 @@ void AddScriptG0(LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix, HMatrix *
      cdouble EpsRel, MuRel;
      S->MPLayer[nrDest]->GetEpsMu(Omega, &EpsRel, &MuRel);
      cdouble k=sqrt(EpsRel*MuRel)*Omega;
+
+     if (S->StaticLimit)
+      { double r2=VecNorm2(R), r=sqrt(r2);
+        cdouble G0 = II*exp(II*k*r)/(4.0*M_PI*r*r*r);
+        cdouble EFactor = ZVAC*MuRel*G0/k;
+        cdouble HFactor = G0/(k*ZVAC*EpsRel);
+        for(int Mu=0; Mu<3; Mu++)
+         for(int Nu=0; Nu<3; Nu++)
+          { double Bracket = 3.0*R[Mu]*R[Nu]/r2 - ((Mu==Nu) ? 1.0 : 0.0);
+            GMatrix->AddEntry(nx, 6*(0+Mu) + 0*Nu, EFactor*Bracket);
+            GMatrix->AddEntry(nx, 6*(3+Mu) + 3*Nu, HFactor*Bracket);
+          };
+        continue;
+      };
+
      cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
      scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
      cdouble EEPreFac = II*Omega*ZVAC*MuRel;
@@ -98,6 +113,7 @@ int main(int argc, char *argv[])
   char *EPFile=0;
   cdouble Omega=0.1;
   bool FreeSpace=false;
+  bool OmitFreeSpace=false;
   double XDS[6]={1.0, 0.0, 1.0, 0.0, 0.0, 0.5}; int nXDS=1;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
@@ -107,6 +123,7 @@ int main(int argc, char *argv[])
      {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
      {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
      {"XDS",           PA_DOUBLE,  6, 1, (void *)XDS,         &nXDS, ""},
+     {"OmitFreeSpace", PA_BOOL,    0, 1, (void *)&OmitFreeSpace, 0, ""},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -122,23 +139,23 @@ int main(int argc, char *argv[])
      S=G->Substrate;
      printf("Read substrate definition from file %s\n",GeoFile);
    }
-  else if (SubstrateFile)
+  else 
    { 
+     if (!SubstrateFile)
+      { SubstrateFile=strdup("XXXXXX");
+        if ( mkstemp(SubstrateFile) == -1 )
+         ErrExit("could not create temporary file");
+        FILE *f=fopen(SubstrateFile,"w");
+        fprintf(f,SISubstrateFile);
+        fclose(f);
+        OwnsSubstrateFile=true;
+        printf("Using build-in substrate definition.\n");
+      };
      S=new LayeredSubstrate(SubstrateFile);
      if (S->ErrMsg)
       ErrExit(S->ErrMsg);
      printf("Read substrate definition from file %s\n",SubstrateFile);
-   }
-  else
-   { SubstrateFile=strdup("XXXXXX");
-     if ( mkstemp(SubstrateFile) == -1 )
-      ErrExit("could not create temporary file");
-     FILE *f=fopen(SubstrateFile,"w");
-     fprintf(f,SISubstrateFile);
-     fclose(f);
-     OwnsSubstrateFile=true;
-     printf("Using build-in substrate definition.\n");
-     unlink(SubstrateFile);
+     if (OwnsSubstrateFile)unlink(SubstrateFile);
    };
   S->Describe();
 
@@ -187,35 +204,42 @@ int main(int argc, char *argv[])
   const char *xyz="xyz";
   for(int pMu=0, nc=7; pMu<6; pMu++)
    for(int qNu=0; qNu<6; qNu++, nc+=2)
-    { int p  = pMu/3;
+    { 
+      int p  = pMu/3;
       int Mu = pMu%3;
       int q  = qNu/3;
       int Nu = qNu%3;
-      fprintf(ff,"rG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc);
-      fprintf(ff,"iG%c%c%c%cRef(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+1);
-      fprintf(ff,"mG%c%c%c%cRef(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc,nc+1);
-      fprintf(ff,"rG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72);
-      fprintf(ff,"iG%c%c%c%cHR(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+73);
-      fprintf(ff,"mG%c%c%c%cHR(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+72,nc+73);
-      fprintf(ff,"rG%c%c%c%cSC(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+216);
-      fprintf(ff,"iG%c%c%c%cSC(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+217);
-      fprintf(ff,"mG%c%c%c%cSC(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+216,nc+217);
-      fprintf(ff,"rG%c%c%c%cFS(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+144);
-      fprintf(ff,"iG%c%c%c%cFS(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+145);
-      fprintf(ff,"mG%c%c%c%cFS(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],nc+144,nc+145);
+
+      int Offset=0;
+      fprintf(ff,"rG%c%c%c%cSL(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc);
+      fprintf(ff,"iG%c%c%c%cSL(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc+1);
+      fprintf(ff,"mG%c%c%c%cSL(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc,Offset+nc+1);
+
+      Offset+=72;
+      fprintf(ff,"rG%c%c%c%cSC(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc);
+      fprintf(ff,"iG%c%c%c%cSC(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc+1);
+      fprintf(ff,"mG%c%c%c%cSC(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc,Offset+nc+1);
+
+      Offset+=72;
+      fprintf(ff,"rG%c%c%c%cFS(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc);
+      fprintf(ff,"iG%c%c%c%cFS(x)=($%i)\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc+1);
+      fprintf(ff,"mG%c%c%c%cFS(x)=(D2($%i,$%i))\n",EM[p],EM[q],xyz[Mu],xyz[Nu],Offset+nc,Offset+nc+1);
+
     };
   fclose(ff);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  SetConsoleLogging();
+
   HMatrix *GSL= S->GetSubstrateDGF(Omega, XMatrix, STATIC_LIMIT);
 
   HMatrix *GSC = S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
 
   HMatrix *GFS = new HMatrix(GSC->NR, GSC->NC, LHM_COMPLEX);
   GFS->Zero();
-  if (!FreeSpace)
+  if (!FreeSpace && !OmitFreeSpace)
    AddScriptG0(S, Omega, XMatrix, GFS);
 
   FILE *f=fopen("tFullWaveSubstrate.out","w");
@@ -247,17 +271,29 @@ int main(int argc, char *argv[])
      fprintVec(f,GVector,36);
 
      GSC->GetEntries(nx,":",GVector);
-     for(int nc=0; nc<36; nc++)
-      GVector[nc]+=GFS->GetEntry(nx,nc);
-     fprintVec(f,GVector,36);
-
-     GSC->GetEntries(nx,":",GVector);
      fprintVec(f,GVector,36);
 
      GFS->GetEntries(nx,":",GVector);
      fprintVec(f,GVector,36);
-
      fprintf(f,"\n");
+
+     if (XMatrix->NR == 1)
+      { SetDefaultCD2SFormat("{%+.2e,%+.2e}");
+        for(int P=0; P<2; P++)
+         for(int Q=0; Q<2; Q++)
+          { printf("\n ** Quadrant %c%c:\n\n",EM[P],EM[Q]);
+            for(int i=0; i<3; i++)
+             printf("%s %s %s || %s %s %s \n",
+                    CD2S( GSC->GetEntry(0, (P*3+i)*6 + (Q*3+0) )+GFS->GetEntry(0, (P*3+i)*6 + (Q*3+0) )),
+                    CD2S( GSC->GetEntry(0, (P*3+i)*6 + (Q*3+1) )+GFS->GetEntry(0, (P*3+i)*6 + (Q*3+1) )),
+                    CD2S( GSC->GetEntry(0, (P*3+i)*6 + (Q*3+2) )+GFS->GetEntry(0, (P*3+i)*6 + (Q*3+2) )),
+                    CD2S( GSL->GetEntry(0, (P*3+i)*6 + (Q*3+0) )),
+                    CD2S( GSL->GetEntry(0, (P*3+i)*6 + (Q*3+1) )),
+                    CD2S( GSL->GetEntry(0, (P*3+i)*6 + (Q*3+2) ))
+                   );
+          };
+      };
+
    };
   fclose(f);
   printf("Thank you for your support.\n");

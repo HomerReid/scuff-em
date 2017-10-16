@@ -8,10 +8,14 @@ libSubstrate_la_SOURCES = 	\
  FullWave_SurfaceCurrents.cc	\
  Static.cc     		
 
-#AM_CXXFLAGS = -ggdb -O0
-#CXXFLAGS = -ggdb -O0
-AM_CXXFLAGS = -O3
-CXXFLAGS = -O3
+#if $(MMAKE)
+#AM_CXXFLAGS=-ggdb -O0
+#AM_CFLAGS=-ggdb -O0
+#  echo "Building with debug support."
+#else
+  AM_CXXFLAGS = -O3
+#  echo "Building without debug support."
+#endif
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libhmat      \
@@ -32,7 +36,7 @@ OTHER_LIBS=                      \
  ../libhrutil/libhrutil.la       \
  ../libscuff/libscuff.la      
 
-#noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate
+noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate
 check_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tGTwiddle tRotateG
 
 tStaticSubstrate_SOURCES = tStaticSubstrate.cc

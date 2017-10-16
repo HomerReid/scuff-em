@@ -73,11 +73,12 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   /*- initialize class fields ------------------------------------*/
   /*--------------------------------------------------------------*/
   NumInterfaces=0;
-  MPLayer=(MatProp **)mallocEC(1*sizeof(MatProp *));
+  NumLayers=1;
+  MPLayer=(MatProp **)mallocEC(NumLayers*sizeof(MatProp *));
   MPLayer[0]=new MatProp("VACUUM");
   zInterface=0;
   zGP=-1.0*HUGE_VAL;
-
+  
   // keep track of whether we're in a .substrate file or in a
   // SUBSTRATE...ENDSUBSTRATE section of a .scuffgeo file
   bool InSubstrateFile = (FileName!=0);
@@ -161,10 +162,11 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
            return;
          };
         NumInterfaces++;
-        MPLayer=(MatProp **)reallocEC(MPLayer,(NumInterfaces+1)*sizeof(MatProp *));
+        NumLayers++;
+        MPLayer=(MatProp **)reallocEC(MPLayer,NumLayers*sizeof(MatProp *));
         zInterface=(double  *)reallocEC(zInterface, NumInterfaces*sizeof(double));
-        MPLayer[NumInterfaces]=MP;
-         zInterface[NumInterfaces-1]=z;
+        MPLayer[NumLayers-1]=MP;
+        zInterface[NumInterfaces-1]=z;
         Log(" Layer #%i: %s at z=%e.",NumInterfaces,MP->Name,z);
       };
    };
@@ -195,8 +197,8 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  EpsLayer   = (cdouble *)mallocEC((NumInterfaces+1)*sizeof(cdouble));
-  MuLayer    = (cdouble *)mallocEC((NumInterfaces+1)*sizeof(cdouble));
+  EpsLayer   = (cdouble *)mallocEC(NumLayers*sizeof(cdouble));
+  MuLayer    = (cdouble *)mallocEC(NumLayers*sizeof(cdouble));
   OmegaCache = -1.0;
 
   qMaxEval  = 10000;
@@ -218,8 +220,11 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   I1D=0;
   I1DRhoMin=HUGE_VAL;
   I1DRhoMax=0;
+
   ForceFreeSpace=false;
-  EvanescentOnly=PropagatingOnly=0;
+  StaticLimit=false;
+  LayerOnly=-1;
+
   ErrMsg=0;
 }
 

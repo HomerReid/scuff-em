@@ -57,6 +57,7 @@
 
 * [BU Symposium on Open-Source CAD tools: <span class=SC>scuff-em</span> for photonics](http://homerreid.github.io/SCUFFEMTutorialSymposium/)
 
+<a name="ApplicationSuite"></a>
 # Command-line application reference
 
 * [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
@@ -79,6 +80,9 @@
                                      (S- and impedance parameters),
                                      and radiated fields, for passive RF
                                      and microwave structures.
+       
+* *Mode solver*
+    + [<span class="SC">scuff-spectrum</span>][scuff-spectrum] - identification of frequencies, lifetimes, and field patterns of electromagnetic resonant modes in complex structures
 
 * *Electrostatics code*
 
@@ -138,6 +142,7 @@
 [scuff-neq]:          applications/scuff-neq/scuff-neq.md
 [scuff-RF]:           applications/scuff-RF/scuff-RF.md
 [scuff-static]:       applications/scuff-static/scuff-static.md
+[scuff-spectrum]:     applications/scuff-spectrum/scuff-spectrum.md
 [scuff-analyze]:      applications/scuff-analyze/scuff-analyze.md
 [scuff-integrate]:    applications/scuff-integrate/scuff-integrate.md
 [libscuff]:           API/libscuff.md

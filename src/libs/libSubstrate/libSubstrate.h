@@ -119,16 +119,10 @@ public:
                      double qIntegral[3]);
 
    void ComputeW(cdouble Omega, double q[2], HMatrix *W);
-   void GetSTwiddle(cdouble Omega, double q2D[2], double zSource, HMatrix *W, HMatrix *STwiddle);
 
    void GetScriptGTwiddle(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
                           HMatrix *WMatrix, HMatrix *GTwiddle);
-
-   void GetScriptGTwiddleBF(cdouble Omega, double q2D[2],
-                          double zDest, double zSource,
-                          HMatrix *WMatrix, HMatrix *STwiddle,
-                          HMatrix *GTwiddle);
 
    void GetScriptGTwiddle(cdouble Omega, double qx, double qy,
                           double zDest, double zSource,
@@ -136,8 +130,7 @@ public:
 
    void Getg0112(cdouble Omega, double qMag,
                  double zDest, double zSource,
-                 HMatrix *WMatrix, HMatrix *STwiddle,
-                 HMatrix *g012[4]);
+                 HMatrix *WMatrix, HMatrix *g012[4]);
 
    void RotateG(cdouble Gij[6][6], double Phi);
    void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);
@@ -151,7 +144,8 @@ public:
    char *ErrMsg;
 
    // info on substrate geometry
-   int NumInterfaces;
+   int NumInterfaces;   // number of separating planes
+   int NumLayers;       // == NumInterfaces+1
    MatProp **MPLayer;   // MPLayer[n] = properties of layer n
    cdouble  *EpsLayer;  // EpsLayer[n] = permittivity of layer n
    cdouble  *MuLayer;   // MuLayer[n]  = permeability of layer n
@@ -173,7 +167,8 @@ public:
  
    // flags to help in debugging
    bool ForceFreeSpace;
-   bool EvanescentOnly, PropagatingOnly;
+   bool StaticLimit;
+   int LayerOnly;
    
  };
 

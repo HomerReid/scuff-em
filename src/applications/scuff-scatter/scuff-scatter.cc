@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base filename for EPFile output\n\n"},
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
-     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations for FVMesh"},
+     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles,    &nFVMeshTransFiles,    "list of geometrical transformations applied to FVMesh"},
      {"FVFunctions",    PA_STRING,  1, MAXFVM,  (void *)FVFuncs,     &nFVFuncs,     "comma-separated list of field functions to visualize\n"},
 /**/
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file\n"},
