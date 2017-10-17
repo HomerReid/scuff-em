@@ -202,3 +202,24 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
                                            HMatrix *XMatrix,
                                            DGFMethod Method)
 { return GetSubstrateDGF(Omega, XMatrix, 0, Method); }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
+                                       double XD[3], double XS[3],
+                                       cdouble ScriptG[6][6], DGFMethod Method)
+{ double XBuffer[6];
+  HMatrix XMatrix(1,6,LHM_REAL,XBuffer); 
+  XMatrix.SetEntriesD(0,"0:2",XD);
+  XMatrix.SetEntriesD(0,"3:5",XS);
+
+  cdouble GBuffer[36];
+  HMatrix GMatrix(6,6,LHM_COMPLEX,GBuffer);
+
+  GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method);
+
+  for(int Mu=0; Mu<6; Mu++)
+   for(int Nu=0; Nu<6; Nu++)
+    ScriptG[Mu][Nu] = GMatrix.GetEntry(Mu,Nu);  
+}

@@ -33,6 +33,7 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
+#include "PanelCubature.h"
 
 namespace scuff {
 
@@ -305,6 +306,68 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->GBA=0;
   Args->ForceFullEwald=false;
   memset(Args->PPIAlgorithmCount, 0, NUMPPIALGORITHMS*sizeof(unsigned));
+}
+
+/***************************************************************/
+/* EEIs[0] =   <b_a| G^{EE} | b_b> / Z_0                       */
+/* EEIs[1] =   <b_a| G^{ME} | b_b>                             */
+/* EEIs[2] = - <b_a| G^{MM} | b_b> * Z_0                       */
+/***************************************************************/
+typedef struct SubstrateEEIData
+ {
+   LayeredSubstrate *Substrate;
+   cdouble Omega;
+   
+ } SubstrateEEIData;
+
+void SubstrateEEIIntegrand(double x1[3], double b1[3], double Divb1,
+                           double x2[3], double b2[3], double Divb2,
+                           void *UserData, double Weight, double *Integral)
+{ (void) Divb1;
+  (void) Divb2;
+
+  SubstrateEEIData *Data      = (SubstrateEEIData *)UserData;
+  LayeredSubstrate *Substrate = Data->Substrate;
+  cdouble Omega               = Data->Omega;
+
+  cdouble GSubs[6][6];
+  Substrate->GetSubstrateDGF(Omega, x1, x2, GSubs);
+
+  cdouble DeltaEEIs[3]={0.0, 0.0, 0.0};
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { DeltaEEIs[0] += b1[Mu]*GSubs[0+Mu][0+Nu]*b2[Nu];
+      DeltaEEIs[1] += b1[Mu]*GSubs[3+Mu][0+Nu]*b2[Nu];
+      DeltaEEIs[2] += b1[Mu]*GSubs[3+Mu][3+Nu]*b2[Nu];
+    };
+  
+  cdouble *EEIs = (cdouble *)Integral;
+  EEIs[0] += Weight*DeltaEEIs[0] / ZVAC;
+  EEIs[1] += Weight*DeltaEEIs[1];
+  EEIs[2] -= Weight*DeltaEEIs[2] * ZVAC;
+  
+}
+
+/***************************************************************/
+/* compute the contributions of the dielectric substrate to    */
+/* BEM matrix elements between a pair of RWG basis functions   */
+/***************************************************************/
+void GetSubstrateEEIs(LayeredSubstrate *Substrate,
+                      RWGSurface *Sa, int nea,
+                      RWGSurface *Sb, int neb,
+                      cdouble Omega, cdouble EEIs[3], int Order)
+{
+  SubstrateEEIData MyData;
+  MyData.Substrate = Substrate;
+  MyData.Omega     = Omega;
+   
+  if (Order==0)
+   Order=4;
+
+  int IDim = 6;
+  GetBFBFCubature2(Sa, nea, Sb, neb,
+                   SubstrateEEIIntegrand, (void *)&MyData,
+                   IDim, Order, (double *)EEIs);
 }
 
 } // namespace scuff

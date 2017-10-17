@@ -1,0 +1,6 @@
+MESHPATH /home/homer/work/scuff-em-sandbox/mshFiles/
+
+OBJECT Sphere
+	MESHFILE Sphere_501.msh
+	MATERIAL CONST_EPS_4
+ENDOBJECT

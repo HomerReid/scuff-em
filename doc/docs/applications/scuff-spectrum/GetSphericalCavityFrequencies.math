@@ -1,0 +1,46 @@
+(* Mathematica code for numerically computing resonance
+   frequencies of a spherical dielectric cavity.
+
+   (Here 'frequencies' \omega are represented by the dimensionless
+   quantity
+     a = \omega * R/c
+   where R is the cavity radius)
+
+   The main code is
+   
+   aNear[MN_, L_, n_, a0_]
+
+   which computes a resonance frequency *a* subject
+   to an initial starting value *a0*.
+
+   Inputs:
+     MN = 0 or 1     for M- or N-type spherical waves
+      L = 1,2,...    spherical-wave index
+      n              index of refraction for medium inside sphere
+     a0              initial guess
+
+   Usage example:
+    compute resonance frequency of L=1 M-type modes for a
+    dielectric cavity with Epsilon=4:
+
+  In[1]:=  a = aNear[0,1,2.0,1.0-0.1i
+
+  Out[4]:= 0.75378225088679701880 - 0.024030200429498436908 I
+*)
+
+(* find an M- or N-type root near a0 *)
+aNear[MN_,L_,n_,a0_]:=\
+ a /. FindRoot[ aEquation[MN,L,n,a]==0, {a,a0}, AccuracyGoal->10,
+                                                PrecisionGoal->10,
+                                                WorkingPrecision->20
+              ];
+
+ROut[L_, a_]:=SphericalHankelH1[L,a];
+RBarOut[L_, a_] := ROut[L,a]/a + (D[ROut[L,aa],aa] /. {aa->a});
+
+RReg[L_, a_]:=SphericalBesselJ[L,a]
+RBarReg[L_, a_] := RReg[L,a]/a + (D[RReg[L,aa],aa] /. {aa->a});
+
+aMEquation[L_,n_,a_]:=(RReg[L,n*a]*RBarOut[L,a] - n*RBarReg[L,n*a]*ROut[L,a]);
+aNEquation[L_,n_,a_]:=(RBarReg[L,n*a]*ROut[L,a] - n*RReg[L,n*a]*RBarOut[L,a]);
+aEquation[MN_,L_,n_,a_]:=If[MN==0, aMEquation[L,n,a], aNEquation[L,n,a]];

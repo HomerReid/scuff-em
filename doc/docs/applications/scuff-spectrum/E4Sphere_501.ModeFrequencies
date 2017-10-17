@@ -1,0 +1,9 @@
+# For contour w0=1.1+-0.63i, Rx=2.000000e-01, Ry=2.000000e-01, N=14, L=5# w0=1.1+-0.63i, Rx=2.000000e-01, Ry=2.000000e-01, N=14, L=5:
+# re(w) im(w)   estimated error in re(w), im(w)
++xh:w
+
+#/home/homer/work/scuff-em-installation/bin/scuff-spectrum running on hikari (10/16/17::23:01:54)
+# For contour w0=1.1+-0.63i, Rx=5.000000e-01, Ry=5.000000e-01, N=20, L=5# w0=1.1+-0.63i, Rx=5.000000e-01, Ry=5.000000e-01, N=20, L=5:
+# re(w) im(w)   estimated error in re(w), im(w)
++1.023320e+00 -8.426595e-01  +2.232041e-02 +1.638581e-02  
+#/home/homer/work/scuff-em-installation/bin/scuff-spectrum running on hikari (10/16/17::23:08:14)

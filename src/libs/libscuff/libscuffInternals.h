@@ -163,6 +163,12 @@ typedef struct GetEEIArgStruct
 void InitGetEEIArgs(GetEEIArgStruct *Args);
 void GetEdgeEdgeInteractions(GetEEIArgStruct *Args);
 
+void GetSubstrateEEIs(LayeredSubstrate *S,
+                      RWGSurface *Sa, int nea,
+                      RWGSurface *Sb, int neb,
+                      cdouble Omega, cdouble EEIs[3],
+                      int Order=0);
+
 /*--------------------------------------------------------------*/
 /*- GetGCMatrixElements ----------------------------------------*/
 /*--------------------------------------------------------------*/

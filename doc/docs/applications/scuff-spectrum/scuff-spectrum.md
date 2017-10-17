@@ -187,8 +187,208 @@ accuracy increasing with the number of quadrature points $N$---as
 well as values for the corresponding eigenvectors.
 
 <a name="SphericalDielectricCavity"></a>
-# 2. <span class="SC">scuff-spectrum</span> tutorial: Modes of a 
-     spherical dielectric cavity
+# 2. <span class="SC">scuff-spectrum</span> tutorial: Modes of a spherical dielectric cavity
+
+In this example we'll use the Beyn algorithm as implemented by [[scuff-spectrum]] to
+compute the modes of a spherical dielectric cavity, i.e. a simple dielectric sphere.
+
+## Exact (spherical-wave) calculation
+
+For this simple geometry, the mode frequencies can be
+calculated to any desired numerical precision by looking
+for poles of the Mie-scattering coefficients for plane waves
+impinging on a dielectric sphere; the calculation is discussed
+on page 15 of [this memo](../../tex/scuffSpherical.pdf)
+and implemented by 
+[this simple <span class=SC>mathematica</span> code](GetSphericalCavityFrequencies.math)
+For a sphere of relative permittivity
+$\epsilon=4$ (refractive index $n=2$), some typical results are:
+
++ For $N$=type waves with $\ell=1$ there is a resonance at
+
+$$ a= 1.1362178236179127955 - 0.63063395652811684933i $$
+
+where $a=\frac{\omega R}{c}$ with $R$ the sphere radius.
+
++ For $M$=type waves with $\ell=2$ there is a resonance at
+
+$$ a=2.0714122747181446982 - 0.14636128063766849563i $$
+
+Next let's ask how well we can reproduce these results
+in [[scuff-spectrum]].
+
+## <span class=SC>scuff-spectrum</span> calculation
+
+### <span class=SC>scuff-em</span> geometry files for spherical cavity
+
+For [[scuff-spectrum]] calculations I use a simple `.scuffgeo`
+file describing an isolated sphere with $\epsilon_r=4$;
+this file is called `E4Sphere_501.scuffgeo`:
+
+```bash
+OBJECT Sphere
+	MESHFILE Sphere_501.msh
+	MATERIAL CONST_EPS_4
+ENDOBJECT
+```
+
+The file [`Sphere_501.msh`](Sphere_501.msh) to which this refers is a 
+[<span class=SC>gmsh</span>](gmsh.info)
+mesh file produced from a <span class=SC>gmsh</span> 
+geometry file named [`Sphere.geo`](Sphere.geo)
+by running `gmsh -2 Sphere.geo -o Sphere.msh`; to investigate
+the effect of meshing resolution I will also create a series
+of more finely discretized spheres by saying e.g.
+`gmsh -2 Sphere.geo -clscale 0.75 -o Sphere_Finer.msh`
+(where the `-clscale` option, short for "characteristic
+length scale", may be used to refine the discretization length
+everywhere in the geometry.)
+The finest-resolution sphere I will use has $N=4107$ interior
+edges; for comparison , here are images of the coarsest $(N=501)$ 
+and finest $(N=4107)$ sphere meshes I will use.
+
+![Sphere_501.png](Sphere_501.png)
+![Sphere_4107.png](Sphere_4107.png)
+
+### Running <span class=SC>scuff-spectrum</span> to pinpoint mode frequencies
+
+Based on the discussion above, I expect to find modes
+at frequencies near $\omega_0\approx 1.1-0.63i$
+and $\omega_0\approx 2.1-0.14i$. Thus, I will use [[scuff-spectrum]]
+to execute Beyn's method for contours centered near these points
+and enclosing them.
+
+For example, here's a run in which I specify a contour centered
+at $\omega_0=1.1-0.63i$, with horizontal and vertical
+radii $R_x=R_y=0.2$, using $N$=14 quadrature points, and 
+allowing a budget of up to $L$=5 eigenvalues to be 
+found within the contour:
+
+````bash
+% scuff-spectrum --geometry E4Sphere_501.scuffgeo \
+                 --omega0 1.1-0.63i               \
+                 --Rx 0.2 --Ry 0.2                \
+                 --N 14 --L 5                     
+````
+
+This produces the file `E4Sphere_501.ModeFrequencies`:
+
+````bash
+# For contour w0=1.1+-0.63i, Rx=2.000000e-01, Ry=2.000000e-01, N=14, L=5# w0=1.1+-0.63i, Rx=2.000000e-01, Ry=2.000000e-01, N=14, L=5:
+# re(w) im(w)   estimated error in re(w), im(w)
++1.149426e+00 -6.378139e-01  +3.180420e-05 +7.130373e-05  
+````
+
+As the header says, the 4 numbers reported here are 
+the real and imaginary parts of the mode frequency
+(which is being estimated at $\omega \approx 1.149-0.63i$)
+followed by estimates of the integration error,
+i.e. the error incurred by approximating the contour
+integral via numerical quadrature; in this case the 
+error is evidently tiny, and we can be confident that Beyn's
+method has converged even with just the 14 quadrature points
+we used. (For larger contours we would probably need
+more points.)
+
+### Mesh convergence
+
+Of course, even if Beyn's method converges to many-digit
+precision on an eigenmode, we don't necessarily 
+expect the 
+resulting mode frequency to agree with Mie-theoretic predictions
+to high accuracy, because we are here studying a slightly
+different *structure*---namely, a sphere approximated by a
+discretized version in the form of a 501-sided polygon---but
+we may expect the mode frequencies to converge toward exact 
+results for spheres as the *discretization* is refined.
+
+To test this, I repeated the [[scuff-spectrum]] calculations
+above using more finely-meshed spheres. 
+Here are results for mode frequency vs. mesh
+discretization, characterized by the number *N*
+of interior edges in the discretized sphere:
+
+| **N**  | Re($\omega$)   | Im($\omega$)  |
+|--------|:--------------:|---------------|
+|  501   | 1.14943        | -0.63781      |
+| 1482   | 1.14076        | -0.63318      |
+| 2604   | 1.13877        | -0.63204      |
+| 4107   | 1.13787        | -0.63157      | 
+|        |                |               |
+|inf     | 1.13627        | -0.63071      |
+|        |                |               |
+|exact   | 1.13622        | -0.63063      |
+
+In this table, the first four data rows show
+results of [[scuff-spectrum]] calculations 
+for discretized meshes with $N$ interior edges.
+The column marked `inf` corresponds to an extrapolation
+of the finite-$N$ data to the $N\to \infty$ limit
+(basically, just fit the data to $A+B/N$ and 
+retain only the $A$ coefficient.)
+The row labeled `exact` shows
+numerically exact predictions of Mie theory.
+
+Here are the analogous results for the $M$-type $\ell=2$ spherical
+cavity mode:
+
+| **N**  | Re($\omega$)   | Im($\omega$)  |
+|--------|:--------------:|---------------|
+| 501    | 2.09595        | -0.147858     |
+| 1482   | 2.07996        | -0.146926     |
+| 2604   | 2.07615        | -0.146679     |
+| 4107   | 2.07442        | -0.146564     |
+|        |                |               |
+| inf    | 2.07151        | -0.146403     |
+|        |                |               |
+| exact  | 2.07141        | -0.146361     |
+
+These results demonstrate that the Beyn method implemented by 
+[[scuff-spectrum]] is able to achieve at least 4-digit precision
+in determining mode frequencies, despite the modest computational
+burden.
+
+### Running <span class=SC>scuff-spectrum</span> to analyze eigenmode field patterns
+
+Having identified the *frequencies* (eigenvalues) of
+our structure with high precision, we will next want to look
+at the *surface currents* (eigenvectors) and the *field patterns*
+they produce. [[scuff-spectrum]] offers several command-line
+options to facilitate this analysis, many of which are 
+similar to the post-processing outputs available in 
+[<span class=SC>scuff-scatter</span>][scuffScatter] and other
+<span class=SC>scuff-em</span> codes:
+
++ `--EPFile MyEPFile` requests computation of **E** and **H**
+field components at each evaluation point in a user-specified
+list of evaluation points.
+
++ `--FVMesh MyFVMesh.msh` requests generation of 
+<span class=SC>gmsh</span> visualization files
+showing fields and fluxes on the user-specified visualization
+mesh (screen) `MyFVMesh.msh.`
+
++ `--CartesianMomentFile MyFile` requests that values of the 
+Cartesian multipole moments corresponding to the eigen-current
+distribution be written to file `MyFile.
+
++ `--SphericalMomentFile MyFile` is like the previous option,
+but for *spherical* multipole moments.
+
++ `--PlotSurfaceCurrents` requests visualization files
+showing the distribution of electric and magnetic
+surface currents on the geometry.
+
+For example, here are images showing the distribution of
+surface currents for the two eigenmodes captured by the
+above tables.
+
+![L1Mode.png](L1Mode.png)
+
+![L2Mode.png](L2Mode.png)
+
+The quadrupole structure of the $\ell=2$ resonance is clearly
+distinguishable from the $\ell=1$ dipole-moment structure here.
 
 <a name="CommandLineReference"></a>
 # 3. <span class="SC">scuff-spectrum</span> command-line reference
@@ -197,3 +397,4 @@ well as values for the corresponding eigenvectors.
 [SphericalDielectricCavity]:   ../../applications/scuff-spectrum/scuff-spectrum.md/#SphericalDielectricCavity
 [BeynMethod]:                  ../../applications/scuff-spectrum/scuff-spectrum.md/#BeynMethod
 [PMCHWTSystem]:                ../../forDevelopers/Implementation.md/#PMCHWTSystem
+[scuffScatter]:                ../../applications/scuff-scatter/scuffScatterOptions.md

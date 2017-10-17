@@ -166,6 +166,7 @@ public:
    double I1DRhoMin, I1DRhoMax, I1DZ;
  
    // flags to help in debugging
+   DGFMethod ForceMethod;
    bool ForceFreeSpace;
    bool StaticLimit;
    int LayerOnly;

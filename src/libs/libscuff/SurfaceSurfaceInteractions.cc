@@ -52,6 +52,8 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
+void AddLayeredSubstrateContributionToBEMMatrix(GetSSIArgStruct *Args);
+
 /***************************************************************/
 /* Given two surfaces, identify whether they bound zero, one,  */
 /* or two common regions. If there are any common regions,     */
@@ -564,6 +566,12 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
    AddSurfaceZetaContributionToBEMMatrix(Args);
 
   /***************************************************************/
+  /* 20171016 contributions of layered material substrate        */
+  /***************************************************************/
+  if ( G->Substrate!=0 )
+   AddLayeredSubstrateContributionToBEMMatrix(Args);
+
+  /***************************************************************/
   /* if the caller specified the matrix as symmetric, then so far*/
   /* we have only computed the upper triangle, so now we need to */
   /* fill in the lower triangle. The exception is if the matrix  */
@@ -582,6 +590,50 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
       Log("...done with symmetry...");
    };
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AddLayeredSubstrateContributionToBEMMatrix(GetSSIArgStruct *Args)
+{
+  RWGGeometry *G = Args->G;
+  RWGSurface *Sa = Args->Sa;
+  RWGSurface *Sb = Args->Sb;
+  cdouble Omega  = Args->Omega;
+  int Row        = Args->RowOffset;
+  int Col        = Args->ColOffset;
+  HMatrix *B     = Args->B;
+
+  LayeredSubstrate *Substrate = G->Substrate;
+
+#ifdef USE_OPENMP
+  int NT = GetNumThreads();
+#pragma omp parallel for schedule(dynamic,1), num_threads(NT)
+#endif
+  for(int nea=0; nea<Sa->NumEdges; nea++)
+   for(int neb=0; neb<Sb->NumEdges; neb++)
+    {
+      if (neb==0)
+       LogPercent(nea, Sa->NumEdges, 10);
+
+      cdouble EEIs[3];
+      GetSubstrateEEIs(Substrate, Sa, nea, Sb, neb, Omega, EEIs);
+
+      if (Sa->IsPEC && Sb->IsPEC)
+       { 
+         B->AddEntry(Row+nea, Col+neb, EEIs[0]);
+       }
+      else if (!Sa->IsPEC && !Sb->IsPEC)
+       { 
+         B->AddEntry(Row+2*nea+0, Col+2*neb+0, EEIs[0]);
+         B->AddEntry(Row+2*nea+0, Col+2*neb+1, EEIs[1]);
+         B->AddEntry(Row+2*nea+1, Col+2*neb+0, EEIs[1]);
+         B->AddEntry(Row+2*nea+1, Col+2*neb+1, EEIs[2]);
+       }
+      else 
+       ErrExit("%s:%i: internal error");
+    };
 }
 
 /***************************************************************/

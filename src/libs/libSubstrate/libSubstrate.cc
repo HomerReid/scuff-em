@@ -221,6 +221,7 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   I1DRhoMin=HUGE_VAL;
   I1DRhoMax=0;
 
+  ForceMethod=AUTO;
   ForceFreeSpace=false;
   StaticLimit=false;
   LayerOnly=-1;

@@ -53,6 +53,7 @@ files that describe each of these types of geometries.
 <li> <a href="#Simple">Simple geometries: One or more compact objects (possibly nested)</a>
 <li> <a href="#Complex">More complex geometries: multi-material junctions</a>
 <li> <a href="#Extended">Extended geometries: periodic boundary conditions</a>
+<li> <a href="#Substrate">Implicit handling of multilayered dielectric substrates</a>
 <li> <a href="#Reference"><code>.scuffgeo</code> file syntax reference</a>
 <li> <a href="#Examples">A compendium of <code>.scuffgeo</code> files</a>
 
@@ -570,8 +571,127 @@ that the periodically-repeated images of the unit-cell geometry must
 all fit together "nicely" at the unit-cell boundaries, as indicated 
 in the right panel of the figure above.
 
+<a name="Substrate"></a>
+# 4. Implicit handling of multilayered material substrates
+
+As of October 2017, <span class=SC>scuff-em</span> now offers
+built-in support for calculations in the presence of a
+multilayered material substrate, with the effect of the
+substrate handled *implicitly* through the use of an
+appropriately modified Green's function.
+
+A multilayered material substrate consists of one or
+more layers of homogeneous material, stacked in the *z*
+direction and with infinite extent in the *x* and *y*
+directions; each layer may have arbitrary user-specified
+frequency-dependent dielectric permittivity and magnetic 
+permeability described by a 
+[<span class=SC>scuff-em</span> material designation][Materials].
+The substrate may optionally be terminated below
+by a perfectly conducting ground plane; if a ground
+plane is not present, the lowest material layer
+in the stack extends to negative infinity in 
+the $z$-direction (i.e. it is a half-space). (If you
+want to describe a substrate consisting of $N$
+finite-thickness layers, just add an $N+1$th layer
+of vacuum.)
+
+To include a substrate in your geometry,
+simply include a `SUBSTRATE...ENDSUBSTRATE` clause
+in your `.scuffgeo` file. Each intermediate line in
+this clause should either be of the form
+
+```bash
+ zValue   MaterialName
+```
+
+to add a layer of material `MaterialName` whose
+uppermost surface has *z*-coordinate `zValue`; or
+
+
+```bash
+ zGP      GROUNDPLANE 
+```
+
+to specify that your substrate has a perfectly-conducting
+ground plane at *z*=`zGP`. (All other layers must lie
+above `zGP.`)
+
+Here are some examples of `SUBSTRATE` definition
+sections in `.scuffgeo` files.
+
++ An SiO2 layer of thickness 2 length units atop an
+infinite silicon half-space, with the upper surface of the
+SiO2 lying at $z=0$:
+
+```bash
+SUBSTRATE
+  0.0  SiO2
+ -2.0  Silicon
+ENDSUBSTRATE
+```
+
++ Same as above, but now with a finite-thickness silicon
+layer of thickness 5 length units terminated below by
+a ground plane:
+
+
+```bash
+SUBSTRATE
+  0.0  SiO2
+ -2.0  Silicon
+ -7.0  GROUNDPLANE
+ENDSUBSTRATE
+```
+
++ Same as above, but now without the ground plane, so that 
+finite-thickness silicon layer is simply suspended in air
+with vacuum below:
+
+
+```bash
+SUBSTRATE
+  0.0  SiO2
+ -2.0  Silicon
+ -7.0  VACUUM
+ENDSUBSTRATE
+```
+
+### Checking substrate specifications with <span class=SC>scuff-analyze</span>
+
+If your `.scuffgeo` file contains a `SUBSTRATE` section,
+it will be properly interpreted by `scuff-analyze,`
+which will print a little description of your multilayered
+structure. For example, running `scuff-analyze` on a
+`.scuffgeo` file containing the above `SUBSTRATE` 
+clause yields, after the usual `scuff-analyze` data dump,
+the following output:
+
+```bash
+***********************************************
+*  SUBSTRATE:
+***********************************************
+Region  0 (VACUUM              ): [       inf < z < 0         ]
+Region  1 (SiO2                ): [         0 < z < -2        ]
+Region  2 (Silicon             ): [        -2 < z < -7        ]
+Region  3 (Vacuum              ): [        -7 < z < -inf      ]
+```
+
+Note that the infinite half-space lying above the
+substrate (which in this case is vacuum)
+is considered the first (uppemost) region of the
+substrate.
+
+For more information on the implementation
+of material substrates in <span class=SC>scuff-em</span>,
+see these memos:
+
++["Implicit handling of multilayered dielectric substrates in <span class=SC>scuff-static</span>"](../tex/StaticDielectricSubstrate.pdf)
+
++["Implicit handling of multilayered dielectric substrates in full-wave <span class=SC>scuff-em</span>"](../tex/FullWaveSubstrate.pdf)
+
 <a name="Reference"></a>
-# 4. Syntax reference for the ``.scuffgeo`` file format
+# 5. Syntax reference for the ``.scuffgeo`` file format
 
 A ``.scuffgeo`` file consists of one or more multiline
 *sections* (delimited by starting and ending keywords)
@@ -707,7 +827,7 @@ through the origin and through the point with cartesian coordinates
 > see [here][Materials].
 
 <a name="Examples"></a> 
-# 5. A compendium of sample ``.scuffgeo`` files
+# 6. A compendium of sample ``.scuffgeo`` files
 
 The images corresponding to the ``.scuffgeo`` files below were 
 obtained using the ``scuff-analyze`` utility distributed with 

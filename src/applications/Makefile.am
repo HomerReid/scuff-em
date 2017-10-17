@@ -7,6 +7,7 @@ SUBDIRS = \
  scuff-plotEpsMu	\
  scuff-rf 		\
  scuff-scatter  	\
+ scuff-spectrum 	\
  scuff-static   	\
  scuff-tmatrix  	\
  scuff-transmission
