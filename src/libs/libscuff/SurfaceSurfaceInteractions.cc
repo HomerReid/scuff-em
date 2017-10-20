@@ -52,7 +52,7 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
-void AddLayeredSubstrateContributionToBEMMatrix(GetSSIArgStruct *Args);
+void AddSubstrateSSI(GetSSIArgStruct *Args);
 
 /***************************************************************/
 /* Given two surfaces, identify whether they bound zero, one,  */
@@ -569,7 +569,7 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   /* 20171016 contributions of layered material substrate        */
   /***************************************************************/
   if ( G->Substrate!=0 )
-   AddLayeredSubstrateContributionToBEMMatrix(Args);
+   AddSubstrateSSI(Args);
 
   /***************************************************************/
   /* if the caller specified the matrix as symmetric, then so far*/
@@ -595,7 +595,7 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AddLayeredSubstrateContributionToBEMMatrix(GetSSIArgStruct *Args)
+void AddSubstrateSSI(GetSSIArgStruct *Args)
 {
   RWGGeometry *G = Args->G;
   RWGSurface *Sa = Args->Sa;
@@ -607,6 +607,38 @@ void AddLayeredSubstrateContributionToBEMMatrix(GetSSIArgStruct *Args)
 
   LayeredSubstrate *Substrate = G->Substrate;
 
+  /***************************************************************/
+  /* figure out the range of parameter values over which we will */
+  /* need the substrate Green's function, then initialize an     */
+  /* interpolator to accelerate calculations over that range.    */
+  /***************************************************************/
+  double Rho2Min=HUGE_VAL, Rho2Max=0.0;
+  double DeltazMin=HUGE_VAL, DeltazMax=0.0;
+  double z=HUGE_VAL;
+  for(int npa=0; npa<Sa->NumPanels; npa++)
+   for(int via=0; via<3; via++)
+    for(int npb=0; npb<Sb->NumPanels; npb++)
+     for(int vib=0; vib<3; vib++)
+      { double *VA = Sa->Vertices + 3*(Sa->Panels[npa]->VI[via]);
+        double *VB = Sb->Vertices + 3*(Sb->Panels[npb]->VI[vib]);
+        double Rho2 = (VA[0]-VB[0])*(VA[0]-VB[0]) 
+                     +(VA[1]-VB[1])*(VA[1]-VB[1]); 
+        Rho2Min = fmin(Rho2, Rho2Min);
+        Rho2Max = fmax(Rho2, Rho2Max);
+        double Deltaz = fabs(VA[2]-VB[2]);
+        DeltazMin=fmin(Deltaz, DeltazMin);
+        DeltazMax=fmax(Deltaz, DeltazMax);
+        if (z==HUGE_VAL)
+         z=VA[2];
+      };
+  double RhoMin = sqrt(Rho2Min), RhoMax=sqrt(Rho2Max);
+  bool EEOnly = (Sa->IsPEC && Sb->IsPEC);
+  if (DeltazMax==0.0)
+   Substrate->InitAccelerator1D(Omega, RhoMin, RhoMax, Sa->Panels[0]->Centroid[2], EEOnly);
+
+  /***************************************************************/
+  /* loop over all RWG functions on both surfaces ****************/
+  /***************************************************************/
 #ifdef USE_OPENMP
   int NT = GetNumThreads();
 #pragma omp parallel for schedule(dynamic,1), num_threads(NT)

@@ -202,8 +202,8 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   OmegaCache = -1.0;
 
   qMaxEval  = 10000;
-  qAbsTol   = 1.0e-8;
-  qRelTol   = 1.0e-4;
+  qAbsTol   = 1.0e-5;
+  qRelTol   = 1.0e-2;
   PPIOrder  = 9;
   PhiEOrder = 9;
   char *s;
@@ -218,13 +218,14 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   if ((s=getenv("SCUFF_SUBSTRATE_PHIEORDER")))
    sscanf(s,"%i",&PhiEOrder);
   I1D=0;
+  I1DOmega=-1.0;
   I1DRhoMin=HUGE_VAL;
   I1DRhoMax=0;
 
-  ForceMethod=AUTO;
-  ForceFreeSpace=false;
-  StaticLimit=false;
+  EntryOnly=-1;
   LayerOnly=-1;
+  EEOnly=XYOnly=ForceFreeSpace=StaticLimit=false;
+  ForceMethod=AUTO;
 
   ErrMsg=0;
 }

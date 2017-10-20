@@ -669,7 +669,9 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
   RWGSurface *Sb = G->Surfaces[nsb];
 
   /***************************************************************/
-  /***************************************************************/
+  /* figure out the range of parameter values over which we will */
+  /* need the substrate Green's function, then initialize an     */
+  /* interpolator to accelerate calculations over that range.    */
   /***************************************************************/
   double Rho2Min=HUGE_VAL, Rho2Max=0.0;
   double DeltazMin=HUGE_VAL, DeltazMax=0.0;

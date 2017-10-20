@@ -176,6 +176,7 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if (Omega==0.0) Method=STATIC_LIMIT;
+  if (ForceMethod) Method=ForceMethod;
   switch(Method)
    { 
      case SURFACE_CURRENT:
@@ -215,7 +216,7 @@ void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   XMatrix.SetEntriesD(0,"3:5",XS);
 
   cdouble GBuffer[36];
-  HMatrix GMatrix(6,6,LHM_COMPLEX,GBuffer);
+  HMatrix GMatrix(1,36,LHM_COMPLEX,GBuffer);
 
   GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method);
 

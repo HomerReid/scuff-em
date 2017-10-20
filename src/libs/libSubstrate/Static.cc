@@ -379,7 +379,8 @@ void LayeredSubstrate::GetDeltaPhiE(double XD[3], double XS[3],
   /***************************************************************/
   double qIntegral[3];
   bool GotqIntegral=false;
-  if (     I1D 
+  if (     I1D
+        && I1DOmega==0.0
         && EqualFloat(ZD, ZS) && EqualFloat(ZD, I1DZ)
         && I1DRhoMin<=RhoMag && RhoMag<=I1DRhoMax
      )
@@ -418,86 +419,4 @@ void LayeredSubstrate::GetTotalPhiE(double XD[3], double XS[3],
   double G0Correction;
   GetDeltaPhiE(XD, XS, PhiE, &G0Correction);
   AddPhiE0(XD, XS, G0Correction, PhiE);
-}
-
-/***************************************************************/
-/* entry point for that has the proper prototype for           */
-/* passage to the Interp1D() initialization routine.           */
-/***************************************************************/
-typedef struct fInterpData
- {
-   LayeredSubstrate *Substrate;
-   double zD, zS;
- } fInterpData;
-
-void fInterp1D(double Rho, void *UserData, double *fInterp)
-{
-  fInterpData *fID   = (fInterpData *)UserData;
-  LayeredSubstrate *Substrate = fID->Substrate;
-  double zD                   = fID->zD;
-  double zS                   = fID->zS;
-
-  double qI[3], dqI[3];
-  if (Rho==0.0)
-   { double DeltaRho=1.0e-5;
-     Substrate->GetqIntegral(Rho,          zD, zS, qI);
-     Substrate->GetqIntegral(Rho+DeltaRho, zD, zS, dqI);
-     VecPlusEquals(dqI, -1.0, qI, 3);
-     VecScale(dqI, 1.0/DeltaRho, 3);
-   }
-  else
-   { double DeltaRho=1.0e-5 * fabs(Rho);
-     Substrate->GetqIntegral(Rho+DeltaRho, zD, zS, dqI);
-     Substrate->GetqIntegral(Rho-DeltaRho, zD, zS, qI);
-     VecPlusEquals(dqI, -1.0, qI, 3);
-     VecScale(dqI, 1.0/(2.0*DeltaRho), 3);
-     Substrate->GetqIntegral(Rho,          zD, zS, qI);
-   };
- 
-  fInterp[0] =  qI[0];
-  fInterp[1] = dqI[0];
-  fInterp[2] =  qI[1];
-  fInterp[3] = dqI[1];
-  fInterp[4] =  qI[2];
-  fInterp[5] = dqI[2];
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void LayeredSubstrate::InitStaticAccelerator1D(double RhoMin,
-                                               double RhoMax,
-                                               double z)
-{
-  if (      I1D 
-       &&  (I1DRhoMin <= RhoMin )
-       &&  (I1DRhoMax >= RhoMax )
-       &&  (I1DZ      == z      )
-     )
-   { Log(" reusing existing substrate interpolation table");
-     return;
-   };
-
-  I1DRhoMin = fmin(RhoMin, I1DRhoMin);
-  I1DRhoMax = fmax(RhoMax, I1DRhoMax);
-  
-  if (I1D) delete I1D;
-
-  Log(" (re)allocating substrate I1D(%g,%g,%g)...",I1DRhoMin,I1DRhoMax,z);
-
-  int NGrid=100;
-  char *s=getenv("SCUFF_SUBSTRATE_NGRID");
-  if (s)
-  sscanf(s,"%i",&NGrid);
-   
-  struct fInterpData MyfID, *fID=&MyfID;
-  fID->Substrate = this;
-  fID->zD        = fID->zS=z;
-  I1D= new Interp1D(RhoMin, RhoMax, NGrid, 3, fInterp1D,
-                        (void *)fID);
-  I1DZ      = z;
-
-  Log(" ...done with substrate I1D");
-
 }

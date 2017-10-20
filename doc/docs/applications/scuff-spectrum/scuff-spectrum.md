@@ -204,14 +204,14 @@ and implemented by
 For a sphere of relative permittivity
 $\epsilon=4$ (refractive index $n=2$), some typical results are:
 
-+ For $N$=type waves with $\ell=1$ there is a resonance at
++ For $\mathbf{N}$-type (electric multipole) waves with $\ell=1$ there is a resonance at
 
 $$ a= 1.1362178236179127955 - 0.63063395652811684933i $$
 
 where $a=\frac{\omega R}{c}$ with $R$ the sphere radius.
 
-+ For $M$=type waves with $\ell=2$ there is a resonance at
-
++ For $\mathbf{M}$-type (magnetic multipole) waves with $\ell=2$ there is a resonance at
+b
 $$ a=2.0714122747181446982 - 0.14636128063766849563i $$
 
 Next let's ask how well we can reproduce these results
@@ -370,7 +370,7 @@ mesh (screen) `MyFVMesh.msh.`
 
 + `--CartesianMomentFile MyFile` requests that values of the 
 Cartesian multipole moments corresponding to the eigen-current
-distribution be written to file `MyFile.
+distribution be written to file `MyFile.`
 
 + `--SphericalMomentFile MyFile` is like the previous option,
 but for *spherical* multipole moments.
@@ -388,7 +388,7 @@ above tables.
 ![L2Mode.png](L2Mode.png)
 
 The quadrupole structure of the $\ell=2$ resonance is clearly
-distinguishable from the $\ell=1$ dipole-moment structure here.
+distinguishable from the dipole structure of the $\ell=1$ mode.
 
 <a name="CommandLineReference"></a>
 # 3. <span class="SC">scuff-spectrum</span> command-line reference
@@ -397,4 +397,4 @@ distinguishable from the $\ell=1$ dipole-moment structure here.
 [SphericalDielectricCavity]:   ../../applications/scuff-spectrum/scuff-spectrum.md/#SphericalDielectricCavity
 [BeynMethod]:                  ../../applications/scuff-spectrum/scuff-spectrum.md/#BeynMethod
 [PMCHWTSystem]:                ../../forDevelopers/Implementation.md/#PMCHWTSystem
-[scuffScatter]:                ../../applications/scuff-scatter/scuffScatterOptions.md
+[scuffScatter]:                ../../application/scuff-scatter/scuffScatterOptions.md

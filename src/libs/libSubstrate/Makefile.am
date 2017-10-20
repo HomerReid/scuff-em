@@ -4,6 +4,7 @@ pkginclude_HEADERS = libSubstrate.h
 libSubstrate_la_SOURCES = 	\
  libSubstrate.h			\
  libSubstrate.cc		\
+ Interpolation.cc		\
  FullWave.cc                	\
  FullWave_SurfaceCurrents.cc	\
  Static.cc     		
@@ -13,7 +14,7 @@ libSubstrate_la_SOURCES = 	\
 #AM_CFLAGS=-ggdb -O0
 #  echo "Building with debug support."
 #else
-  AM_CXXFLAGS = -O3
+AM_CXXFLAGS = -O3
 #  echo "Building without debug support."
 #endif
 
@@ -33,20 +34,4 @@ OTHER_LIBS=                      \
  ../libhmat/libhmat.la           \
  ../libSGJC/libSGJC.la           \
  ../libSpherical/libSpherical.la \
- ../libhrutil/libhrutil.la       \
- ../libscuff/libscuff.la      
-
-noinst_PROGRAMS = tStaticSubstrate tFullWaveSubstrate
-check_PROGRAMS = tStaticSubstrate tFullWaveSubstrate tGTwiddle tRotateG
-
-tStaticSubstrate_SOURCES = tStaticSubstrate.cc
-tStaticSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
-
-tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
-tFullWaveSubstrate_LDADD = libSubstrate.la $(OTHER_LIBS)
-
-tGTwiddle_SOURCES = tGTwiddle.cc
-tGTwiddle_LDADD = libSubstrate.la $(OTHER_LIBS)
-
-tRotateG_SOURCES = tRotateG.cc
-tRotateG_LDADD = libSubstrate.la $(OTHER_LIBS)
+ ../libhrutil/libhrutil.la

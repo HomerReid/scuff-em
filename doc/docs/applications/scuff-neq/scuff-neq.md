@@ -21,11 +21,15 @@ information on heat-transfer rates and NEQ Casimir forces (in which case
 you will specify a list of frequencies and will get back a list of 
 frequency-specific values of energy and momentum fluxes) or 
 **(b)** frequency-integrated information, in which case you will assign 
-temperatures to each body in your geometry and [[scuff-neq]] will 
+temperatures to each body in your geometry and 
 numerically integrate the fluxes, weighted by appropriate Bose-Einstein 
-factors, to obtain the total heat-transfer rate or NEQ Casimir force. 
-(For more details, see 
-[What <span class="SC">scuff-neq</span> actually computes](#WhatItComputes).)
+factors, to obtain the total heat-transfer rate or NEQ Casimir force.
+([[scuff-neq]] doesn't actually do the frequency integration---that's
+handled by the separate utility code 
+[<span class=SC>scuff-integrate</span>][scuffIntegrate],
+as discussed below in the section 
+[what <span class="SC">scuff-neq</span> actually computes](#WhatItComputes).)
+
 
 + As in [[scuff-cas3d]], you can specify an optional list of 
 [geometrical transformations](../../reference/Transformations.md) 
@@ -39,12 +43,15 @@ A bonus feature of [[scuff-neq]] that is **not** present in
 information on energy and momentum fluxes. More specifically, 
 you can specify to [[scuff-neq]] a 
 [list of evaluation points][EPFile]
-and you will get back values of the (thermally and 
-temporally averaged) Poynting flux and Maxwell stress tensor 
-at each point you requested.
+and you will get back values of the frequency-resolved
+Poynting flux and Maxwell stress tensor
+at each spatial point you requested, which
+[<span class=SC>scuff-integrate</span>][scuffIntegrate]
+will integrate to yield thermally- and temporally-averaged
+quantities.
 
 In addition to numerical output on heat-transfer rates and
-Casimir quantities, you can also request visualization outputs
+Casimir quantities, you can also request *visualization* outputs
 that plot the spatial distribution of the heat or momentum flux.
 
 For Casimir forces and torques, the quantities computed by 
@@ -172,8 +179,14 @@ is the extent to which $\langle Q\rangle$
 the sum in its definition ranges only over 
 the source bodies in the geometry, not including
 the environment contribution.
-$\langle Q \rangle^{\small NEQ}$ is the
-quantity that is computed by [[scuff-neq]].
+The job of [[scuff-neq]] is to compute
+the quantity $\Phi_s(\omega)$---known as a *generalized flux*---
+that enters the integral defining $\langle Q\rangle^{\small NEQ}$;
+[[scuff-neq]] will do this computation at each of multiple
+frequencies that you specify in advance. These data are then used by 
+the separate [[scuff-integrate]] utility to evaluate
+the actual $\omega$ integrals and compute thermally-averaged 
+power, force, and torque quantities at various temperatures.
 
 <a name="CommandLineOptions"></a>
 # 2. <span class="SC">scuff-neq</span> command-line options
@@ -194,21 +207,6 @@ quantity that is computed by [[scuff-neq]].
 --WriteCache
   ````
 {.toc}
-
-### Options specifying input fields
-
-[[scuff-scatter]] recognizes the following options specifying
-various types of incident fields. You may specify more than
-one type of incident field, in which case your geometry will
-be illuminated by the simultaneous superposition of all the 
-fields you specify.
-
-For more details on how to use the following options 
-and the precise mathematical expressions for the fields
-they describe,
-see [Incident fields in <span class="SC">scuff-em</span>][IncidentFields].
-
-These options are 
 
 ### Options requesting output quantities
 
@@ -248,37 +246,6 @@ the spatial distribution of the Poynting flux or
 Maxwell stress on the surfaces of objects or 
 the displaced bounding surfaces over which those quantities
 are integrated to compute the total PFT quantity.
-
-### Options specifying object temperatures
-
-  ````
---Temperature UpperSphere 300
---Temperature LowerSphere 100
---Temperature ENVIRONMENT 100
-  ````
-{.toc}
-
-> The first two options here set the temperatures
-> of the objects labeled `UpperSphere` and
-> `LowerSphere` in the `.scuffgeo` file.
-> **Temperature specifications are interpreted in 
-> units of Kelvin**, so `300` corresponds to 
-> room temperature.
->
-> The third option here sets the temperature of
-> the environment in which the objects are embedded.
-> (The keywords `MEDIUM` and `EXTERIOR` may be used
-> here interchangeably with `ENVIRONMENT`).
->
-> Note that the temperatures of all objects, and of
-> the environment, are zero by default. This means that,
-> if you request a full frequency-integrated calculation
-> (which you do by omitting the `--omega` or `--omegaFile`
-> option) and you do not specify any `--temperature` 
-> options, the code will chug for a while (computing 
-> temperature-independent fluxes at various frequencies)
-> before reporting strictly zero values for all
-> quantities! This is probably not what you want.
 
 ### Options controlling the computation of power, force, and torque
 
@@ -372,12 +339,19 @@ Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you
 can monitor to keep track of your calculation's progress.
 
-### Output files for spatially-integrated PFTs: The `.SIFlux`, `.SIIntegrand`, and `.NEQPFT` files
+### Output files for spatially-integrated PFTs: The `.SIFlux` file
 
 If you requested the computation of any spatially-integrated
 PFTs (by setting command-line options such as `--PAbs` or `--YForce`),
-you will get back files reporting various contributions to 
-these quantities.
+you will get back a file with extension `.SIFlux` (for 
+"fpatially-integrated flux") reporting values
+of the *generalized fluxes *$\Phi(\omega)$ at each frequency you requested.
+Generalized fluxes represent frequency-resolved contributions to 
+thermally-averaged rates of energy and momentum transfer; 
+as noted, above, they are multiplied by Bose-Einstein
+factors and integrated over frequency to yield full 
+thermally and temporally-averaged data.
+
 To understand what is written to these files, let $Q_d$ be
 the spatially-integrated PFT on a destination body $d$,
 and write the FSC decomposition of the thermal average
@@ -528,7 +502,8 @@ and the torque flux has units of *nanoNewtons microns/watts.*
 
 + [Spatial distribution of poynting flux from a warm tip above a cold substrate][TipSubstrate]
 
-[scuff-cas3D]:   ../scuff-cas3D/scuff-cas3D.md
+[scuff-cas3D]:       ../scuff-cas3D/scuff-cas3D.md
+[scuffIntegrate]:   ../scuff-integrate/scuff-integrate.md
 [EPFile]:        ../../applications/GeneralReference.md#EvaluationPoints
 [FSCPaper]:      http://link.aps.org/doi/10.1103/PhysRevB.88.054305
 [SIEPFTPaper]:	 http://dx.doi.org/10.1109/TAP.2015.2438393

@@ -17,12 +17,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/*
- * FullWaveSubstrate.cc -- unit test for libSubstrate
- *
- * homer reid       -- 8/2017
- *
- */
 #include <stdio.h>
 #include <math.h>
 #include <stdarg.h>
@@ -37,64 +31,16 @@
 const char SISubstrateFile[]=
  "0.0 CONST_EPS_11.7\n";
 
-namespace scuff {
-void CalcGC(double R[3], cdouble Omega,
-            cdouble EpsR, cdouble MuR,
-            cdouble GMuNu[3][3], cdouble CMuNu[3][3],
-            cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
-}
-
 using namespace scuff;
 
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void AddScriptG0(LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix)
-{
-  for(int nx=0; nx<XMatrix->NR; nx++)
-   { 
-     double XD[6], *XS=XD+3;
-     XMatrix->GetEntriesD(nx, "0:5", XD);
-     int nrDest   = S->GetRegionIndex(XD[2]);
-     int nrSource = S->GetRegionIndex(XS[2]);
-     if (nrDest!=nrSource) continue;
-
-     double R[3];
-     VecSub(XD, XS, R);
-     cdouble EpsRel, MuRel;
-     S->MPLayer[nrDest]->GetEpsMu(Omega, &EpsRel, &MuRel);
-     cdouble k=sqrt(EpsRel*MuRel)*Omega;
-
-     if (S->StaticLimit)
-      { double r2=VecNorm2(R), r=sqrt(r2);
-        cdouble G0 = II*exp(II*k*r)/(4.0*M_PI*r*r*r);
-        cdouble EFactor = ZVAC*MuRel*G0/k;
-        cdouble HFactor = G0/(k*ZVAC*EpsRel);
-        for(int Mu=0; Mu<3; Mu++)
-         for(int Nu=0; Nu<3; Nu++)
-          { double Bracket = 3.0*R[Mu]*R[Nu]/r2 - ((Mu==Nu) ? 1.0 : 0.0);
-            GMatrix->AddEntry(nx, 6*(0+Mu) + 0*Nu, EFactor*Bracket);
-            GMatrix->AddEntry(nx, 6*(3+Mu) + 3*Nu, HFactor*Bracket);
-          };
-        continue;
-      };
-
-     cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
-     scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
-     cdouble EEPreFac = II*Omega*ZVAC*MuRel;
-     cdouble EMPreFac = II*k;
-     cdouble MEPreFac = -1.0*II*k;
-     cdouble MMPreFac = II*Omega*EpsRel/ZVAC;
-     for(int Mu=0; Mu<3; Mu++)
-      for(int Nu=0; Nu<3; Nu++)
-       { GMatrix->AddEntry(nx, 6*(0+Mu) + 0+Nu, EEPreFac*G[Mu][Nu]);
-         GMatrix->AddEntry(nx, 6*(0+Mu) + 3+Nu, EMPreFac*C[Mu][Nu]);
-         GMatrix->AddEntry(nx, 6*(3+Mu) + 0+Nu, MEPreFac*C[Mu][Nu]);
-         GMatrix->AddEntry(nx, 6*(3+Mu) + 3+Nu, MMPreFac*G[Mu][Nu]);
-       };
-   };
+namespace scuff{
+void CalcGC(double R[3], cdouble Omega,
+            cdouble EpsR, cdouble MuR,
+            cdouble GMuNu[3][3], cdouble CMuNu[3][3],
+            cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
 }
 
 /***************************************************************/
@@ -110,20 +56,26 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   char *GeoFile=0;
   char *SubstrateFile=0;
-  char *EPFile=0;
   cdouble Omega=0.1;
+  char *EPFile=0;
+  double XDS[6]={1.0, 0.0, 1.0, 0.0, 0.0, 0.5}; int nXDS=1;
   bool FreeSpace=false;
   bool OmitFreeSpace=false;
-  double XDS[6]={1.0, 0.0, 1.0, 0.0, 0.0, 0.5}; int nXDS=1;
+  int EntryOnly=-1;
+  bool EEOnly=false; 
+  bool XYOnly=false;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"Geometry",      PA_STRING,  1, 1, (void *)&GeoFile,    0, ".scuffgeo file"},
      {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
-     {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},
      {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
-     {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
+     {"EPFile",        PA_STRING,  1, 1, (void *)&EPFile,     0, "list of evaluation points"},
      {"XDS",           PA_DOUBLE,  6, 1, (void *)XDS,         &nXDS, ""},
+     {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
      {"OmitFreeSpace", PA_BOOL,    0, 1, (void *)&OmitFreeSpace, 0, ""},
+     {"EntryOnly",     PA_INT,     1, 1, (void *)&EntryOnly,  0, ""},
+     {"EEOnly",        PA_BOOL,    0, 1, (void *)&EEOnly,     0, ""},
+     {"XYOnly",        PA_BOOL,    0, 1, (void *)&XYOnly,     0, ""},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -163,6 +115,10 @@ int main(int argc, char *argv[])
    { S->ForceFreeSpace=true;
      printf("Doing the free-space case foryaf.\n");
    };
+
+  S->EntryOnly = EntryOnly;
+  S->EEOnly    = EEOnly;
+  S->XYOnly    = XYOnly;
   
   /***************************************************************/
   /***************************************************************/
@@ -235,12 +191,12 @@ int main(int argc, char *argv[])
 
   HMatrix *GSL= S->GetSubstrateDGF(Omega, XMatrix, STATIC_LIMIT);
 
-  HMatrix *GSC = S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
-
-  HMatrix *GFS = new HMatrix(GSC->NR, GSC->NC, LHM_COMPLEX);
+  HMatrix *GFS = new HMatrix(GSL->NR, GSL->NC, LHM_COMPLEX);
   GFS->Zero();
-  if (!FreeSpace && !OmitFreeSpace)
-   AddScriptG0(S, Omega, XMatrix, GFS);
+  //if (!FreeSpace && !OmitFreeSpace)
+  // AddScriptG0(S, Omega, XMatrix, GFS);
+
+  HMatrix *GSC = S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
 
   FILE *f=fopen("tFullWaveSubstrate.out","w");
   for(int nx=0; nx<XMatrix->NR; nx++)

@@ -1,5 +1,4 @@
 geometry SiO2Spheres_501.scuffgeo
 TransFile Spheres.trans
-temperature UpperSphere 300
 power
 zforce

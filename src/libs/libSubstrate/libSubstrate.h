@@ -85,6 +85,8 @@ public:
 
    void InitStaticAccelerator1D(double RhoMin, double RhoMax, double z);
 
+   void InitAccelerator1D(cdouble Omega, double RhoMin, double RhoMax, double z, bool EEOnly);
+
    // full-wave case: get the contribution of the substrate
    //                 to the 6x6 dyadic Green's function
    //                 giving the E,H fields at XD due to
@@ -108,6 +110,8 @@ public:
    void GetSubstrateDGF_SurfaceCurrent(cdouble Omega, HMatrix *XMatrix,
                                        HMatrix *GMatrix);
 
+   int WhichLayer(double z);
+
 // private:
 
 // internal ("private") class methods
@@ -119,6 +123,13 @@ public:
                      double qIntegral[3]);
 
    void ComputeW(cdouble Omega, double q[2], HMatrix *W);
+
+   void GetScriptG0Twiddle(cdouble Omega, double q2D[2],
+                           double zDest, double zSource,
+                           cdouble ScriptG0Twiddle[6][6],
+                           int ForceRegion=-1, 
+                           double ForceSign=0.0,
+                           bool Accumulate=false);
 
    void GetScriptGTwiddle(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
@@ -151,7 +162,7 @@ public:
    cdouble  *MuLayer;   // MuLayer[n]  = permeability of layer n
    cdouble OmegaCache;  // frequency at which EpsLayer, MuLayer were cached
    double *zInterface;  // z[n] = z-coordinate of layer n lower boundary
-   double zGP;          // == z-coordinate of ground plane
+   double zGP;          // == z-coordinate of ground plane (or -inf if absent)
 
    // convergence parameters for q integration
    int qMaxEval;
@@ -164,12 +175,16 @@ public:
    // internal storage buffers 
    Interp1D *I1D;
    double I1DRhoMin, I1DRhoMax, I1DZ;
- 
+   cdouble I1DOmega;
+
    // flags to help in debugging
+   int EntryOnly;
+   int LayerOnly;
+   bool EEOnly;
+   bool XYOnly;
    DGFMethod ForceMethod;
    bool ForceFreeSpace;
    bool StaticLimit;
-   int LayerOnly;
    
  };
 
