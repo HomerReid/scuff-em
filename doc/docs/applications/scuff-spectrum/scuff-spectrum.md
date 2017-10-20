@@ -200,7 +200,7 @@ for poles of the Mie-scattering coefficients for plane waves
 impinging on a dielectric sphere; the calculation is discussed
 on page 15 of [this memo](../../tex/scuffSpherical.pdf)
 and implemented by 
-[this simple <span class=SC>mathematica</span> code](GetSphericalCavityFrequencies.math)
+[this simple <span class=SC>mathematica</span> code.](GetSphericalCavityFrequencies.math)
 For a sphere of relative permittivity
 $\epsilon=4$ (refractive index $n=2$), some typical results are:
 
@@ -211,7 +211,7 @@ $$ a= 1.1362178236179127955 - 0.63063395652811684933i $$
 where $a=\frac{\omega R}{c}$ with $R$ the sphere radius.
 
 + For $\mathbf{M}$-type (magnetic multipole) waves with $\ell=2$ there is a resonance at
-b
+
 $$ a=2.0714122747181446982 - 0.14636128063766849563i $$
 
 Next let's ask how well we can reproduce these results
@@ -290,6 +290,12 @@ method has converged even with just the 14 quadrature points
 we used. (For larger contours we would probably need
 more points.)
 
+Also, in this case Beyn's method only found a single eigenvalue
+within the contour. If we had considered a larger contour,
+there would most probably have been several lines of data
+each with the 4-number format shown above, corresponding to
+multiple eigenvalues identified within the contour.
+
 ### Mesh convergence
 
 Of course, even if Beyn's method converges to many-digit
@@ -344,14 +350,19 @@ cavity mode:
 | exact  | 2.07141        | -0.146361     |
 
 These results demonstrate that the Beyn method implemented by 
-[[scuff-spectrum]] is able to achieve at least 4-digit precision
-in determining mode frequencies, despite the modest computational
-burden.
+[[scuff-spectrum]] easily achieves 4-digit precision
+in determining mode frequencies, despite the modest 
+computational burden (equivalent to solving scattering 
+problems at 14 different frequencies). This is *much* 
+better accuracy than we could hope to get for the 
+same computational cost from a brute-force frequency-scan
+method.
 
 ### Running <span class=SC>scuff-spectrum</span> to analyze eigenmode field patterns
 
-Having identified the *frequencies* (eigenvalues) of
-our structure with high precision, we will next want to look
+Moreover,
+having identified the *frequencies* (eigenvalues) of
+our structure with high precision, we can now look
 at the *surface currents* (eigenvectors) and the *field patterns*
 they produce. [[scuff-spectrum]] offers several command-line
 options to facilitate this analysis, many of which are 
@@ -394,7 +405,7 @@ distinguishable from the dipole structure of the $\ell=1$ mode.
 # 3. <span class="SC">scuff-spectrum</span> command-line reference
 
 [ApplicationSuite]:            ../../index.md/#ApplicationSuite
-[SphericalDielectricCavity]:   ../../applications/scuff-spectrum/scuff-spectrum.md/#SphericalDielectricCavity
-[BeynMethod]:                  ../../applications/scuff-spectrum/scuff-spectrum.md/#BeynMethod
+[SphericalDielectricCavity]:   ../../applications/scuff-spectrum/scuff-spectrum/#SphericalDielectricCavity
+[BeynMethod]:                  ../../applications/scuff-spectrum/scuff-spectrum/#BeynMethod
 [PMCHWTSystem]:                ../../forDevelopers/Implementation.md/#PMCHWTSystem
-[scuffScatter]:                ../../application/scuff-scatter/scuffScatterOptions.md
+[scuffScatter]:                ../../applications/scuff-scatter/scuff-scatter/#Options

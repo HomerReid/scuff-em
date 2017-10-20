@@ -1,4 +1,3 @@
 geometry SiO2Spheres_501.scuffgeo
 TransFile Spheres.trans
-power
-zforce
+OmegaFile OmegaFile

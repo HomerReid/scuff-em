@@ -65,22 +65,35 @@ You can visualize this configuration by typing e.g.
 ## Spectral density of radiated power
 
 As described in the 
-[<span class="CodeName">scuff-neq</span> documentation][scuff-neq],
-[[scuff-neq]] computes the total power radiated by
-finite-temperature objects as an integral over angular frequencies
+[<span class="SC">scuff-neq</span> documentation][scuff-neq],
+[[scuff-neq]] computes temperature-independent quantities
+known as *generalized fluxes,* commonly denoted $\Phi(\omega)$, 
+which describe the ability 
+of systems to exchange energy and momentum via radiation
+at specific frequencies
+The *total* power radiated by a finite-temperature object is 
+obtained as an integral over angular frequencies
 $\omega,$ in which the integrand involves a
 temperature-dependent Bose-Einstein factor 
-and a temperature-independent dimensionless flux $\Phi.$ 
-To calculate this radiated-power flux at a given set
-of frequencies, we say
+and a temperature-independent dimensionless flux $\Phi.$
+The distribution of labor in the <span class=SC>scuff-em</span>
+suite is that <span class=SC>scuff-neq</span> computes
+frequency-dependent generalized flux data and writes these
+in the form of data files, while a separate tool named
+[<span class=SC>scuff-integrate</span>][scuffIntegrate]
+post-processes the flux data to yield temperature-dependent
+heat-transfer rates, powers, and torques.
+
+To use <span class=SC>scuff-neq</span> to calculate radiated-power flux 
+at a given set of frequencies, we say simply
 
 ````bash
- % scuff-neq --geometry SiO2Sphere_501.scuffgeo --OmegaFile --PRad
+ % scuff-neq --geometry SiO2Sphere_501.scuffgeo --OmegaFile MyOmegaFile
 ````
 
-where [`OmegaFile`](OmegaFile) is a list of
-angular frequencies. (Here `--PRad` says that we 
-are interested in the radiated power).
+where [`MyOmegaFile`](OmegaFile) is a list of
+angular frequencies.
+
 This produces the file
 ``SiO2Sphere_501.SiFlux``, which looks something
 like this:
