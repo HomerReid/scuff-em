@@ -208,8 +208,9 @@ typedef struct qIntegrandData
    int NCalls;
  } qIntegrandData;
 
-int qIntegrand(unsigned ndim, const double *u, void *UserData,
-               unsigned fdim, double *qIntegral)
+static int qIntegrand(unsigned ndim, const double *u, 
+                      void *UserData, unsigned fdim, 
+                      double *qIntegral)
 {
   (void) fdim; // unused 
   (void) ndim; // unused 
@@ -420,3 +421,10 @@ void LayeredSubstrate::GetTotalPhiE(double XD[3], double XS[3],
   GetDeltaPhiE(XD, XS, PhiE, &G0Correction);
   AddPhiE0(XD, XS, G0Correction, PhiE);
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::GetPhiE(double XD[3], double XS[3],
+                               double PhiE[4], bool Total)
+{ Total ?  GetTotalPhiE(XD, XS, PhiE) : GetDeltaPhiE(XD, XS, PhiE); }

@@ -201,11 +201,13 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   MuLayer    = (cdouble *)mallocEC(NumLayers*sizeof(cdouble));
   OmegaCache = -1.0;
 
-  qMaxEval  = 10000;
-  qAbsTol   = 1.0e-5;
+  qMaxEval  = 2000;
+  qAbsTol   = 1.0e-4;
   qRelTol   = 1.0e-2;
   PPIOrder  = 9;
   PhiEOrder = 9;
+  LogLevel  = LIBSUBSTRATE_TERSE;
+  WritebyqFiles = false;
   char *s;
   if ((s=getenv("SCUFF_SUBSTRATE_QMAXEVAL")))
    sscanf(s,"%i",&qMaxEval);
@@ -217,6 +219,11 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
    sscanf(s,"%i",&PPIOrder);
   if ((s=getenv("SCUFF_SUBSTRATE_PHIEORDER")))
    sscanf(s,"%i",&PhiEOrder);
+  if ((s=getenv("SCUFF_SUBSTRATE_LOGLEVEL")))
+   sscanf(s,"%i",&LogLevel);
+  if ( (s=getenv("SCUFF_SUBSTRATE_BYQFILES")) && s[0]=='1') 
+   WritebyqFiles=true;
+   
   I1D=0;
   I1DOmega=-1.0;
   I1DRhoMin=HUGE_VAL;

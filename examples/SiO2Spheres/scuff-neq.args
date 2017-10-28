@@ -1,3 +1,7 @@
 geometry SiO2Spheres_501.scuffgeo
 TransFile Spheres.trans
-OmegaFile OmegaFile
+#OmegaFile OmegaFile
+Omega 1.0
+EMTPFT
+DSIPoints  110
+SourceObject LowerSphere

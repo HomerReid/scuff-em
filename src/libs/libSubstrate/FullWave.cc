@@ -36,47 +36,6 @@
 
 #define II cdouble(0.0,1.0)
 
-/******************************************************************/
-/* on entry                                                       */
-/*  G = G_ij in a coordinate system in which (x,y)=(Rho,0)        */
-/* on return:                                                     */
-/*  G = G_ij in a coordinate system in which (x,y)=(Rho*CP,Rho*SP)*/
-/*******************************************************************/
-void LayeredSubstrate::RotateG(cdouble G[6][6], int p, int q, double CP, double SP)
-{
-  cdouble GP[3][3];
-  
-  int P=3*p, Q=3*q;
-
-  GP[0][0]=CP*CP*G[P+0][Q+0] - CP*SP*G[P+0][Q+1] - CP*SP*G[P+1][Q+0] + SP*SP*G[P+1][Q+1];
-  GP[0][1]=CP*CP*G[P+0][Q+1] + CP*SP*G[P+0][Q+0] - CP*SP*G[P+1][Q+1] - SP*SP*G[P+1][Q+0];
-  GP[1][0]=CP*CP*G[P+1][Q+0] + CP*SP*G[P+0][Q+0] - CP*SP*G[P+1][Q+1] - SP*SP*G[P+0][Q+1];
-  GP[1][1]=CP*CP*G[P+1][Q+1] + CP*SP*G[P+0][Q+1] + CP*SP*G[P+1][Q+0] + SP*SP*G[P+0][Q+0];
-
-  GP[0][2]=CP*G[P+0][Q+2] - SP*G[P+1][Q+2];
-  GP[2][0]=CP*G[P+2][Q+0] - SP*G[P+2][Q+1];
-
-  GP[1][2]=CP*G[P+1][Q+2] + SP*G[P+0][Q+2];
-  GP[2][1]=CP*G[P+2][Q+1] + SP*G[P+2][Q+0];
-
-  GP[2][2]=G[P+2][Q+2];
-
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    G[P+Mu][Q+Nu] = GP[Mu][Nu];
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void LayeredSubstrate::RotateG(cdouble Gij[6][6], double Phi)
-{
-  double CP=cos(Phi), SP=sin(Phi);
-  for(int p=0; p<2; p++)
-   for(int q=0; q<2; q++)
-    RotateG(Gij, p, q, CP, SP);
-}
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -85,11 +44,16 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
                                                    cdouble Gij[6][6])
 {
   /***************************************************************/
+  /* explain me **************************************************/
+  /***************************************************************/
+  bool Total = ( GetRegionIndex(XD[2]) != GetRegionIndex(XS[2]) );
+
+  /***************************************************************/
   /* EM, ME quadrants determined by E-fields of electrostatic    */
   /* monopole                                                    */
   /***************************************************************/
   double PhiE0[4], *E0=PhiE0+1;
-  GetTotalPhiE(XD, XS, PhiE0);
+  GetPhiE(XD, XS, PhiE0, Total);
   for(int i=0; i<3; i++)
    { int j=(i+1)%3, k=(i+2)%3;
      Gij[i][3+i] = Gij[3+i][i] = 0.0;
@@ -115,8 +79,8 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
      XSM[j] -= DeltaX;
 
      double PhiEP[4], *EP=PhiEP+1, PhiEM[4], *EM=PhiEM+1, djEi[3];
-     GetTotalPhiE(XD, XSP, PhiEP);
-     GetTotalPhiE(XD, XSM, PhiEM);
+     GetPhiE(XD, XSP, PhiEP, Total);
+     GetPhiE(XD, XSM, PhiEM, Total);
      djEi[0] = (EP[0] - EM[0]) / (2.0*DeltaX);
      djEi[1] = (EP[1] - EM[1]) / (2.0*DeltaX);
      djEi[2] = (EP[2] - EM[2]) / (2.0*DeltaX);
@@ -175,17 +139,25 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  if (    ForceMethod==AUTO 
+       && GetSubstrateDGF_Interp(Omega, XMatrix, GMatrix)
+     ) return GMatrix;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   if (Omega==0.0) Method=STATIC_LIMIT;
-  if (ForceMethod) Method=ForceMethod;
+  if (ForceMethod!=AUTO) Method=ForceMethod;
   switch(Method)
    { 
-     case SURFACE_CURRENT:
-       GetSubstrateDGF_SurfaceCurrent(Omega, XMatrix, GMatrix);
+     case STATIC_LIMIT:
+       GetSubstrateDGF_StaticLimit(Omega, XMatrix, GMatrix);
        break;
 
-     case STATIC_LIMIT:
+     case SURFACE_CURRENT:
+     case AUTO:
      default:
-       GetSubstrateDGF_StaticLimit(Omega, XMatrix, GMatrix);
+       GetSubstrateDGF_SurfaceCurrent(Omega, XMatrix, GMatrix);
        break;
 
   //   case PLANE_WAVE:

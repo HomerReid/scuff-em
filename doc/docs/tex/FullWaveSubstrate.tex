@@ -1518,4 +1518,106 @@ $$
 
 \subsection{Reflection coefficients for multilayer substrates}
 
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\newpage
+\section{Alternative approach to evaluating RWG integrals}
+
+%====================================================================%
+\begin{align}
+ &\hspace{-0.2in}
+\Vmv{\vb b_\alpha}{\bmc G\sups{subs}}{\vb b_\beta}
+\nn
+&=\iint d\vb x_\alpha d\vb x_\beta\,
+   b_{\alpha i}(\vb x_\alpha)
+   \mc G\sups{subs}_{ij}(\vb x_\alpha, \vb x_\beta)
+   b_{\beta j}(\vb x_\beta)
+\nn
+&=\iint d\vb x_\alpha d\vb x_\beta\,
+   b_{\alpha i}(\vb x_\alpha)
+   \left\{ \int \frac{d\vb q}{(2\pi)^2}
+                \wt{\mc G}\sups{subs}_{ij}(\vb q, z_\alpha, z_\beta)
+                e^{i\vb q\cdot(\vbrho_\alpha - \vbrho_\beta)}
+   \right\}
+   b_{\beta j}(\vb x_\beta)
+\end{align}
+%====================================================================%
+
+If both basis functions lie in the uppermost region,  I have
+
+%====================================================================%
+\begin{align*}
+\wt{\mc G}\sups{subs}_{ij}(\vb q, z_\alpha, z_\beta)
+&=\wt{\bmc G}^{1}_{i,\parallel}(\vb q, z_\alpha-z_1)
+  \cdot \vb W_{1,1}(\vb q)\cdot
+  \wt{\bmc G}^{1}_{\parallel,j}(\vb q, z_1-z_\beta)
+\\
+&=\wt{\bmc G}^{1}_{i,\parallel}(\vb q)
+  \cdot \vb W_{1,1}(\vb q)\cdot
+  \wt{\bmc G}^{1}_{\parallel,j}(\vb q)
+  e^{iq_z(z_\alpha + z_\beta - 2z_1)}
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align}
+&\hspace{-0.2in}
+\Vmv{\vb b_\alpha}{\bmc G\sups{subs}}{\vb b_\beta}
+\\
+&=\int \frac{d\vb q}{(2\pi)^2}
+  \left[
+         \wt{\bmc G}^1_{i\parallel}
+   \cdot \vb W_{1,1}
+   \cdot \wt{\bmc G}^1_{\parallel j}e^{-2iq_z z_1}
+  \right]
+\\
+&\qquad
+ \times
+   \underbrace{
+   \left\{ \int d\vb x_\alpha
+            b_{\alpha i}(\vb x_\alpha)
+            e^{i(\vb q \cdot \vb x_\alpha + q_z z_\alpha)}
+   \right\}
+              }_{\wt{b}_{\alpha i}(\vb q + q_z\vbhat{z})}
+  \times
+   \underbrace{
+   \left\{ \int d\vb x_\beta
+            b_{\beta j}(\vb x_\beta)
+            e^{i(-\vb q \cdot \vb x_\beta + q_z z_\beta)}
+   \right\}
+              }_{\wt{b}_{\beta j}(-\vb q + q_z\vbhat{z})}
+\end{align}
+%====================================================================%
+
+The Fourier transforms of RWG source distributions can be evaluated
+in closed form, as I worked out previously in my memo 
+on {\sc scuff-transmission}.\footnote{\url{ http://homerreid.github.io/scuff-em-documentation/tex/scuff-transmission.pdf}}
+The result is
+%====================================================================%is
+\begin{align*}
+ \wt{b}(\vb q)
+&\equiv \int_{\text{sup }\vb b} \vb b_\alpha(\vb x) e^{i\vb q\cdot \vb x}\,d\vb x
+\\
+&=\ell\sum_{\sigma\in \pm}
+  \sigma e^{i\vb q \cdot \vb Q^\sigma}
+   \Big[  f_u(\vb q\cdot \vb A^\sigma, \vb q\cdot \vb B) \vb A^\sigma
+         +f_v(\vb q\cdot \vb A^\sigma, \vb q\cdot \vb B) \vb B
+   \Big]
+\end{align*}
+%====================================================================%
+where $\vb Q^\pm$ are the source/sink vertices of the RWG function,
+$\vb A^\pm\equiv \vb V_1-\vb Q^\pm$ and $\vb B=\vb V_2-\vb V_1$ 
+where $\vb V_{1,2}$ are the endpoints of the interior edge
+of the RWG function, $\ell$ is its length, and
+\begin{align*}
+ \left\{\begin{array}{c}
+ f_u(x,y) \\[3pt]
+ f_v(x,y) \\
+ \end{array}\right\}
+&\equiv 
+ \int_0^1 du \, \int_0^u \, dv \,
+  \left\{\begin{array}{c} u\\[3pt] v \end{array}\right\}
+  e^{i(ux + vy)}.
+\end{align*}
 \end{document}

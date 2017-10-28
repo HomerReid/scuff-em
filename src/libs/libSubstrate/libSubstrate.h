@@ -44,9 +44,30 @@
 // methods for full-wave DGF computation
 enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT, PLANE_WAVE};
 
+#define LIBSUBSTRATE_NOLOGGING 0
+#define LIBSUBSTRATE_TERSE     1
+#define LIBSUBSTRATE_VERBOSE   2
+#define LIBSUBSTRATE_VERBOSE2  3
+
+#define G0TIME     0
+#define BESSELTIME 1
+#define WTIME      2
+#define SOLVETIME  3
+#define STAMPTIME  4
+#define NUMTIMES   5
+extern const char *TimeNames[];
+
 #ifndef ZVAC
 #define ZVAC 376.73031346177
 #endif
+
+/***************************************************************/
+/* prototype for user-defined Fourier integrand                */
+/***************************************************************/
+class LayeredSubstrate;
+typedef void (*qFunction)(LayeredSubstrate *Substrate,
+                          double q2D[2], cdouble Omega,
+                          void *UserData, cdouble *Integrand);
 
 /***************************************************************/
 /* data structure for layered material substrate               */
@@ -74,23 +95,26 @@ public:
    // destructor
    ~LayeredSubstrate();
 
-   // electrostatic case: get the contribution of the substrate
-   //                     to the potential and electrostatic field
-   //                     at XD due to a point source at XS 
+   /*--------------------------------------------------------------*/
+   /* electrostatic case: get electrostatic potential and E-field  */
+   /* at XD ("Destination") due to monopole at XS ("Source")       */
+   /*--------------------------------------------------------------*/
+
+   // substrate contribution
    void GetDeltaPhiE(double XD[3], double XS[3],
                      double PhiE[4], double *pG0Correction=0);
 
-   // get total (free-space + substrate) potential and E-field  
+   // total (free-space + substrate)
    void GetTotalPhiE(double XD[3], double XS[3], double PhiE[4]);
 
-   void InitStaticAccelerator1D(double RhoMin, double RhoMax, double z);
+   // switchboard between the previous two routines
+   void GetPhiE(double XD[3], double XS[3], double PhiE[4],
+                bool Total=true);
 
-   void InitAccelerator1D(cdouble Omega, double RhoMin, double RhoMax, double z, bool EEOnly);
-
-   // full-wave case: get the contribution of the substrate
-   //                 to the 6x6 dyadic Green's function
-   //                 giving the E,H fields at XD due to
-   //                 J, M currents at XS
+   /*--------------------------------------------------------------*/
+   /* full-wave case: get the 6x6 dyadic Green's function giving   */
+   /* the E,H fields at XD due to J, M currents at XS              */
+   /*--------------------------------------------------------------*/
    HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
                             HMatrix *GMatrix=0, DGFMethod Method=AUTO);
    HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, DGFMethod Method);
@@ -103,14 +127,41 @@ public:
                                     double *XD, double *XS,
                                     cdouble Gij[6][6]);
 
-  /***************************************************************/
    void GetSubstrateDGF_StaticLimit(cdouble Omega, HMatrix *XMatrix,
                                     HMatrix *GMatrix);
 
    void GetSubstrateDGF_SurfaceCurrent(cdouble Omega, HMatrix *XMatrix,
                                        HMatrix *GMatrix);
 
-   int WhichLayer(double z);
+   /*--------------------------------------------------------------*/
+   /* general-purpose routine for evaluating q (Fourier) integrals */
+   /*--------------------------------------------------------------*/
+   void qIntegrate(cdouble Omega, qFunction UserFunction,
+                   void *UserData, cdouble *Integral, int FDim,
+                   bool ThetaIndependent=true);
+
+   /*--------------------------------------------------------------*/
+   /*- routines for working with interpolation tables -------------*/
+   /*--------------------------------------------------------------*/
+   void InitStaticAccelerator1D(double RhoMin, double RhoMax, double z);
+
+   void InitAccelerator1D(cdouble Omega, double RhoMin, double RhoMax, double z);
+
+   void InitAccelerator3D(cdouble Omega,
+                          double RhoMin, double RhoMax,
+                          double ZDMin, double ZDMax,
+                          double ZSMin, double ZSMax);
+
+   bool GetSubstrateDGF_Interp3D(cdouble Omega,
+                                 double *XD, double *XS,
+                                 cdouble Gij[6][6]);
+
+   bool GetSubstrateDGF_Interp1D(cdouble Omega,
+                                 double *XD, double *XS,
+                                 cdouble Gij[6][6]);
+
+   bool GetSubstrateDGF_Interp(cdouble Omega, HMatrix *XMatrix,
+                               HMatrix *GMatrix);
 
 // private:
 
@@ -133,15 +184,18 @@ public:
 
    void GetScriptGTwiddle(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
-                          HMatrix *WMatrix, HMatrix *GTwiddle);
+                          HMatrix *RTwiddleg, HMatrix *WMatrix, 
+                          HMatrix *STwiddle, HMatrix *GTwiddle);
 
    void GetScriptGTwiddle(cdouble Omega, double qx, double qy,
                           double zDest, double zSource,
-                          HMatrix *WMatrix, HMatrix *GTwiddle);
+                          HMatrix *RTwiddleg, HMatrix *WMatrix, 
+                          HMatrix *STwiddle, HMatrix *GTwiddle);
 
    void Getg0112(cdouble Omega, double qMag,
                  double zDest, double zSource,
-                 HMatrix *WMatrix, HMatrix *g012[4]);
+                 HMatrix *RTwiddleg, HMatrix *WMatrix, 
+                 HMatrix *STwiddle, HMatrix *g012[4]);
 
    void RotateG(cdouble Gij[6][6], double Phi);
    void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);
@@ -177,6 +231,14 @@ public:
    double I1DRhoMin, I1DRhoMax, I1DZ;
    cdouble I1DOmega;
 
+   Interp3D *I3D;
+   double I3DRhoMin, I3DRhoMax;
+   double I3DZDMin,  I3DZDMax;
+   double I3DZSMin,  I3DZSMax;
+   cdouble I3DOmega;
+
+   double Times[NUMTIMES];
+
    // flags to help in debugging
    int EntryOnly;
    int LayerOnly;
@@ -185,6 +247,8 @@ public:
    DGFMethod ForceMethod;
    bool ForceFreeSpace;
    bool StaticLimit;
+   int LogLevel;
+   bool WritebyqFiles;
    
  };
 

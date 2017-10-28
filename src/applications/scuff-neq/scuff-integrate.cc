@@ -230,8 +230,8 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *DataFileName=0;
   int FreqColumn=1;
-  int DataColumns[MAXDATA];         int nDataColumns;
-  char *DataNames[MAXDATA];         int nDataNames;
+  int DataColumns[MAXDATA];         int nDataColumns=0;
+  char *DataNames[MAXDATA];         int nDataNames=0;
   int TagColumn=0;
   int SDColumn=0;
   char *TemperatureFile=0;
@@ -265,6 +265,34 @@ int main(int argc, char *argv[])
 
   if (DataFileName==0)
    OSUsage(argv[0],OSArray,"--DataFile option is mandatory");
+
+  /***************************************************************/
+  /* auto-detect special known file types and autoset values of  */
+  /* input parameters                                            */
+  /***************************************************************/
+  if( strcasestr(DataFileName,"SIFlux") && nDataNames==0 )
+   { 
+     HMatrix *DataMatrix=new HMatrix(DataFileName);
+     int nc=1;
+     if( DataMatrix->NC==11 )
+      { TagColumn=1;
+        nc=2;
+      };
+     delete DataMatrix;
+     Log("Autodetecting spatially-integrated flux data file");
+     FreqColumn    = nc++;
+     SDColumn      = nc++;
+     DataColumns[0] = nc++; DataNames[0]=strdup("PAbs");
+     DataColumns[1] = nc++; DataNames[1]=strdup("PRad");
+     DataColumns[2] = nc++; DataNames[2]=strdup("XForce");
+     DataColumns[3] = nc++; DataNames[3]=strdup("YForce");
+     DataColumns[4] = nc++; DataNames[4]=strdup("ZForce");
+     DataColumns[5] = nc++; DataNames[5]=strdup("XTorque");
+     DataColumns[6] = nc++; DataNames[6]=strdup("YTorque");
+     DataColumns[7] = nc++; DataNames[7]=strdup("ZTorque");
+     nDataNames=nDataColumns=8;
+   };
+
   if (nDataColumns==0)
    OSUsage(argv[0],OSArray,"you must specify at least one --DataColumn");
   if (nDataNames!=0 && nDataNames!=nDataColumns)

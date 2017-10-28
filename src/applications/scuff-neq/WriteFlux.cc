@@ -138,6 +138,7 @@ int GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
   int NumSurfaces     = G->NumSurfaces;
   bool OmitSelfTerms  = SNEQD->OmitSelfTerms;
   HMatrix *DRMatrix   = SNEQD->DRMatrix;
+  int DestOnly        = SNEQD->DestOnly;
 
   if (     PFTMethod==SCUFF_PFT_DSI
        && !DoDSIAtThisFrequency(SNEQD, Omega)
@@ -172,6 +173,8 @@ int GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
      for(int DestSurface=0; DestSurface<NumSurfaces; DestSurface++)
       {
         if ( (SourceSurface==DestSurface) && OmitSelfTerms )
+         continue;
+        if ( (DestOnly!=-1 && DestSurface!=DestOnly) )
          continue;
 
         if(SNEQD->PlotFlux)
@@ -300,6 +303,7 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
      /*- note: nss = 'num surface, source'                          -*/
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
+     int SourceOnly            = SNEQD->SourceOnly;
      int NumPFTMethods         = SNEQD->NumPFTMethods;
      int *PFTMethods           = SNEQD->PFTMethods;
      HMatrix *PFTMatrix        = SNEQD->PFTMatrix;
@@ -311,6 +315,8 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
        RegionRegionPFT[npm]->Zero();
      for(int nss=0; nss<NS; nss++)
       {
+        if ( SourceOnly!=-1 && nss!=SourceOnly )
+         continue;
         // PEC bodies do not act as thermal sources
         if (G->Surfaces[nss]->IsPEC) 
          continue;

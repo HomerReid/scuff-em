@@ -167,8 +167,9 @@ double VecDistance(const cdouble *v1, const cdouble *v2, int N);
 /***************************************************************/
 /* random numbers                                              */
 /***************************************************************/
-double randU(double A=0.0, double B=1.0);
-double randN(double Sigma=1.0, double Mu=0.0);
+int irand(int A, int B);                       // uniform integer-value 
+double randU(double A=0.0, double B=1.0);      // uniform real-valued
+double randN(double Sigma=1.0, double Mu=0.0); // normal real-valued
 
 /***************************************************************/
 /* finite-difference derivatives *******************************/

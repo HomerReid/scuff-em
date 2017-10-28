@@ -8,51 +8,65 @@ phenomena--specifically, for computing *radiative heat-transfer rates*
 and *non-equilibrium Casimir forces and torques* for bodies of 
 arbitrary shapes and arbitrary (linear, isotropic, piecewise 
 homogeneous) frequency-dependent permittivity and permeability.
-[[scuff-neq]] implements the 
-[*fluctuating-surface current (FSC)* approach][FSCPaper] 
+
+[[scuff-neq]] implements the
+[*fluctuating-surface current (FSC)* approach][FSCPaper] approach
 to numerical modeling of non-equilibrium fluctuation phenomena.
+The FSC method was first developed to compute *equilibrium*
+Casimir forces (as implemented by [<span class=SC>scuff-cas3d</span>][scuff-cas3D])
+[[1]](scuff-neq.md#bibliography)
+and was subsequently extended to handle non-equilibrium
+radiative heat-transfer problems 
+[[2]](scuff-neq.md#bibliography)
+and later non-equilibrium
+forces and torques
+[[3]](scuff-neq.md#bibliography).
 
-Mechanically, working with [[scuff-neq]] is similar in many ways to 
-working with the equilibrium Casimir code [scuff-cas3d][scuff-cas3D]{.SC}. 
-In particular,
+As discussed in more detail below,
+[what <span class="SC">scuff-neq</span> actually computes](#WhatItComputes)
+are temperature-independent quantities known as *generalized fluxes*
+that describe frequency-resolved contributions to various quantities of
+interest in fluctuational electromagnetism, 
+including both **(a)** *spatially-integrated* (SI) quantities such as
+the total rate of heat absorbed or radiated by, or the total force
+or torque on, a material body, and **(b)** *spatially-resolved* (SR)
+quantities such as the Poynting flux or Maxwell stress tensor at
+individual points in space. [[scuff-neq]] outputs data files
+giving values of generalized fluxes at various frequencies you specify;
+these data may then be integrated by the separate utility 
+code [<span class=SC>scuff-integrate</span>][scuffIntegrate]
+to compute full thermally-averaged values of SI and SR quantities
+for various body temperatures.
 
-+ As in [[scuff-cas3d]], you can request either **(a)** frequency-resolved 
-information on heat-transfer rates and NEQ Casimir forces (in which case 
-you will specify a list of frequencies and will get back a list of 
-frequency-specific values of energy and momentum fluxes) or 
-**(b)** frequency-integrated information, in which case you will assign 
-temperatures to each body in your geometry and 
-numerically integrate the fluxes, weighted by appropriate Bose-Einstein 
-factors, to obtain the total heat-transfer rate or NEQ Casimir force.
-([[scuff-neq]] doesn't actually do the frequency integration---that's
-handled by the separate utility code 
-[<span class=SC>scuff-integrate</span>][scuffIntegrate],
-as discussed below in the section 
-[what <span class="SC">scuff-neq</span> actually computes](#WhatItComputes).)
+When requesting spatially-integrated quantities, you will
+specify which of the various computational techniques you
+want the code to use to compute total energies and forces/torques
+on bodies; the main options are the *displaced surface-integral* (DSI)
+method, which integrates the Poynting vector or Maxwell stress
+tensor over a bounding surface surrounding the body,
+or the *energy-momentum transfer* (EMT) method, which
+integrates the local power absorption and force over the 
+volume of the body. (Algorithms for spatially-integrated
+PFT calculation are discussed in 
+Refs. [ [3] and [4] ](scuff-neq.md#bibliography)
+below.
 
 
-+ As in [[scuff-cas3d]], you can specify an optional list of 
+When requesting spatially-resolved quantities, you will
+specify a [list of evaluation points][EPFile], and you
+will get back a data file giving (generalized fluxes for)
+the Poynting vector and Maxwell stress tensor at each point.
+
+[[scuff-neq]] also offers options for generating *visualization*
+files showing the spatial distribution of energy and momentum
+absorption by bodies.
+
+As in [[scuff-cas3d]], you can specify an optional list of 
 [geometrical transformations](../../reference/Transformations.md) 
 describing various displacements and rotations of the bodies 
-in your geometry; in this case you will get back values of the 
-frequency-resolved or frequency-integrated quantities for each 
-transformation you specify.
-
-A bonus feature of [[scuff-neq]] that is **not** present in 
-[[scuff-cas3d]] is the ability to obtain spatially-resolved 
-information on energy and momentum fluxes. More specifically, 
-you can specify to [[scuff-neq]] a 
-[list of evaluation points][EPFile]
-and you will get back values of the frequency-resolved
-Poynting flux and Maxwell stress tensor
-at each spatial point you requested, which
-[<span class=SC>scuff-integrate</span>][scuffIntegrate]
-will integrate to yield thermally- and temporally-averaged
-quantities.
-
-In addition to numerical output on heat-transfer rates and
-Casimir quantities, you can also request *visualization* outputs
-that plot the spatial distribution of the heat or momentum flux.
+in your geometry; in this case you will get back multiple 
+copies of all output quantities, one for each transformation
+in your list.
 
 For Casimir forces and torques, the quantities computed by 
 [[scuff-neq]] are only the *non-equilibrium* contributions to 
@@ -70,6 +84,13 @@ contribution, as there is no net power transfer between
 bodies at thermal equilibrium.)
 
 One difference between [[scuff-cas3d]] and [[scuff-neq]] is that,
+whereas in [[scuff-cas3d]] you use command-line options like 
+`--zForce` or `--xTorque` to request computation of specific 
+SI quantities, in [[scuff-neq]] you automatically get all 8
+SI quantities (heat radiated, heat absorbed, plus all 3
+components of the force and torque). 
+
+Another difference between [[scuff-cas3d]] and [[scuff-neq]] is that,
 whereas [[scuff-cas3d]] reports only the Casimir force on one body in 
 a geometry (namely, the first body listed in the `.scuffgeo` file), 
 [[scuff-neq]] reports forces and heat-transfer rates for *all* bodies
@@ -90,40 +111,35 @@ as discussed in more detail below.
 
 # 1. What <span class="SC">scuff-neq</span> actually computes
 
-[[scuff-neq]] implements the
-[FSC approach to non-equilibrium fluctuation phenomena][FSCPaper],
-an algorithm for computing the thermal averages of power,
-force, and torque (PFT) quantities in geometries consisting
-of homogeneous material bodies at various temperatures embedded
-in an finite-temperature or zero-temperature environment.
-[[scuff-neq]] can compute both
-spatially-*resolved* and spatially-*integrated* PFT quantities.
-(Examples of spatially-resolved quantities include components
-of the average Poynting flux or Maxwell stress tensor at individual
-points in space. Examples of spatially-integrated quantities 
-include the total power absorbed by, or the total force or torque 
-on, a compact homogeneous body. Spatially-integrated quantities 
-are generally obtained by integrating spatially-resolved quantities
-over closed bounding surfaces, although this is not necessarily
-the way they are computed by [[scuff-neq]].)
-
-In general, for a geometry consisting of multiple homogeneous
-material regions, PFT quantities receive contributions from source
-fluctuations in all regions and at all frequencies, and the
-the thermal average of a PFT quantity *Q* may be
-written in the form
+Consider a collection of one or more homogeneous material
+bodies, each maintained at a given temperature, embedded
+in an finite- (or zero-) temperature environment.
+The electromagnetic fields radiated by thermally-induced
+fluctuating sources in each body carry energy and momentum,
+which we may characterize either in terms 
+of **(a)** spatially-resolved (SR) quantities like the 
+time-average Poynting vector or Maxwell stress tensor
+at given points in space, or **(b)** spatially-integrated (SI)
+quantities like the total time-average heat absorbed or
+radiated by, or force or torque on, entire bodies.
+In the 
+[FSC approach to non-equilibrium fluctuation phenomena][FSCPaper]
+implemented by [[scuff-neq]],
+the total thermally-averaged value of any SR or SI quantity $Q$
+is computed by summing the contributions of fluctuations from
+all bodies at all frequencies:
 
 $$ \big\langle Q\big\rangle
-    = \int_0^\infty \, \sum_r \, \Theta(T_r,\omega) \Phi_r(\omega)\,d\omega
+    = \int_0^\infty \, \sum_b \, \Theta(T_b,\omega) \Phi_b(\omega)\,d\omega
 $$
-where $T_r$ is the temperature of region $r$, $\Phi_r(\omega)$ is
+where $T_b$ is the temperature of body$b$, $\Phi_b(\omega)$ is
 a temperature-independent *generalized flux* describing the 
-contribution of frequency-$\omega$ source fluctuations in region $r$,
+contribution of frequency-$\omega$ source fluctuations in body $b$,
 and 
-$$\Theta(T_r,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_r} - 1}$$
+$$\Theta(T_b,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_b} - 1}$$
 is the Bose-Einstein factor.
 
-The sum over regions $r$ in this equation includes the
+The sum over bodies $b$ in this equation includes the
 contributions of the external environment. To isolate these
 contributions it is convenient to decompose $\langle Q \rangle$
 into a sum of two terms:
@@ -136,24 +152,24 @@ $$ \begin{array}{rcl}
  \big\langle Q\big\rangle^{\small EQ}
 &\equiv&
   \displaystyle{\int_0^\infty} \Theta(T_{\small env},\omega) 
-                \sum_r \, \Phi_r(\omega)\,d\omega 
+                \sum_b \, \Phi_b(\omega)\,d\omega 
 \\[8pt]
  \qquad \big\langle Q\big\rangle^{\small NEQ} 
 &\equiv& 
-  \displaystyle{\int_0^\infty \sum_s }
-  \Big[ \Theta(T_s, \omega) - \Theta(T_{\small env},\omega)\Big]
-        \Phi_s(\omega)\,d\omega 
+  \displaystyle{\int_0^\infty \sum_b }
+  \Big[ \Theta(T_b, \omega) - \Theta(T_{\small env},\omega)\Big]
+        \Phi_b(\omega)\,d\omega 
 \\[4pt]
 &=&
-  \displaystyle{\int_0^\infty \sum_s}
-  \Delta \Theta(T_s, \omega) \Phi_s(\omega)\,d\omega 
+  \displaystyle{\int_0^\infty \sum_b}
+  \Delta \Theta(T_b, \omega) \Phi_b(\omega)\,d\omega 
 \end{array}
 $$
 
 where 
 
-$$ \Delta \Theta(T_s, \omega) \equiv 
-   \Theta(T_s, \omega) - \Theta(T_{\small env},\omega).
+$$ \Delta \Theta(T_b, \omega) \equiv 
+   \Theta(T_b, \omega) - \Theta(T_{\small env},\omega).
 $$
 
 The quantity $\langle Q\rangle^{\small EQ}$
@@ -179,8 +195,9 @@ is the extent to which $\langle Q\rangle$
 the sum in its definition ranges only over 
 the source bodies in the geometry, not including
 the environment contribution.
+
 The job of [[scuff-neq]] is to compute
-the quantity $\Phi_s(\omega)$---known as a *generalized flux*---
+the quantity $\Phi_b(\omega)$---known as a *generalized flux*---
 that enters the integral defining $\langle Q\rangle^{\small NEQ}$;
 [[scuff-neq]] will do this computation at each of multiple
 frequencies that you specify in advance. These data are then used by 
@@ -191,52 +208,140 @@ power, force, and torque quantities at various temperatures.
 <a name="CommandLineOptions"></a>
 # 2. <span class="SC">scuff-neq</span> command-line options
 
-### Common options
+### Options specifying the geometry
 
-[[scuff-neq]] recognizes the following subset of the 
-[list of commonly accepted options to <span class="SC">scuff-em</span> command-line codes][CommonOptions].
+````--geometry  MyGeometry.scuffgeo
+--TransFile MyTransFile
+````
 
- 
-  ````
---geometry
---EPFile
---Omega
---OmegaFile
---Cache
---ReadCache
---WriteCache
-  ````
 {.toc}
 
-### Options requesting output quantities
+The mandatory `--geometry` option specifies the
+[<span class=SC>scuff-em</span> geometry file][Geometries]
+describing your geometry.
 
-  ````
---PAbs  
---PRad  
---XForce  
---YForce  
---ZForce
---XTorque  
---YTorque
---ZTorque
-  ````
-{.toc}
+The optional `--TransFile` option specifies a
+[list of geometrical transformations][Transformations]
+to be applied to your geometry. Each output quantity you
+request will be separately computed and reported for 
+each transform you request.
 
-Specifies the quantities in which you are interested:
-absorbed power (`--PAbs`), radiated power (`--PRad`),
-Cartesian force components, or Cartesian torque components.
-You may specify none, all, or any subset of these options,
-but each option you specify will generally increase
-the computation time (you can scrutinize the
-[`.log` file](#LogFile) to see how *much* additional time each
-extra output quantity takes to compute).
+### Options specifying frequencies
+
+````--omega 1.23
+--OmegaFile MyOmegaFile
+````
+
+The first option here requests computation at just a
+single angular frequency (interpreted in 
+[standard <span class=SC>scuff-em</span> units][Units]
+of $\omega_0=3\cdot 10^{14}$ rad/sec).
+
+The second option specifies a file containing a list
+of frequencies $\omega$ (one per line) at which to compute
+generalized fluxes $\Phi(\omega)$.
+
+### Options requesting spatially-integrated output quantities
+
+````--EMTPFT
+--DSIPFT
+--OPFT   
+````
+
+Request calculation of spatially-integrated quantities
+via one of the available methods: 
+ the energy/momentum transfer (EMT) method,
+ the displaced-surface-integral (DSI) method,
+ or the overlap (O) method.
+You may specify none, any combination, or all of these options.
+
+Note that all of these methods are computing the same quantities,
+so in principle their results should be equivalent, and specifying
+more than one should be redundant. However, in practice it is
+often helpful to compute SI quantities via multiple methods
+as a confirmation and accuracy check.
+
+For the particular case of `--DSIPFT,` there are several
+options controlling the particular implementation of the 
+algorithm; see below.
+
+### Option requesting spatially-resolved output quantities
+
+````
+--EPFile MyEPFile
+````
+
+Specifies a file containing a [list of evaluation points][EPFile],
+one per line (three Cartesian coordinates),
+at which values of the Poynting vector and Maxwell stress tensor
+are to be computed.
+
+#### Options controlling DSI calculations
+
+The displaced-surface-integral (DSI) method
+total absorbed/radiated power,
+force, and torque on each body in a geometry by integrating
+the Poynting flux and Maxwell stress over a bounding surface
+surrounding the body. You have two options for *what* bounding
+surface is used: 
+**(a)** a [<span class=SC>gmsh</span>](gmsh.info) mesh file you provide
+giving a discretized version of your bounding surface, or 
+**(b)** a sphere centered at the body. (In both cases,
+the surface is displaced and re-centered at the origin of 
+each body to compute DSIPFT for that body.)
+
+To use option **(a)**, say
+
+```
+ --DSIMesh    MyDSIMesh.msh
+```
+
+If the `--DSIMesh` option is not specified, [[scuff-neq]]
+defaults to a spherical bounding surface. In this case you may 
+use the command-line options
+
+```
+ --DSIRadius  2.0
+ --DSIPoints  302
+```
+
+to set the radius of this sphere and the number of cubature
+points used to approximate the surface integral over it.
+(Use `scuff-neq --help` to see a list of the available values
+of `--DSIPoints`). If you don't specify values for these
+options, they will be set automatically.
+
+```
+ --DSIPoints2 770
+```
+
+For the case of a spherical bounding surface, you may specify
+`-DSIPoints2` to request a "second opinion" DSI calculation
+with a different number of cubature points to check the 
+accuracy of the numerical cubature.  The second-opinion DSI
+data will be written to a file with file extension `.SIFlux.DSI2`
+(This is optional; if you
+don't specify `--DSIPoints2` no second-opinion calculation
+is done.)
+
+```
+ --DSIOmegaFile DSIOmegaFile
+```
+
+Because the DSI calculation can be slow, in some cases you
+may wish to request that it only be performed at a subset
+of the frequencies in your `--OmegaFile`. You specify
+that subset using the `-DSIOmegaFile` option. For example,
+you might say `--EMTPFT` to request EMT calculations at 
+all frequencies, but use `--DSIPFT` with a `--DSIOmegaFile`
+containing only every 5th or 10th frequency in your full 
+`OmegaFile` to obtain a sanity check on the EMTPFT results.
 
 ### Option requesting visualization output
 
-  ````
+````
 --PlotFlux
-  ````
-{.toc}
+````
 
 This option directs [[scuff-neq]] to produce visualization
 files (in addition to its usual output files) which may be 
@@ -247,89 +352,49 @@ Maxwell stress on the surfaces of objects or
 the displaced bounding surfaces over which those quantities
 are integrated to compute the total PFT quantity.
 
-### Options controlling the computation of power, force, and torque
-
-  ````
---ForceDSI
-  ````
-{.toc}
-
-
-  ````
---DSIPoints 302
---DSIRadius 5.0
---DSIMesh BoundingMesh.msh
---DSIFarField
-  ````
-{.toc}
-
-As detailed in [this paper][SIEPFTPaper], there are several
-ways to compute PFTs in surface-integral formulations,
-including the "displaced-surface-integral" (DSIPFT),
-"equivalence principle" (EPPFT), and "overlap" (OPFT) 
-methods.
-
-By default, [[scuff-neq]] uses different algorithms for 
-different cases of the PFT computation:
-
-* Power computation (self term): EPPFT
-* Power computation (non-self terms): EPPFT
-* Force/Torque computation (self term): DSIPFT
-* Force/Torque computation (non-self term): OPFT
-
-However, you can override this default behavior 
-by specifying `--ForceDSI`, in which case DSIPFT
-will be used in all cases.
-
-The other options here set specific parameters 
-that are only used for DSIPFT calculations.
-
-`--DSIMesh` specifies the name of a mesh file
-(such as a [[GMSH]]-produced `.msh` file) that 
-defines the bounding surface over which the 
-surface integrals are computed. (This surface is
-automatically displaced and rotated appropriately
-for each object in accordance with any
-geometrical transformations that may be 
-specified in the `.scuffgeo` file and/or the
-`.trans` file.) The surface integral is evaluated
-via a one-point cubature over the surface of 
-each panel in the bounding mesh; thus, the
-finer the bounding mesh, the more accurate and
-the more expensive the computation).
-
-If you do not specify a `--DSIMesh`, then the
-surface integral for each object is computed 
-using Lebedev cubature over a bounding sphere 
-centered at the origin of coordinates of the 
-object mesh (appropriately displaced if the 
-object has been displaced via statements in 
-the `.scuffgeo` or `.trans` files.) In this case,
-you may use `--DSIRadius` and `--DSIPoints` to
-set the radius of this sphere (in microns) and 
-the number of Lebedev cubature points (the more 
-points, the more accurate and expensive the calculation).
-To see the possible values that may be specified 
-for `--DSIPoints,` type `scuff-neq --help.`
-
-Finally, you may use `--DSIFarField` to request
-that the Poynting vector and Maxwell tensor
-on the bounding surface be computed using only
-the far-field (radiation-zone) contributions 
-of the surface currents to the fields.
-
 ### Other options
 
-  ````
---OmitSelfTerms
-  ````
-{.toc}
+````
+--FileBase MyFileBaSe
+````
 
-Omit the contributions of sources in individual bodies
-to the total PFTs on those bodies themselves.
+Specifies the base filename for all output files.
+If this option is not specified, `--FileBase` is set
+to the base filename of the `.scuffgeo` file.
+
+````
+--SourceObject MySourceObject
+--DestObject   MyDestObject 
+````
+
+For a geometry containing $N$ bodies,
+by default <span class=SC>scuff-neq</span> computes
+the full $N\times N$ matrix of generalized flux
+quantities $Q_{s\to d}$ describing the
+energy/momentum transfer to destination body $d$ due
+to fluctuations in source body $s$.
+You may use either or both of `--SourceObject`
+and `--DestObject` to compute
+only quantities sourced by a given source body
+and/or only energy/momentum transfer to a given 
+destination body; the arguments to these options are the
+labels you specified for the objects in question in the `.scuffgeo` file.
+
+Note: Because of the way the EMTPFT method works, this
+algorithm always computes results for all destination
+bodies, so `--DestObject` has no effect on EMTPFT 
+calculations. (But `--SourceObject` can still be used
+to reduce the number of EMTPFT calculations performed.)
+
+````
+--OmitSelfTerms
+````
+
+This flag may be set to bypass the calculations
+of self-contributions
+(i.e. fluxes of the form $\Phi_{s\to s}$).
 
 --------------------------------------------------
-
 # 3. <span class="SC">scuff-neq</span> output files
 
 <a name="#LogFile"></a>
@@ -339,20 +404,93 @@ Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you
 can monitor to keep track of your calculation's progress.
 
-### Output files for spatially-integrated PFTs: The `.SIFlux` file
+### Output files for spatially-integrated PFTs: The `.SIFlux.METHOD` file
 
-If you requested the computation of any spatially-integrated
-PFTs (by setting command-line options such as `--PAbs` or `--YForce`),
-you will get back a file with extension `.SIFlux` (for 
-"fpatially-integrated flux") reporting values
-of the *generalized fluxes *$\Phi(\omega)$ at each frequency you requested.
-Generalized fluxes represent frequency-resolved contributions to 
+If you used an option like `--EMTPFT` or `--DSIPFT` to request
+computation of spatially-integrated PFT data,
+you will get back a file with extension `.SIFlux.METHOD`
+(where `SIFlux` stands for "spatially-integrated flux" and 
+where `METHOD` is replaced by the method used, i.e., EMTPFT, DSIPFT,
+etc.)
+reporting values
+of the *generalized fluxes *$\Phi(\omega)$ at each frequency you requested. 
+
+Generalized fluxes represent temperature-independent
+frequency-resolved contributions to
 thermally-averaged rates of energy and momentum transfer; 
-as noted, above, they are multiplied by Bose-Einstein
-factors and integrated over frequency to yield full 
-thermally and temporally-averaged data.
+as noted, above, they are multiplied by temperature-dependent
+Bose-Einstein factors and integrated over frequency to yield
+full thermally and temporally-averaged data. This integration
+operation is carried out by the utility
+code [<span class=SC>scuff-integrate</span>][scuffIntegrate],
+as described [below](scuff-neq.md/#scuffIntegrate).
 
-To understand what is written to these files, let $Q_d$ be
+### Output files for spatially-resolved PFTs: The `.SRFlux` file
+
+If you requested the computation of spatially-resolved
+power and momentum flux (by specifying the `--EPFile` 
+command-line option), you will get back a file with
+extension `.SRFlux` reporting temperature-dependent
+frequency-resolving contributions to the Poynting flux
+and Maxwell stress at each point in your `EPFile`.
+(See below for more information on what these values mean.)
+
+--------------------------------------------------
+# 4. Using <span class="SC">scuff-integrate</span> to perform frequency integrals
+
+After running [[scuff-neq]] to get temperature-independent 
+generalized flux data at various frequencies, we
+run [[scuff-integrate]] to evaluate the frequency integrals
+that compute total thermally-averaged rates of energy
+and momentum transfer.
+
+## Specifying temperatures
+
+To convert frequency-resolved data into thermally-averaged
+data, we need to know the temperature of all bodies in
+the geometry, as well as that of the environment; in 
+general, we will want results for multiple 
+ *different* combinations of body and environment temperatures
+This information is specified to [[scuff-integrate]] in the
+form of a simple text file (I usually call it simply `TemperatureFile`)
+in which each line describes
+a separate assignment of temperatures to the environment
+and to the various bodies in the geometry, with format
+```
+ TEnv   T1   T2   ...   TN
+```
+where `TEnv` is the environment temperature 
+and `T1`, `T2`, ..., `TN` are the temperatures of the
+first, second, ..., `N`th bodies in your geometry 
+(indexed in order of their appearance in the `.scuffgeo`
+file).
+
+For example, here's a `TemperatureFile` for a two-body
+geometry in which we request data for 
+the first body held at temperatures of $T_1=\{50,100,150\}$ K
+with the second body held fixed at $T_2=\{100\}$ K and the 
+environment kept at $T_{\hbox{\scriptsize{env}}}=0$ K
+(temperatures are always specified in units of Kelvin):
+
+```bash
+0 50  100
+0 100 100 
+0 150 100 
+```
+
+## Spatially-integrated quantities
+
+For spatially-integrated quantities (total heat radiation/absorption,
+force, and torque on bodies),
+[[scuff-integrate]] inputs a `.SIFlux` produced by [[scuff-neq]]
+and produces two further output files with extensions
+`.NEQPFT` and `.SIIntegrand,` which report respectively 
+the total (frequency-integrated) thermally-averaged quantities 
+and the temperature-weighted integrand of the frequency
+integral that produced them. 
+
+To understand the various quantities written to these 3 files, 
+let $Q_d$ be
 the spatially-integrated PFT on a destination body $d$,
 and write the FSC decomposition of the thermal average
 of $Q_d$ in the form
@@ -362,8 +500,8 @@ $$ \big\langle Q_d\big\rangle
    \underbrace{ 
     \Bigg[ \int_0^\infty
      \underbrace{ 
-      \bigg\{ \hbar\omega_0^2 \sum_s \, \Delta \widehat \Theta_s(u)
-       \underbrace{ \Phi_{s\to d}(u)}_{\texttt{.SIFlux}}
+      \bigg\{ \hbar\omega_0^2 \sum_b \, \Delta \widehat \Theta_b(u)
+       \underbrace{ \Phi_{s\to d}(u)}_{\texttt{.SIFlux.XXXPFT}}
       \bigg\}
                 }_{\texttt{.SIIntegrand}}
     \,\,du \Bigg]
@@ -379,17 +517,18 @@ with the arguments to the `--omega` option.)
 + $\widehat\Theta(u)$ is a dimensionless version of the usual
 Bose-Einstein factor, defined by $\Theta(\omega)=\hbar \omega_0 \widehat\Theta(u)$.
 
-+ $\Delta \widehat \Theta_s(u)=\widehat \Theta_s(u) - \widehat \Theta_{\small env}(u)$ 
++ $\Delta \widehat \Theta_b(u)=\widehat \Theta_b(u) - \widehat \Theta_{\small env}(u)$ 
 is the difference between the dimensionless Bose-Einstein factors of source body $s$ 
 and the environment.
 
 + $\Phi_{s\to d}$ is the temperature-independent generalized flux
 describing the contributions of fluctuations in source body $s$
 to the power, force, or torque on destination body $d$.
-Values of this quantity are written to the `.SIFlux` output
-file.
+Values of this quantity are written to the `.SIFlux.METHOD` output
+file (where `METHOD` is a string like `EMTPFT` identifying the 
+spatial-integration method used).
 
-+ $\hbar\omega_0^2 \Delta \widehat \Theta_s(u) \Phi_{s\to d}(u)$ is
++ $\hbar\omega_0^2 \Delta \widehat \Theta_b(u) \Phi_{s\to d}(u)$ is
 the spectral density of temperature-weighted contributions
 from fluctuations in source body $s$ to the PFT on destination
 body $d$. 
@@ -420,12 +559,18 @@ indicates that the data on that line correspond to
 the *total* PFT on object 2---that is, the sum of 
 contributions from all source objects.
 
-### Output files for spatially-resolved PFTs: The `.SRFlux`, `.SRIntegrand`, and `.PVMST` files
+## Spatially-resolved quantities
 
-If you requested the computation of spatially-resolved
-power and momentum flux (by specifying the `--EPFile` 
-command-line option), you will get back files reporting 
-various contributions to these quantities. The breakdown
+For spatially-resolved data,
+[[scuff-integrate]] inputs a `.SRFlux` produced by [[scuff-neq]]
+and produces two further output files with extensions
+`.PVMST` and `.SRIntegrand,` which report respectively 
+values of the total (frequency-integrated) thermally-averaged
+ **P**oynting **V**ector and **M**axwell **S**tress **T**ensor
+and the temperature-weighted integrand of the frequency
+integral that produced them. 
+
+The breakdown
 here is similar to that described above for spatially-integrated
 quantities. To understand this, let $Q(\mathbf{x})$ be
 a spatially-resolved PFT quantity (a component 
@@ -438,7 +583,7 @@ $$ \big\langle Q(\mathbf{x})\big\rangle
    \underbrace{ 
     \Bigg[ \int_0^\infty
      \underbrace{ 
-      \bigg\{ \hbar\omega_0^2 \sum_s \, \Delta \widehat \Theta_s(u)
+      \bigg\{ \hbar\omega_0^2 \sum_b \, \Delta \widehat \Theta_b(u)
        \underbrace{ \Phi_{s\to\mathbf x}(u)}_{\texttt{.SRFlux}}
       \bigg\}
                 }_{\texttt{.SRIntegrand}}
@@ -454,7 +599,7 @@ to the Poynting flux or Maxwell stress at $\mathbf{x}$.
 Values of this quantity are written to the `.SRFlux` output
 file.
 
-+ $\hbar\omega_0^2 \Delta \widehat \Theta_s(u) \Phi_{s\to \mathbf{x}}(u)$ is
++ $\hbar\omega_0^2 \Delta \widehat \Theta_b(u) \Phi_{s\to \mathbf{x}}(u)$ is
 the spectral density of temperature-weighted contributions
 from fluctuations in source body $s$ to the Poynting flux or 
 Maxwell stress at $\mathbf{x}$. Values of this quantity are 
@@ -502,13 +647,33 @@ and the torque flux has units of *nanoNewtons microns/watts.*
 
 + [Spatial distribution of poynting flux from a warm tip above a cold substrate][TipSubstrate]
 
-[scuff-cas3D]:       ../scuff-cas3D/scuff-cas3D.md
+<a name="bibliography"></a>
+
+## Bibliography
+
+Here are the original papers cited above describing the FSC approach to 
+fluctuational electromagnetism:
+
+1. [M. T. H. Reid et al, "Efficient Computation of Casimir Interactions between Arbitrary 3D Objects." *Physical Review Letters* **103** 040401 (2009). DOI: 10.1103/PhysRevLett.103.040401](http://link.aps.org/doi/10.1103/PhysRevLett.103.040401)
+
+2. [A. Rodriguez, M. T. H. Reid, S.G. Johnson, "Fluctuating-surface-current formulation of radiative heat transfer: Theory and applications." *Physical Review B* **88** 054305 (2013). DOI: doi/10.1103/PhysRevB.88.054305](http://link.aps.org/doi/10.1103/PhysRevB.88.054305)
+
+3. [M. T. H. Reid et al, "Photon Torpedoes and Rytov Pinwheels: Integral-Equation Modeling of Non-Equilibrium Fluctuation-Induced Forces and Torques on Nanoparticles." arXiv:1708.01985](https://arxiv.org/abs/1708.01985)
+
+The various algorithms for computing spatially-integrated data
+(DSI, EMT, etc.) are described in Ref. 3 here; see also [this paper][SIEPFTPaper].
+
+
+[Geometries]:       ../../reference/Geometries.md
+[Transformations]:  ../../reference/Transformations.md
+[Units]:            ../../reference/FAQ.md/#Units
+[scuff-cas3D]:      ../scuff-cas3D/scuff-cas3D.md
 [scuffIntegrate]:   ../scuff-integrate/scuff-integrate.md
-[EPFile]:        ../../applications/GeneralReference.md#EvaluationPoints
-[FSCPaper]:      http://link.aps.org/doi/10.1103/PhysRevB.88.054305
-[SIEPFTPaper]:	 http://dx.doi.org/10.1109/TAP.2015.2438393
-[LogFiles]:      ../GeneralReference.md#LogFiles
-[SiO2Sphere]:    ../../examples/SiO2Spheres/SiO2Spheres.md
-[SiO2Spheres]:   ../../examples/SiO2Spheres/SiO2Spheres.md
-[TipSubstrate]:  ../../examples/TipSubstrate/TipSubstrate.md
-[CommonOptions]: ../GeneralReference.md#CommonOptions
+[EPFile]:           ../../applications/GeneralReference.md#EvaluationPoints
+[FSCPaper]:         scuff-neq.md#bibliography
+[SIEPFTPaper]:	    http://dx.doi.org/10.1109/TAP.2015.2438393
+[LogFiles]:        ../GeneralReference.md#LogFiles
+[SiO2Sphere]:      ../../examples/SiO2Spheres/SiO2Spheres.md
+[SiO2Spheres]:     ../../examples/SiO2Spheres/SiO2Spheres.md
+[TipSubstrate]:    ../../examples/TipSubstrate/TipSubstrate.md
+[CommonOptions]:   ../GeneralReference.md#CommonOptions

@@ -267,10 +267,10 @@ bool Matrix2x2_Inverse(double *a[2], double ainv[2][2])
 /***************************************************************/
 /* single-precision comparisons of double-precision numbers    */
 /***************************************************************/
-bool EqualFloat(const double a, const double b) 
+bool EqualFloat(const double a, const double b)
 { return ( float(a) == float(b) ); }
 
-bool EqualFloat(const cdouble a, const cdouble b) 
+bool EqualFloat(const cdouble a, const cdouble b)
 { return      ( float(real(a)) == float(real(b)) )
           &&  ( float(imag(a)) == float(imag(b)) );
 }
@@ -395,6 +395,12 @@ void fprintVecCR(FILE *f, cdouble *v, int Length, const char *format)
 /***************************************************************/
 double randU(double A, double B)
  { return A + (B-A) * random() * (1.0 / RAND_MAX); }
+
+/***************************************************************/
+/* random integer in range [A,B), i.e. strictly less than B    */
+/***************************************************************/
+int irand(int A, int B)
+{ return (int)floor(randU(A,B)); }
 
 /***************************************************************/
 /* random number normally distributed with mean/stddev Mu/Sigma*/

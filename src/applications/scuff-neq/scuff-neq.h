@@ -117,6 +117,7 @@ typedef struct SNEQData
    HVector *DSIOmegaPoints;
    bool PlotFlux;       // generate flux plots
    bool OmitSelfTerms;
+   int SourceOnly, DestOnly;
 
  } SNEQData;
 

@@ -78,6 +78,8 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
   SNEQD->WriteCache=0;
+  SNEQD->SourceOnly=-1;
+  SNEQD->DestOnly=-1;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/

@@ -75,6 +75,22 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+double AutodetectDSIRadius(RWGSurface *S, GTransformation *GT1, GTransformation *GT2)
+{
+  double X0[3]={0.0, 0.0, 0.0};
+  if (GT1) GT1->Apply(X0);
+  if (GT2) GT2->Apply(X0);
+  double Radius=0.0;
+  for(int np=0; np<S->NumPanels; np++)
+    { double *XP=S->Panels[np]->Centroid;
+      Radius = fmax(Radius, VecDistance(X0, XP));
+    };
+  return 1.5*Radius;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
                     bool IsPECA, int KNIndexA,
                     bool IsPECB, int KNIndexB,
@@ -182,6 +198,9 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      bool *NeedQuantity   = Options->NeedQuantity;
      GTransformation *GT1 = S->OTGT;
      GTransformation *GT2 = S->GT;
+
+     if (DSIRadius==0)
+      DSIRadius=AutodetectDSIRadius(S, GT1, GT2);
 
      if (DRMatrix==0)
       GetDSIPFT(this, Omega, kBloch, KN, IF, PFT,

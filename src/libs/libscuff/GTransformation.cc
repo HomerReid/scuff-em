@@ -91,10 +91,10 @@ void GTransformation::operator=(const GTransformation &G) {
 }
 
 /***************************************************************/
-/* a transformation that displaces through vector DX           */
+/* a transformation that displaces through vector Scale*DX     */
 /***************************************************************/
-void GTransformation::Displace(const double dx[3]) {
-  VecAdd(DX, dx, DX);
+void GTransformation::Displace(const double dx[3], const double Scale) {
+  VecPlusEquals(DX, Scale, dx);
 }
 
 /***************************************************************/

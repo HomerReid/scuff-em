@@ -608,9 +608,10 @@ void AddSubstrateSSI(GetSSIArgStruct *Args)
   LayeredSubstrate *Substrate = G->Substrate;
 
   /***************************************************************/
-  /* figure out the range of parameter values over which we will */
-  /* need the substrate Green's function, then initialize an     */
-  /* interpolator to accelerate calculations over that range.    */
+  /* figure out the range of the spatial arguments               */
+  /*  (Rho, zDest, zSource) over which we will need the          */
+  /* substrate Green's function, then initialize an interpolator */
+  /* to accelerate calculations over that range.                 */
   /***************************************************************/
   double Rho2Min=HUGE_VAL, Rho2Max=0.0;
   double DeltazMin=HUGE_VAL, DeltazMax=0.0;
@@ -633,8 +634,8 @@ void AddSubstrateSSI(GetSSIArgStruct *Args)
       };
   double RhoMin = sqrt(Rho2Min), RhoMax=sqrt(Rho2Max);
   bool EEOnly = (Sa->IsPEC && Sb->IsPEC);
-  if (DeltazMax==0.0)
-   Substrate->InitAccelerator1D(Omega, RhoMin, RhoMax, Sa->Panels[0]->Centroid[2], EEOnly);
+  if (DeltazMax<1.0e-12)
+   Substrate->InitAccelerator1D(Omega, RhoMin, RhoMax, z);
 
   /***************************************************************/
   /* loop over all RWG functions on both surfaces ****************/

@@ -46,6 +46,84 @@ void CalcGC(double R[3], cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void AddScriptG0(LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix)
+{
+  for(int nx=0; nx<XMatrix->NR; nx++)
+   { 
+     double XD[6], *XS=XD+3;
+     XMatrix->GetEntriesD(nx, "0:5", XD);
+     int nrDest   = S->GetRegionIndex(XD[2]);
+     int nrSource = S->GetRegionIndex(XS[2]);
+     if (nrDest!=nrSource) continue;
+
+     double R[3];
+     VecSub(XD, XS, R);
+     cdouble EpsRel, MuRel;
+     S->MPLayer[nrDest]->GetEpsMu(Omega, &EpsRel, &MuRel);
+     cdouble k=sqrt(EpsRel*MuRel)*Omega;
+
+     if (S->StaticLimit)
+      { double r2=VecNorm2(R), r=sqrt(r2);
+        cdouble G0 = II*exp(II*k*r)/(4.0*M_PI*r*r*r);
+        cdouble EFactor = ZVAC*MuRel*G0/k;
+        cdouble HFactor = G0/(k*ZVAC*EpsRel);
+        for(int Mu=0; Mu<3; Mu++)
+         for(int Nu=0; Nu<3; Nu++)
+          { double Bracket = 3.0*R[Mu]*R[Nu]/r2 - ((Mu==Nu) ? 1.0 : 0.0);
+            GMatrix->AddEntry(nx, 6*(0+Mu) + 0*Nu, EFactor*Bracket);
+            GMatrix->AddEntry(nx, 6*(3+Mu) + 3*Nu, HFactor*Bracket);
+          };
+
+        if (nrDest==S->NumInterfaces && !isinf(S->zGP))
+         { R[2] = XD[2] + XS[2] - 2.0*S->zGP;
+           r2=VecNorm2(R), r=sqrt(r2);
+           G0 = II*exp(II*k*r)/(4.0*M_PI*r*r*r);
+           EFactor = ZVAC*MuRel*G0/k;
+           HFactor = G0/(k*ZVAC*EpsRel);
+           for(int Mu=0; Mu<3; Mu++)
+            for(int Nu=0; Nu<3; Nu++)
+             { double Sign = (Nu==2) ? -1.0 : 1.0;
+               double Bracket = 3.0*R[Mu]*R[Nu]/r2 - ((Mu==Nu) ? 1.0 : 0.0);
+               GMatrix->AddEntry(nx, 6*(0+Mu) + 0*Nu, +1.0*Sign*EFactor*Bracket);
+               GMatrix->AddEntry(nx, 6*(3+Mu) + 3*Nu, -1.0*Sign*HFactor*Bracket);
+             };
+         };
+        continue;
+      };
+
+     cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
+     scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
+     cdouble EEPreFac = II*Omega*ZVAC*MuRel;
+     cdouble EMPreFac = II*k;
+     cdouble MEPreFac = -1.0*II*k;
+     cdouble MMPreFac = II*Omega*EpsRel/ZVAC;
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { GMatrix->AddEntry(nx, 6*(0+Mu) + 0+Nu, EEPreFac*G[Mu][Nu]);
+         GMatrix->AddEntry(nx, 6*(0+Mu) + 3+Nu, EMPreFac*C[Mu][Nu]);
+         GMatrix->AddEntry(nx, 6*(3+Mu) + 0+Nu, MEPreFac*C[Mu][Nu]);
+         GMatrix->AddEntry(nx, 6*(3+Mu) + 3+Nu, MMPreFac*G[Mu][Nu]);
+       };
+
+     if (nrDest==S->NumInterfaces && !isinf(S->zGP))
+      { R[2] = XD[2] + XS[2] - 2.0*S->zGP;
+        scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
+        const double ImageSign[3]={-1.0, -1.0, +1.0};
+        for(int Mu=0; Mu<3; Mu++)
+         for(int Nu=0; Nu<3; Nu++)
+          { GMatrix->AddEntry(nx, 6*(0+Mu) + 0+Nu, +1.0*ImageSign[Nu]*EEPreFac*G[Mu][Nu]);
+            GMatrix->AddEntry(nx, 6*(0+Mu) + 3+Nu, -1.0*ImageSign[Nu]*EMPreFac*C[Mu][Nu]);
+            GMatrix->AddEntry(nx, 6*(3+Mu) + 0+Nu, +1.0*ImageSign[Nu]*MEPreFac*C[Mu][Nu]);
+            GMatrix->AddEntry(nx, 6*(3+Mu) + 3+Nu, -1.0*ImageSign[Nu]*MMPreFac*G[Mu][Nu]);
+          };
+      };
+
+   };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
@@ -189,12 +267,16 @@ int main(int argc, char *argv[])
   /***************************************************************/
   SetConsoleLogging();
 
-  HMatrix *GSL= S->GetSubstrateDGF(Omega, XMatrix, STATIC_LIMIT);
+  HMatrix *GSL = new HMatrix(XMatrix->NR, 36, LHM_COMPLEX);
+  if (FreeSpace)
+   AddScriptG0(S, Omega, XMatrix, GSL);
+  else 
+   S->GetSubstrateDGF(Omega, XMatrix, GSL, STATIC_LIMIT);
 
   HMatrix *GFS = new HMatrix(GSL->NR, GSL->NC, LHM_COMPLEX);
   GFS->Zero();
-  //if (!FreeSpace && !OmitFreeSpace)
-  // AddScriptG0(S, Omega, XMatrix, GFS);
+  if (!FreeSpace && !OmitFreeSpace)
+   AddScriptG0(S, Omega, XMatrix, GFS);
 
   HMatrix *GSC = S->GetSubstrateDGF(Omega, XMatrix, SURFACE_CURRENT);
 
@@ -207,23 +289,7 @@ int main(int argc, char *argv[])
 
      cdouble GVector[36];
 
-     if (FreeSpace)
-      { 
-        cdouble GMuNu[3][3], CMuNu[3][3], GMuNuRho[3][3][3], CMuNuRho[3][3][3];
-        double R[3]; 
-        VecSub(XXP+0, XXP+3, R);
-        cdouble EpsRel=1.0, MuRel=1.0;
-        scuff::CalcGC(R, Omega, EpsRel, MuRel, GMuNu, CMuNu, GMuNuRho, CMuNuRho);
-        for(int Mu=0; Mu<3; Mu++)
-         for(int Nu=0; Nu<3; Nu++)
-          { GVector[(0*3 + Mu)*6 + (0*3 + Nu)]=II*Omega*ZVAC*MuRel*GMuNu[Mu][Nu];
-            GVector[(0*3 + Mu)*6 + (1*3 + Nu)]=+1.0*II*Omega*CMuNu[Mu][Nu];
-            GVector[(1*3 + Mu)*6 + (0*3 + Nu)]=-1.0*II*Omega*CMuNu[Mu][Nu];
-            GVector[(1*3 + Mu)*6 + (1*3 + Nu)]=II*Omega*EpsRel*GMuNu[Mu][Nu]/ZVAC;
-          };
-      }
-     else 
-      GSL->GetEntries(nx,":",GVector);
+     GSL->GetEntries(nx,":",GVector);
      fprintVec(f,GVector,36);
 
      GSC->GetEntries(nx,":",GVector);

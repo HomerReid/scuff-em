@@ -7,7 +7,8 @@ libSubstrate_la_SOURCES = 	\
  Interpolation.cc		\
  FullWave.cc                	\
  FullWave_SurfaceCurrents.cc	\
- Static.cc     		
+ qIntegrate.cc              	\
+ Static.cc
 
 #if $(MMAKE)
 #AM_CXXFLAGS=-ggdb -O0
@@ -15,6 +16,7 @@ libSubstrate_la_SOURCES = 	\
 #  echo "Building with debug support."
 #else
 AM_CXXFLAGS = -O3
+AM_CFLAGS = -O3
 #  echo "Building without debug support."
 #endif
 
@@ -35,3 +37,24 @@ OTHER_LIBS=                      \
  ../libSGJC/libSGJC.la           \
  ../libSpherical/libSpherical.la \
  ../libhrutil/libhrutil.la
+
+
+noinst_PROGRAMS = tFullWaveSubstrate tSubstrateEEIs tInterpolation tGTwiddle tSubstrateFields tbTwiddle
+
+tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
+tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
+
+tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc
+tSubstrateEEIs_LDADD = libSubstrate.la ../libscuff/libscuff.la
+
+tSubstrateFields_SOURCES = tSubstrateFields.cc GetSubstrateFields_SpectralInner.cc
+tSubstrateFields_LDADD = libSubstrate.la ../libscuff/libscuff.la
+
+tInterpolation_SOURCES = tInterpolation.cc
+tInterpolation_LDADD = libSubstrate.la ../libscuff/libscuff.la
+
+tGTwiddle_SOURCES = tGTwiddle.cc
+tGTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
+
+tbTwiddle_SOURCES = tbTwiddle.cc bTwiddle.cc
+tbTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la

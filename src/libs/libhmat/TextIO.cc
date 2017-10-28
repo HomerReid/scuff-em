@@ -107,7 +107,8 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
       continue;
 
      /*--------------------------------------------------------------*/
-     /*- count number of tokens that can be interpreted as numbers --*/
+     /*- count number of tokens that can be interpreted as numbers   */
+     /*-  20171028 UPDATE: allow strings, read as zeros              */
      /*--------------------------------------------------------------*/
      nColsThisRow=0;
      for(nt=0; nt<NumTokens; nt++)
@@ -115,7 +116,9 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
        { nColsThisRow++;
          if ( imag(cdVal)!=0.0 ) 
           AllReal=0; 
-       };
+       }
+      else
+       nColsThisRow++;
 
      /*--------------------------------------------------------------*/
      /*- error checking:                                             */

@@ -157,8 +157,8 @@ typedef void (*Phi3D)(double X1, double X2, double X3,
 /*                                                             */
 /* note: the function should be thread-safe, as it may be      */
 /* called simultaneously by multiple concurrent threads.       */
-/***************************************************************/ 
-typedef void (*Phi4D)(double X1, double X2, double X3, double X4, 
+/***************************************************************/
+typedef void (*Phi4D)(double X1, double X2, double X3, double X4,
                       void *UserData, double *PhiVD);
 
 /***************************************************************/
@@ -195,6 +195,8 @@ class Interp1D
     /*--------------------------------------------------------------*/
     /*- class constructor 3: construct from a user-specified set of */
     /*- X and Y data values.                                        */
+    /*-                                                             */
+    /*-  YPoints[ nx*nFun + nf ] = f_{nf}( x_{nx} )                 */
     /*--------------------------------------------------------------*/
     Interp1D(double *XPoints, double *YPoints, int N, int nFun,
              int LogLevel=LMDI_LOGLEVEL_TERSE);
@@ -334,8 +336,7 @@ class Interp3D
    public:
 
     /*--------------------------------------------------------------*/
-    /*- class constructor 1: construct from a user-supplied function*/
-    /*- and nonuniform grid                                         */
+    /*- user-supplied function, nonuniform grid                     */
     /*--------------------------------------------------------------*/
     Interp3D(double *X1Points, int N1,
              double *X2Points, int N2,
@@ -344,25 +345,47 @@ class Interp3D
              int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
-    /*- class constructor 2: construct from a user-supplied function*/
-    /*- and uniform grid                                            */
+    /*- user-supplied data table, nonuniform grid                   */
     /*--------------------------------------------------------------*/
-    Interp3D(double pX1Min, double X1Max, int pN1,
-             double pX2Min, double X2Max, int pN2,
-             double pX3Min, double X3Max, int pN3,
-             int pnFun, Phi3D PhiFunc=0, void *UserData=0,
+    Interp3D(double *PhiVDTable,
+             double *X1Points, int N1,
+             double *X2Points, int N2,
+             double *X3Points, int N3,
+             int nFun, int LogLevel=LMDI_LOGLEVEL_TERSE);
+
+    /*--------------------------------------------------------------*/
+    /*- user-supplied function, uniform grid                        */
+    /*--------------------------------------------------------------*/
+    Interp3D(double X1Min, double X1Max, int N1,
+             double X2Min, double X2Max, int N2,
+             double X3Min, double X3Max, int N3,
+             int nFun, Phi3D PhiFunc=0, void *UserData=0,
              int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
-    /*- body of class constructor for the previous two entry points-*/
+    /*- user-supplied data table, uniform grid                      */
     /*--------------------------------------------------------------*/
-    void InitInterp3D(Phi3D PhiFunc, void *UserData);
+    Interp3D(double *PhiVDTable, 
+             double X1Min, double X1Max, int N1,
+             double X2Min, double X2Max, int N2,
+             double X3Min, double X3Max, int N3,
+             int nFun, int LogLevel=LMDI_LOGLEVEL_TERSE);
+
+    /*--------------------------------------------------------------*/
+    /*- body of class constructor                                   */
+    /*--------------------------------------------------------------*/
+    void InitInterp3D(
+      double pX1Min, double X1Max, double *pX1Points, int pN1,
+      double pX2Min, double X2Max, double *pX2Points, int pN2,
+      double pX3Min, double X3Max, double *pX3Points, int pN3,
+      int pnFun, Phi3D PhiFunc, void *UserData, double *PhiVDTable,
+      int pLogLevel);
 
     /*--------------------------------------------------------------*/
     /*- reinitialize an Interp3D object using the same interpolation*/
     /*- grid but with a different function and/or different data    */
     /*--------------------------------------------------------------*/
-    void ReInitialize(Phi3D PhiFunc, void *UserData);
+    void ReInitialize(Phi3D PhiFunc, void *UserData, double *PhiVDTable);
 
     /*--------------------------------------------------------------*/
     /*- class constructor 3: construct from a data file previously  */

@@ -192,19 +192,100 @@ Interp3D::Interp3D(double *pX1Points, int pN1,
                    double *pX3Points, int pN3,
                    int pnFun, Phi3D PhiFunc, void *UserData,
                    int pLogLevel)
+{ 
+   InitInterp3D(0.0, 0.0, pX1Points, pN1,
+                0.0, 0.0, pX2Points, pN2,
+                0.0, 0.0, pX3Points, pN3,
+                pnFun, PhiFunc, UserData, 0, pLogLevel);
+}
+
+/****************************************************************/
+/* class constructor 2: construct the class from a user-supplied*/
+/* table of function and derivatives values on a nonuniform grid*/
+/****************************************************************/
+Interp3D::Interp3D(double *PhiVDTable,
+                   double *pX1Points, int pN1,
+                   double *pX2Points, int pN2,
+                   double *pX3Points, int pN3,
+                   int pnFun, int pLogLevel)
+{ 
+  InitInterp3D(0.0, 0.0, pX1Points, pN1,
+               0.0, 0.0, pX2Points, pN2,
+               0.0, 0.0, pX3Points, pN3,
+               pnFun, 0, 0, PhiVDTable, pLogLevel);
+}
+
+/****************************************************************/
+/* class constructor 2: construct the class from a user-supplied*/
+/* function and uniform grid                                    */
+/****************************************************************/
+Interp3D::Interp3D(double pX1Min, double X1Max, int pN1,
+                   double pX2Min, double X2Max, int pN2,
+                   double pX3Min, double X3Max, int pN3,
+                   int pnFun, Phi3D PhiFunc, void *UserData,
+                   int pLogLevel)
+{
+  InitInterp3D( pX1Min, X1Max, 0, pN1,
+                pX2Min, X2Max, 0, pN2,
+                pX3Min, X3Max, 0, pN3,
+                pnFun, PhiFunc, UserData, 0, pLogLevel);
+}
+
+Interp3D::Interp3D(double *PhiVDTable,
+                   double pX1Min, double X1Max, int pN1,
+                   double pX2Min, double X2Max, int pN2,
+                   double pX3Min, double X3Max, int pN3,
+                   int pnFun, int pLogLevel)
+{
+  InitInterp3D( pX1Min, X1Max, 0, pN1,
+                pX2Min, X2Max, 0, pN2,
+                pX3Min, X3Max, 0, pN3,
+                pnFun, 0, 0, PhiVDTable, pLogLevel);
+}
+
+/****************************************************************/
+/****************************************************************/
+/****************************************************************/
+void Interp3D::InitInterp3D(
+ double pX1Min, double X1Max, double *pX1Points, int pN1,
+ double pX2Min, double X2Max, double *pX2Points, int pN2,
+ double pX3Min, double X3Max, double *pX3Points, int pN3,
+ int pnFun, Phi3D PhiFunc, void *UserData, double *PhiVDTable, 
+ int pLogLevel)
 {
    /*--------------------------------------------------------------*/ 
    /*- simple setup: initialize class data                ---------*/ 
    /*--------------------------------------------------------------*/ 
-   N1=pN1; 
-   N2=pN2;
-   N3=pN3; 
+   if (pN1<2 || pN2<2 || pN3<2)
+    ErrExit("Interp3D: grid must have 2 or more points in every dimension");
+
+   N1=pN1;
+   X1Min=pX1Min;
+   DX1 = (X1Max - X1Min) / ((double)(N1-1));
    X1Points=(double *)memdup(pX1Points, N1*sizeof(double));
+   if ( !X1Points && DX1==0.0 )
+    ErrExit("Interp3D: grid has zero size in X1 dimension");
+
+   N2=pN2;
+   X2Min=pX2Min;
+   DX2 = (X2Max - X2Min) / ((double)(N2-1));
    X2Points=(double *)memdup(pX2Points, N2*sizeof(double));
+   if ( !X2Points && DX2==0.0 )
+    ErrExit("Interp3D: grid has zero size in X2 dimension");
+
+   N3=pN3; 
+   X3Min=pX3Min;
+   DX3 = (X3Max - X3Min) / ((double)(N3-1));
    X3Points=(double *)memdup(pX3Points, N3*sizeof(double));
+   if ( !X3Points && DX3==0.0 )
+    ErrExit("Interp3D: grid has zero size in X3 dimension");
 
    nFun=pnFun;
    LogLevel = pLogLevel;
+
+   if (LogLevel >= LMDI_LOGLEVEL_TERSE)
+    Log("Creating interpolation grid with (%ix%ix%i)=%i grid points...",
+         N1,N2,N3,N1*N2*N3);
 
    /*--------------------------------------------------------------*/ 
    /*- allocate space for the CTable, which stores all             */ 
@@ -226,83 +307,17 @@ Interp3D::Interp3D(double *pX1Points, int pN1,
    if (!CTable)
     ErrExit("%s:%i:out of memory",__FILE__,__LINE__);
 
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   if (PhiFunc==0)
-    return;
+   if (PhiFunc==0 && PhiVDTable==0)
+    return 
 
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   InitInterp3D(PhiFunc, UserData);
+   ReInitialize(PhiFunc, UserData, PhiVDTable);
 }
 
-/****************************************************************/
-/* class constructor 2: construct the class from a user-supplied*/
-/* function and uniform grid                                    */
-/****************************************************************/
-Interp3D::Interp3D(double pX1Min, double X1Max, int pN1,
-                   double pX2Min, double X2Max, int pN2,
-                   double pX3Min, double X3Max, int pN3,
-                   int pnFun, Phi3D PhiFunc, void *UserData, 
-                   int pLogLevel)
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void Interp3D::ReInitialize(Phi3D PhiFunc, void *UserData, double *PhiVDTable)
 {
-   /*--------------------------------------------------------------*/ 
-   /*- simple setup: initialize class data                ---------*/ 
-   /*--------------------------------------------------------------*/ 
-   if (pN1<2 || pN2<2 || pN3<2)
-    ErrExit("Interp3D: grid must have 2 or more points in every dimension");
-
-   N1=pN1; 
-   X1Points=0;
-   X1Min=pX1Min;
-   DX1 = (X1Max - X1Min) / ((double)(N1-1));
-
-   N2=pN2; 
-   X2Points=0;
-   X2Min=pX2Min;
-   DX2 = (X2Max - X2Min) / ((double)(N2-1));
-
-   N3=pN3; 
-   X3Points=0;
-   X3Min=pX3Min;
-   DX3 = (X3Max - X3Min) / ((double)(N3-1));
-
-   nFun=pnFun;
-   LogLevel = pLogLevel;
-
-   if ( DX1==0.0 || DX2==0.0 || DX3==0.0 )
-    ErrExit("Interp3D: grid has zero size in one or more dimensions");
-
-   /*--------------------------------------------------------------*/ 
-   /*- allocate space for the CTable (see previous routine)        */ 
-   /*--------------------------------------------------------------*/ 
-   CTable=(double *)mallocEC((N1-1)*(N2-1)*(N3-1)*nFun*NCOEFF*sizeof(double));
-   if (!CTable)
-    ErrExit("%s:%i:out of memory",__FILE__,__LINE__);
-
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   if (PhiFunc==0)
-    return;
-
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   InitInterp3D(PhiFunc, UserData);
-}
-
-/****************************************************************/
-/****************************************************************/
-/****************************************************************/
-void Interp3D::InitInterp3D(Phi3D PhiFunc, void *UserData)
-{
-   if (LogLevel >= LMDI_LOGLEVEL_TERSE)
-    Log("Creating interpolation grid with (%ix%ix%i)=%i grid points...",
-         N1,N2,N3,N1*N2*N3);
-
    /*--------------------------------------------------------------*/ 
    /*- temporarily allocate a big array in which we will store     */ 
    /*- values and derivatives of the user's function. allocating   */ 
@@ -320,79 +335,48 @@ void Interp3D::InitInterp3D(Phi3D PhiFunc, void *UserData)
    /*- value and derivatives of function #nf at grid point         */
    /*- (n1,n2,n3).                                                 */
    /*--------------------------------------------------------------*/
-   double *PhiVDTable=(double *)mallocEC(N1*N2*N3*nFun*NDATA*sizeof(double));
-   if (!PhiVDTable)
-    ErrExit("%s:%i:out of memory",__FILE__,__LINE__);
+   bool OwnsPhiVDTable = false;
+   if (PhiVDTable==0)
+    { OwnsPhiVDTable=true;
+      PhiVDTable=(double *)mallocEC(N1*N2*N3*nFun*NDATA*sizeof(double));
 
-   /*--------------------------------------------------------------*/
-   /*- fire off threads that will call the user's function to     -*/
-   /*- populate the PVDTable table.                               -*/
-   /*--------------------------------------------------------------*/
-   if (LogLevel >= LMDI_LOGLEVEL_VERBOSE)
-    Log("Computing user function at grid points...");
+      /*--------------------------------------------------------------*/
+      /*- fire off threads that will call the user's function to     -*/
+      /*- populate the PVDTable table.                               -*/
+      /*--------------------------------------------------------------*/
+      ThreadData TD1;
+      TD1.X1Points=X1Points;
+      TD1.X2Points=X2Points;
+      TD1.X3Points=X3Points;
+      TD1.N1=N1;
+      TD1.N2=N2;
+      TD1.N3=N3;
+      TD1.X1Min=X1Min;
+      TD1.X2Min=X2Min;
+      TD1.X3Min=X3Min;
+      TD1.DX1=DX1;
+      TD1.DX2=DX2;
+      TD1.DX3=DX3;
+      TD1.nFun=nFun;
+      TD1.PhiFunc=PhiFunc;
+      TD1.UserData=UserData;
+      TD1.PhiVDTable=PhiVDTable;
+      TD1.nThread=GetNumThreads();
 
-   int nThread=GetNumThreads();
-
-   ThreadData TD1;
-   TD1.X1Points=X1Points;
-   TD1.X2Points=X2Points;
-   TD1.X3Points=X3Points;
-   TD1.N1=N1;
-   TD1.N2=N2;
-   TD1.N3=N3;
-   TD1.X1Min=X1Min;
-   TD1.X2Min=X2Min;
-   TD1.X3Min=X3Min;
-   TD1.DX1=DX1;
-   TD1.DX2=DX2;
-   TD1.DX3=DX3;
-   TD1.nFun=nFun;
-   TD1.PhiFunc=PhiFunc;
-   TD1.UserData=UserData;
-   TD1.PhiVDTable=PhiVDTable;
-   TD1.nThread=nThread;
+      if (LogLevel >= LMDI_LOGLEVEL_VERBOSE)
+       Log("Computing user function at grid points (%i threads)",TD1.nThread);
 
 #ifdef USE_OPENMP
-   if (LogLevel >= LMDI_LOGLEVEL_VERBOSE)
-    Log("launching %i openmp threads...",nThread);
-#pragma omp parallel for firstprivate(TD1), schedule(static,1), num_threads(nThread)
-   for(int nt=0; nt<nThread; nt++)
-    {
-      ThreadData *TD=&TD1;
-      TD->nt=nt;
-      GetPhiVD_Thread((void *)TD);
-    };
-#elif USE_PTHREAD
-   /*--------------------------------------------------------------*/ 
-   /*- launch threads ---------------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
-   ThreadData *TDs = new ThreadData[nThread], *TD;
-   pthread_t *Threads = new pthread_t[nThread];
-   if (LogLevel >= LMDI_LOGLEVEL_VERBOSE)
-    Log("launching %i pthreads...",nThread);
-   for(int nt=0; nt<nThread; nt++)
-    {
-      TD=&(TDs[nt]);
-      *TD = TD1;
-      TD->nt=nt;
-      if (nt+1 == nThread)
-	GetPhiVD_Thread((void *)TD);
-      else
-	pthread_create( &(Threads[nt]), 0, GetPhiVD_Thread, (void *)TD);
-    };
-   /*--------------------------------------------------------------*/
-   /*- wait for threads to terminate ------------------------------*/
-   /*--------------------------------------------------------------*/ 
-   for(int nt=0; nt<nThread-1; nt++)
-    pthread_join(Threads[nt],0);
-
-   delete[] Threads;
-   delete[] TDs;
-#else
-  TD1.nThread=1;
-  GetPhiVD_Thread((void *)&TD1);
+#pragma omp parallel for firstprivate(TD1), schedule(static,1), num_threads(TD1.nThread)
 #endif
- 
+      for(int nt=0; nt<TD1.nThread; nt++)
+       {
+         ThreadData *TD=&TD1;
+         TD->nt=nt;
+         GetPhiVD_Thread((void *)TD);
+       };
+
+    }; // if (PhiVDTable==0)
 
    /*--------------------------------------------------------------*/
    /*- construct the matrix whose inverse maps a vector of        -*/
@@ -511,19 +495,12 @@ void Interp3D::InitInterp3D(Phi3D PhiFunc, void *UserData)
    /*--------------------------------------------------------------*/
    delete C;
    delete M;
-   free(PhiVDTable);
+   if (OwnsPhiVDTable)
+    free(PhiVDTable);
    if (LogLevel >= LMDI_LOGLEVEL_TERSE)
     Log("...interpolation table constructed!");
 
 }  
-
-/****************************************************************/
-/****************************************************************/
-/****************************************************************/
-void Interp3D::ReInitialize(Phi3D PhiFunc, void *UserData)
-{ 
-  InitInterp3D(PhiFunc, UserData);
-}
 
 /****************************************************************/
 /* class constructor 3: construct the class from a data file    */

@@ -436,9 +436,10 @@ void RWGSurface::WritePPMeshLabels(const char *FileName,
       fprintf(f,"View \"%s.ExteriorEdges\" {\n",Tag);
      else
       fprintf(f,"View \"ExteriorEdges\" {\n");
-     for(ne=0, E=ExteriorEdges[0]; ne<NumExteriorEdges; E=ExteriorEdges[++ne])
-      fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",
-                 E->Centroid[0],E->Centroid[1],E->Centroid[2],-(E->Index+1));
+     if (NumExteriorEdges>0) 
+      for(ne=0, E=ExteriorEdges[0]; ne<NumExteriorEdges; E=ExteriorEdges[++ne])
+       fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",
+                  E->Centroid[0],E->Centroid[1],E->Centroid[2],-(E->Index+1));
      fprintf(f,"};\n");
      fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
      fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");

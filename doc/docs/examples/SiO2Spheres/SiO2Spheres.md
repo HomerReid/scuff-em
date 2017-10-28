@@ -162,5 +162,6 @@ code referenced above).
 --------------------------------------------------
 
 [scuff-neq]:              ../../applications/scuff-neq/scuff-neq.md
+[scuffIntegrate]:         ../../applications/scuff-integrate/scuff-integrate.md
 [Transformations]:        ../../reference/Transformations
 [KruegerPaper]:           http://dx.doi.org/10.1103/PhysRevB.86.115423

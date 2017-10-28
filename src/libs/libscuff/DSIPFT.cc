@@ -432,22 +432,6 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
   return Sum;
 }
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-double AutodetectDSIRadius(RWGGeometry *G, GTransformation *GT1, GTransformation *GT2)
-{
-  double X0[3]={0.0, 0.0, 0.0};
-  if (GT1) GT1->Apply(X0);
-  if (GT2) GT2->Apply(X0);
-  double Radius=0.0;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
-    { double *XP=G->Surfaces[ns]->Panels[np]->Centroid;
-      Radius = fmax(Radius, VecDistance(X0, XP));
-    };
-  return 1.5*Radius;
-}
 
 /***************************************************************/
 /* Get power, force, and torque by the displaced               */
@@ -460,12 +444,6 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                GTransformation *GT1, GTransformation *GT2)
 {
   (void) FarField;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (DSIRadius==0.0)
-   DSIRadius = AutodetectDSIRadius(G, GT1, GT2);
 
   /***************************************************************/
   /***************************************************************/
@@ -616,9 +594,6 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   (void) FarField;
   (void) PlotFileName;
   (void) NeedQuantity;
-
-  if (DSIRadius==0.0)
-   DSIRadius = AutodetectDSIRadius(G, GT1, GT2);
 
   /***************************************************************/
   /***************************************************************/

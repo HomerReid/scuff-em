@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *TransFile=0;
+  char *SourceObject=0;
+  char *DestObject=0;
 
   /*--------------------------------------------------------------*/
   char *EPFile=0;
@@ -76,6 +78,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   bool EMTPFT      = false;
   bool OPFT        = false;
+  bool DSIPFT      = false;
   int DSIPoints    = 0;
   int DSIPoints2   = 0;
   char *DSIMesh    = 0;
@@ -100,6 +103,9 @@ int main(int argc, char *argv[])
    { 
      {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
+/**/
+     {"SourceObject",   PA_STRING,  1, 1,       (void *)&SourceObject, 0,           "label of source object"},
+     {"DestObject",     PA_STRING,  1, 1,       (void *)&DestObject, 0,             "label of destination object"},
 /**/     
      {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile, 0,             "list of evaluation points for spatially-resolved flux"},
 /**/     
@@ -112,12 +118,13 @@ int main(int argc, char *argv[])
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
      {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms,   0,             "write spatially-resolved flux data"},
 /**/
-     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,     0,            "compute SIFlux using EMT method"},
+     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,     0,             "compute SIFlux using EMT method"},
      {"OPFT",           PA_BOOL,    0, 1,       (void *)&OPFT,       0,             "compute SIFlux using overlap method"},
-     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of cubature points for DSIPFT"},
+     {"DSIPFT",         PA_BOOL,    0, 1,       (void *)&DSIPFT,     0,             "compute SIFlux using displaced surface integral method"},
+     {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
+     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of cubature points for DSIPFT over sphere (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
      {"DSIPoints2",     PA_INT,     1, 1,       (void *)&DSIPoints2, 0,             "number of cubature points for DSIPFT second opinion"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
-     {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
      {"DSIOmegaFile",   PA_STRING,  1, 1,       (void *)&DSIOmegaFile,  0,          "list of frequencies at which to perform DSI calculations"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
@@ -138,6 +145,9 @@ int main(int argc, char *argv[])
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
+
+  if (DSIPFT && DSIPoints==0)
+   DSIPoints=230;
 
   /*******************************************************************/
   /* determine which PFT methods were requested       ****************/
@@ -221,6 +231,21 @@ int main(int argc, char *argv[])
    ErrExit("--OmegaKBPoints may only be used with extended geometries");
   else if (G->LBasis && !OmegaKBPoints==0)
    ErrExit("--OmegaKBPoints is required for extended geometries");
+
+  SNEQD->SourceOnly=-1;
+  if (SourceObject)
+   { G->GetSurfaceByLabel(SourceObject, &(SNEQD->SourceOnly) );
+     if (SNEQD->SourceOnly)
+      ErrExit("geometry contains no object with label %s",SourceObject);
+     Log("Computing only quantities sourced by object %s.",SourceObject);
+   };
+  SNEQD->DestOnly=-1;
+  if (DestObject)
+   { G->GetSurfaceByLabel(DestObject, &(SNEQD->DestOnly) );
+     if (SNEQD->DestOnly)
+      ErrExit("geometry contains no object with label %s",DestObject);
+     Log("Computing only PFT quantities for object %s.",DestObject);
+   };
          
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */

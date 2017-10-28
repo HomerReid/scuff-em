@@ -53,7 +53,7 @@ public:
 
      void Reset(); // reset to identity transformation
 
-     void Displace(const double dx[3]);
+     void Displace(const double dx[3], const double Scale=1.0);
      void Rotate(const double ZHat[3], double ThetaDegrees);
      //void Mirror(int Axis);
 
