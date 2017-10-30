@@ -148,9 +148,25 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->NX        = 0; 
   SNEQD->NumSRQs   = 0;
   if (EPFile)
-   { SNEQD->SRXMatrix = new HMatrix(EPFile);
-     if (SNEQD->SRXMatrix->ErrMsg)
-      ErrExit(SNEQD->SRXMatrix->ErrMsg);
+   { 
+     // if the EPFile has extension .msh, attempt to
+     // read it in as a GMSH msh and take the vertices as
+     // the eval-point coordinates
+     if(!strcasecmp(GetFileExtension(EPFile),"msh"))
+      { RWGSurface *S=new RWGSurface(EPFile);
+        if(S->ErrMsg) ErrExit(S->ErrMsg);
+        SNEQD->SRXMatrix = new HMatrix(S->NumVertices, 3);
+        for(int nv=0; nv<S->NumVertices; nv++)
+         SNEQD->SRXMatrix->SetEntriesD(nv,"0:2",S->Vertices + 3*nv);
+        Log("Read %i SR eval points from mesh %s",S->NumVertices,EPFile);
+        delete S;
+      }
+     else
+      {
+        SNEQD->SRXMatrix = new HMatrix(EPFile);
+        if (SNEQD->SRXMatrix->ErrMsg)
+         ErrExit(SNEQD->SRXMatrix->ErrMsg); 
+      }
      int NX = SNEQD->NX = SNEQD->SRXMatrix->NR;
      SNEQD->NumSRQs = NT*NS*NX*NUMSRFLUX;
      SNEQD->SRFMatrix = new HMatrix(NX, NUMSRFLUX);

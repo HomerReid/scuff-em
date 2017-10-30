@@ -44,7 +44,7 @@ noinst_PROGRAMS = tFullWaveSubstrate tSubstrateEEIs tInterpolation tGTwiddle tSu
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
 
-tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc
+tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc bTwiddle.cc
 tSubstrateEEIs_LDADD = libSubstrate.la ../libscuff/libscuff.la
 
 tSubstrateFields_SOURCES = tSubstrateFields.cc GetSubstrateFields_SpectralInner.cc

@@ -286,15 +286,16 @@ void LayeredSubstrate::Getg0112(cdouble Omega, double qMag,
                                 HMatrix *STwiddle, HMatrix *g0112[4])
 {
   // qx=qMag, qy=0
-  HMatrix GT10(6,6,LHM_COMPLEX);
+  cdouble GTBuf[3*36];
+  HMatrix GT10(6,6,LHM_COMPLEX, GTBuf+0);
   GetScriptGTwiddle(Omega, qMag,       0.0,        zDest, zSource, RTwiddle, WMatrix, STwiddle, &GT10);
 
   // qx=qMag/sqrt[2], qy=qMag/sqrt[2]
-  HMatrix GT11(6,6,LHM_COMPLEX);
+  HMatrix GT11(6,6,LHM_COMPLEX, GTBuf+36);
   GetScriptGTwiddle(Omega, qMag/SQRT2, qMag/SQRT2, zDest, zSource, RTwiddle, WMatrix, STwiddle, &GT11);
 
   // qx=0, qy=qMag
-  HMatrix GT01(6,6,LHM_COMPLEX);
+  HMatrix GT01(6,6,LHM_COMPLEX, GTBuf+72);
   GetScriptGTwiddle(Omega, 0.0,        qMag,       zDest, zSource, RTwiddle, WMatrix, STwiddle, &GT01);
 
   HMatrix *g0 = g0112[0], *g1x=g0112[1], *g1y=g0112[2], *g2=g0112[3];
@@ -459,10 +460,11 @@ void qFunctionSC(LayeredSubstrate *Substrate,
      double zSource  = XMatrix->GetEntryD(nx,5);
 
      // fetch scalar quantities
-     HMatrix g0(6, 6, LHM_COMPLEX);
-     HMatrix g1x(6, 6, LHM_COMPLEX);
-     HMatrix g1y(6, 6, LHM_COMPLEX);
-     HMatrix g2(6, 6, LHM_COMPLEX);
+     cdouble gBuf[4*36];
+     HMatrix g0( 6, 6, LHM_COMPLEX, gBuf +  0  );
+     HMatrix g1x(6, 6, LHM_COMPLEX, gBuf + 36  );
+     HMatrix g1y(6, 6, LHM_COMPLEX, gBuf + 72  );
+     HMatrix g2( 6, 6, LHM_COMPLEX, gBuf + 108 );
      HMatrix *g0112[4];
      g0112[0]=&g0;
      g0112[1]=&g1x;

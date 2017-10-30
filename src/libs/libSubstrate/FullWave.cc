@@ -104,13 +104,13 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
   for(int nx=0; nx<XMatrix->NR; nx++)
    {
      double XD[6], *XS=XD+3;
-     XMatrix->GetEntriesD(nx,":",XD);
+     XMatrix->GetEntriesD(nx,"0:5",XD);
 
      cdouble ScriptG[6][6];
      GetSubstrateDGF_StaticLimit(Omega, XD, XS, ScriptG);
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
-       GMatrix->SetEntry(nx, 6*Mu+Nu, ScriptG[Mu][Nu] );
+       GMatrix->SetEntry(6*Mu+Nu, nx, ScriptG[Mu][Nu] );
    };
 }
 
@@ -128,13 +128,13 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if ( GMatrix && (GMatrix->NR!=NX || GMatrix->NC!=36) )
-   { Warn("wrong-size GMatrix passed to GetSubstrateDGF: (%i,%i)!=(%i,%i) reallocating...",GMatrix->NR,GMatrix->NC,NX,36);
+  if ( GMatrix && (GMatrix->NR!=36 || GMatrix->NC!=NX) )
+   { Warn("wrong-size GMatrix passed to GetSubstrateDGF: (%i,%i)!=(%i,%i) reallocating...",GMatrix->NR,GMatrix->NC,36,NX);
      delete GMatrix;
      GMatrix=0;
    };
   if (GMatrix==0)
-   GMatrix = new HMatrix(NX, 36, LHM_COMPLEX);
+   GMatrix = new HMatrix(36, NX, LHM_COMPLEX);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -182,17 +182,18 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
 void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
                                        double XD[3], double XS[3],
                                        cdouble ScriptG[6][6], DGFMethod Method)
-{ double XBuffer[6];
-  HMatrix XMatrix(1,6,LHM_REAL,XBuffer); 
+{ 
+  double XBuffer[6];
+  HMatrix XMatrix(1,6,LHM_REAL,XBuffer);
   XMatrix.SetEntriesD(0,"0:2",XD);
   XMatrix.SetEntriesD(0,"3:5",XS);
 
   cdouble GBuffer[36];
-  HMatrix GMatrix(1,36,LHM_COMPLEX,GBuffer);
+  HMatrix GMatrix(36,1,LHM_COMPLEX,GBuffer);
 
   GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method);
 
   for(int Mu=0; Mu<6; Mu++)
    for(int Nu=0; Nu<6; Nu++)
-    ScriptG[Mu][Nu] = GMatrix.GetEntry(Mu,Nu);  
+    ScriptG[Mu][Nu] = GMatrix.GetEntry(6*Mu + Nu,0);  
 }

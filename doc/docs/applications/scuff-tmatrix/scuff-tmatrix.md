@@ -9,36 +9,36 @@ the object with a single *regular* spherical wave.
 
 <span class="SC">scuff-tmatrix</span> is a specialized tool within
 the <span class="SC">scuff-em</span> code suite for computing the
-*T-*matrix of arbitrarily-shaped objects with arbitrary
+*T*-matrix of arbitrarily-shaped objects with arbitrary
 frequency-dependent material properties.
 
 To compute the *T-*matrix of an object (or a collection of objects)
-using <span class="SC">scuff-scatter,</span> you will
+using <span class="SC">scuff-tmatrix,</span> you will
 
 1.  create a [geometry file](../../reference/scuffEMGeometries.shtml)
     describing the shapes and material properties of the scattering
     objects in your geometry;
 
 2.  run <span class="SC">scuff-tmatrix</span> with command-line
-    options specifying the geometry, the maximum *l-*value of the
-    spherical wave to consider (i.e. the dimension of the *T-*matrix to
-    compute), and the frequency range over which to run computations.
+    options specifying the geometry, the maximum $\ell$ value of the
+    spherical wave to consider (which determines the dimension of the 
+    computed *T-*matrix), and the frequency range over which to run computations.
 
 You will get back
 
-1.  a text file listing all *T-*matrix elements (with *l-*values up to
-    the maximum *l-*value you specified) at all frequencies you
+1.  a text file listing all *T-*matrix elements (with $\ell$-values up to
+    the maximum $\ell-$value you specified) at all frequencies you
     requested, and
 
 2.  optionally, a binary `.HDF5` file containing the *T-*matrix data
     together with simple scripts for importing the data into 
-    <span class="SC">matlab.</span>
+    <span class="SC">julia.</span>
 
 +--------------------------------------------------------------------------+
 | Table Of Contents                                                        |
 +==========================================================================+
 | [1. <span class="SC">scuff-tmatrix</span> Command-Line             |
-| Options](scuff-EM/scuff-tmatrix/index.shtml#Options)                     |
+| Options](scuff-tmatrix.md#Options)                                       |
 +--------------------------------------------------------------------------+
 | [2. <span class="SC">scuff-tmatrix</span> Output                   |
 | Files](scuff-EM/scuff-tmatrix/index.shtml#OutputFiles)                   |
@@ -53,8 +53,6 @@ You will get back
 | [4. Reading T-Matrix data into <span                                     |
 | class="SC">julia</span>](scuff-EM/scuff-tmatrix/index.shtml#Julia) |
 +--------------------------------------------------------------------------+
-
-\
 
 # 1. <span class="SC">scuff-tmatrix</span> Command-Line Options
 ------------------------------------------------------------------------

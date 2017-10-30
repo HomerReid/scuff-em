@@ -187,7 +187,7 @@ void LayeredSubstrate::qIntegrate(cdouble Omega,
      Data->q0          = kLayer->GetEntryD(NumLayers-1,0);
      memset(Times,0,NUMTIMES*sizeof(double));
 
-     hcubature(2*IDim, qIntegrand, (void *)Data, IDim,
+     hcubature(2*FDim, qIntegrand, (void *)Data, IDim,
                Lower, Upper, qMaxEval, qAbsTol, qRelTol,
                ERROR_PAIRED, (double *)IPartial, (double *)Error);
      VecPlusEquals(Integral, 1.0, IPartial, FDim);

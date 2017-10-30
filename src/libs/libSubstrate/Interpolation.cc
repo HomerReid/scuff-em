@@ -228,7 +228,7 @@ void LayeredSubstrate::InitAccelerator1D(cdouble Omega,
      XMatrix->SetEntry(nx, 2, z);
      XMatrix->SetEntry(nx, 5, z);
    };
-  HMatrix *GMatrix= new HMatrix(NGrid, 36, LHM_COMPLEX);
+  HMatrix *GMatrix= new HMatrix(36, NGrid, LHM_COMPLEX);
 
   Log(" computing DGF at %i points...",NGrid);
   GetSubstrateDGF(Omega, XMatrix, GMatrix);
@@ -242,25 +242,27 @@ void LayeredSubstrate::InitAccelerator1D(cdouble Omega,
   cdouble *YPoints = (cdouble *)mallocEC(NGrid*nzFun*sizeof(cdouble));
   for(int nx=0, ny=0; nx<NGrid; nx++)
    { 
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+0)*6 + (0+0) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+1)*6 + (0+1) );
+     cdouble *Gij = (cdouble *)GMatrix->GetColumnPointer(nx);
+
+     YPoints[ny++] = Gij[ (0+0)*6 + (0+0) ];
+     YPoints[ny++] = Gij[ (0+1)*6 + (0+1) ];
      if (nzFun==2) continue;
 
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+0)*6 + (0+2) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+2)*6 + (0+0) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+2)*6 + (0+2) );
+     YPoints[ny++] = Gij[ (0+0)*6 + (0+2) ];
+     YPoints[ny++] = Gij[ (0+2)*6 + (0+0) ];
+     YPoints[ny++] = Gij[ (0+2)*6 + (0+2) ];
      if (nzFun==5) continue;
 
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+0)*6 + (3+1) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+0)*6 + (3+2) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+2)*6 + (3+0) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (0+2)*6 + (3+1) );
+     YPoints[ny++] = Gij[ (0+0)*6 + (3+1) ];
+     YPoints[ny++] = Gij[ (0+0)*6 + (3+2) ];
+     YPoints[ny++] = Gij[ (0+2)*6 + (3+0) ];
+     YPoints[ny++] = Gij[ (0+2)*6 + (3+1) ];
 
-     YPoints[ny++] = GMatrix->GetEntry(nx, (3+0)*6 + (3+0) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (3+1)*6 + (3+1) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (3+0)*6 + (3+2) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (3+2)*6 + (3+0) );
-     YPoints[ny++] = GMatrix->GetEntry(nx, (3+2)*6 + (3+2) );
+     YPoints[ny++] = Gij[ (3+0)*6 + (3+0) ];
+     YPoints[ny++] = Gij[ (3+1)*6 + (3+1) ];
+     YPoints[ny++] = Gij[ (3+0)*6 + (3+2) ];
+     YPoints[ny++] = Gij[ (3+2)*6 + (3+0) ];
+     YPoints[ny++] = Gij[ (3+2)*6 + (3+2) ];
    };
 
   I1D= new Interp1D(XPoints, (double *)YPoints, NGrid, 2*nzFun, LMDI_LOGLEVEL_VERBOSE);
@@ -491,7 +493,7 @@ bool LayeredSubstrate::GetSubstrateDGF_Interp(cdouble Omega, HMatrix *XMatrix, H
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   int NX=XMatrix->NR;
-  if (GMatrix->NR!=NX || GMatrix->NC!=36)
+  if (GMatrix->NR!=36 || GMatrix->NC!=NX)
    ErrExit("%s:%i: internal error (%i,%i)",__FILE__,__LINE__,
             GMatrix->NR, GMatrix->NC);
  
@@ -505,9 +507,9 @@ bool LayeredSubstrate::GetSubstrateDGF_Interp(cdouble Omega, HMatrix *XMatrix, H
 
      cdouble Gij[6][6];
      if ( GetSubstrateDGF_Interp1D(Omega, XDS+0, XDS+3, Gij) )
-      GMatrix->SetEntries(nx, ":", (cdouble *)Gij); 
+      GMatrix->SetEntries(":", nx, (cdouble *)Gij); 
      else if ( GetSubstrateDGF_Interp3D(Omega, XDS+0, XDS+3, Gij) )
-      GMatrix->SetEntries(nx, ":", (cdouble *)Gij); 
+      GMatrix->SetEntries(":", nx, (cdouble *)Gij); 
      else
       { Log("...failed! ");
         return false;
