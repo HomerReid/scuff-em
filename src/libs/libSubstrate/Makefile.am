@@ -37,24 +37,23 @@ OTHER_LIBS=                      \
  ../libSGJC/libSGJC.la           \
  ../libSpherical/libSpherical.la \
  ../libhrutil/libhrutil.la
-
-
-noinst_PROGRAMS = tFullWaveSubstrate tSubstrateEEIs tInterpolation tGTwiddle tSubstrateFields tbTwiddle
-
-tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
-tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc bTwiddle.cc
-tSubstrateEEIs_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tSubstrateFields_SOURCES = tSubstrateFields.cc GetSubstrateFields_SpectralInner.cc
-tSubstrateFields_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tInterpolation_SOURCES = tInterpolation.cc
-tInterpolation_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tGTwiddle_SOURCES = tGTwiddle.cc
-tGTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tbTwiddle_SOURCES = tbTwiddle.cc bTwiddle.cc
-tbTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#noinst_PROGRAMS = tFullWaveSubstrate tSubstrateEEIs tInterpolation tGTwiddle tSubstrateFields tbTwiddle
+#
+#tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
+#tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc bTwiddle.cc
+#tSubstrateEEIs_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tSubstrateFields_SOURCES = tSubstrateFields.cc GetSubstrateFields_SpectralInner.cc
+#tSubstrateFields_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tInterpolation_SOURCES = tInterpolation.cc
+#tInterpolation_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tGTwiddle_SOURCES = tGTwiddle.cc
+#tGTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tbTwiddle_SOURCES = tbTwiddle.cc bTwiddle.cc
+#tbTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
