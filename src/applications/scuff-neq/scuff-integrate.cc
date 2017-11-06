@@ -228,6 +228,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* process command-line arguments ******************************/
   /***************************************************************/
+  RWGGeometry *G=0;
   char *DataFileName=0;
   int FreqColumn=1;
   int DataColumns[MAXDATA];         int nDataColumns=0;

@@ -1,0 +1,5 @@
+MESHPATH ../mshFiles
+
+OBJECT Sphere
+	MESHFILE Sphere_1362.msh
+ENDOBJECT

@@ -468,8 +468,8 @@ file).
 For example, here's a `TemperatureFile` for a two-body
 geometry in which we request data for 
 the first body held at temperatures of $T_1=\{50,100,150\}$ K
-with the second body held fixed at $T_2=\{100\}$ K and the 
-environment kept at $T_{\hbox{\scriptsize{env}}}=0$ K
+with the second body held fixed at $T_2=100 $ K and the 
+environment kept at $T_{\text{env}}=0$ K
 (temperatures are always specified in units of Kelvin):
 
 ```bash

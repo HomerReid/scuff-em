@@ -27,14 +27,14 @@ from a source body $s$ to a destination body $d$
 by integrating contributions from real frequencies $\omega$:
 
 <!--%====================================================================%-->
-$$ Q^{s\rightarrow d}
+$$ Q_{s\rightarrow d}
    = \int_0^\infty
      \Big[ \Theta(T_s,\omega) - \Theta(T_\text{env},\omega) \Big]
-     \Phi^{s\rightarrow d}(\omega) \, d\omega
+     \Phi_{s\rightarrow d}(\omega) \, d\omega
    \qquad (1)
 $$
 <!--%====================================================================%-->
-Here $Q^{s\rightarrow d}$ is the contribution of body $s$ to
+Here $Q_{s\rightarrow d}$ is the contribution of body $s$ to
 quantity $Q$ (a heat-transfer rate, force, or torque) for body $d$,
 $\Theta(T,\omega)=\frac{\hbar\omega}{e^{\hbar\omega/kT}-1}$
 is the Bose-Einstein statistical factor, $T_s$ and $T_\text{env}$
@@ -222,7 +222,7 @@ of sources in body $s$ to the power, force, and/or torque
 (PFT) on body $d$. (For example, lines for which this field reads
 `13` give contributions of body 1 to the PFT for body 3).
 The actual data quantities reported in the
-`.SIFlux` file are the generalized fluxes $\Phi^{s\rightarrow d}$
+`.SIFlux` file are the generalized fluxes $\Phi_{s\rightarrow d}$
 in equation (1) above, and to evaluate the $\omega$ integral
 here we need to know the temperatures of the environment
 and of all bodies in the geometry, which enter through 

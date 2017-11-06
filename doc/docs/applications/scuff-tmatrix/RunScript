@@ -1,0 +1,21 @@
+#!/bin/bash
+
+export BASE=`pwd`
+export SCUFF_MESH_PATH=${BASE}/mshFiles
+export SCUFF_GEO_PATH=${BASE}/scuffgeoFiles
+
+for N in 327 1362
+do
+  for MAT in PEC E10 E10M5
+  do
+  ARGS=""
+  ARGS="${ARGS} --geometry ${MAT}Sphere_${N}.scuffgeo"
+  ARGS="${ARGS} --OmegaFile ${BASE}/OmegaFile"
+  ARGS="${ARGS} --LMT 1 1  0 --LMT 1 1 1"
+  ARGS="${ARGS} --LMT 1 0  0 --LMT 1 0 1"
+  ARGS="${ARGS} --LMT 1 -1 0 --LMT 1 -1 1"
+  ARGS="${ARGS} --LMT 2 2  0 --LMT 2 2 1"
+  
+  tGetSphericalMoments ${ARGS}
+done
+done

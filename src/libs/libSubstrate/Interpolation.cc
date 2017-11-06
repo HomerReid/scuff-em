@@ -340,6 +340,7 @@ void LayeredSubstrate::InitAccelerator3D(cdouble Omega,
   /* number of nonzero components that must be stored per grid   */
   /* point                                                       */
   /***************************************************************/
+#if 0
   int nzFun;
   if (EEOnly && XYOnly)
    nzFun = 2;
@@ -347,6 +348,7 @@ void LayeredSubstrate::InitAccelerator3D(cdouble Omega,
    nzFun = 5;
   else
    nzFun = 14;
+#endif
   //int nFun = 2*nzFun; // 2 real-valued functions for each z-valued function
 
   /***************************************************************/

@@ -42,7 +42,8 @@
 #define POL_TM 1
 
 // methods for full-wave DGF computation
-enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT, PLANE_WAVE};
+enum DGFMethod {AUTO, FAST_SURFACE_CURRENT, FULL_SURFACE_CURRENT,
+                STATIC_LIMIT};
 
 #define LIBSUBSTRATE_NOLOGGING 0
 #define LIBSUBSTRATE_TERSE     1
@@ -130,8 +131,13 @@ public:
    void GetSubstrateDGF_StaticLimit(cdouble Omega, HMatrix *XMatrix,
                                     HMatrix *GMatrix);
 
-   void GetSubstrateDGF_SurfaceCurrent(cdouble Omega, HMatrix *XMatrix,
-                                       HMatrix *GMatrix);
+   void GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
+                                           HMatrix *XMatrix,
+                                           HMatrix *GMatrix);
+
+   void GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
+                                           HMatrix *XMatrix,
+                                           HMatrix *GMatrix);
 
    /*--------------------------------------------------------------*/
    /* general-purpose routine for evaluating q (Fourier) integrals */
@@ -184,18 +190,8 @@ public:
 
    void GetScriptGTwiddle(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
-                          HMatrix *RTwiddleg, HMatrix *WMatrix, 
+                          HMatrix *RTwiddle, HMatrix *WMatrix,
                           HMatrix *STwiddle, HMatrix *GTwiddle);
-
-   void GetScriptGTwiddle(cdouble Omega, double qx, double qy,
-                          double zDest, double zSource,
-                          HMatrix *RTwiddleg, HMatrix *WMatrix, 
-                          HMatrix *STwiddle, HMatrix *GTwiddle);
-
-   void Getg0112(cdouble Omega, double qMag,
-                 double zDest, double zSource,
-                 HMatrix *RTwiddleg, HMatrix *WMatrix, 
-                 HMatrix *STwiddle, HMatrix *g012[4]);
 
    void RotateG(cdouble Gij[6][6], double Phi);
    void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);

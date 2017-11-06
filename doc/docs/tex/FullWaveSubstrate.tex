@@ -47,7 +47,7 @@
 
 In a 
 previous memo\footnote{``Implicit handling of multilayered dielectric
-substrates in -wave {\sc scuff-static}''} I
+substrates in {\sc scuff-static}''} I
 considered {\sc scuff-static} electrostatics calculations
 in the presence of a multilayered dielectric substrate.
 In this memo I extend that discussion to the case of
@@ -108,7 +108,8 @@ in {\sc scuff-em} boils down to a two-step process:
        The quantity $\bmc G(\vb x, \vb x^\prime)$
        describes the fields at $\vb x$ due to
        point sources at $\vb x^\prime$, including
-       both the direct vacuum contributions ($\bmc G^0$)
+       both the direct contributions that are present
+       in the absence of the substrate ($\bmc G^0$)
        and the contributions due to scattering from the
        substrate $(\bmc G\sups{subs}).$
  \item Incorporate the substrate DGF correction $\bmc G\sups{subs}$ into
@@ -139,14 +140,14 @@ My calculation of $\bmc G\sups{subs}$ proceeds in two stages:
        I consider two separate ways of doing this:
        %====================================================================%
        \begin{itemize}
-         \item By using surface-integral-equation methods to solve
-               a scattering problem to determine effective 
-               surface-current densities induced on material interfaces
-               by radiating point sources (Section \ref{SurfaceCurrentSection}).
          \item By resolving the fields radiated by point sources
                into superpositions of plane waves, then considering the 
                reflection of each individual plane wave from the 
                multilayer substrate (Section \ref{PlaneWaveSection}).
+         \item By using surface-integral-equation methods to solve
+               a scattering problem to determine effective 
+               surface-current densities induced on material interfaces
+               by radiating point sources (Section \ref{SurfaceCurrentSection}).
        \end{itemize}
        %====================================================================%
          
@@ -157,20 +158,498 @@ My calculation of $\bmc G\sups{subs}$ proceeds in two stages:
        This calculation proceeds in two stages:
        \begin{itemize}
          \item Use the known structure of $\wt{\bmc G}(\vb q)$
-               to reduce 2D integrals over $\vb q$ to 1D integrals over $q_z$
+               to reduce 2D integrals over $\vb q$ to 1D integrals over $q=|\vb q|$
                (Section \ref{TwoDToOneDSection}).
          \item Devise numerical quadrature methods for evaluating the
-               $q_z$ integrals, including efficient and accurate handling
+               $q$ integrals, including efficient and accurate handling
                of integrable singularities and undamped oscillatory integrands
                (Section \ref{OneDIntegralSection}).
        \end{itemize}
 \end{itemize}
 %====================================================================%
 
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\newpage
+\subsection{Derivation of momentum-space DGF, take 1: Plane-wave (Fresnel) scattering picture)}
+\label{PlaneWaveSection}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{MultilayerSubstrateWithPlaneWaves.pdf}}
+\caption{Plane-wave-decomposition strategy for handling 
+multilayer substrate. The fields radiated by a point source (blue)
+above the substrate are decomposed as a superposition of
+upward- and downward-traveling plane waves, including 
+both TE- and TM-polarized waves. The downward-traveling waves
+are reflected at the substrate surface with the usual
+polarization-dependent Fresnel reflection coefficients $r\subt{TE,TM}$,
+and the fields contributed by these reflected waves
+yield the correction to the free-space Green's function
+substrate.
+}
+\label{PlaneWaveFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+
+One way of computing the substrate DGF 
+correction, cartooned in Figure \ref{PlaneWaveFigure}, is
+to think of the fields radiated by a point source above
+the substrate (blue) as a superposition of 
+plane waves, including both TE- and TM-polarized
+plane waves (red). The upward-traveling waves radiated by the 
+source ($\vb E^+\subt{TE,TM}$) simply radiate away to 
+infinity and do not interact with the substrate, but the
+downward-traveling waves
+($\vb E^-\subt{TE,TM}$) reflect from the substrate 
+with polarization-dependent reflection coefficients
+$r\subt{TE,TM}$ to yield upward-traveling waves (purple)
+which constitute the substrate correction to the DGF.
+
+An advantage of this approach is that it subsumes all details
+of the substrate into the reflection coefficients $r\subt{TE,TM}$.
+For simple substrates consisting of one or more homogeneous
+isotropic material layers these are easily computed in closed
+form, but the DGF approach here is more general and extends
+easily to cases involving anisotropic, birefringent, and/or
+chiral media (in which case the usual TE$\to$TE and TM$\to$TM
+reflections may be augmented by polarization-mixing terms) and 
+even inhomogeneous substrates of arbitrary complexity for which
+the reflection coefficients are known empirically.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Derivation of momentum-space DGF, take 1: Effective surface-current picture}
+\subsubsection{Plane-wave decomposition of point-source fields}
+
+Note: In what follows,
+$\vb q=(q_x,q_y)$ is a \textit{two-dimensional} vector and we
+have\footnote{More generally, the symbol $\pm$ here should be understood
+as $\text{sign}(z\subt{D} - z\subt{S})$, i.e. it is positive (negative) when the evaluation 
+point lies above (below) the source point.}
+%====================================================================%
+$$ q_z \equiv \sqrt{k^2 - |\vb q|^2}, 
+%--------------------------------------------------------------------%
+   \qquad
+%--------------------------------------------------------------------%
+   \vb q\supt{3D}\equiv
+   \left(\begin{array}{c}q_x \\ q_y \\ \pm q_z \end{array}\right), 
+%--------------------------------------------------------------------%
+   \qquad
+%--------------------------------------------------------------------%
+   \pm \equiv
+   \begin{cases}
+     +, \quad & z\ge 0 \\ 
+     -, \quad & z<   0
+   \end{cases}.
+$$
+%====================================================================%
+For arbitrary $\vb q$ I define generalized\footnote{These 
+are ``generalized'' plane waves in the sense that $q_z$ is 
+imaginary for sufficiently large $\vb q$, in which case the 
+waves are evanescent.} transverse-electric and
+transverse-magnetic plane waves propagating with wavevector
+$\vb q\supt{3D}$:
+%====================================================================%
+$$\begin{array}{ccccccc}
+ \vb E^{\pm} \subt{TE}(\vb x; k; \vb q)
+   &\equiv& E_0 \vb P(\vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
+   &\qquad&
+ \vb H^{\pm} \subt{TE}(\vb x; k; \vb q)
+   &\equiv& H_0 \overline{\vb P}(k, \vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
+\\[8pt]
+%--------------------------------------------------------------------%
+ \vb E^{\pm} \subt{TM}(\vb x; k; \vb q)
+   &\equiv& -E_0 \overline{\vb P}(k,\vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
+   &\qquad&
+ \vb H^{\pm} \subt{TM}(\vb x; k; \vb q)
+   &\equiv& H_0 \vb P(\vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
+\end{array}$$
+%====================================================================%
+$$ \vb x=(\vbrho, z),
+   \qquad
+   E_0 \equiv 1 \text{ volt/$\mu$m}, \qquad H_0\equiv \frac{E_0}{Z_0}
+$$
+%====================================================================%
+where $\vb P$ and $\overline{\vb P}$ are unit-magnitude
+polarization vectors with the properties
+that \textbf{(1)} both $\vb P$ and $\overline{\vb P}$ are
+orthogonal to $\vb k\supt{3D}$, and
+\textbf{(2)} $\vb P$ is orthogonal to $\vbhat{z}$ (i.e. ``transverse'').
+%====================================================================%
+$$ \vb P(k, \vb q) \equiv
+   \frac{1}{|\vb q|}
+   \left(\begin{array}{c}-q_y \\ q_x \\ 0 \end{array}\right),
+   \qquad
+   \overline{\vb P}(k, \vb q) \equiv
+   \frac{1}{k}\Big[ \vb q\supt{3D} \times \vb P(\vb q) \Big]
+   =
+   \frac{1}{k |\vb q|}
+   \left(\begin{array}{c} \mp q_x q_z \\ \mp q_y q_z \\ q_x^2 + q_y^2 
+         \end{array}\right)
+$$
+%====================================================================%
+The trick is now to notice that the columns of the $3\times 3$ matrices
+in equation (\ref{GFourier}c,d) may be written as linear combinations of
+$\vb P$ and $\overline{\vb P}$. For example, the leftmost column
+of $\wt{\vb G}\pm$ is 
+%====================================================================%
+\numeq{gColumnDecomposition}
+{ \left(\begin{array}{c} \wt G_{xx} \\ \wt G_{yx} \\ \wt G_{zx}\end{array}\right)
+  =\frac{1}{k^2}
+   \left(\begin{array}{c}
+    k^2 - q_x^2 \\ -q_y q_x \\ \mp q_x q_z
+   \end{array}\right)
+   =
+     -\pf{q_y}{|\vb q|}
+     \vb P(\vb q)
+     \mp\pf{q_x q_z}{k|\vb q|}\overline{\vb P}(\vb q).
+}
+%====================================================================%
+The fields of an $\vbhat{x}$-directed point electric dipole 
+$\vb p_0=p_0\vbhat{x}$ living at $\vb x\subt{S}$ (for ``source''),
+evaluated at point $\vb x\subt{D}$ (for ``destination''), then read
+%====================================================================%
+\begin{align*}
+ \vb E\supt{E}\Big(\vb x\subt{D}; \{p_0\vbhat{x}, \vb x\subt{S}\}\Big)
+ &= ik Z\left(\begin{array}{c} G_{xx} \\ G_{yx} \\ G_{zx} \end{array}\right)
+    (-i\omega p_0)
+\\
+\intertext{Insert (\ref{GFourier}b):}
+ &= (-i\omega p_0) (ik Z)
+     \int \frac{d\vb q}{(2\pi)^2}
+     \frac{i}{2q_z}
+    \left(\begin{array}{c} \wt G^\pm_{xx} \\ \wt G^\pm_{yx} \\ \wt G^\pm_{zx} \end{array}\right)
+    e^{i\vb q\cdot(\vbrho\subt{D}-\vbrho\subt{S}) + iq_z(z\subt{D}+z\subt{S})}
+\\
+\intertext{Insert (\ref{gColumnDecomposition}):}
+ &\hspace{-1in}=
+ \frac{k^2 p_0}{\epsilon E_0}
+    \int \, \frac{d\vb q}{(2\pi)^2}
+    \bigg\{ 
+           \underbrace{\left(-\frac{iq_y}{2q_z |\vb q|}\right)}_{C^x\subt{TE}}
+           \vb E^\pm\subt{TE}(\vb x\subt{D}-\vb x\subt{S}; k; \vb q)
+           +\underbrace{\left(\mp\frac{iq_x}{2k|\vb q|}\right)}_{C^{x;\pm}\subt{TM}}
+          \vb E^\pm\subt{TM}(\vb x\subt{D}-\vb x\subt{S}; k; \vb q)
+    \bigg\}
+\end{align*}
+%====================================================================%
+Continuing to play this game for point sources of all possible
+orientations and expressing the results in terms of the generalized
+plane waves we defined earlier then yields a full plane-wave decomposition
+of the fields of point electric dipoles oriented in all 
+three Cartesian directions:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \vb E\supt{E}\Big(\vb x\subt{D}; \big\{p_0 \vbhat{x}, \vb x\subt{S} \big\}\Big)
+&=\pf{k^2 p_0}{\epsilon_0 E_0}
+ \int \frac{d \vb q}{(2\pi)^2} 
+   \bigg\{ C_{x}\supt{TE}(\vb q)
+           \vb E^\pm\subt{TE}\Big(\vb x\subt{D}-\vb x\subt{S}; k; \vb q\Big)
+          + 
+           C_{x;\pm}\supt{TM}(\vb q)
+           \vb E^\pm\subt{TM}\Big(\vb x\subt{D}-\vb x\subt{S}; k; \vb q\Big)
+   \bigg\}
+\\[5pt]
+%--------------------------------------------------------------------%
+ \vb E\supt{E}\Big(\vb x\subt{D}; \big\{p_0 \vbhat{y}, \vb x\subt{S} \big\}\Big)
+&=\pf{k^2 p_0}{\epsilon_0 E_0}
+ \int \frac{d \vb q}{(2\pi)^2} 
+   \bigg\{ C_{y}\supt{TE}(\vb q)
+           \vb E^\pm\subt{TE}\Big(\vb x\subt{D}-\vb x\subt{S}; k; \vb q\Big)
+          + 
+           C_{y;\pm}\supt{TM}(\vb q)
+           \vb E^\pm\subt{TM}\Big(\vb x\subt{D}-\vb x\subt{S}; k; \vb q\Big)
+   \bigg\}
+\\[5pt]
+%--------------------------------------------------------------------%
+ \vb E\supt{E}\Big(\vb x\subt{D}; \big\{p_0 \vbhat{z}, \vb x\subt{S} \big\}\Big)
+&=\pf{k^2 p_0}{\epsilon_0 E_0}
+ \int \frac{d \vb q}{(2\pi)^2} 
+   \bigg\{ C_{z}\supt{TE}(\vb q)
+           \vb E^\pm\subt{TE}\Big(\vb x\subt{D}-\vb x\subt{S}; k; \vb q\Big)
+          + 
+           C_{z}\supt{TM}(\vb q)
+           \vb E^\pm\subt{TM}\Big(\vb x\subt{D}-\vb x\subt{S}; k; \vb q\Big)
+   \bigg\}
+\end{align}
+\label{IncidentFieldsPWD}
+\end{subequations}
+%====================================================================%
+where the scalar coefficients are
+%====================================================================%
+$$\begin{array}{ccccccc}
+ \displaystyle{ C_{x}\supt{TE} }
+ &=& 
+  \displaystyle{ -\frac{ i q_y}{2|\vb q|q_z} }
+ &\qquad&
+ \displaystyle{ C_{x;\pm}\supt{TM} }
+ &=& 
+ \displaystyle{ \mp \frac{ i q_x }{2k |\vb q|} }
+\\[10pt]
+%--------------------------------------------------------------------%
+ \displaystyle{ C_{y}\supt{TE} }
+ &=& 
+  \displaystyle{ \frac{ i q_x}{2|\vb q|q_z} }
+ &\qquad&
+ \displaystyle{ C_{y;\pm}\supt{TM} }
+ &=& 
+ \displaystyle{ \mp \frac{ i q_y }{2k|\vb q|} }
+\\[10pt]
+%--------------------------------------------------------------------%
+ \displaystyle{ C_{z}\supt{TE} }
+ &=& 0
+ &\qquad&
+ \displaystyle{ C_{z}\supt{TM} }
+ &=& \displaystyle{ \frac{ i |\vb q|  }{2 k q_z} }.
+\end{array}$$
+%====================================================================%
+or, in vector form,
+%====================================================================%
+\numeq{CTETMP}
+{
+ \vb C\supt{TE}(k,\vb q)=-\frac{i}{2q_z}\vb P(k,\vb q),
+ \qquad
+ \vb C\supt{TM}(k,\vb q)=-\frac{i}{2q_z}\overline{\vb P}(k,\vb q).
+}
+%====================================================================%
+In these equations, the $\pm$ sign is $+$ for evaluation points 
+located above the source $(z>z_0)$ and $-$ for evaluation points
+located below the source. In particular, assuming the 
+source lies in the \textit{upper} half-space ($z_0>0$), 
+the fields impinging on a dielectric interface at $z=0$
+involve the $-$ sign.
+
+The units of the source-strength prefactor are
+($\text{C}$=charge, $\text{V}$=voltage, $\text{L}$=length)
+%====================================================================%
+\begin{align*}
+\left[\pf{k^2 p_0}{\epsilon_0 E_0}\right]
+&= \Big[k^2 p_0\Big]\Big[\epsilon_0\Big]^{-1} \Big[E_0\Big]^{-1} 
+\\
+&= \frac{\text{L}^{-2} \text{C}\cdot \text{L}}
+        {\text{C} \text{V}^{-1} \text{L}^{-1} \text{V} \text{L}^{-1}}
+\\
+&= \text{length}.
+\end{align*}
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Plane-wave decomposition of DGFs}
+
+The point of the above decomposition is that each downward-traveling
+plane wave radiated by a point source above a substrate
+is reflected from the substrate with
+the polarization-dependent reflection coefficients
+$r\subt{TE,TM}(k,\vb q)$ characteristic of the substrate,
+and thus the scattered fields are
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \vb E\sups{scat,x}(\vbrho,z)
+&=\pf{k^2 p_0}{\epsilon_0}
+   \int \frac{d\vb q}{(2\pi)^2}
+   \bigg\{   r\subt{TE}(\vb q) C_{x}\supt{TE}(\vb q) \vb P(\vb q)
+           + r\subt{TM}(\vb q) C_{x;-}\supt{TM}(\vb q) \overline{\vb P}(\vb q)
+    \bigg\}e^{i\vb q \cdot \vbrho +iq_z (z\subt{D}+z\subt{S})}
+\\
+  \vb E\sups{scat,y}(\vbrho, z)
+&=\pf{k^2 p_0}{\epsilon_0}
+    \int \frac{d \vb q}{(2\pi)^2} 
+    \bigg\{   r\subt{TE}(\vb q) C_{y}\supt{TE}(\vb q) \vb P(\vb q)
+           + r\subt{TM}(\vb q) C_{y;-}\supt{TM}(\vb q) \overline{\vb P}(\vb q)
+    \bigg\}e^{i\vb q \cdot \vbrho +iq_z (z\subt{D}+z\subt{S})}
+ \\
+  \vb E\sups{scat,z}(\vbrho, z)
+&=\pf{k^2 p_0}{\epsilon_0}
+    \int \frac{d \vb q}{(2\pi)^2} 
+    \bigg\{   r\subt{TE}(\vb q) C_{z}\supt{TE}(\vb q) \vb P(\vb q)
+            + r\subt{TM}(\vb q) C_{z;-}\supt{TM}(\vb q) \overline{\vb P}(\vb q)
+    \bigg\}e^{i\vb q \cdot \vbrho +iq_z (z\subt{D}+z\subt{S})}
+\end{align}
+\label{ScatteredFieldsPWD}%
+\end{subequations}
+%====================================================================%
+The substrate contribution to the electric-electric DGF is related to
+the scattered $\vb E$-field according to
+$\bmc G\supt{EE} = \frac{1}{-i\omega p_0}\vb E\sups{scat}$,
+or
+%====================================================================%
+\begin{subequations}
+\begin{align}
+  \mc G_{ij}\supt{EE}(\vbrho, z\subt{D},z\subt{S})
+&= ik Z\int \frac{d \vb q}{(2\pi)^2} 
+    \bigg\{   r\subt{TE}(\vb q) C^{j}\subt{TE}(\vb q) P_i(\vb q)
+            + r\subt{TM}(\vb q) C^{j;-}\subt{TM}(\vb q) \overline{P}_i(\vb q)
+    \bigg\}e^{i\vb q \cdot \vbrho +iq_z(z\subt{D}+z\subt{S})}
+\intertext{or, using (\ref{CTETMP}),}
+%====================================================================%
+&=\frac{kZ}{2}\int \frac{d\vb q}{(2\pi)^2 q_z}
+  \bigg\{  r\subt{TE}(\vb q) P_i(\vb q) P_j(\vb q)
+          +r\subt{TM}(\vb q) \overline{P}_i(\vb q) \overline{P}_j(\vb q)
+ \bigg\}e^{i\vb q \cdot \vbrho +iq_z(z\subt{D}+z\subt{S})}.
+\intertext{We get $G\supt{ME}$ by making the replacements
+           $\{P,\overline{P}\} \to \frac{1}{Z}\{\overline{P},-P\}$:
+          }
+ \mc G_{ij}\supt{ME}(\vbrho, z)
+&=\frac{k}{2}\int \frac{d\vb q}{(2\pi)^2 q_z}
+  \bigg\{  r\subt{TE}(\vb q) \overline{P}_i(\vb q) P_j(\vb q)
+          -r\subt{TM}(\vb q) P_i(\vb q) \overline{P}_j(\vb q)
+ \bigg\}e^{i\vb q \cdot \vbrho +iq_z(z\subt{D}+z\subt{S})}
+\end{align}
+\end{subequations}
+%====================================================================%
+
+\subsection*{Evaluation of $q_\theta$ integrals}
+
+%====================================================================%
+\begin{align}
+  \mc G_{ij}\supt{EE}(\vbrho, z\subt{D},z\subt{S})
+&=
+  \mc G_{ij}\supt{EE,TE}(\vbrho, z\subt{D},z\subt{S})
+ +\mc G_{ij}\supt{EE,TM}(\vbrho, z\subt{D},z\subt{S})
+\label{GEEDecomposition} \\
+  \mc G_{ij}\supt{EE,TE}(\vbrho, z\subt{D},z\subt{S})
+&=\frac{kZ}{2} \int \frac{d\vb q}{(2\pi)^2 |\vb q|^2 q_z}
+      r\subt{TE}(q)\left(\begin{array}{ccc}
+      q_y^2    & -q_x q_y & 0 \\
+      -q_x q_y & q_x^2    & 0 \\
+      0        & 0        & 0
+      \end{array}\right)
+      e^{i\vb q\cdot \vbrho + iq_z(z\subt{D}+z\subt{S})}
+\nonumber
+\end{align}
+%====================================================================%
+Evaluate the integral in polar coordinates 
+$\vb q=(q_x,q_y)=q(\cos\theta_{\vb q}, \sin\theta_{\vb q})$:
+\begin{align*}
+\mc G\supt{EE,TE}_{ij}
+&=
+\frac{kZ}{2} \int_0^\infty \frac{q \, dq}{2\pi q_z}
+      r\subt{TE}(q)e^{iq_z(z\subt{D}+z\subt{S})}
+      \int_0^{2\pi} \frac{d\theta_{\vb q}}{2\pi}
+      \left(\begin{array}{ccc}
+      \sin^2 \theta_{\vb q} & -\cos\theta_{\vb q} \sin\theta_{\vb q} & 0 \\
+      -\cos\theta_{\vb q} \sin\theta_{\vb q} & \cos^2 \theta_{\vb q} & 0 \\
+      0        & 0        & 0
+      \end{array}\right)
+      e^{iqr\cos(\theta_{\vb q}-\theta_{\vbrho})}
+\intertext{Do the $\theta_{\vb q}$ integrals to yield Bessel functions:}
+%--------------------------------------------------------------------%
+&=
+\frac{kZ}{2} \int_0^\infty \frac{q \, dq}{2\pi q_z}
+     r\subt{TE}(q)e^{iq_z(z\subt{D}+z\subt{S})}
+     \left[
+     \frac{J_1(q\rho)}{q\rho}
+     \left(\begin{array}{ccc}
+      1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0 
+     \end{array}\right)
+     -J_2(q\rho)
+     \left(
+     \begin{array}{ccc} 
+     \sin^2\theta_{\vbrho} & \cos\theta_{\vbrho} \sin\theta_{\vbrho} & 0 \\ 
+     \cos\theta_{\vbrho} \sin\theta_{\vbrho} & \cos^2\theta_{\vbrho} & 0 \\ 
+     0 & 0 & 0 
+     \end{array}\right)
+     \right].
+\end{align*}
+%====================================================================%
+Similarly, the second term in (\ref{GEEDecomposition}) reads
+%====================================================================%
+\begin{align*}
+\mc G\supt{EE,TM}_{ij}
+=
+\frac{Z}{2k} \int_0^\infty \frac{q \, dq}{2\pi q_z}
+     r\subt{TM}(q)e^{iq_z(z\subt{D}+z\subt{S})}
+&    \left[
+     \frac{q_z^2 J_1(q\rho)}{q\rho}
+     \left(\begin{array}{ccc}
+      1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0 
+     \end{array}\right)
+     -q_z^2 J_2(q\rho)
+     \left(
+     \begin{array}{ccc} 
+     \cos^2\theta_{\vbrho} & \cos\theta_{\vbrho} \sin\theta_{\vbrho} & 0 \\
+     \cos\theta_{\vbrho} \sin\theta_{\vbrho} & \sin^2\theta_{\vbrho} & 0 \\
+     0 & 0 & 0 
+     \end{array}\right)
+     \right.
+\\
+&\hspace{0.1in}
+     \left.
+     \mp i q q_z J_1(q\rho)
+     \left(\begin{array}{ccc}
+      0 & 0 & \cos\theta_{\vbrho} \\
+      0 & 0 & \sin\theta_{\vbrho} \\
+      \cos\theta_{\vbrho} & \sin\theta_{\vbrho} & 0
+     \end{array}\right)
+     +
+      q^2 J_0(q\rho)
+     \left(\begin{array}{ccc}
+      0 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 1
+     \end{array}\right)
+     \right].
+\end{align*}
+%====================================================================%
+Next,
+\begin{align*}
+\mc G\supt{ME}_{ij}
+=
+\frac{1}{2} \int_0^\infty \frac{d\vb q}{(2\pi)^2 q_z}
+ e^{iq_z(z\subt{D}+z\subt{S})}
+ &\bigg\{
+     r\subt{TE}(q)
+     \left(\begin{array}{ccc}
+     \pm q_z \cos\theta_{\vb q} \sin\theta_{\vb q}
+   & \mp q_z \cos^2\theta_{\vb q} 
+   & 0
+\\
+     \pm q_z \sin^2\theta_{\vb q}
+   & \mp q_z \cos\theta_{\vb q}\sin\theta_{\vb q}
+   & 0
+\\
+     -q\sin\theta_{\vb q}
+   &
+     +q\cos\theta_{\vb q}
+   &
+      0
+     \end{array}\right)
+\\[5pt]
+&\,\,+
+     r\subt{TM}(q)
+     \left(\begin{array}{ccc}
+     \pm q_z \cos\theta_{\vb q} \sin\theta_{\vb q}
+   & \pm q_z \sin^2\theta_{\vb q} 
+   & -q\sin\theta_{\vb q}
+\\
+     \mp q_z \cos^2\theta_{\vb q}
+   & \mp q_z \cos\theta_{\vb q}\sin\theta_{\vb q}
+   & +q\cos\theta_{\vb q}
+\\
+     0
+   &
+     0
+   &
+     0
+     \end{array}\right)
+\\
+ &\bigg\}
+\end{align*}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\subsection{Derivation of momentum-space DGF, take 2: Effective surface-current picture}
 \label{SurfaceCurrentSection}
 
 %####################################################################%
@@ -191,7 +670,67 @@ the substrate.}
 %####################################################################%
 %####################################################################%
 %####################################################################%
-One way to account for the disturbance produced by the
+An alternative way to account for the disturbance produced by the
+substrate is to consider the effective tangential electric and magnetic
+surface currents $\vb K$ and $\vb N$ induced on the interfacial 
+layers by the external field sources 
+(Figure \ref{SurfaceCurrentFigure}). This is the direct extension
+to full-wave problems of the formalism I used in the electrostatic
+case, and it comports well with the spirit of
+surface-integral-equation methods.
+
+More specifically, on the material interface layer at $z=z_n$
+I have a four-vector surface-current density $\bmc S_n(\vbrho)$,
+where $\vbrho=(x,y)$ and the components of $\bmc S$ are
+%====================================================================%
+\numeq{SnDef}
+{ \bmc S_n(\vbrho)=
+  \left(\begin{array}{c}
+     K_x(\vbrho) \\ K_y(\vbrho) \\ N_x(\vbrho) \\ N_y(\vbrho)
+  \end{array}\right).
+}
+%====================================================================%
+
+\paragraph{Fields in layer interiors.} 
+I will adopt the convention that the lower (upper) bounding surface
+for each region is the positive (negative) bounding surface
+for that region in the usual sense of {\sc scuff-em} regions and
+surfaces (in which the sign of a \{surface,region\} pair $\{\mc S, \mc R\}$ 
+is the sign with which surface currents on $\mc S$ contribute to
+fields in $\mc R$).
+Thus, at a point $\vb x=(\vbrho,z)$ in the interior of layer $n$
+($z_{n-1} > z > z_n$), the six-vector of total fields
+$\bmc F=\hbox{\scriptsize{
+ $\left(\begin{array}{c} \vb E \\ \vb H\end{array}\right)$}}
+$
+reads
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\subsection{Derivation of momentum-space DGF, take 2: Effective surface-current picture}
+\label{SurfaceCurrentSection}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}[t]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{MultilayerSubstrateWithSurfaceCurrents.pdf}}
+\caption{Effective surface-current approach to treatment of
+multilayer substrate. External field sources induce a distribution
+of electric and magnetic surface currents $\bmc S_n={\vb K_n \choose \vb N_n}$
+on the $n$th material interface, and the fields radiated by these
+effective currents account for the disturbance presented by
+the substrate.}
+\label{SurfaceCurrentFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+An alternative way to account for the disturbance produced by the
 substrate is to consider the effective tangential electric and magnetic
 surface currents $\vb K$ and $\vb N$ induced on the interfacial 
 layers by the external field sources 
@@ -300,7 +839,7 @@ I will evaluate convolutions of this form using the
   \qquad 
   q_z \equiv \sqrt{k^2 - |\vb q|^2},
  \qquad 
-  \pm = \text{sign} z.
+  \pm = \text{sign } z.
 \end{equation}
 \end{subequations}
 %====================================================================%
@@ -482,13 +1021,13 @@ For DGF computations the incident fields arise from
 a single point source---say, a $j$-directed source
 in region $s$.
 Then the only nonzero length-$4$ blocks of the RHS vector in
-(\ref{Msf}) are $\vb f_{s-1}, \vb f_s$ with components
+(\ref{Msf}) are $\vb f_{s-1}, \vb f\subt{S}$ with components
 ($\ell=\{1,2,4,5\}$)
 %====================================================================%
 \numeq{fsm1fs}
  { \Big(\vb f_{s-1}\Big)_\ell = -\wt {\mc G_{\ell j}^{s}}_{\parallel}( z_{s-1}-z\subt{S}),
    \qquad
-   \Big(\vb f_{s}\Big)_\ell   = +\wt {\mc G_{\ell j}^s}_{\parallel}(z_s-z\subt{S})
+   \Big(\vb f_{s}\Big)_\ell   = +\wt {\mc G_{\ell j}^s}_{\parallel}(z\subt{S}-z\subt{S})
  }
 %====================================================================%
 and the surface currents on interface layer $n$ are obtained
@@ -515,13 +1054,13 @@ source at $\vb x\subt{S}$, I evaluate the fields due to
 these currents to get DGF components.
 If the evaluation point $\vb x\subt{D}$ lies in region $d$,
 then the fields receive contributions from the surface currents
-at $z_{d-1}$ and $z_d$, propagated by the homogeneous DGF
+at $z_{d-1}$ and $z\subt{D}$, propagated by the homogeneous DGF
 for region $d$:
 %====================================================================%
 \begin{align*}
 \wt{\bmc F}(z\subt{D}) 
 &= -\wt{\bmc G^d}(z\subt{D} - z_{d-1}) \cdot \wt{\bmc S}_{d-1}
-   +\wt{\bmc G^d}(z\subt{D} - z_d)     \cdot \wt{\bmc S}_{d}
+   +\wt{\bmc G^d}(z\subt{D} - z\subt{D})     \cdot \wt{\bmc S}_{d}
 \\
 &= \sum_{q=0}^1  (-1)^{q+1}
    \wt{\bmc G^d}(z\subt{D} - z_{d+q-1}) \cdot \wt{\bmc S}_{d+q-1}
@@ -547,90 +1086,6 @@ Inverse-Fourier-transforming back to real space yields
   \wt{\bmc G\sups{subs}}
       (\vb q; z\subt{D};z\subt{S}) e^{i\vb q \cdot (\vbrho \subt{D}-\vbrho\subt{S})}.
 }
-
-%====================================================================%
-%====================================================================%
-%====================================================================%
-\subsubsection*{Reduction to 1D integrals}
-
-To reduce the two-dimensional $\vb q$ integrals to 1D integrals,
-it is useful to think about the vector structure of integrand
-of (\ref{IF2TD}).
-The $6\times 6$ integrand consists of 4 $3\times 3$ quadrants,
-%====================================================================%
-$$ \wt{\bmc G}=
-    \left(\begin{array}{cc}
-     \wt{\bmc G\supt{EE}} & \wt{\bmc G\supt{EM}}  \\
-     \wt{\bmc G\supt{ME}} & \wt{\bmc G\supt{MM}}
-    \end{array}\right)
-$$
-%====================================================================%
-Each $3\times 3$ quadrant has the structure
-%====================================================================%
-$$ \wt{\bmc G}\supt{PQ}=
-   \left(\begin{array}{ccc}
-   g^0_{xx} + g^2_{xx} \hat{q}_x \hat{q}_x & 
-   g^0_{xy} + g^2_{xy} \hat{q}_x \hat{q}_y & 
-   g^0_{xz} + g^1_{xz} \hat{q}_x \\
-   g^0_{yx} + g^2_{yx} \hat{q}_y \hat{q}_x &
-   g^0_{yy} + g^2_{yy} \hat{q}_y \hat{q}_y &
-   g^0_{yz} + g^1_{yz} \hat{q}_y \\
-   g^0_{xz} + g^1_{xz} \hat{q}_x &
-   g^0_{yz} + g^1_{yz} \hat{q}_y & 
-   g^0_{zz}
-   \end{array}\right)
-$$
-%====================================================================%
-where $\hat{q}_{x,y}  = \frac{q_{x,y}}{|\vb q|}$ and
-where $g_{ij}^{0,1,2}$ depend on $|\vb q|$ but not separately
-on $q_x, q_y.$
-The integral of e.g. the $xz$ component in (\ref{IF2TD}) then takes the form
-%====================================================================%
-\begin{align*}
- \mc G^{pq}_{xz}
-&= \int \frac{d^2 \vb q}{(2\pi)^2}
-  e^{i\vb q \cdot \vbrho} \Big[ g^0_{xz} + g^1_{xz} \hat{q}_x\Big]
-\\
-&= \int_0^\infty \frac{q dq}{2\pi}
-   \Bigg[ g^0_{xz}(q)\cdot 
-          \underbrace{ \frac{1}{2\pi}
-                       \int_0^{2\pi} e^{iq\rho\cos\theta}\,d\theta
-                     }_{J_0(q\rho)}
-         +g^1_{xz}(q)
-          \underbrace{ \frac{1}{2\pi}
-                       \int_0^{2\pi} \cos\theta \, e^{iq\rho\cos\theta}\,d\theta
-                     }_{iJ_1(q\rho)}
-   \Bigg]
-\\
-&=\int_0^\infty \frac{qdq}{2\pi}
-   \Big[  g^0_{xz}(q) J_0(q\rho) + ig^1_{xz}(q) J_1(q\rho) \Big]
-\end{align*}
-%====================================================================%
-where I used the table of integrals in Figure \ref{BesselIntegralTable}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection*{Evaluation of 1D integrals}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align}
- \int_0^\infty f(q) qdq
-&= \underbrace{\int_0^{q_0} f(q) qdq}_{\mc I^1}
-  +\underbrace{\int_{q_0}^\infty f(q) qdq}_{\mc I^2}
-\\
-\mc I^1&\xrightarrow{q=\sqrt{q_0^2 - q_z^2}, \qquad q\,dq=q_z \, dq_z}
- q_0^2 \int_0^1 f(q(u)) u\,du, 
- \qquad q_z\equiv uq_0, 
- \qquad q(u)\equiv q_0\sqrt{1-u^2}
-\\
-\mc I^2&\xrightarrow{q=q_0\left(1 + \frac{u}{1-u}\right),
-                     qdq=\frac{q_0^2}{(1-u)^3}}
- q_0^2 \int_0^1 \frac{f\big(q(u)\big)}{(1-u)^3}du:w
-,
- \qquad q(u)\equiv q_0\pf{1}{1-u}, q_z\equiv i\sqrt{q_0^2 + q^2(u)}
-\end{align}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -666,42 +1121,6 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-surface currents $\bmc S={\wt{\vb K} \choose \wt{\vb N}}$.
-The quantities $\wt{\vb K}$ and $\wt{\vb N}$ are 2-vectors
-and must be linear combinations of the only 2-vectors in
-the problem,
-which are $\vbhat{q}\equiv \frac{\vb q}{|\vb q|}$,
-$\vbhat{n}$ (the orientation of the point source), and 
-$\vbhat{n}\times \vbhat{q}$.
-Thus I expect a vector structure of the form
-%====================================================================%
-\begin{subequations}
-\begin{align}
- \wt{\vb K} &=  k\supt{A}(q)\vbhat{n}_\parallel + k\supt{B}(q)\vbhat{q}
-               +k\supt{C}(q)(\vbhat{n}\times \vbhat{q})
-\\
- \wt{\vb N} &=  n\supt{A}(q)\vbhat{n}_\parallel + n\supt{B}(q)\vbhat{q}
-               +n\supt{C}(q)(\vbhat{n}\times \vbhat{q})
-\end{align}
-\label{KNVectorStructure}
-\end{subequations}
-%====================================================================%
-where $\{k,n\}\supt{A,B,C}$ are scalar-valued functions of $q=|\vb q|$
-alone (i.e. they do not depend separately on $q_x, q_y$).
-(The $\parallel$ subscript on $\vbhat{n}$ in the first
-term is just a reminder that that term vanishes for $z$-directed
-point sources.)
-
-The point of the explicit decomposition (\ref{KNVectorStructure})
-is that it allows us to reduce the 2D integrals in (\ref{IFT2D})
-to 1D integrals using the following table (here $f$ is a 
-general scalar-valued function of $|\vb q|$):
-%====================================================================%
-\begin{align*}
-  \int \frac{d^2 \vb q}{(2\pi)^2} f(\vb q) \, \vb G^\pm(\vb q, k) \cdot \vbhat{n}
-\end{align*}
-
 %====================================================================%
 %====================================================================%
 %====================================================================%
@@ -710,7 +1129,7 @@ general scalar-valued function of $|\vb q|$):
 The simplest case is that in which we have only a single
 material interface, i.e. the geometry consists of two
 semi-infinite half-spaces that meet at $z=z_1$.
-Then the first of Equation (\ref{MatchingConditions}) decouples
+Then the first of Equation (\ref{BCEquation}) decouples
 into separate 2$\times$2 systems for $\wt{\vb K}$ and $\wt{\vb N}$:
 %####################################################################%
 \begin{align*}
@@ -737,14 +1156,14 @@ into separate 2$\times$2 systems for $\wt{\vb K}$ and $\wt{\vb N}$:
 %####################################################################%
 If the externally-sourced fields are produced by point electric
 and magnetic sources 
-$\vb p, \vb m$ at a point $\vb x_s=(\vbrho_s, z_s)$
-(``s'' stands for ``source'') above the interface at $z_1$, we may 
-insert equation \ref{PointSourceFields} for the RHS here and 
+$\vb p, \vb m$ at a point $\vb x\subt{S}=(\vbrho\subt{S}, z\subt{S})$
+(where ``S'' stands for ``source'') above the interface at $z_1$, we may 
+insert equation (\ref{PointSourceFields}) for the RHS here and 
 solve for $\wt{\vb K}, \wt{\vb N}$:
 %####################################################################%
 \begin{align*}
 \wt{\vb K}
-&=+\frac{e^{-i\vb q \cdot \vbrho_s + iq_{zA}|z_1-z_s|}}
+&=+\frac{e^{-i\vb q \cdot \vbrho\subt{S} + iq_{zA}|z_1-z\subt{S}|}}
         {2\omega q_z}
    \Big[ ik\subt{A} Z_0 Z\subt{A}
          \vb M\subt{K}^{-1}
@@ -754,7 +1173,7 @@ solve for $\wt{\vb K}, \wt{\vb N}$:
    \Big]
 \\
 \wt{\vb N}
-&=+\frac{e^{-i\vb q \cdot \vbrho_s + iq_{zA}|z_1-z_s|}}
+&=+\frac{e^{-i\vb q \cdot \vbrho\subt{S} + iq_{zA}|z_1-z\subt{S}|}}
         {2\omega q_z}
    \Big[ -ik\subt{A} \vb M\subt{N}^{-1} \wt{\vb C}_\parallel^-(\vb k\subt{A},\vb q)\cdot \vb p
          +\frac{ik\subt{A}}{Z_0 Z\subt{A}}
@@ -763,410 +1182,22 @@ solve for $\wt{\vb K}, \wt{\vb N}$:
 \end{align*}
 %####################################################################%
 
-%####################################################################%
-%####################################################################%
-%####################################################################%
-\newpage
-\subsection{Theory of the substrate DGF, take 2: Plane-wave (Fresnel) scattering picture}
-\label{PlaneWaveSection}
-
-%####################################################################%
-%####################################################################%
-%####################################################################%
-\begin{figure}
-\begin{center}
-\resizebox{\textwidth}{!}{\includegraphics{MultilayerSubstrateWithPlaneWaves.pdf}}
-\caption{Plane-wave-decomposition strategy for handling 
-multilayer substrate. The fields radiated by a point source (blue)
-above the substrate are decomposed as a superposition of
-upward- and downward-traveling plane waves, including 
-both TE- and TM-polarized waves. The downward-traveling waves
-are reflected at the substrate surface with the usual
-polarization-dependent Fresnel reflection coefficients $r\subt{TE,TM}$,
-and the fields contributed by these reflected waves
-yield the correction to the free-space Green's function
-substrate.
-}
-\label{PlaneWaveFigure}
-\end{center}
-\end{figure}
-%####################################################################%
-
-An alternative strategy for computing the substrate DGF 
-correction, cartooned in Figure \ref{PlaneWaveFigure}, is
-to think of the fields radiated by a point source above
-the substrate (blue) as a superposition of 
-plane waves, including both TE- and TM-polarized
-plane waves (red). The upward-traveling waves radiated by the 
-source ($\vb E^+\subt{TE,TM}$) simply radiate away to 
-infinity and do not interact with the substrate, but the
-downward-traveling waves
-($\vb E^-\subt{TE,TM}$) reflect from the substrate 
-with polarization-dependent reflection coefficients
-$r\subt{TE,TM}$ to yield upward-traveling waves (purple)
-which constitute the substrate correction to the DGF.
-
-An advantage of this approach is that it subsumes all details
-of the substrate into the reflection coefficients $r\subt{TE,TM}$.
-For simple substrates consisting of one or more homogeneous
-isotropic material layers these are easily computed in closed
-form, but the DGF approach here is more general and extends
-easily to cases involving anisotropic, birefringent, and/or
-chiral media (in which case the usual TE$\to$TE and TM$\to$TM
-reflections may be augmented by polarization-mixing terms) and 
-even inhomogeneous substrates of arbitrary complexity for which
-the reflection coefficients are known empirically.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Plane-wave decomposition of point-source fields}
-
-Note: In what follows,
-$\vb q=(q_x,q_y)$ is a \textit{two-dimensional} vector and we
-have\footnote{More generally, the symbol $\pm$ here should be understood
-as $\text{sign}(z_d - z_s)$, i.e. it is positive (negative) when the evaluation 
-point lies above (below) the source point.}
-%====================================================================%
-$$ q_z \equiv \sqrt{k^2 - |\vb q|^2}, 
-%--------------------------------------------------------------------%
-   \qquad
-%--------------------------------------------------------------------%
-   \vb q\supt{3D}\equiv
-   \left(\begin{array}{c}q_x \\ q_y \\ \pm q_z \end{array}\right), 
-%--------------------------------------------------------------------%
-   \qquad
-%--------------------------------------------------------------------%
-   \pm \equiv
-   \begin{cases}
-     +, \quad & z\ge 0 \\ 
-     -, \quad & z<   0
-   \end{cases}.
-$$
-%====================================================================%
-For arbitrary $\vb q$ I define generalized\footnote{These 
-are ``generalized'' plane waves in the sense that $q_z$ is 
-imaginary for sufficiently large $\vb q$, in which case the 
-waves are evanescent.} transverse-electric and
-transverse-magnetic plane waves propagating with wavevector
-$\vb q\supt{3D}$:
-%====================================================================%
-$$\begin{array}{ccccccc}
- \vb E^{\pm} \subt{TE}(\vb x; k; \vb q)
-   &\equiv& E_0 \vb P(\vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
-   &\qquad&
- \vb H^{\pm} \subt{TE}(\vb x; k; \vb q)
-   &\equiv& H_0 \overline{\vb P}(k, \vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
-\\[8pt]
-%--------------------------------------------------------------------%
- \vb E^{\pm} \subt{TM}(\vb x; k; \vb q)
-   &\equiv& -E_0 \overline{\vb P}(k,\vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
-   &\qquad&
- \vb H^{\pm} \subt{TM}(\vb x; k; \vb q)
-   &\equiv& H_0 \vb P(\vb q) e^{i\vb q \cdot \vbrho \, \pm \, iq_z z},
-\end{array}$$
-%====================================================================%
-$$ \vb x=(\vbrho, z),
-   \qquad
-   E_0 \equiv 1 \text{ volt/$\mu$m}, \qquad H_0\equiv \frac{E_0}{Z_0}
-$$
-%====================================================================%
-where $\vb P$ and $\overline{\vb P}$ are unit-magnitude
-polarization vectors with the properties
-that \textbf{(1)} both $\vb P$ and $\overline{\vb P}$ are
-orthogonal to $\vb k\supt{3D}$, and
-\textbf{(2)} $\vb P$ is orthogonal to $\vbhat{z}$ (i.e. ``transverse'').
-%====================================================================%
-$$ \vb P(k, \vb q) \equiv
-   \frac{1}{|\vb q|}
-   \left(\begin{array}{c}-q_y \\ q_x \\ 0 \end{array}\right),
-   \qquad
-   \overline{\vb P}(k, \vb q) \equiv
-   \frac{1}{k}\Big[ \vb q\supt{3D} \times \vb P(\vb q) \Big]
-   =
-   \frac{1}{k |\vb q|}
-   \left(\begin{array}{c} \mp q_x q_z \\ \mp q_y q_z \\ q_x^2 + q_y^2 
-         \end{array}\right)
-$$
-%====================================================================%
-The trick is now to notice that the columns of the $3\times 3$ matrices
-in equation (\ref{GFourier}c,d) may be written as linear combinations of
-$\vb P$ and $\overline{\vb P}$. For example, the leftmost column
-of $\wt{\vb G}\pm$ is 
-%====================================================================%
-\numeq{gColumnDecomposition}
-{ \left(\begin{array}{c} \wt G_{xx} \\ \wt G_{yx} \\ \wt G_{zx}\end{array}\right)
-  =\frac{1}{k^2}
-   \left(\begin{array}{c}
-    k^2 - q_x^2 \\ -q_y q_x \\ \mp q_x q_z
-   \end{array}\right)
-   =
-     -\pf{q_y}{|\vb q|}
-     \vb P(\vb q)
-     \mp\pf{q_x q_z}{k|\vb q|}\overline{\vb P}(\vb q).
-}
-%====================================================================%
-The fields of an $\vbhat{x}$-directed point electric dipole 
-$\vb p_0=p_0\vbhat{x}$ at $\vb x_s$, evaluated at point $\vb x_d$
-(for ``destination''), then read
-%====================================================================%
-\begin{align*}
- \vb E\supt{ED}\Big(\vb x_d; \{p_0\vbhat{x}, \vb x_s\}\Big)
- &= ik Z\left(\begin{array}{c} G_{xx} \\ G_{yx} \\ G_{zx} \end{array}\right)
-    (-i\omega p_0)
-\\
-\intertext{Insert (\ref{GFourier}b):}
- &= (-i\omega p_0) (ik Z)
-     \int \frac{d\vb q}{(2\pi)^2}
-     \frac{i}{2q_z}
-    \left(\begin{array}{c} \wt G^\pm_{xx} \\ \wt G^\pm_{yx} \\ \wt G^\pm_{zx} \end{array}\right)
-    e^{i\vb q\cdot(\vbrho_d-\vbrho_s) + iq_z|z_d-z_s|}
-\\
-\intertext{Insert (\ref{gColumnDecomposition}):}
- &\hspace{-1in}=
- \frac{k^2 p_0}{\epsilon E_0}
-    \int \, \frac{d\vb q}{(2\pi)^2}
-    \bigg\{ 
-           \underbrace{\left(-\frac{iq_y}{2q_z |\vb q|}\right)}_{C^x\subt{TE}}
-           \vb E^\pm\subt{TE}(\vb x_d-\vb x_s; k; \vb q)
-           +\underbrace{\left(\mp\frac{iq_x}{2k|\vb q|}\right)}_{C^{x;\pm}\subt{TM}}
-          \vb E^\pm\subt{TM}(\vb x_d-\vb x_s; k; \vb q)
-    \bigg\}
-\end{align*}
-%====================================================================%
-Continuing to play this game for point sources of all possible
-orientations and expressing the results in terms of the generalized
-plane waves we defined earlier then yields a full plane-wave decomposition
-of the fields of point electric dipoles oriented in all 
-three Cartesian directions:
-%====================================================================%
-\begin{subequations}
-\begin{align}
- \vb E\supt{ED}\Big(\vb x_d; \big\{p_0 \vbhat{x}, \vb x_s \big\}\Big)
-&=\pf{k^2 p_0}{\epsilon_0 E_0}
- \int \frac{d \vb q}{(2\pi)^2} 
-   \bigg\{ C^{x}\subt{TE}(\vb q)
-           \vb E^\pm\subt{TE}\Big(\vb x_d-\vb x_s; k; \vb q\Big)
-          + 
-           C^{x;\pm}\subt{TM}(\vb q)
-           \vb E^\pm\subt{TM}\Big(\vb x_d-\vb x_s; k; \vb q\Big)
-   \bigg\}
-\\[5pt]
-%--------------------------------------------------------------------%
- \vb E\supt{ED}\Big(\vb x_d; \big\{p_0 \vbhat{y}, \vb x_s \big\}\Big)
-&=\pf{k^2 p_0}{\epsilon_0 E_0}
- \int \frac{d \vb q}{(2\pi)^2} 
-   \bigg\{ C^{y}\subt{TE}(\vb q)
-           \vb E^\pm\subt{TE}\Big(\vb x_d-\vb x_s; k; \vb q\Big)
-          + 
-           C^{y;\pm}\subt{TM}(\vb q)
-           \vb E^\pm\subt{TM}\Big(\vb x_d-\vb x_s; k; \vb q\Big)
-   \bigg\}
-\\[5pt]
-%--------------------------------------------------------------------%
- \vb E\supt{ED}\Big(\vb x_d; \big\{p_0 \vbhat{z}, \vb x_s \big\}\Big)
-&=\pf{k^2 p_0}{\epsilon_0 E_0}
- \int \frac{d \vb q}{(2\pi)^2} 
-   \bigg\{ C^{z}\subt{TE}(\vb q)
-           \vb E^\pm\subt{TE}\Big(\vb x_d-\vb x_s; k; \vb q\Big)
-          + 
-           C^{z}\subt{TM}(\vb q)
-           \vb E^\pm\subt{TM}\Big(\vb x_d-\vb x_s; k; \vb q\Big)
-   \bigg\}
-\end{align}
-\label{IncidentFieldsPWD}
-\end{subequations}
-%====================================================================%
-where the scalar coefficients are
-%====================================================================%
-$$\begin{array}{ccccccc}
- \displaystyle{ C^{x}\subt{TE} }
- &=& 
-  \displaystyle{ -\frac{ i q_y}{2|\vb q|q_z} }
- &\qquad&
- \displaystyle{ C^{x;\pm}\subt{TM} }
- &=& 
- \displaystyle{ \mp \frac{ i q_x }{2k |\vb q|} }
-\\[10pt]
-%--------------------------------------------------------------------%
- \displaystyle{ C^{y}\subt{TE} }
- &=& 
-  \displaystyle{ \frac{ i q_x}{2|\vb q|q_z} }
- &\qquad&
- \displaystyle{ C^{y;\pm}\subt{TM} }
- &=& 
- \displaystyle{ \mp \frac{ i q_y }{2k|\vb q|} }
-\\[10pt]
-%--------------------------------------------------------------------%
- \displaystyle{ C^{z}\subt{TE} }
- &=& 0
- &\qquad&
- \displaystyle{ C^{z}\subt{TM} }
- &=& \displaystyle{ \frac{ i |\vb q|  }{2 k q_z} }.
-\end{array}$$
-%====================================================================%
-In these equations, the $\pm$ sign is $+$ for evaluation points 
-located above the source $(z>z_0)$ and $-$ for evaluation points
-located below the source. In particular, assuming the 
-source lies in the \textit{upper} half-space ($z_0>0$), 
-the fields impinging on a dielectric interface at $z=0$
-involve the $-$ sign.
-
-The units of the source-strength prefactor are
-($\text{C}$=charge, $\text{V}$=voltage, $\text{L}$=length)
-%====================================================================%
-\begin{align*}
-\left[\pf{k^2 p_0}{\epsilon_0 E_0}\right]
-&= \Big[k^2 p_0\Big]\Big[\epsilon_0\Big]^{-1} \Big[E_0\Big]^{-1} 
-\\
-&= \frac{\text{L}^{-2} \text{C}\cdot \text{L}}
-        {\text{C} \text{V}^{-1} \text{L}^{-1} \text{V} \text{L}^{-1}}
-\\
-&= \text{length}.
-\end{align*}
-%====================================================================%
-
-%=================================================
-%=================================================
-%=================================================
-\subsubsection{Plane-wave decomposition of DGFs}
-
-The point of the above decomposition is that each downward-traveling
-plane wave radiated by a point source above a substrate
-is reflected from the substrate with
-the polarization-dependent reflection coefficients
-$r\subt{TE,TM}(k,\vb q)$ characteristic of the substrate,
-and thus the scattered fields are
-%====================================================================%
-\begin{subequations}
-\begin{align}
- \vb E\sups{scat,x}(\vbrho,z)
-&=\pf{k^2 p_0}{\epsilon_0}
-   \int \frac{d\vb q}{(2\pi)^2}
-   \bigg\{   r\subt{TE}(\vb q) C^{x}\subt{TE}(\vb q) \vb P(\vb q)
-           + r\subt{TM}(\vb q) C^{x;-}\subt{TM}(\vb q) \overline{\vb P}(\vb q)
-    \bigg\}e^{i\vb q \cdot \vbrho +2iq_z z}
-\\
-  \vb E\sups{scat,y}(\vbrho, z)
-&=\pf{k^2 p_0}{\epsilon_0}
-    \int \frac{d \vb q}{(2\pi)^2} 
-    \bigg\{   r\subt{TE}(\vb q) C^{y}\subt{TE}(\vb q) \vb P(\vb q)
-           + r\subt{TM}(\vb q) C^{y;-}\subt{TM}(\vb q) \overline{\vb P}(\vb q)
-    \bigg\}e^{i\vb q \cdot \vbrho +2iq_z z}
- \\
-  \vb E\sups{scat,z}(\vbrho, z)
-&=\pf{k^2 p_0}{\epsilon_0}
-    \int \frac{d \vb q}{(2\pi)^2} 
-    \bigg\{   r\subt{TE}(\vb q) C^{z}\subt{TE}(\vb q) \vb P(\vb q)
-            + r\subt{TM}(\vb q) C^{z;-}\subt{TM}(\vb q) \overline{\vb P}(\vb q)
-    \bigg\}e^{i\vb q \cdot \vbrho +2iq_z z}
-\end{align}
-\label{ScatteredFieldsPWD}
-\end{subequations}
-%====================================================================%
-The substrate contribution to the electric-electric DGF is related to
-the scattered $\vb E$-field according to
-$\bmc G\supt{EE} = \frac{1}{(-i\omega p_0)(i\omega \mu_0)}\vb E\sups{scat}.$
-or
-%====================================================================%
-\begin{subequations}
-\begin{align}
-  \mc G_{ij}\supt{E}(\vbrho, z) 
-&= \int \frac{d \vb q}{(2\pi)^2} 
-    \bigg\{   r\subt{TE}(\vb q) C^{j}\subt{TE}(\vb q) P_i(\vb q)
-            + r\subt{TM}(\vb q) C^{j;-}\subt{TM}(\vb q) \overline{P}_i(\vb q)
-    \bigg\}e^{i\vb q \cdot \vbrho +2iq_z z}.
-\intertext{
-Similar arguments yield the scattering parts of the other
-quadrants of the DGF:
-}
- \mc G_{ij}\supt{ME}(\vbrho, z) 
-&= \int \frac{d \vb q}{(2\pi)^2} 
-    \bigg\{   r\subt{TE}(\vb q) C^{j}\subt{TE}(\vb q) \overline{P}_i(\vb q)
-            - r\subt{TM}(\vb q) C^{j;-}\subt{TM}(\vb q) P_i(\vb q)
-    \bigg\}e^{i\vb q \cdot \vbrho +2iq_z z}.
-\\
- \mc G_{ij}\supt{EM}(\vbrho, z) 
-&=
-    \int \frac{d \vb q}{(2\pi)^2}
-    \bigg\{   r\subt{TE}(\vb q) C^{j}\subt{TE}(\vb q) \overline{P}_i(\vb q)
-            - r\subt{TM}(\vb q) C^{j;-}\subt{TM}(\vb q) P_i(\vb q)
-    \bigg\}e^{i\vb q \cdot \vbrho +2iq_z z}.
-\end{align}
-\end{subequations}
-%====================================================================%
-
-%=================================================
 %=================================================
 %=================================================
 \newpage
-\subsection{Reduction of 2D integrals to 1D integrals}
-\label{TwoDToOneDSection}
+\subsection{Relation between plane-wave and surface-current pictures}
+\label{SC2PWSection}
 
-Consider the momentum-space surface currents
-$\wt{\vb K_n}(\vb q), \wt{\vb N_n}(\vb q)$
-induced on material interface $n$ by a source (in any region)
-oriented in the $\vbhat{n}$ direction.
-Since $\wt{\vb K_n}$ and $\wt{\vb N_n}$ are 2-vector-valued
-quantities, and since $\vbhat{n}$ and $\vb q$ are the
-only vectors in the problem, 
-we can infer that
-$\wt{\vb K_n}$ and $\wt{\vb N_n}$ must be linear
-combinations of $\vbhat{n}$, $\vb{q}$, and $\vbhat{n}\times \vb q$,
-i.e. we have the structure
-%====================================================================%
 \begin{align*}
- \wt{K_i} &= 
-    K\supt{A}(|\vb q|) \hat{n}_i
-   +K\supt{B}(|\vb q|) q_i
-   +K\supt{C}(|\vb q|) (\vbhat{n} \times \vb q)_i
+ r\subt{TE}(q) &=
+ +\frac{2i \omega \mu_0 \mu^r}{|q|^2}\pard{}{z\subt{D}}
+ \wt{G\supt{MM}_{zz}}(q, z\subt{D}, z\subt{S})
 \\
- \wt{N_i} &= 
-    N\supt{A}(|\vb q|) \hat{n}_i
-   +N\supt{B}(|\vb q|) q_i
-   +N\supt{C}(|\vb q|) (\vbhat{n} \times \vb q)_i
+ r\subt{TM}(q) &=
+ -\frac{2i \omega}{\epsilon_0 \epsilon^r |q|^2}\pard{}{z\subt{D}}
+ \wt{G\supt{EE}_{zz}}(q, z\subt{D}, z\subt{S}).
 \end{align*}
-%====================================================================%
-where $\{K,N\}\supt{A,B,C}$ are scalar functions of $|\vb q|$. More
-specifically, we have
-\paragraph{For $\vbhat{n}=\vbhat{x}$:}
-%====================================================================%
-$$ \left(\begin{array}{c} \wt{K_{xx}} \\ \wt{K_{yx}} \end{array}\right)
-   = K\supt{A} \left(\begin{array}{c} 1   \\ 0   \end{array}\right)
-    +K\supt{B} \left(\begin{array}{c} q_x \\ q_y \end{array}\right)
-    -K\supt{C} \left(\begin{array}{c} 0   \\ 1   \end{array}\right)
-$$
-%====================================================================%
-
-\paragraph{For $\vbhat{n}=\vbhat{y}$:}
-
-%====================================================================%
-$$ \left(\begin{array}{c} \wt{K_{xy}} \\ \wt{K_{yy}} \end{array}\right)
-   = K\supt{A} \left(\begin{array}{c} 0   \\ 1   \end{array}\right)
-    +K\supt{B} \left(\begin{array}{c} q_x \\ q_y \end{array}\right)
-    +K\supt{C} \left(\begin{array}{c} 1   \\ 0   \end{array}\right)
-$$
-%====================================================================%
-
-\paragraph{For $\vbhat{n}=\vbhat{z}$:}
-%====================================================================%
-$$ \left(\begin{array}{c} \wt{K_{xz}} \\ \wt{K_{yz}} \end{array}\right)
-   = K\supt{D} \left(\begin{array}{c} q_x \\ q_y \end{array}\right)
-    +K\supt{E} \left(\begin{array}{c} q_y \\ -q_x \end{array}\right)
-$$
-%====================================================================%
-The point of this decomposition is that, given numerical values
-for $\wt{K_{ij}}$ for some $\vb q=(q_x, q_y)$, we can extract the
-scalar quantities $K\supt{A,B,C,D,E}$ by going like this:
-%$$ K\supt{B}=
-
-%=================================================
-%=================================================
-%=================================================
-\newpage
-\subsection{Evaluation of 1D integrals}
-\label{OneDIntegralSection}
-
+ 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -35,16 +35,17 @@
 /**********************************************************************/
 /* constructor and field-setting routines *****************************/
 /**********************************************************************/
-SphericalWave::SphericalWave(int NewL, int NewM, int NewType)
+SphericalWave::SphericalWave(int NewL, int NewM, int NewP)
 {
   L=NewL;
   M=NewM;
-  Type=NewType;
+  P=NewP;
 }
 
 void SphericalWave::SetL(int NewL) { L=NewL; }
 void SphericalWave::SetM(int NewM) { M=NewM; }
-void SphericalWave::SetType(int NewType) { Type=NewType; }
+void SphericalWave::SetP(int NewP) { P=NewP; }
+void SphericalWave::SetType(int NewP) { SetP(NewP); }
 
 /**********************************************************************/
 /**********************************************************************/
@@ -68,7 +69,7 @@ void SphericalWave::GetFields(const double X[3], cdouble EHC[6])
   // set the spherical components of E and H to the 
   // proper linear combinations of the M and N functions
   cdouble EHS[6]; // 'E,H spherical'
-  if (Type==SW_MAGNETIC)
+  if (P==0) // M-type wave
    { 
      EHS[0] = MVec[0];
      EHS[1] = MVec[1];
@@ -77,7 +78,7 @@ void SphericalWave::GetFields(const double X[3], cdouble EHC[6])
      EHS[4] = -NVec[1] / Z;
      EHS[5] = -NVec[2] / Z;
    }
-  else // Type==SW_ELECTRIC
+  else // N-type wave
    { 
      EHS[0] = NVec[0];
      EHS[1] = NVec[1];

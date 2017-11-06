@@ -190,14 +190,14 @@ class GaussianBeam: public IncField
 class SphericalWave : public IncField
  { 
  public:
-   int L, M;        // spherical wave indices 
-   int Type;        // either SW_ELECTRIC or SW_MAGNETIC
+   int L, M, P;     // spherical wave indices; P=0,1 for M,N-type wave
 
-   SphericalWave(int L=1, int M=0, int Type=SW_MAGNETIC);
+   SphericalWave(int L=1, int M=0, int P=0);
 
    void SetL(int NewL);
    void SetM(int NewM);
-   void SetType(int NewType);
+   void SetP(int NewP);
+   void SetType(int NewP); // DELETEME legacy routine for backward compat
 
    void GetFields(const double X[3], cdouble EH[6]);
 

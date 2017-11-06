@@ -198,7 +198,7 @@ void GetVSWRadialFunctions(int LMax, cdouble k, double r,
 /* spherical wave at (r,Theta,Phi).                            */
 /*                                                             */
 /* In the latter case,                                         */
-/* WaveMatrix[Mu,nsw] = Muth spherical component of nmwth      */
+/* WaveMatrix[Mu,nmw] = Muth spherical component of nmwth      */
 /* Maxwell wave at (r,Theta,Phi).                              */
 /*                                                             */
 /* If WaveMatrix is non-null, it should have dimensions 3xNW   */

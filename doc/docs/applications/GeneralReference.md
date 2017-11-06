@@ -208,6 +208,7 @@ accept that argument.
 > specified, the file base is taken to be the base filename of the 
 > `.scuffgeo` file.
 
+<a name="CommandLineOptionsByFile"></a>
 # 2. Passing command-line options via text file
 
 All of the standalone applications in the [[scuff-em]] suite allow 
