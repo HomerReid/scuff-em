@@ -139,6 +139,9 @@ public:
                                            HMatrix *XMatrix,
                                            HMatrix *GMatrix);
 
+   void GetIScalars(cdouble Omega, HMatrix *XMatrix,
+                    cdouble *IScalars, int DerivativeDimension=0);
+
    /*--------------------------------------------------------------*/
    /* general-purpose routine for evaluating q (Fourier) integrals */
    /*--------------------------------------------------------------*/
@@ -184,21 +187,23 @@ public:
    void GetScriptG0Twiddle(cdouble Omega, double q2D[2],
                            double zDest, double zSource,
                            cdouble ScriptG0Twiddle[6][6],
-                           int ForceRegion=-1, 
+                           int ForceLayer=-1,
                            double ForceSign=0.0,
-                           bool Accumulate=false);
+                           bool Accumulate=false,
+                           bool dzDest=false, bool dzSource=false);
 
    void GetScriptGTwiddle(cdouble Omega, double q2D[2],
                           double zDest, double zSource,
                           HMatrix *RTwiddle, HMatrix *WMatrix,
-                          HMatrix *STwiddle, HMatrix *GTwiddle);
+                          HMatrix *STwiddle, HMatrix *GTwiddle,
+                          bool dzDest=false, bool dzSource=false);
 
    void RotateG(cdouble Gij[6][6], double Phi);
    void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);
  
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
-   int GetRegionIndex(double z);
+   int GetLayerIndex(double z);
 
 // internal ("private") class data
 

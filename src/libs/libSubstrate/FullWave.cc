@@ -46,7 +46,7 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
   /***************************************************************/
   /* explain me **************************************************/
   /***************************************************************/
-  bool Total = ( GetRegionIndex(XD[2]) != GetRegionIndex(XS[2]) );
+  bool Total = ( GetLayerIndex(XD[2]) != GetLayerIndex(XS[2]) );
 
   /***************************************************************/
   /* EM, ME quadrants determined by E-fields of electrostatic    */

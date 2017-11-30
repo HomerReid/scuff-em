@@ -39,25 +39,28 @@ OTHER_LIBS=                      \
  ../libhrutil/libhrutil.la
  
 #noinst_PROGRAMS = tFullWaveSubstrate tSubstrateEEIs tInterpolation tGTwiddle tSubstrateFields tbTwiddle
-#noinst_PROGRAMS = tGTwiddle
+#noinst_PROGRAMS = tgScalars tFullWaveSubstrate
  
-#tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
-#tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
+tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
+tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc bTwiddle.cc
+#tSubstrateEEIs_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tSubstrateFields_SOURCES = tSubstrateFields.cc GetSubstrateFields_SpectralInner.cc
+#tSubstrateFields_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tInterpolation_SOURCES = tInterpolation.cc
+#tInterpolation_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tGTwiddle_SOURCES = tGTwiddle.cc
+#tGTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+#tbTwiddle_SOURCES = tbTwiddle.cc bTwiddle.cc
+#tbTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
+#
+tgScalars_SOURCES = tgScalars.cc
+tgScalars_LDADD = libSubstrate.la ../libscuff/libscuff.la
 
-tSubstrateEEIs_SOURCES = tSubstrateEEIs.cc bTwiddle.cc
-tSubstrateEEIs_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tSubstrateFields_SOURCES = tSubstrateFields.cc GetSubstrateFields_SpectralInner.cc
-tSubstrateFields_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tInterpolation_SOURCES = tInterpolation.cc
-tInterpolation_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tGTwiddle_SOURCES = tGTwiddle.cc
-tGTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tbTwiddle_SOURCES = tbTwiddle.cc bTwiddle.cc
-tbTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
-
-tgScalar_SOURCES = tgScalar.cc Getg0112_20171101.cc
-tgScalar_LDADD = libSubstrate.la ../libscuff/libscuff.la
+tIScalars_SOURCES = tIScalars.cc
+tIScalars_LDADD = libSubstrate.la ../libscuff/libscuff.la

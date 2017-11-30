@@ -48,7 +48,7 @@ typedef struct qIntegrandData
  {
    LayeredSubstrate *Substrate;
    cdouble Omega;
-   double rkLayer2;
+   double rk2Layer;
    double q0;
    bool Propagating;
    qFunction UserFunction;
@@ -63,7 +63,7 @@ int qIntegrand(unsigned ndim, const double *uVector,
   qIntegrandData *Data        = (qIntegrandData *)pqIData;
   LayeredSubstrate *Substrate = Data->Substrate;
   cdouble Omega               = Data->Omega;
-  double rkLayer2             = Data->rkLayer2;
+  double rk2Layer             = Data->rk2Layer;
   double q0                   = Data->q0;
   bool Propagating            = Data->Propagating;
   qFunction UserFunction      = Data->UserFunction;
@@ -80,7 +80,7 @@ int qIntegrand(unsigned ndim, const double *uVector,
       u=1.0-UMIN;
      double qz = u*q0;
      Jacobian  = q0*qz/(2.0*M_PI);
-     qMag      = sqrt(rkLayer2 - qz*qz);
+     qMag      = sqrt(rk2Layer - qz*qz);
    }
   else // evanescent
    { 
@@ -157,7 +157,7 @@ void LayeredSubstrate::qIntegrate(cdouble Omega,
      double kn         = kLayer->GetEntryD(n,0);
      if (kn==knm1)
       continue;
-     Data->rkLayer2    = kn*kn;
+     Data->rk2Layer    = kn*kn;
      Data->q0          = sqrt(kn*kn - knm1*knm1);
      Data->nCalls      = 0;
      Data->Propagating = true;

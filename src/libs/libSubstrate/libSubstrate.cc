@@ -267,10 +267,10 @@ void LayeredSubstrate::Describe(FILE *f)
   int n=0;
   for(; n<NumInterfaces; n++)
    { zBelow = zInterface[n];
-     printf("Region %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zBelow);
+     printf("Layer %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zBelow);
      zAbove=zBelow;
    };
-  printf("Region %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zGP);
+  printf("Layer %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zGP);
   if ( fabs(zGP) != HUGE_VAL) 
    printf("Ground plane at z=%e.\n\n",zGP);
 }
@@ -290,7 +290,7 @@ void LayeredSubstrate::UpdateCachedEpsMu(cdouble Omega)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-int LayeredSubstrate::GetRegionIndex(double z)
+int LayeredSubstrate::GetLayerIndex(double z)
 { for(int ni=0; ni<NumInterfaces; ni++)
    if (z>zInterface[ni]) return ni;
   return NumInterfaces;
