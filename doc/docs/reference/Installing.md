@@ -366,6 +366,19 @@ core!) your <span class=SC>scuff-em</span> build is suboptimal---calculations
 will work and will yield correct answers, but at a fraction
 the speed that should be available on your machine.
 
+**Note:** On some (but not all) Linux systems I have
+found it necessary to set the environment variable `GOMP_CPU_AFFINITY`
+to achieve maximum multithreaded performance in 
+<span class=SC>scuff-em</span> calculations. If you have an 8-core
+machine, say something like
+
+````bash
+% export GOMP_CPU_AFFINITY="0-7"
+````
+
+(for a machine with `N` cores, replace the `7` with `N-1`).
+I don't understand why this is needed in some cases but not
+others---if you have any ideas let me know!
 
 <!------------------------------------------------------>
 <!------------------------------------------------------>
