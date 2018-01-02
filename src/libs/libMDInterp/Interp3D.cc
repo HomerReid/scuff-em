@@ -318,12 +318,12 @@ void Interp3D::InitInterp3D(
 /***************************************************************/
 void Interp3D::ReInitialize(Phi3D PhiFunc, void *UserData, double *PhiVDTable)
 {
-   /*--------------------------------------------------------------*/ 
-   /*- temporarily allocate a big array in which we will store     */ 
-   /*- values and derivatives of the user's function. allocating   */ 
-   /*- this entire table all at once is totally storage-inefficient*/ 
-   /*- and could be much optimized since we only ever need 8 grid  */ 
-   /*- points worth of data at a time.                             */ 
+   /*--------------------------------------------------------------*/
+   /*- temporarily allocate a big array in which we will store     */
+   /*- values and derivatives of the user's function. allocating   */
+   /*- this entire table all at once is totally storage-inefficient*/
+   /*- and could be much optimized since we only ever need 8 grid  */
+   /*- points worth of data at a time.                             */
    /*-                                                             */
    /*- ('PVD' = 'phi values and derivatives')                      */
    /*-                                                             */
