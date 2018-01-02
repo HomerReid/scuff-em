@@ -1,6 +1,5 @@
-
 /*
- * tInterp1D.cc   -- second test program for Interp1D class 
+ * tInterp1D.cc   -- second test program for Interp1D class
  *
  * homer reid     -- 3/14/2011
  */

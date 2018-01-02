@@ -291,7 +291,7 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
      Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
    };
 
-  Log(" Surface %s: \n",Label);
+  Log(" Surface %s: ",Label);
   int LDim=LBasis->NC;
   for(int nd=0; nd<LDim; nd++)
    Log("  %i straddlers normal to lattice vector #%i",NumStraddlers[nd],nd);

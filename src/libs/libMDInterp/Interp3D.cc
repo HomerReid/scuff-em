@@ -308,7 +308,7 @@ void Interp3D::InitInterp3D(
     ErrExit("%s:%i:out of memory",__FILE__,__LINE__);
 
    if (PhiFunc==0 && PhiVDTable==0)
-    return 
+    return;
 
    ReInitialize(PhiFunc, UserData, PhiVDTable);
 }

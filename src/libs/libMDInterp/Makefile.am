@@ -2,6 +2,13 @@ noinst_LTLIBRARIES = libMDInterp.la
 pkginclude_HEADERS = libMDInterp.h
 libMDInterp_la_SOURCES = BinSearch.cc Interp1D.cc Interp2D.cc Interp3D.cc Interp4D.cc freadEC.cc libMDInterp.h
 
+check_PROGRAMS      = tlibMDInterp
+
+tlibMDInterp_SOURCES = tlibMDInterp.cc
+tlibMDInterp_LDADD   = ../libscuff/libscuff.la
+
+TESTS = tlibMDInterp
+
 EXTRA_DIST = COPYRIGHT
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil	\
