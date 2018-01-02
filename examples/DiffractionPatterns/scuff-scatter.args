@@ -2,8 +2,8 @@ geometry        HoleyScreen_1228.scuffgeo
 cache		HoleyScreen_1228.cache
 FVMesh          FVMesh_7400.msh
 Lambda          0.375
-Lambda          0.25
-Lambda          0.125
+Lambda          0.251
+Lambda          0.126
 pwDirection     0 0 1
 pwPolarization  1 0 0 
 # comment out the above and uncomment the following 

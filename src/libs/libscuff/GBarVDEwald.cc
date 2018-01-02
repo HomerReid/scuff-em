@@ -297,8 +297,10 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
 /***************************************************************/
 void AddGLong2D(double R[3], cdouble k, double P[2],
                 int n1, int n2, double Gamma[3][3],
-                double E, cdouble *GBarVD)
+                double E, cdouble *GBarVD, bool &Singular)
 { 
+  if (Singular) return;
+
   double PmG[2];
   cdouble PreFactor, Q, EEF, EEFPrime;
    
@@ -306,6 +308,11 @@ void AddGLong2D(double R[3], cdouble k, double P[2],
   PmG[1] = P[1] - n1*Gamma[0][1] - n2*Gamma[1][1];
 
   Q = sqrt ( PmG[0]*PmG[0] + PmG[1]*PmG[1] - k*k );
+
+  if ( abs(Q) < 1.0e-4*abs(k) )
+   { Singular=true;
+     return;
+   };
 
   PreFactor = exp( II * (PmG[0]*R[0] + PmG[1]*R[1]) ) / Q;
 
@@ -350,8 +357,11 @@ cdouble GFullTwiddle1D(double kx, double Rho, cdouble k,
 /* dGdRho[1] = dG^2 / dRho^2                         */
 /*****************************************************/
 cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
-                          cdouble *dGdRho=0)
+                          cdouble *dGdRho, bool &Singular)
 {
+  if (Singular)
+   return 0.0;
+
   if ( Rho*E > 4.5 )
    return GFullTwiddle1D(kx, Rho, k, dGdRho);
 
@@ -359,6 +369,11 @@ cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
    dGdRho[0]=dGdRho[1]=0.0;
 
   cdouble kt2      = kx*kx - k*k;
+  if ( abs(kt2) < 1.0e-8 * abs(k*k) )
+   { Singular=true;
+     return 0.0;
+   };
+
   double E2        = E*E;
   cdouble Arg      = kt2 / (4.0*E2);
   cdouble Eqp1     = ExpInt(Arg);
@@ -412,8 +427,11 @@ cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
 // 
 // 
 void AddGLong1D(double R[3], double Rho, cdouble k, double P[2],
-                int m, double Gamma[3][3], double E, cdouble *GBarVD)
+                int m, double Gamma[3][3], double E, cdouble *GBarVD,
+                bool &Singular)
 {
+  if (Singular) return;
+
   double PmG[2], PmGMag;
   PmG[0] = P[0] - m*Gamma[0][0];
   PmG[1] = P[1] - m*Gamma[0][1];
@@ -424,7 +442,7 @@ void AddGLong1D(double R[3], double Rho, cdouble k, double P[2],
   cdouble ExpFac = exp( II * ( PmG[0]*R[0] + PmG[1]*R[1]) );
 
   cdouble dGdRho[2];
-  cdouble GT=GetGLongTwiddle1D(PmGMag, Rho, k, E, dGdRho);
+  cdouble GT=GetGLongTwiddle1D(PmGMag, Rho, k, E, dGdRho, Singular);
   cdouble dGTdRho = dGdRho[0];
   cdouble dGT2dRho2 = Rho==0.0 ? 0.0 : (dGdRho[1] - dGdRho[0]/Rho);
   double YOverRho = (Rho==0.0) ? 0.0 : R[1]/Rho;
@@ -442,14 +460,16 @@ void AddGLong1D(double R[3], double Rho, cdouble k, double P[2],
 }
 
 /***************************************************************/
+/* set Singular=true if singularity encountered ****************/
 /***************************************************************/
-/***************************************************************/
-void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
+bool GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
                     double Gamma[3][3], int LDim,
                     double E, int *pnCells, cdouble *Sum)
-{ 
+{
   memset(Sum,0,NSUM*sizeof(cdouble));
-  if (E==0.0) return;
+  if (E==0.0) return false;
+
+  bool Singular=false;
 
   /***************************************************************/
   /* start by summing the contributions of a ``first round''     */
@@ -458,13 +478,15 @@ void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
   int nCells=0;
   if (LDim==1)
    { for (int m=-NFIRSTROUND; m<=NFIRSTROUND; m++)
-       AddGLong1D(R, Rho, k, kBloch, m, Gamma, E, Sum);
+      AddGLong1D(R, Rho, k, kBloch, m, Gamma, E, Sum, Singular);
    }
   else // LDim==2
    { for (int m1=-NFIRSTROUND; m1<=NFIRSTROUND; m1++)
       for (int m2=-NFIRSTROUND; m2<=NFIRSTROUND; m2++, nCells++)
-       AddGLong2D(R, k, kBloch, m1, m2, Gamma, E, Sum);
+       AddGLong2D(R, k, kBloch, m1, m2, Gamma, E, Sum, Singular);
    };
+
+  if (Singular) return true;
 
   /***************************************************************/
   /* continue to add contributions of outer cells until converged*/
@@ -475,8 +497,8 @@ void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
   for(int NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN++)
    {  
      if (LDim==1)
-      { AddGLong1D(R, Rho, k, kBloch,  NN, Gamma, E, Sum);
-        AddGLong1D(R, Rho, k, kBloch, -NN, Gamma, E, Sum);
+      { AddGLong1D(R, Rho, k, kBloch,  NN, Gamma, E, Sum, Singular);
+        AddGLong1D(R, Rho, k, kBloch, -NN, Gamma, E, Sum, Singular);
         nCells+=2;
       }
      else // LDim==2
@@ -486,13 +508,15 @@ void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
         /* NNxNN square of grid cells                                   */
         /*--------------------------------------------------------------*/
         for(int m=-NN; m<NN; m++)
-         { AddGLong2D(R, k, kBloch,   m,  NN, Gamma, E, Sum);
-           AddGLong2D(R, k, kBloch,  NN,  -m, Gamma, E, Sum);
-           AddGLong2D(R, k, kBloch,  -m, -NN, Gamma, E, Sum);
-           AddGLong2D(R, k, kBloch, -NN,   m, Gamma, E, Sum);
+         { AddGLong2D(R, k, kBloch,   m,  NN, Gamma, E, Sum, Singular);
+           AddGLong2D(R, k, kBloch,  NN,  -m, Gamma, E, Sum, Singular);
+           AddGLong2D(R, k, kBloch,  -m, -NN, Gamma, E, Sum, Singular);
+           AddGLong2D(R, k, kBloch, -NN,   m, Gamma, E, Sum, Singular);
            nCells+=4;
          };
       };
+
+     if (Singular) return true;
 
      /*--------------------------------------------------------------*/
      /* convergence analysis ----------------------------------------*/
@@ -529,6 +553,8 @@ void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
 
   if (pnCells) 
    *pnCells=nCells;
+
+  return false;
 
 }
 
@@ -902,7 +928,7 @@ void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
 /*  GBarVD[6] = d^2GBar/dYdZ                                   */
 /*  GBarVD[7] = d^3GBar/dXdYdZ                                 */
 /***************************************************************/
-void GBarVDEwald(double *R, cdouble k, double *kBloch,
+void GBarVDEwald(double *R, cdouble k, double *kBloch0,
                  double (*LBV)[3], int LDim,
                  double E, bool ExcludeInnerCells,
                  cdouble *GBarVD)
@@ -931,10 +957,22 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
   /***************************************************************/
   /* evaluate 'nearby' and 'distant' sums                        */
   /***************************************************************/
+  double kBloch[3]={0.0, 0.0, 0.0};
+  memcpy(kBloch, kBloch0, LDim*sizeof(double));
+
   cdouble GBarNearby[NSUM], GBarDistant[NSUM];
   GetGBarNearby(R, k, kBloch, LBV, LDim,
                 E, ExcludeInnerCells, 0, GBarNearby);
-  GetGBarDistant(R, Rho, k, kBloch, Gamma, LDim, E, 0, GBarDistant);
+  bool Singular
+   = GetGBarDistant(R, Rho, k, kBloch, Gamma, LDim, E, 0, GBarDistant);
+
+  if (Singular)
+   { Log("Ewald spectral sum is singular (recomputing at displaced kBloch)");
+     kBloch[0] += (1.0e-2)*abs(k);
+     GetGBarNearby(R, k, kBloch, LBV, LDim,
+                   E, ExcludeInnerCells, 0, GBarNearby);
+     GetGBarDistant(R, Rho, k, kBloch, Gamma, LDim, E, 0, GBarDistant);
+   };
    
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = GBarNearby[ns] + GBarDistant[ns];
