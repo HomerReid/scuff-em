@@ -42,9 +42,11 @@ but in this case the code will be somewhat crippled.
   [HDF5](http://www.hdfgroup.org/HDF5).
 
 + If you want to compile the [[python]] interface, you will need the
-  [[python]] development files and the [[numpy]] package.
+  [[python]] development files and the [[numpy]] package,
+  as well as the [<span class=SC>swig</sc>](http://www.swig.org)
+  interface-generator package.
 
-+ Although not required to install, compile, or use
++</span> Although not required to install, compile, or use
   [[scuff-em]],
   [<span class="SC">gmsh</span>](http://geuz.org/gmsh)
   is an extremely valuable open-source meshing and visualization
@@ -156,6 +158,45 @@ path by saying
 Now you will be able to run command-line codes like `scuff-rf`
 from any directory and the OS will know where to find the
 program file.
+
+<a name="HDF5Locations"></a>
+####Specifying locations of external libraries
+
+In some cases, external packages used in the SCUFF-EM compilation
+process may be installed in non-standard locations on your system.
+In this case, you may need to set the `CPPFLAGS` and/or `LDFLAGS`
+environment variables to specify the locations of library header
+files and binary files, respectively.
+
+For example, on my (Ubuntu-based) Linux system, the HDF5 library
+is provided by the `libhdf5-openmpi-dev` package, which
+places the HDF5 header files in `/usr/include/hdf5/openmpi` and
+the HDF5 library binaries in `/usr/lib/x86_64-linux-gnu/hdf5/openmpi.`
+Thus, when I `configure` to build <span class=SC>scuff-em</span>
+I specify these paths, like this:
+
+````bash
+ % configure CPPFLAGS=-I/usr/include/hdf5/openmpi LDFLAGS=-L/usr/lib/x86_64-linux-gnu/hdf5/openmpi [other options]
+````
+
+Note: To figure out where a package like `libhdf5-openmpi-dev` installs
+its files, you can use the command `dpkg --listfiles`:
+
+````bash
+% dpkg --listfiles libhdf5-openmpi-dev
+
+....
+....
+/usr/include/hdf5/openmpi/H5PTpublic.h
+/usr/include/hdf5/openmpi/H5api_adpt.h
+....
+....
+/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.a
+/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.a
+....
+....
+
+````
 
 <a name="openMPI"></a>
 ####Using the MPI compilers

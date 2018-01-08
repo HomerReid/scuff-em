@@ -22,7 +22,9 @@ markdown_extensions:
 extra_javascript: ['https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML','mathjaxhelper.js']
 
 pages:
+
 - SCUFF-EM documentation: 'index.md'
+
 - Examples:
     - 'Mie scattering':                           'examples/MieScattering/MieScattering.md'
     - 'Electrostatics of a spherical dielectric shell':   'examples/DielectricShell/DielectricShell.md'
@@ -42,6 +44,7 @@ pages:
     - 'Finite-size effects in stripline capacitors': 'examples/pythonCapacitance/pythonCapacitance.md'
     - 'Electrostatic fields of an electrode array': 'examples/PaulTrap/PaulTrap.md'
     - 'Z-parameters and directivity of Yagi-Uda antennas': 'examples/YagiUdaAntennas/YagiUdaAntennas.md'
+
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'
@@ -51,6 +54,7 @@ pages:
     - 'Incident fields':           'reference/IncidentFields.md'
     - 'Brillouin zone integration': 'reference/BrillouinZoneIntegration.md'
     - 'FAQ':                       'reference/FAQ.md'
+
 - Command-line application reference:
     - 'General command-line reference': 'applications/GeneralReference.md'
     - 'scuff-scatter':         'applications/scuff-scatter/scuff-scatter.md'
@@ -65,6 +69,7 @@ pages:
     - 'scuff-spectrum':        'applications/scuff-spectrum/scuff-spectrum.md'
     - 'scuff-analyze':         'applications/scuff-analyze/scuff-analyze.md'
     - 'scuff-integrate':       'applications/scuff-integrate/scuff-integrate.md'
+
 - Validation tests:
     - 'Overview of the test suite':                                        'tests/Overview.md'
     - 'Mie scattering':                                                    'tests/MieScattering/MieScattering.md'
@@ -75,8 +80,10 @@ pages:
     - 'Equilibrium Casimir-Polder potential near a plate':                 'tests/CPPlate/CPPlate.md'
     - 'Heat transfer and non-equilibrium Casimir forces between spheres':  'tests/NEQSpheres/NEQSpheres.md'
     - 'Low-level tests of the core library':                               'tests/libscuff/libscuff.md'
+
 - API reference:  
     - 'libscuff':              'API/libscuff.md'
+
 - For developers:
     - 'Implementation':                        'forDevelopers/Implementation.md'
     - 'Data Structures':                       'forDevelopers/DataStructures.md'

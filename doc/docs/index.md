@@ -8,7 +8,7 @@
 **If you find any inconsistencies or missing bits in the documentation, please
   [file an issue on the <span class="SC">scuff-em</span> GitHub page][GitHub].**
 
-## General reference
+# General reference
 
 * [Top-level overview](reference/TopLevel.md)
 * [Installation](reference/Installing.md)
