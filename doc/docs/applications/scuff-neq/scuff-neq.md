@@ -404,6 +404,7 @@ Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you
 can monitor to keep track of your calculation's progress.
 
+<a name="#SIFluxFile"></a>
 ### Output files for spatially-integrated PFTs: The `.SIFlux.METHOD` file
 
 If you used an option like `--EMTPFT` or `--DSIPFT` to request

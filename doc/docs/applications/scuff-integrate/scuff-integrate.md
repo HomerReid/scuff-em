@@ -1,4 +1,4 @@
-<h1> Integrating frequency-dependent data with <span class="SC">scuff-integrate</span></h1>
+# Integrating frequency-dependent data with <span class="SC">scuff-integrate</span>
 
 Many application codes in the [[scuff-em]] suite compute
 physical quantities defined by definite integrals over real
@@ -6,43 +6,40 @@ or imaginary frequencies, with the numerical value of the
 integrand at each point obtained by solving individual
 [[scuff-em]] scattering problems at that frequency. For example,
 
-+ [ <span class=SC>scuff-cas3d</span> ][scuff-cas3D] and 
-[ <span class=SC>scuff-caspol</span> ][scuff-caspol]
-compute zero-temperature Casimir quantities by integrating 
-contributions from imaginary frequencies $\xi$:
-
++ [ <span class=SC>scuff-cas3d</span> ][scuff-cas3D] and
+  [ <span class=SC>scuff-caspol</span> ][scuff-caspol]
+  compute zero-temperature Casimir quantities by integrating 
+  contributions from imaginary frequencies $\xi$:
 <!--%====================================================================%-->
-$$ Q = \int_0^\infty I(\xi) \, d\xi $$
+$$ Q = \int_0^\infty I(\xi) \, d\xi \tag{1} $$
 <!--%====================================================================%-->
-
-Here $Q$ is a zero-temperature Casimir energy/force/torque ([[scuff-cas3d]])
-or Casimir-Polder potential ([[scuff-caspol]]) and $I(\xi)$ is the 
-spectral density of contributions to $Q$ from fluctuations at 
-imaginary frequency $\xi$, which may be obtained by solving
-[[scuff-em]] scattering calculations at imaginary frequency $\xi$.
+  Here $Q$ is a zero-temperature Casimir energy/force/torque ([[scuff-cas3d]])
+  or Casimir-Polder potential ([[scuff-caspol]]) and $I(\xi)$ is the 
+  spectral density of contributions to $Q$ from fluctuations at 
+  imaginary frequency $\xi$, which may be obtained by solving
+  [[scuff-em]] scattering calculations at imaginary frequency $\xi$.
 
 + [ <span class=SC>scuff-neq</span> ][scuff-neq] computes
-the total rate of energy or momentum transfer
-from a source body $s$ to a destination body $d$ 
-by integrating contributions from real frequencies $\omega$:
-
+    the total rate of energy or momentum transfer
+    from a source body $s$ to a destination body $d$ 
+    by integrating contributions from real frequencies $\omega$:
 <!--%====================================================================%-->
 $$ Q_{s\rightarrow d}
    = \int_0^\infty
      \Big[ \Theta(T_s,\omega) - \Theta(T_\text{env},\omega) \Big]
      \Phi_{s\rightarrow d}(\omega) \, d\omega
-   \qquad (1)
+   \tag{2}
 $$
 <!--%====================================================================%-->
-Here $Q_{s\rightarrow d}$ is the contribution of body $s$ to
-quantity $Q$ (a heat-transfer rate, force, or torque) for body $d$,
-$\Theta(T,\omega)=\frac{\hbar\omega}{e^{\hbar\omega/kT}-1}$
-is the Bose-Einstein statistical factor, $T_s$ and $T_\text{env}$
-are the temperatures of the source body and the environment,
-and $\Phi(\omega)$ is a "generalized flux" quantity that may be 
-computed by solving [[scuff-em]] scattering calculations
-at frequency $\omega$.
-
+    Here $Q_{s\rightarrow d}$ is the contribution of body $s$ to
+    quantity $Q$ (a heat-transfer rate, force, or torque) for body $d$,
+    $\Theta(T,\omega)=\frac{\hbar\omega}{e^{\hbar\omega/kT}-1}$
+    is the Bose-Einstein statistical factor, $T_s$ and $T_\text{env}$
+    are the temperatures of the source body and the environment,
+    and $\Phi(\omega)$ is a "generalized flux" quantity that may be 
+    computed by solving [[scuff-em]] scattering calculations
+    at frequency $\omega$.
+    
 The integrals over $\xi$ and $\omega$ are evaluated by
 numerical cubature---that is, as weighted sums of integrand
 samples. In a perfect world, it would be possible for 
@@ -74,15 +71,47 @@ using the information reported in the frequency-resolved
 data files, and this is the task for which [[scuff-integrate]]
 exists.
 
+**<span class=SC>scuff-integrate</span> is a general-purpose tool, not limited to <span class=SC>scuff-em</span> applications**
+
+Actually, [[scuff-integrate]] is designed to be a general-purpose
+numerical-integration tool, not particularly tied to
+[[scuff-em]]; given a data file containing samples of
+some function $f(x)$ at sample points $\{x_n\}$
+distributed over an interval $[x_a, x_b]$,
+[[scuff-integrate]] approximates the integral
+$\int_{x_a}^{x_b} f(x) \, dx$. (It does this by
+constructing a third-order spline interpolant through
+the data, then integrating the interpolant via numerical
+quadrature.) The code offers command-line options
+to specify how the data file is to be interpreted
+(for example, which columns are the $x$ samples and 
+which are the $f$ samples). There is no restriction
+on the number or spacing of the sample points; the
+variable *x* need not correspond to a real or imaginary 
+frequency, and the function $f$ need not be a generalized
+flux, Casimir integrand, or any other quantity
+reported by a [[scuff-em]] calculation.
+
+**But for data files that *do* come from <span class=SC>scuff-em</span> calculations, <span class=SC>scuff-integrate</span> knows what to do automatically with minimal user input**
+
+In addition to the fully general-purpose mode described above,
+[[scuff-integrate]] also has built-in automatic support for
+certain specialized types of <span class=SC>scuff-em</span>
+data files---such as the [`.SIFlux` files produced by <span class=SC>scuff-neq</span>](../scuff-neq/scuff-neq.md#SIFluxFile)---designed
+to make it easy to run the tool to get the frequency-integrated data you want with minimal user input
+required.
+
 [TOC]
 
-## <span class=SC>scuff-integrate</span> tutorial walkthrough
+# 1. Using <span class=SC>scuff-integrate</span> as a general-purpose numerical integrator
 
-### Integrating a single function of frequency
+## Integrating a single function of a single variable
 
 The simplest usage of [[scuff-integrate]] is to integrate
-a single function of frequency $f(x)$
-[where $x$ denotes either real or imaginary frequency].
+a single function $f$ of a single variable $x$; as noted
+above, this is a general-purpose use of the code, independent
+of [[scuff-em]], in which $x$ and $f$ need not be a frequency and
+a generalized flux, but could have any arbitrary significance.
 Suppose we have a file called `fData` in which
 are tabulated numerical pairs $(x_n, f_n)$, $n=1,2,\cdots,N$, 
 where $f_n=f(x_n)$:
@@ -120,12 +149,8 @@ in the above snippet) is ignored.
 
 ### Integrating multiple functions of frequency
 
-More generally, frequency-resolved data files produced by
-[[scuff-em]] codes will contain data on multiple functions
-$f_1, \cdots, f_p(x)$. (For example, in [[scuff-cas3d]] 
-each line of the data file may contain data on both
-Casimir energy and Casimir force.)
-
+More generally, you may have multiple integrand functions 
+$f_1, \cdots, f_N$, each sampled at the same set of $x$ values,
 You can integrate all of these
 at once simply by specifying multiple `--dataColumn`
 options. For example, if you have functions $f$ and $g$
@@ -154,18 +179,25 @@ be labeled `data 0`, `data 1`, etc. If you want to give more
 descriptive names, just follow each `--dataColumn` option
 with a `--dataName` option. 
 
-For example, if your force and torque
-integrands are respectively reported on columns 8 and 11
-of your data file, say 
+For example, if 
+columns 8 and 11 of your data file respectively
+report values of force and torque integrands, you might say
+, say 
 `--dataColumn 8 --dataName Force --dataColumn 11 --dataName Torque`.
 
 ### Integrating functions of frequency and other parameters
 
 In many cases we will have functions that depend on various
-parameters beside frequency. (In [[scuff-cas3d]], for example,
+parameters beside the integration variable, i.e. functions of the form
+$f(x;p_1, \cdots, p_N)$ where the data file includes integrand
+samples for multiple sets of values of the $(p_1,\cdots,p_n)$ 
+parameters. (In [[scuff-cas3d]], for example,
 we might compute Casimir forces between particles separated
 by various distances $d$, so the integrand function may 
-be thought of as a function $f(d,x)$ of both distance and frequency.)
+be thought of as a function $f(x,d)$ of both distance and frequency.)
+In these cases you will generally want to evaluate *separate* integrals
+over $x$ for each set of parameter values represented in your
+data file.
 
 For example, suppose your data file is called `pxfgData` and 
 looks something like
@@ -209,11 +241,74 @@ Then each line of the `.Integrated` output file will report
 $x$-integrated values of all functions for a single tuple of 
 parameter values $(p,q,\cdots).$
 
-### Integrating [[scuff-neq]] data
+# 2. Using <span class=SC>scuff-integrate</span> as a specialized integrator for <span class=SC>scuff-em</span> data
 
-[[scuff-integrate]] incorporates special functionality
-for handling the particular frequency-resolved data files
-produced by [<span class=SC>scuff-neq</span>][scuff-neq].
+As noted above, [[scuff-integrate]] has built-in knowledge
+of the structure of various data files produced by
+<span class=SC>scuff-em</span> calculations. This streamlines
+calculations by allowing you
+you to feed those data files directly into [[scuff-integrate]]
+without needing to tell the code which column of the data file
+is which.
+ 
+## 2A. Integrating [[scuff-neq]] data
+
+As discussed at the top of the page, the frequency-resolved
+data reported by [<span class=SC>scuff-neq</span>][scuff-neq]
+are generalized fluxes describing temperature-independent
+rates of energy and momentum transfer from each body
+to each other body in your geometry. To turn these
+into total heat-transfer rates, forces, and torques
+for a given set of object and environment temperatures,
+we must **(a)** integrate over frequency with
+Bose-Einstein thermal weight factors appropriate for
+the given temperatures, and **(b)** sum the
+contributions of multiple source bodies to yield
+the total rates of power and momentum transfer to
+each destination body. 
+<span class=SC>scuff-integrate</span> already knows the
+file format of the `.SIFlux` and `.SRFlux` frequency-resolved
+data files produced by [<span class=SC>scuff-neq</span>][scuff-neq],
+so there is no need to specify `--FreqColumn` and `--DataColumn`
+options. 
+
+### Specifiying temperatures
+
+Instead, the only input you need to supply (besides
+the `.SIFlux` or `.SRFlux` data file) is a specification
+of the temperatures of the bodies in your geometry,
+and of the surrounding environment. By default, all bodies
+and the environment are at absolute zero, $T=0$ K; if
+you do not modify this situation by setting a nonzero temperature
+for at least one body (or the environment), all heat-transfer
+rates and forces/torques will be zero.
+
++ `--Temperature N T`
+
+    If $N\ge 1$, this sets the temperature of the $N$th object/surface in the geometry to `T`
+    Kelvin.
+    (Here objects/surfaces are indexed using a 1-based convention; to set the temperature
+    of the first object/surface specified in the `.scuffgeo` file to room temperature
+    you would say `--Temperature 1 300.`)
+
+    If $N=0$, this instead sets the temperature of the environment to `T`.
+
+### Specifiying multiple temperature sets
+
+A bonus feature
+of the separation between [[scuff-neq]] and [[scuff-integrate]]
+is that a single set of frequency-resolved flux data (in
+an `.SIFlux` or `.SRFlux` file) can be used to obtain data on
+heat-transfer rates and forces and torques at multiple sets
+of temperatures for the bodies and the environment, simply by 
+evaluating integral (2) multiple times with different temperatures
+but the same flux data.
+
+
+### Spatially-integrated flux data (`.SIFlux` files)
+
+knows how to do this automatically 
+
 In this case, for a geometry containing $N$ bodies,
 each line of the `.SIFlux` output file is tagged with
 a data field of the form $sd$ (where $s$ and $d$ are
@@ -223,10 +318,10 @@ of sources in body $s$ to the power, force, and/or torque
 `13` give contributions of body 1 to the PFT for body 3).
 The actual data quantities reported in the
 `.SIFlux` file are the generalized fluxes $\Phi_{s\rightarrow d}$
-in equation (1) above, and to evaluate the $\omega$ integral
+in equation (2) above, and to evaluate the $\omega$ integral
 here we need to know the temperatures of the environment
 and of all bodies in the geometry, which enter through 
-the Bose-Einstein factors in (1).
+the Bose-Einstein factors in (2).
 
 To handle these complications, [[scuff-integrate]]
 supports the following additional command-line options:
@@ -240,16 +335,6 @@ supports the following additional command-line options:
     may be omitted.)
 
 &nbsp;
-
-+ `--Temperature N T`
-
-    If $N\ge 1$, this sets the temperature of the $N$th object/surface in the geometry to `T`
-    Kelvin.
-    (Here objects/surfaces are indexed using a 1-based convention; to set the temperature
-    of the first object/surface specified in the `.scuffgeo` file to room temperature
-    you would say `--Temperature 1 300.`)
-
-    If $N=0$, this instead sets the temperature of the environment to `T`.
 
 &nbsp;
 
@@ -273,7 +358,9 @@ supports the following additional command-line options:
 0 300 300
 ````
 
-## <span class=SC>scuff-integrate</span> Command-Line Reference
+# 3. <span class=SC>scuff-integrate</span> Command-Line Reference
+
+# 4. Miscellaneous notes
 
 ## Only numerical data columns are counted as columns
 

@@ -100,7 +100,6 @@ public:
    /* electrostatic case: get electrostatic potential and E-field  */
    /* at XD ("Destination") due to monopole at XS ("Source")       */
    /*--------------------------------------------------------------*/
-
    // substrate contribution
    void GetDeltaPhiE(double XD[3], double XS[3],
                      double PhiE[4], double *pG0Correction=0);
@@ -131,16 +130,16 @@ public:
    void GetSubstrateDGF_StaticLimit(cdouble Omega, HMatrix *XMatrix,
                                     HMatrix *GMatrix);
 
-   void GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
-                                           HMatrix *XMatrix,
-                                           HMatrix *GMatrix);
+   void GetIScalars(cdouble Omega, HMatrix *XMatrix,
+                    cdouble *IScalars, int DerivativeDimension=0);
 
    void GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
                                            HMatrix *XMatrix,
                                            HMatrix *GMatrix);
 
-   void GetIScalars(cdouble Omega, HMatrix *XMatrix,
-                    cdouble *IScalars, int DerivativeDimension=0);
+   void GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
+                                           HMatrix *XMatrix,
+                                           HMatrix *GMatrix);
 
    /*--------------------------------------------------------------*/
    /* general-purpose routine for evaluating q (Fourier) integrals */

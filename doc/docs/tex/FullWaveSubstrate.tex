@@ -559,18 +559,18 @@ We will evaluate the Fourier integrals (\ref{IFT2D})
 in polar coordinates 
 $\vb q=(q_x,q_y)=\big(q \cos\theta_{\vb q}, q\sin\theta_{\vb q}\big).$
 Although $\wt{G\sups{subs}}(\vb q)$ has 36 Cartesian components,
-these may be expressed in terms of just 12 scalar functions
+these may be expressed in terms of just 14 scalar functions
 of $q_\rho$ times cosines and sines of $\theta_{\vb q}$:
 %====================================================================%
 \begin{align*}
  \wt{\bmc G\supt{EE}}(\vb q)
- = &g\supt{EE0$\parallel$}(q)
+ = &\wt{g}\supt{EE0$\parallel$}(q)
     \left(\begin{array}{ccc}
     1 & 0 & 0 \\ 
     0 & 1 & 0 \\ 
     0 & 0 & 0 \\ 
    \end{array}\right)
-  + g\supt{EE0$z$}(q)
+  + \wt{g}\supt{EE0$z$}(q)
     \left(\begin{array}{ccc}
     0 & 0 & 0 \\ 
     0 & 0 & 0 \\ 
@@ -578,13 +578,20 @@ of $q_\rho$ times cosines and sines of $\theta_{\vb q}$:
    \end{array}\right)
 \\
 %--------------------------------------------------------------------%
- + &g\supt{EE1}(q)
+ + &\wt{g}\supt{EE1A}(q)
    \left(\begin{array}{ccc}
     0                     & 0                   & \cos\theta_{\vb q} \\
     0                     & 0                   & \sin\theta_{\vb q} \\
-    -\cos\theta_{\vb q}   & -\sin\theta_{\vb q} & 0 
+    0                     & 0                   & 0 
    \end{array}\right)
-  +g\supt{EE2}(q)
+ + \wt{g}\supt{EE1B}(q)
+   \left(\begin{array}{ccc}
+    0                     & 0                   & 0 \\
+    0                     & 0                   & 0 \\
+    \cos\theta_{\vb q}    & \sin\theta_{\vb q}  & 0 
+   \end{array}\right)
+\\
+  +&\wt{g}\supt{EE2}(q)
    \left(\begin{array}{ccc}
     \cos^2\theta_{\vb q}  & \cos\theta_{\vb q} \sin\theta_{\vb q} & 0 \\
     \cos\theta_{\vb q} \sin\theta_{\vb q} & \sin^2\theta_{\vb q}  & 0 \\
@@ -618,65 +625,82 @@ of $q_\rho$ times cosines and sines of $\theta_{\vb q}$:
     0 & 0 & 0 \\
    -\sin\theta_{\vb q} & \cos\theta_{\vb q} & 1
    \end{array}\right)
-\\[10pt]
-%--------------------------------------------------------------------%
- \wt{\bmc G\supt{ME}}(\vb q)
- = &-g\supt{EM0$\parallel$}(q)
-    \left(\begin{array}{ccc}
-    0 & 1 & 0 \\ 
-   -1 & 0 & 0 \\ 
-    0 & 0 & 0 \\ 
-   \end{array}\right)
-  -g\supt{EM2}(q)
-   \left(\begin{array}{ccc}
-    \cos\theta_{\vb q} \sin\theta_{\vb q} & \sin^2\theta_{\vb q} & 0 \\
-    -\cos^2\theta_{\vb q} & -\cos\theta_{\vb q} \sin\theta_{\vb q} & 0 \\
-    0                     & 0                    & 0 
-   \end{array}\right)
-\\
-  + &g\supt{EM1B}(q)
-    \left(\begin{array}{ccc}
-    0 & 0 & -\sin\theta_{\vb q} \\
-    0 & 0 & +\cos\theta_{\vb q} \\
-    0 & 0 & 1
-   \end{array}\right)
-  + g\supt{EM1A}(q)
-    \left(\begin{array}{ccc}
-    0 & 0 & 0 \\
-    0 & 0 & 0 \\
-   -\sin\theta_{\vb q} & \cos\theta_{\vb q} & 1
-   \end{array}\right)
-\\[10pt]
-%--------------------------------------------------------------------%
- \wt{\bmc G\supt{MM}}(\vb q)
- &= g\supt{MM0$\parallel$}(q)
-    \left(\begin{array}{ccc}
-    1 & 0 & 0 \\ 
-    0 & 1 & 0 \\ 
-    0 & 0 & 0 \\ 
-   \end{array}\right)
-  + g\supt{MM0$z$}(q)
-    \left(\begin{array}{ccc}
-    0 & 0 & 0 \\ 
-    0 & 0 & 0 \\ 
-    0 & 0 & 1 \\ 
-   \end{array}\right)
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \bmc G\supt{EE}(\vbrho, z, z^\prime)
+&=\Big[  g\supt{EE0$\parallel$}(\rho,z,z^\prime)
+         +g\supt{EE2A}(\rho,z,z^\prime)
+  \Big]
+  \left(\begin{array}{ccc}
+  1 & 0 & 0 \\ 
+  0 & 1 & 0 \\ 
+  0 & 0 & 0 \\ 
+  \end{array}\right)
+  +g\supt{EE0$z$}(\rho,z,z^\prime)
+  \left(\begin{array}{ccc}
+  0 & 0 & 0 \\ 
+  0 & 0 & 0 \\ 
+  0 & 0 & 1 \\ 
+  \end{array}\right)
 \\
 %--------------------------------------------------------------------%
-&\qquad
-   +g\supt{MM1}(q)
+ + &g\supt{EE1A}(\rho,z,z^\prime)
    \left(\begin{array}{ccc}
-    0                     & 0                   & \cos\theta_{\vb q} \\
-    0                     & 0                   & \sin\theta_{\vb q} \\
-    -\cos\theta_{\vb q}   & -\sin\theta_{\vb q} & 0 
+    0                     & 0                   & \cos\theta_{\vbrho} \\
+    0                     & 0                   & \sin\theta_{\vbrho} \\
+    0                     & 0                   & 0 
    \end{array}\right)
-%
-   +g\supt{MM2}(q)
+ + g\supt{EE1B}(\rho,z,z^\prime)
    \left(\begin{array}{ccc}
-    \cos^2\theta_{\vb q}  & \cos\theta_{\vb q} \sin\theta_{\vb q} & 0 \\
-    \cos\theta_{\vb q} \sin\theta_{\vb q} & \sin^2\theta_{\vb q}  & 0 \\
-    0                     & 0                    & 0 
+    0                     & 0                    & 0 \\
+    0                     & 0                    & 0 \\
+    \cos\theta_{\vbrho}   & \sin\theta_{\vbrho}  & 0
    \end{array}\right)
+\\
+  +&g\supt{EE2}(\rho,z,z^\prime)
+   \left(\begin{array}{ccc}
+    \cos^2\theta_{\vbrho}  & \cos\theta_{\vbrho} \sin\theta_{\vbrho} & 0 \\
+    \cos\theta_{\vbrho} \sin\theta_{\vbrho} & \sin^2\theta_{\vbrho}  & 0 \\
+    0                     & 0                    & 0
+   \end{array}\right)
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+g\supt{EE0$\parallel$}(\rho,z,z^\prime)
+&= \int_0^\infty
+   \wt{g}\supt{EE0$\parallel$}(q, z, z^\prime)
+   J_0(q\rho) \frac{q dq}{2\pi}
+\\
+g\supt{EE0$z$}(\rho,z,z^\prime)
+&=\int_0^\infty 
+  \wt{g}\supt{EE0$z$}(q, z, z^\prime) J_0(q\rho) \frac{q dq}{2\pi} 
+\\
+g\supt{EE1A}(\rho,z,z^\prime)
+&= i\int_0^\infty
+   \wt{g}\supt{EE1A}(q, z, z^\prime)
+   J_1(q\rho) \frac{q dq}{2\pi}
+\\
+g\supt{EE1B}(\rho,z,z^\prime)
+&= i\int_0^\infty
+   \wt{g}\supt{EE1B}(q, z, z^\prime)
+   J_1(q\rho) \frac{q dq}{2\pi}
+\\
+g\supt{EE2A}(\rho,z,z^\prime)
+&= \int_0^\infty
+   \wt{g}\supt{EE2}(q, z, z^\prime)
+   \frac{J_1(q\rho)}{q\rho} \frac{q dq}{2\pi}
+\\
+g\supt{EE2B}(\rho,z,z^\prime)
+&= -\int_0^\infty
+    \wt{g}\supt{EE2}(q, z, z^\prime)
+    J_2(q\rho) \frac{q dq}{2\pi}
 \end{align*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1335,4 +1359,39 @@ of the RWG function, $\ell$ is its length, and
   \left\{\begin{array}{c} u\\[3pt] v \end{array}\right\}
   e^{i(ux + vy)}.
 \end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Evaluation of $q$ integrals}
+
+\begin{align*}
+ I &= \int_0^\infty \mathcal{I}(q) dq
+\\
+   &= 
+   \underbrace{\int_0^a      \mathcal{I}(q) dq}_{I\supt{A}}
+ + \underbrace{\int_a^\infty \mathcal{I}(q) dq}_{I\supt{B}}
+\end{align*}
+
+
+$$ z = at + ic\sin\pi t,
+   \qquad 
+   dz = \left(a + ic\pi\cos\pi t\right)dt,
+   \qquad 
+   0\le t \le 1
+$$
+$$
+ I\supt{A} = \int_0^a \mc I(q) \, dq
+     = \int_{\mc C} \mc I(q) dq
+     = \int_0^1 \left(a + i\pi\cos\pi t\right)
+                \mc I\Big(at + i\sin\pi t\Big)\,dt
+$$
+$$
+ I\supt{B} = \sum_{n=1}^\infty I\supt{B}_n
+ \qquad I\supt{B}_n \equiv \int_{q_{n-1}}^{q_n} \mc I(q)\,dq
+$$
+where $q_0\equiv a$ and $\{q_1, \cdots, q\subt{N}, \cdots\}$
+is an appropriately-chosen sequence of break points.
+
 \end{document}

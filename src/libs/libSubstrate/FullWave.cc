@@ -158,11 +158,11 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
        GetSubstrateDGF_FullSurfaceCurrent(Omega, XMatrix, GMatrix);
        break;
 
-     case FAST_SURFACE_CURRENT:
-     case AUTO:
-     default:
-       GetSubstrateDGF_FastSurfaceCurrent(Omega, XMatrix, GMatrix);
-       break;
+//     case FAST_SURFACE_CURRENT:
+//     case AUTO:
+//     default:
+//       GetSubstrateDGF_FastSurfaceCurrent(Omega, XMatrix, GMatrix);
+//       break;
    };
      
   return GMatrix;
