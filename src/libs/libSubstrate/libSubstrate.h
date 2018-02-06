@@ -36,6 +36,7 @@
 #include <libhmat.h>
 #include <libMatProp.h>
 #include <libMDInterp.h>
+#include <libSGJC.h>
 
 // plane-wave polarizations
 #define POL_TE 0
@@ -61,6 +62,84 @@ extern const char *TimeNames[];
 #ifndef ZVAC
 #define ZVAC 376.73031346177
 #endif
+#define II cdouble(0.0,1.0)
+#define SQRT2 1.41421356237309504880
+
+/********************************************************************/
+/* labels for gTwiddle functions (of which there are 18) and        */
+/* gScalar functions (of which there are 22)                        */
+/********************************************************************/
+#define _EE0P 0
+#define _EE0Z 1
+#define _EE1A 2
+#define _EE1B 3
+#define _EE2A 4
+
+#define _EM0P 5
+#define _EM1A 6
+#define _EM1B 7
+#define _EM2A 8
+
+#define _ME0P 9
+#define _ME1A 10
+#define _ME1B 11
+#define _ME2A 12
+
+#define _MM0P 13
+#define _MM0Z 14
+#define _MM1A 15
+#define _MM1B 16
+#define _MM2A 17
+
+#define _EE2B 18
+#define _EM2B 19
+#define _ME2B 20
+#define _MM2B 21
+
+#define NUMGTWIDDLE 18
+#define NUMGSCALAR  22
+
+#define _EEXX 0
+#define _EEYX 1
+#define _EEZX 2
+#define _MEXX 3
+#define _MEYX 4
+#define _MEZX 5
+
+#define _EEXY 6
+#define _EEYY 7
+#define _EEZY 8
+#define _MEXY 9
+#define _MEYY 10
+#define _MEZY 11
+
+#define _EEXZ 12
+#define _EEYZ 13
+#define _EEZZ 14
+#define _MEXZ 15
+#define _MEYZ 16
+#define _MEZZ 17
+
+#define _EMXX 18
+#define _EMYX 19
+#define _EMZX 20
+#define _MMXX 21
+#define _MMYX 22
+#define _MMZX 23
+
+#define _EMXY 24
+#define _EMYY 25
+#define _EMZY 26
+#define _MMXY 27
+#define _MMYY 28
+#define _MMZY 29
+
+#define _EMXZ 30
+#define _EMYZ 31
+#define _EMZZ 32
+#define _MMXZ 33
+#define _MMYZ 34
+#define _MMZZ 35
 
 /***************************************************************/
 /* prototype for user-defined Fourier integrand                */
@@ -116,11 +195,11 @@ public:
    /* the E,H fields at XD due to J, M currents at XS              */
    /*--------------------------------------------------------------*/
    HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
-                            HMatrix *GMatrix=0, DGFMethod Method=AUTO);
+                            HMatrix *GMatrix=0, DGFMethod Method=AUTO, bool AddHomogeneousDGF=false);
    HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, DGFMethod Method);
 
    void GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3],
-                        cdouble ScriptG[6][6], DGFMethod Method=AUTO);
+                        cdouble ScriptG[6][6], DGFMethod Method=AUTO, bool AddHomogeneousDGF=false);
 
    // various implementations of the full-wave calculation
    void GetSubstrateDGF_StaticLimit(cdouble Omega,
@@ -130,12 +209,10 @@ public:
    void GetSubstrateDGF_StaticLimit(cdouble Omega, HMatrix *XMatrix,
                                     HMatrix *GMatrix);
 
-   void GetIScalars(cdouble Omega, HMatrix *XMatrix,
-                    cdouble *IScalars, int DerivativeDimension=0);
-
    void GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
                                            HMatrix *XMatrix,
                                            HMatrix *GMatrix);
+
 
    void GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
                                            HMatrix *XMatrix,
@@ -144,6 +221,9 @@ public:
    /*--------------------------------------------------------------*/
    /* general-purpose routine for evaluating q (Fourier) integrals */
    /*--------------------------------------------------------------*/
+   void GetqIntegral(double RhoMag, double zD, double zS, 
+                     double qIntegral[3]);
+  
    void qIntegrate(cdouble Omega, qFunction UserFunction,
                    void *UserData, cdouble *Integral, int FDim,
                    bool ThetaIndependent=true);
@@ -174,27 +254,36 @@ public:
 // private:
 
 // internal ("private") class methods
+
+   void UpdateCachedEpsMu(cdouble Omega);
+
+   // helper functions for static DGF calculation
    double GetStaticG0Correction(double z);
    double GetStaticG0Correction(double zD, double zS);
    void GetSigmaTwiddle(double zS, double q, double *SigmaTwiddle);
-   void UpdateCachedEpsMu(cdouble Omega);
-   void GetqIntegral(double RhoMag, double zD, double zS,
-                     double qIntegral[3]);
 
-   void ComputeW(cdouble Omega, double q[2], HMatrix *W);
-
-   void GetScriptG0Twiddle(cdouble Omega, double q2D[2],
+   // helper functions for full-wave DGF calculation
+   void ComputeW(cdouble Omega, cdouble q[2], HMatrix *W);
+   void GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
                            double zDest, double zSource,
                            cdouble ScriptG0Twiddle[6][6],
-                           int ForceLayer=-1,
-                           double ForceSign=0.0,
+                           int ForceLayer=-1, double ForceSign=0.0,
                            bool Accumulate=false,
                            bool dzDest=false, bool dzSource=false);
-
-   void GetScriptGTwiddle(cdouble Omega, double q2D[2],
+   void GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                           double zDest, double zSource,
                           HMatrix *RTwiddle, HMatrix *WMatrix,
                           HMatrix *STwiddle, HMatrix *GTwiddle,
+                          bool dzDest=false, bool dzSource=false);
+   void gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
+                             double zDest, double zSource,
+                             HMatrix *RTwiddle, HMatrix *WMatrix,
+                             HMatrix *STwiddle,
+                             cdouble *gTwiddleVD[2][2],
+                             bool dzDest=false, bool dzSource=false);
+   void gTwiddleHardCoded(cdouble Omega, cdouble q,
+                          double zDest, double zSource,
+                          cdouble *gTwiddleVD[2][2],
                           bool dzDest=false, bool dzSource=false);
 
    void RotateG(cdouble Gij[6][6], double Phi);
@@ -246,6 +335,7 @@ public:
    bool XYOnly;
    DGFMethod ForceMethod;
    bool ForceFreeSpace;
+   bool HardCoded;
    bool StaticLimit;
    int LogLevel;
    bool WritebyqFiles;
@@ -254,5 +344,37 @@ public:
 
 void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double PhiE[4]);
 void AddPhiE0(double XDest[3], double XSource[3], double Q, double PhiE[4]);
+
+LayeredSubstrate *CreateLayeredSubstrate(const char *FileContent);
+
+/***************************************************************/
+/* SommerfeldIntegrator.cc                                     */ 
+/***************************************************************/
+void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
+                         double q0, double qR, int xNu, double Rho,
+                         size_t MaxEvalA, size_t MaxEvalB,
+                         double AbsTol, double RelTol,
+                         cdouble *Integral, cdouble *Error,
+                         bool Verbose);
+
+/***************************************************************/
+/* SommerfeldIntegrand.cc **************************************/
+/***************************************************************/
+typedef struct SommerfeldIntegrandData 
+ {
+   LayeredSubstrate *Substrate;
+   cdouble Omega;
+   double q0;
+   bool uTransform;
+   HMatrix *XMatrix;
+   HMatrix *RTwiddle;
+   HMatrix *WMatrix;
+   HMatrix *STwiddle;
+   int NumPoints;
+   FILE *byqFile;
+ } SommerfeldIntegrandData;
+
+int SommerfeldIntegrand(unsigned ndim, const double *x,
+                        void *UserData, unsigned fdim, double *fval);
 
 #endif // LIBSUBSTRATE_H

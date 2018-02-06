@@ -210,8 +210,7 @@ void Compare(cdouble *V1, cdouble *V2, cdouble *V3, int N, const char *str1, con
 void fprintVec(FILE *f, double *v, int Length=3, const char *format="%+.8e");
 void fprintVecCR(FILE *f, double *v, int Length=3, const char *format="%+.8e");
 void fprintVec(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e");
-void fprintVecCR(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e");
-
+void fprintVecCR(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e"); 
 /***************************************************************/
 /* Other functions  ********************************************/
 /***************************************************************/

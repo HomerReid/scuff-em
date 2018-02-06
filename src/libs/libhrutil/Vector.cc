@@ -299,27 +299,58 @@ bool VecClose(const double *a, const double *b, double abstol)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void Compare(cdouble *V1, cdouble *V2, int N,
-             const char *str1, const char *str2)
+void GetCompareOptions(double *WarningThreshold, int *ColorCode)
+{
+  *WarningThreshold=1.0e-6;
+  *ColorCode=31;   // red
+  char *s=getenv("HRUTIL_COMPARE_THRESHOLD");
+  if (s) sscanf(s,"%le",WarningThreshold);
+  s=getenv("HRUTIL_COMPARE_COLOR");
+  if (s) sscanf(s,"%i",ColorCode);
+}
+
+void Compare(cdouble *V1, cdouble *V2, int N, const char *str1, const char *str2)
 { 
+  double WarningThreshold;
+  int ColorCode;
+  GetCompareOptions(&WarningThreshold, &ColorCode);
+
   printf(" n | %-25s | %-25s | RD      | Ratio\n",str1,str2);
   for(int n=0; n<N; n++)
-   printf("%2i | (%+.4e,%+.4e) | (%+.4e,%+.4e) | %.1e | %.3e\n",n,
-    real(V1[n]),imag(V1[n]), real(V2[n]),imag(V2[n]),
-    RD(V1[n],V2[n]), abs(V1[n]/V2[n]));
+   { double VMax=fmax(abs(V1[n]),abs(V2[n]));
+     double RelDiff=0.0;
+     cdouble Ratio=1.0;
+     if (VMax>0.0)
+      { Ratio   = (abs(V2[n])>0.0) ? (V1[n]/V2[n]) : -0.0;
+        RelDiff = abs(V1[n]-V2[n])/VMax;
+      };
+     if (RelDiff>WarningThreshold) printf("\033[1;%im",ColorCode);
+     printf("%2i | (%+.4e,%+.4e) | (%+.4e,%+.4e) | %.1e | (%g,%g)\n",
+             n, real(V1[n]),imag(V1[n]), real(V2[n]),imag(V2[n]),
+             RelDiff,real(Ratio),imag(Ratio));
+     if (RelDiff>WarningThreshold) printf("\033[0m");
+   };
   printf("\n");
 }
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void Compare(double *V1, double *V2, int N,
-             const char *str1, const char *str2)
-{ 
+void Compare(double *V1, double *V2, int N, const char *str1, const char *str2)
+{
+  double WarningThreshold;
+  int ColorCode;
+  GetCompareOptions(&WarningThreshold, &ColorCode);
+
   printf(" n | %-12s | %-12s | RD      | Ratio\n",str1,str2);
   for(int n=0; n<N; n++)
-   printf("%2i | %+12.4e | %+12.4e | %.1e | %.3e\n",n,
-    V1[n],V2[n],RD(V1[n],V2[n]),fabs(V1[n]/V2[n]));
+   { double VMax=fmax(fabs(V1[n]),fabs(V2[n])), RelDiff=0.0, Ratio=1.0;
+     if (VMax>0.0) 
+      { Ratio   = (fabs(V2[n])>0.0) ? (V1[n]/V2[n]) : -0.0;
+        RelDiff = fabs(V1[n]-V2[n])/VMax;
+        if (RelDiff>WarningThreshold) printf("\033[1;%im",ColorCode);
+        printf("%2i | %+12.4e | %+12.4e | %.1e | %.3e\n",n,
+                V1[n],V2[n],RelDiff,Ratio);
+        if (RelDiff>WarningThreshold) printf("\033[0m");
+      };
+   };
   printf("\n");
 }
 

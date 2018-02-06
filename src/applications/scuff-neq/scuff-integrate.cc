@@ -1,3 +1,31 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
+ * scuff-integrate -- simple utility for numerically integrating functions
+ *                 -- from samples tabulated in data files, possibly with
+ *                 -- additional integrand factors inserted
+ *
+ * homer reid  -- 5/2012
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,100 +34,27 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fenv.h>
+
+#include <vector>
 
 #include <libhrutil.h>
 #include <libSGJC.h>
 #include <libMDInterp.h>
 #include <libscuff.h>
-#include <fenv.h>
 
 #define II cdouble(0.0,1.0)
 
 using namespace scuff;
 
-#define MAXDATA     20
-#define MAXTAGS     100
+#define MAXDATA     21
+#define MAXPARMS    20
 #define MAXOBJ      9
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-char *GetTagString(cdouble Tag)
-{ 
-  static char TagString[30];
-  if ( imag(Tag)==0.0 )
-   sprintf(TagString,"%5.3f ",real(Tag));
-  else if (imag(Tag)<0.0)
-   sprintf(TagString,"%5.3f-%5.3f ",real(Tag),-imag(Tag));
-  else
-   sprintf(TagString,"%5.3f+%5.3f ",real(Tag),imag(Tag));
-  return TagString;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-typedef struct FileData
- { 
-   HMatrix *DataMatrix;
-   int NumObjects;
-   int NumTags;
-   cdouble Tags[MAXTAGS];
-   char *TagStrings[MAXTAGS];
-  
- } FileData;
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-FileData *GetFileData(char *DataFileName, int TagColumn, int SDColumn)
-{
-  HMatrix *DataMatrix=new HMatrix(DataFileName);
-
-  FileData *FD  = (FileData *)mallocEC(sizeof(FileData));
-  cdouble *Tags = FD->Tags;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NumTags=0;
-  if (TagColumn)
-   for(int nr=0; nr<DataMatrix->NR; nr++)
-    { cdouble Tag=DataMatrix->GetEntry(nr, TagColumn-1);
-      bool HaveTag=false;
-      for(int nTag=0; nTag<NumTags && !HaveTag; nTag++)
-       if (Tags[nTag]==Tag)
-        HaveTag=true;
-      if (HaveTag)
-       continue;
-      if (NumTags==MAXTAGS-1)
-       Warn("Too many tags (skipping %s)",z2s(Tag));
-      else
-       Tags[NumTags++]=Tag;
-    };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NumObjects=0;
-  if (SDColumn)
-   for(int nr=0; nr<DataMatrix->NR; nr++)
-    { int SD = (int)DataMatrix->GetEntryD(nr, SDColumn-1);
-      if (SD<0 || SD>99) 
-       ErrExit("%s:%i: invalid SDColumn %i",DataFileName,nr,SD);
-      if (NumObjects < (SD%10)) 
-       NumObjects=SD%10;
-    };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  FD->NumObjects = NumObjects;
-  FD->NumTags    = NumTags;
-  FD->DataMatrix = DataMatrix;
-
-  return FD;
-}
+typedef std::vector<int>     ivec;
+typedef std::vector<char>    cvec;
+typedef std::vector<double>  dvec;
+typedef std::vector<cdouble> zvec;
 
 /***************************************************************/
 /***************************************************************/
@@ -172,7 +127,7 @@ int Integrand(unsigned ndim, const double *x, void *UserData,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-bool Equal(double X, double Y, double RelTol, double AbsTol)
+bool Equal(double X, double Y, double RelTol=1.0e-7, double AbsTol=0.0)
 {
   if ( fabs(X)<=AbsTol && fabs(Y)<=AbsTol )
    return true;
@@ -183,37 +138,21 @@ bool Equal(double X, double Y, double RelTol, double AbsTol)
 }
 
 /***************************************************************/
+/* return true if the values of all parameter columns in       */
+/* row nrA equal their counterparts in nrB                     */
 /***************************************************************/
-/***************************************************************/
-void RemoveDuplicates(char *FileName,
-                      double *XValues, double *YValues, int NumData, int *NumPoints,
-                      double RelTol=1.0e-6, double AbsTol=1.0e-8)
+bool ParmsMatch(HMatrix *M, int nrA, int nrB,
+                int *ParmColumns,int NumParms,
+                double RelTol=1.0e-4, double AbsTol=1.0e-6)
 {
-  int N = *NumPoints;
-  int NumDuplicates = 0;
-  for(int m=0; m<N; m++)
-   for(int n=m+1; n<N; n++)
-    if ( Equal(XValues[m], XValues[n], RelTol, AbsTol) )
-     { 
-       for(int nd=0; nd<NumData; nd++)
-        if ( !Equal(YValues[ m*NumData + nd], YValues[n*NumData+nd], RelTol, AbsTol) )
-         ErrExit("%s: found incompatible {frequency,data[%i]} pairs {%e,%e}, {%e,%e}",
-                  FileName,nd,XValues[m],YValues[m*NumData+nd],XValues[n],YValues[n*NumData+nd]);
-       
-       // remove column #nd from X and Y arrays
-       NumDuplicates++;
-       for(int p=n; p<(N-1); p++)
-        { XValues[p]=XValues[p+1];
-          for(int nd=0; nd<NumData; nd++)
-           YValues[p*NumData+nd]=YValues[(p+1)*NumData+nd];
-        };
-       XValues[N-1]=0.0;
-       for(int nd=0; nd<NumData; nd++)
-        YValues[(N-1)*NumData+nd]=0.0;
-     };
-  *NumPoints -= NumDuplicates;
-  if (NumDuplicates>0)
-   Warn("removed %i duplicate frequency points",NumDuplicates);
+  for(int np=0; np<NumParms; np++)
+   { int nc = ParmColumns[np]-1;
+     cdouble zA = M->GetEntry(nrA, nc), zB = M->GetEntry(nrB, nc);
+     double dz = abs(zA-zB), Scale=fmin(abs(zA),abs(zB));
+     if ( (dz>AbsTol) && (dz>Scale*RelTol) )
+      return false;
+   };
+  return true;
 }
 
 /***************************************************************/
@@ -226,39 +165,60 @@ int main(int argc, char *argv[])
 #endif
 
   /***************************************************************/
-  /* process command-line arguments ******************************/
+  /* process command-line arguments.                             */
+  /* Note: All column-specification arguments are interpreted as */
+  /* ONES-BASED, so leftmost column in a data file is column #1  */
+  /* and there is no column 0.                                   */
   /***************************************************************/
-  RWGGeometry *G=0;
   char *DataFileName=0;
-  int FreqColumn=1;
-  int DataColumns[MAXDATA];         int nDataColumns=0;
+//
+  int FreqColumn=1;                 int nFreqColumn=0;
+//
+  int DataColumns[MAXDATA];         int NumData=0;
   char *DataNames[MAXDATA];         int nDataNames=0;
-  int TagColumn=0;
+//
+  int ParmColumns[MAXPARMS];        int NumParms=0;
+  char *ParmNames[MAXPARMS];        int nParmNames=0;
+//
   int SDColumn=0;
+//
   char *TemperatureFile=0;
   char *TempStrings[2*MAXOBJ];      int nTempStrings;
+//
   double PreFactor=0.0;
+//
   double AbsTol=0.0;
   double RelTol=1.0e-4;
-  char *IntegrandFileName=0;
-  char *OutFileName=0;
   double DupAbsTol=0.0;
   double DupRelTol=1.0e-6;
+  double FreqRelTol=1.0e-6;
+//
+  char *IntegrandFileName=0;
+  char *OutFileName=0;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"DataFile",        PA_STRING,  1, 1,       (void *)&DataFileName,       0,   "data file"},
-     {"FreqColumn",      PA_INT,     1, 1,       (void *)&FreqColumn,         0,   "frequency column index in data file"},
-     {"TagColumn",       PA_INT,     1, 1,       (void *)&TagColumn,          0,   "tag column index in data file"},
-     {"SDColumn",        PA_INT,     1, 1,       (void *)&SDColumn,           0,   "source/dest column index in data file"},
-     {"DataColumn",      PA_INT,     1, MAXDATA, (void *)DataColumns,   &nDataColumns,   "data column index in data file"},
+//
+     {"FreqColumn",      PA_INT,     1, 1,       (void *)&FreqColumn,         &nFreqColumn,   "frequency column index in data file"},
+     {"xColumn",         PA_INT,     1, 1,       (void *)&FreqColumn,         0,   "(synonym for --FreqColumn)"},
+//
+     {"DataColumn",      PA_INT,     1, MAXDATA, (void *)DataColumns,   &NumData,        "data column index in data file"},
      {"DataName",        PA_STRING,  1, MAXDATA, (void *)DataNames,     &nDataNames,     "name for data column"},
+//
+     {"ParmColumn",      PA_INT,     1, MAXPARMS,(void *)ParmColumns,   &NumParms,       "parameter column index in data file"},
+     {"ParmName"  ,      PA_STRING,  1, MAXPARMS,(void *)ParmNames,    &nParmNames,     "name of parameter"},
+//
+     {"SDColumn",        PA_INT,     1, 1,       (void *)&SDColumn,           0,   "(source object, dest object) column index in data file"},
+//
      {"TemperatureFile", PA_STRING,  1, 1,       (void *)&TemperatureFile,    0,   "list of object temperatures"},
-     {"Temperature",     PA_STRING,  2, MAXOBJ,  (void *)TempStrings,   &nTempStrings,   "set object temperature"},
+     {"Temperature",     PA_STRING,  2, MAXOBJ,  (void *)TempStrings,         &nTempStrings,   "set object temperature"},
+//
      {"PreFactor",       PA_DOUBLE,  1, 1,       (void *)&PreFactor,          0,   "overall multiplicative prefactor"},
      {"IntegrandFile",   PA_STRING,  1, 1,       (void *)&IntegrandFileName,  0,   "name of file for integrand data"},
      {"OutFile",         PA_STRING,  1, 1,       (void *)&OutFileName,        0,   "name of output file"},
      {"DupRelTol",       PA_DOUBLE,  1, 1,       (void *)&DupRelTol,          0,   "relative tolerance for identifying equivalent data points"},
      {"DupAbsTol",       PA_DOUBLE,  1, 1,       (void *)&DupAbsTol,          0,   "absolute tolerance for identifying equivalent data points"},
+     {"FreqRelTol",      PA_DOUBLE,  1, 1,       (void *)&FreqRelTol,         0,   "relative tolerance for identifying equivalent frequency points"},
 //
      {0,0,0,0,0,0,0}
    };
@@ -271,18 +231,18 @@ int main(int argc, char *argv[])
   /* auto-detect special known file types and autoset values of  */
   /* input parameters                                            */
   /***************************************************************/
-  if( strcasestr(DataFileName,"SIFlux") && nDataNames==0 )
+  if( strcasestr(DataFileName,".SIFlux") )
    { 
-     HMatrix *DataMatrix=new HMatrix(DataFileName);
-     int nc=1;
-     if( DataMatrix->NC==11 )
-      { TagColumn=1;
-        nc=2;
-      };
-     delete DataMatrix;
-     Log("Autodetecting spatially-integrated flux data file");
-     FreqColumn    = nc++;
-     SDColumn      = nc++;
+     Log("Autodetecting .SIFlux data file...");
+
+     ParmColumns[0] = 1;    ParmNames[0]=strdup("Geometrical transform");
+     FreqColumn     = 2;
+     // FUTURE: handle kBloch 
+     int nc = 3;
+     ParmColumns[1] = nc++; ParmNames[1]=strdup("(source, dest)");
+     SDColumn       = ParmColumns[1];
+     NumParms=nParmNames=2;
+
      DataColumns[0] = nc++; DataNames[0]=strdup("PAbs");
      DataColumns[1] = nc++; DataNames[1]=strdup("PRad");
      DataColumns[2] = nc++; DataNames[2]=strdup("XForce");
@@ -291,35 +251,101 @@ int main(int argc, char *argv[])
      DataColumns[5] = nc++; DataNames[5]=strdup("XTorque");
      DataColumns[6] = nc++; DataNames[6]=strdup("YTorque");
      DataColumns[7] = nc++; DataNames[7]=strdup("ZTorque");
-     nDataNames=nDataColumns=8;
+     NumData=nDataNames=8;
+   }
+  else if( strcasestr(DataFileName,".SRFlux") )
+   { 
+     Log("Autodetecting .SRFlux data file");
+     ParmColumns[0] = 1;    ParmNames[0]=strdup("Geometrical transform");
+     FreqColumn     = 2;
+     // FUTURE: handle kBloch 
+     int nc = 3;
+     ParmColumns[1] = nc++; ParmNames[1]=strdup("x");
+     ParmColumns[2] = nc++; ParmNames[2]=strdup("y");
+     ParmColumns[3] = nc++; ParmNames[3]=strdup("z");
+     ParmColumns[4] = nc++; ParmNames[4]=strdup("sourceSurface");
+     SDColumn       = ParmColumns[4];
+     NumParms=nParmNames=5;
+     
+     int ndc=0;
+     char SC[3]="Sx", TC[4]="Txx";
+     for(SC[1]='x'; SC[1]<='z'; SC[1]++)
+      { DataNames[ndc]     = strdup(SC);
+        DataColumns[ndc++] = nc++; 
+      };
+     for(TC[1]='x'; TC[1]<='z'; TC[1]++)
+      for(TC[2]='x'; TC[2]<='z'; TC[2]++)
+       { DataNames[ndc] = strdup(TC);
+         DataColumns[ndc++]  = nc++; 
+       };
+     NumData=nDataNames=nc;
+   }
+  else if( strcasestr(DataFileName,".byXi") )
+   {
+     Log("Autodetecting .byXi data file");
+     ErrExit("--byXi mode not yet implemented");
    };
 
-  if (nDataColumns==0)
+  /***************************************************************/
+  /* sanity checks ***********************************************/
+  /***************************************************************/
+  if (NumData==0)
    OSUsage(argv[0],OSArray,"you must specify at least one --DataColumn");
-  if (nDataNames!=0 && nDataNames!=nDataColumns)
-   OSUsage(argv[0],OSArray,"incorrect number of --DataNames");
-  if (FreqColumn<1)
-   ErrExit("invalid --FreqColumn");
-  if (TagColumn<0)
-   ErrExit("invalid --TagColumn");
-  if (SDColumn<0)
-   ErrExit("invalid --SDColumn");
+  if (nDataNames!=0 && nDataNames!=NumData)
+   OSUsage(argv[0],OSArray,"numbers of --DataNames and --DataColumns do not agree");
+  if (nParmNames!=0 && nParmNames!=NumParms)
+   OSUsage(argv[0],OSArray,"numbers of --ParmNames and --ParmColumns do not agree");
+
+  if (nDataNames==0)
+   for(int nd=0; nd<NumData; nd++)
+    DataNames[nd]=vstrdup("Integral of data #%i\n",nd);
+  if (nParmNames==0)
+   for(int np=0; np<NumParms; np++)
+    ParmNames[np]=vstrdup("Parameter #%i\n",np);
+  
 
   /***************************************************************/
+  /* read in the data and sanity check column specifications     */
   /***************************************************************/
-  /***************************************************************/
-  FileData *FD=GetFileData(DataFileName, TagColumn, SDColumn);
-  HMatrix *DataMatrix   = FD->DataMatrix;
-  int NumObjects        = FD->NumObjects;
-  int NumTags           = FD->NumTags;
-  cdouble *Tags         = FD->Tags;
+  HMatrix *DataMatrix=new HMatrix(DataFileName);
+  int NR = DataMatrix->NR;
+  if ( ! (1<=FreqColumn && FreqColumn<=NR) )
+   ErrExit("--FreqColumn not in range [1,%i]",NR);
+  for(int np=0; np<NumParms; np++)
+   if ( ! (1<=ParmColumns[np] && ParmColumns[np]<=NR) )
+    ErrExit("--ParmColumn %i not in range [1,%i]",ParmColumns[np],NR);
+  for(int nd=0; nd<NumData; nd++)
+   if ( ! (1<=DataColumns[nd] && DataColumns[nd]<=NR) )
+    ErrExit("--DataColumn %i not in range [1,%i]",DataColumns[nd],NR);
 
-  if (NumObjects==0)
-   NumObjects=1;
-  if (NumTags==0)
-   NumTags=1;
+  /***************************************************************/
+  /* sort by parameter values, then by frequency                 */
+  /***************************************************************/
+  ivec SortColumns(NumParms+1);
+  for(int n=0; n<NumParms; n++)
+   SortColumns[n]=ParmColumns[n]-1;
+  SortColumns[NumParms]=FreqColumn-1; 
+  DataMatrix->Sort(SortColumns);
 
   /***************************************************************/
+  /* look at the source/dest index (if present) to figure out how*/
+  /* many objects are in the geometry                            */
+  /***************************************************************/
+  int NSource=1, NDest=0;
+  if (SDColumn)
+   for(int nr=0; nr<DataMatrix->NR; nr++)
+    { int SD = (int)DataMatrix->GetEntryD(nr, SDColumn-1);
+      if (SD<11 || SD>99)
+       ErrExit("%s:%i: invalid SDColumn %i",DataFileName,nr,SD);
+      int SourceIndex = SD/10, DestIndex=SD%10;
+      if (NSource < SourceIndex) NSource=SourceIndex;
+      if (NDest   < DestIndex  ) NDest=DestIndex;
+    };
+  int MinDestIndex = (NDest==0 ? 0 : 1);
+  if (NDest==0) NDest=1;
+
+  /***************************************************************/
+  /* process temperature specifications if any.                  */
   /* TemperatureMatrix column  0     = environment temperatures  */
   /* TemperatureMatrix columns 1..NO = object 1..NO temperatures */
   /***************************************************************/
@@ -328,18 +354,18 @@ int main(int argc, char *argv[])
    { if (nTempStrings>0)
       ErrExit("--Temperature is incompatible with --TemperatureFile");
      TemperatureMatrix=new HMatrix(TemperatureFile);
-     if ( TemperatureMatrix->NC != (NumObjects+1) )
+     if ( TemperatureMatrix->NC != (NSource+1) )
       ErrExit("Data file %s describes %i objects, but temperature file %s describes environment plus %i objects",
-               DataFileName, NumObjects, DataFileName, TemperatureMatrix->NC-1);
+               DataFileName, NSource, DataFileName, TemperatureMatrix->NC-1);
    }
   else if ( nTempStrings>0 )
    {
-     TemperatureMatrix=new HMatrix(1,NumObjects+1);
+     TemperatureMatrix=new HMatrix(1,NSource+1);
 
      for(int nts=0; nts<nTempStrings; nts++)
       { int Index; 
         int Status=sscanf(TempStrings[2*nts+0],"%i",&Index);
-        if (Status!=1 || Index<0 || Index>NumObjects )
+        if (Status!=1 || Index<0 || Index>NSource)
          ErrExit("invalid object index %s",TempStrings[2*nts+0]);
         double T;
         Status=sscanf(TempStrings[2*nts+1],"%le",&T);
@@ -349,124 +375,135 @@ int main(int argc, char *argv[])
       };
      printf("Temperatures: \n");
      printf(" Environment: %e\n",TemperatureMatrix->GetEntryD(0,0));
-     for(int no=0; no<NumObjects; no++)
-      printf(" Object %2i  : %e\n",no+1,TemperatureMatrix->GetEntryD(0,no+1));
+     for(int ns=0; ns<NSource; ns++)
+      printf(" Object %2i  : %e\n",ns+1,TemperatureMatrix->GetEntryD(0,ns+1));
    };
+  int NumTemperatures = TemperatureMatrix ? TemperatureMatrix->NR : 1;
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   if (PreFactor==0.0)
    PreFactor = (TemperatureMatrix==0) ? 1.0 : HBAROMEGA02;
 
   /***************************************************************/
+  /* NumParmValues is the total number of distinct sets of       */
+  /* parameter values.                                           */
+  /* The (x,y1,y2,...) data for e.g. the 3rd set of parameter    */
+  /* values start on row # RowStarts[2]                          */
+  /*      and end on row # RowStarts[3] - 1                      */
   /***************************************************************/
+  int NumParmValues=1;
+  ivec RowStarts(1,0);
+  if (NumParms)
+   for(int nr=1; nr<DataMatrix->NR; nr++)
+    if ( !ParmsMatch(DataMatrix,nr,nr-1,ParmColumns,NumParms) )
+     RowStarts[NumParmValues++]=nr;
+  RowStarts.push_back(DataMatrix->NR);
+  
+  int MaxNumFreqs = RowStarts[1] - RowStarts[0];
+  for(int npv=2; npv<NumParmValues; npv++)
+   { int ThisNumFreqs=RowStarts[npv]-RowStarts[npv-1];
+     if (ThisNumFreqs>MaxNumFreqs)
+      MaxNumFreqs=ThisNumFreqs;
+   };
+
   /***************************************************************/
-  int TotalFreqs  = DataMatrix->NR;
-  int NumData     = nDataColumns;
-  double *XValues = (double *)mallocEC(TotalFreqs * sizeof(double));
-  double *YValues = (double *)mallocEC(TotalFreqs * NumData *sizeof(double));
-
-  int NumTemperatures = TemperatureMatrix ? TemperatureMatrix->NR : 1;
-
-  double *TotalByDest=0;
-  if (NumObjects>1)
-   TotalByDest=(double *)mallocEC(NumTemperatures*NumData*sizeof(double));
-
-  double *Result = (double *)mallocEC(NumData*sizeof(double));
-  double *Error  = (double *)mallocEC(NumData*sizeof(double));
-
-  /***************************************************************/
-  /***************************************************************/
+  /* create output file and write preamble ***********************/
   /***************************************************************/
   if (!OutFileName)
    OutFileName=vstrdup("%s.Integrated",GetFileBase(DataFileName));
   FILE *OutFile=fopen(OutFileName,"a");
   if (!OutFile)
    ErrExit("could not open output file %s",OutFileName);
-  fprintf(OutFile,"# data columns: \n");
-  int nColumn=0;
-  if (TagColumn)
-   fprintf(OutFile,"# %i: tag \n",++nColumn);
-  if (SDColumn)
-   fprintf(OutFile,"# %i: source/dest index \n",++nColumn);
+  fprintf(OutFile,"# columns: \n");
+  int ncol=1;
+  for(int np=0; np<NumParms; np++)
+   fprintf(OutFile,"# %i   %s\n",ncol++,ParmNames[np]);
   if (TemperatureMatrix)
-   { fprintf(OutFile,"# %i: environment temperature \n",++nColumn);
-     for(int no=0; no<NumObjects; no++)
-      fprintf(OutFile,"# %i: object %i temperature \n",++nColumn,no+1);
+   { fprintf(OutFile,"# %i: environment temperature \n",ncol++);
+     for(int ns=0; ns<NSource; ns++)
+      fprintf(OutFile,"# %i: object %i temperature \n",ncol++,ns+1);
    };
-  if (nDataNames)
-   for(int nd=0; nd<NumData; nd++)
-    fprintf(OutFile,"# %i: %s \n",++nColumn,DataNames[nd]);
-  else
-   for(int nd=0; nd<NumData; nd++)
-    fprintf(OutFile,"# %i: data %i \n",++nColumn,nd);
+  for(int nd=0; nd<NumData; nd++)
+   fprintf(OutFile,"# %i   integral of %s\n",ncol++,DataNames[nd]);
+
+  /***************************************************************/
+  /* allocate storage buffers                                    */
+  /***************************************************************/
+  double *XValues = (double *)mallocEC(MaxNumFreqs*sizeof(double));
+  double *YValues = (double *)mallocEC(MaxNumFreqs*NumData*sizeof(double));
+
+  double *Result = (double *)mallocEC(NumData*sizeof(double));
+  double *Error  = (double *)mallocEC(NumData*sizeof(double));
+
+  /* array to accumulate contributions of all source objects to */
+  /* quantities for individual destination objects              */
+  double *TotalByDest=0;
+  if (NSource>1)
+   TotalByDest=(double *)mallocEC(NDest*NumTemperatures*NumData*sizeof(double));
      
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  for(int nTag=0; nTag<NumTags; nTag++)
-   for(int nDest=0; nDest<NumObjects; nDest++)
-    for(int nSource=0; nSource<NumObjects; nSource++)
-      {
-        /***************************************************************/
-        /* populate XValues and YValues arrays with data for this      */
-        /* (tag, sourceObject, destObject) tuple                       */
-        /***************************************************************/
-        int N=0;
-        int SDIndex=10*(nSource+1) + (nDest+1);
-        for(int nr=0; nr<DataMatrix->NR; nr++)
-         { if (TagColumn && Tags[nTag]!=DataMatrix->GetEntry(nr, TagColumn-1))
-            continue;
-           if (SDColumn && SDIndex!=((int)DataMatrix->GetEntryD(nr, SDColumn-1)))
-            continue;
- 
-           XValues[N]=DataMatrix->GetEntryD(nr, FreqColumn-1);
-           for(int nd=0; nd<NumData; nd++)
-            YValues[N*NumData + nd]=DataMatrix->GetEntryD(nr, DataColumns[nd]-1);
-           N++;
-         };
-        RemoveDuplicates(DataFileName,XValues,YValues,NumData,&N,DupRelTol,DupAbsTol);
-        if (TagColumn)
-         printf("tag %s | ",GetTagString(Tags[nTag]));
-        if (SDColumn)
-         printf("SD  %i | ",SDIndex);
-        double MinFreq = XValues[0];
-        double MaxFreq = XValues[N-1];
-        printf("%i data points in range (%e,%e)\n",N,MinFreq,MaxFreq);
-       
-        /***************************************************************/
-        /* initialize interpolator                                     */
-        /***************************************************************/
-        IntegrandData MyID;
-        MyID.I1D=new Interp1D(XValues, YValues, N, NumData);
-        MyID.PreFactor    = PreFactor;
-        MyID.LogFile      = 0;
-        MyID.Temperature  = -1.0;
-        MyID.TEnvironment = -1.0;
+  for(int npv=0; npv<NumParmValues; npv++)
+   {
+     int NR0=RowStarts[npv];
 
-        if (nSource==0 && NumObjects>1)
-         memset(TotalByDest,0,NumTemperatures*NumData*sizeof(double));
+     int SourceObject=-1, DestObject=-1;
+     if (NSource>1)
+      { int SD = (int)DataMatrix->GetEntryD(NR0, SDColumn-1);
+        SourceObject = SD/10;
+        DestObject   = SD%10;
+        if (SourceObject==0 && DestObject==MinDestIndex)
+         memset(TotalByDest,0,NDest*NumTemperatures*NumData*sizeof(double));
+      };
+
+     // populate arrays of x,y points for this set of parameter vals
+     int NSamples=0;
+     for(int nr=RowStarts[npv]; nr<RowStarts[npv+1]; nr++)
+      { 
+        double ThisFreq=DataMatrix->GetEntryD(nr, FreqColumn-1);
+        if (NSamples>1 && Equal(ThisFreq, XValues[NSamples-1], FreqRelTol))
+         continue;
+        XValues[NSamples]=ThisFreq;
+        for(int nd=0; nd<NumData; nd++)
+         YValues[NSamples*NumData + nd]=DataMatrix->GetEntryD(nr, DataColumns[nd]-1);
+        NSamples++;
+      };
+     double MinFreq = XValues[0], MaxFreq = XValues[NSamples-1];
+     if (NumParms>0)
+      { Log("Integrating for parm values { ");
+        for(int np=0; np<NumParms; np++)
+         LogC("%g ",DataMatrix->GetEntryD(NR0,ParmColumns[np]-1));
+        LogC("}");
+      };
+     Log("  %i data points in range (%e,%e)\n",NSamples,MinFreq,MaxFreq);
+       
+     /***************************************************************/
+     /* initialize interpolator                                     */
+     /***************************************************************/
+     IntegrandData MyID;
+     MyID.I1D=new Interp1D(XValues, YValues, NSamples, NumData);
+     MyID.PreFactor    = PreFactor;
+     MyID.LogFile      = 0;
+     MyID.Temperature  = -1.0;
+     MyID.TEnvironment = -1.0;
   
-        /***************************************************************/
-        /* evaluate integrals at all temperature combinations          */
-        /***************************************************************/
-        for(int nTemp=0; nTemp<NumTemperatures; nTemp++)
-         { 
-           if (TemperatureMatrix)
-            { MyID.TEnvironment = TemperatureMatrix->GetEntryD(nTemp,0);
-              MyID.Temperature  = TemperatureMatrix->GetEntryD(nTemp,nSource+1);
-            };
+     /***************************************************************/
+     /* evaluate integrals at all temperature combinations          */
+     /***************************************************************/
+     for(int nTemp=0; nTemp<NumTemperatures; nTemp++)
+      { 
+        if (TemperatureMatrix)
+         { MyID.TEnvironment = TemperatureMatrix->GetEntryD(nTemp,0);
+           MyID.Temperature  = TemperatureMatrix->GetEntryD(nTemp,SourceObject+1);
+         };
            
-           MyID.LogFile=0;
-           if (IntegrandFileName)
-            { MyID.LogFile=fopen(IntegrandFileName,"a");
-              fprintf(MyID.LogFile,"\n\n");
-              if (TagColumn)
-               fprintf(MyID.LogFile,"# tag %s \n",GetTagString(Tags[nTag]));
-              if (SDColumn)
-               fprintf(MyID.LogFile,"# SD %i \n",SDIndex);
-              if (TemperatureMatrix)
+        MyID.LogFile=0;
+#if 0
+        if (IntegrandFileName)
+         { MyID.LogFile=fopen(IntegrandFileName,"a");
+           fprintf(MyID.LogFile,"\n\n");
+           for(int np=0; np<
+             if (TemperatureMatrix)
                { fprintf(MyID.LogFile,"# environment / object temperatures: ");
                  fprintf(MyID.LogFile,"%e ",MyID.TEnvironment);
                  for(int no=0; no<NumObjects; no++)
@@ -474,68 +511,73 @@ int main(int argc, char *argv[])
                  fprintf(MyID.LogFile,"\n");
                };
             };
+#endif
 
-           /*--------------------------------------------------------------*/
-           /*- evaluate the integral --------------------------------------*/
-           /*--------------------------------------------------------------*/
-           pcubature(NumData, Integrand, (void *)&MyID, 1,
- 	             &MinFreq, &MaxFreq, 0, AbsTol, RelTol,
-      	             ERROR_INDIVIDUAL, Result, Error);
+        /*--------------------------------------------------------------*/
+        /*- evaluate the integral --------------------------------------*/
+        /*--------------------------------------------------------------*/
+        pcubature(NumData, Integrand, (void *)&MyID, 1,
+ 	          &MinFreq, &MaxFreq, 0, AbsTol, RelTol,
+ 	          ERROR_INDIVIDUAL, Result, Error);
 
-           if (MyID.LogFile)
-            { fclose(MyID.LogFile);
-              MyID.LogFile=0;
-            };
+        if (MyID.LogFile)
+         { fclose(MyID.LogFile);
+           MyID.LogFile=0;
+         };
 
-           /*--------------------------------------------------------------*/
-           /*- write results to .Integrated file                          -*/
-           /*--------------------------------------------------------------*/
-           if (TagColumn)
-            fprintf(OutFile, "%s ",GetTagString(Tags[nTag]));
-           if (SDColumn)
-            fprintf(OutFile, "%i%i ",nSource+1,nDest+1);
-           if (TemperatureMatrix)
-            for(int nc=0; nc<TemperatureMatrix->NC; nc++)
-             fprintf(OutFile,"%e ",TemperatureMatrix->GetEntryD(nTemp,nc));
-           for(int nd=0; nd<NumData; nd++)
-            fprintf(OutFile,"%e ",Result[nd]);
-           fprintf(OutFile,"\n");
-           fflush(OutFile);
+        /*--------------------------------------------------------------*/
+        /*- write results to .Integrated file                          -*/
+        /*--------------------------------------------------------------*/
+        int EffectiveNumParms = NumParms - (SDColumn ? 1 : 0);
+        for(int np=0; np<EffectiveNumParms; np++)
+         fprintf(OutFile,"%e ",DataMatrix->GetEntryD(NR0,ParmColumns[np]-1));
+        if (SDColumn) 
+         fprintf(OutFile,"%i%i",SourceObject,DestObject);
+        if (TemperatureMatrix)
+         for(int nc=0; nc<TemperatureMatrix->NC; nc++)
+          fprintf(OutFile,"%e ",TemperatureMatrix->GetEntryD(nTemp,nc));
+        for(int nd=0; nd<NumData; nd++)
+         fprintf(OutFile,"%e ",Result[nd]);
+        fprintf(OutFile,"\n");
+        fflush(OutFile);
   
-           /*--------------------------------------------------------------*/
-           /*- accumulate per-destination-object totals -------------------*/
-           /*--------------------------------------------------------------*/
-           if (NumObjects>1)
-            { 
-              int Offset=nTemp*NumData;
+        /*--------------------------------------------------------------*/
+        /*- accumulate per-destination-object totals and print when we -*/
+        /*- have added the contributions of all source objects         -*/
+        /*--------------------------------------------------------------*/
+        if (NSource>1)
+         { 
+           int EffDestObject = (DestObject==0 ? 0 : DestObject-1);
+           int Offset=EffDestObject*NumTemperatures*NumData + nTemp*NumData;
+           for(int nd=0; nd<NumData; nd++)
+            TotalByDest[Offset + nd] += Result[nd];
+
+           if (SourceObject==NSource-1)
+            { for(int np=0; np<NumParms-1; np++)
+               fprintf(OutFile,"%e ",DataMatrix->GetEntryD(NR0,ParmColumns[np]));
+              fprintf(OutFile,"0%i",DestObject);
+              if (TemperatureMatrix)
+               for(int nc=0; nc<TemperatureMatrix->NC; nc++)
+                fprintf(OutFile,"%e ",TemperatureMatrix->GetEntryD(nTemp,nc));
               for(int nd=0; nd<NumData; nd++)
-               TotalByDest[Offset + nd] += Result[nd];
+               fprintf(OutFile,"%e ",TotalByDest[Offset+nd]);
+              fprintf(OutFile,"\n");
+              fflush(OutFile);
+            }
 
-              if (nSource==(NumObjects-1))
-               { if (TagColumn)
-                  fprintf(OutFile, "%s ",GetTagString(Tags[nTag]));
-                 fprintf(OutFile, "0%i ",nDest+1);
-                 if (TemperatureMatrix)
-                  for(int nc=0; nc<TemperatureMatrix->NC; nc++)
-                   fprintf(OutFile,"%e ",TemperatureMatrix->GetEntryD(nTemp,nc));
-                 for(int nd=0; nd<NumData; nd++)
-                  fprintf(OutFile,"%e ",TotalByDest[Offset+nd]);
-                 fprintf(OutFile,"\n");
-                 fflush(OutFile);
-               };
-            };
- 
-         }; // for(int nTemp=0; nTemp<NumTemperatures; nTemp++)
+         } // if (NSource>1)
 
-        delete MyID.I1D;
- 
-      }; // for(int nTag... for(int nSource... for(int nDest...)
+      } // for(int nTemp=0; nTemp<NumTemperatures; nTemp++)
+
+     delete MyID.I1D;
+
+   } // for(int npv=0; npv<NumParmValues; npv++)
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   fclose(OutFile);
- 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   printf("Integrated data written to %s.\n",OutFileName);
   printf("Thank you for your support.\n");
  
- }
+}

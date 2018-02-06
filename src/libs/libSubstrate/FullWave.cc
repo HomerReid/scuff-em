@@ -36,6 +36,13 @@
 
 #define II cdouble(0.0,1.0)
 
+namespace scuff{
+void CalcGC(double R[3], cdouble Omega,
+            cdouble EpsR, cdouble MuR,
+            cdouble GMuNu[3][3], cdouble CMuNu[3][3],
+            cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -115,12 +122,203 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
 }
 
 /***************************************************************/
+/* Get the substrate Green's function by evaluating the full   */
+/* 2D Fourier integral with no fancy accelerations. This is    */
+/* too slow for use in practical calculations but offers a     */
+/* helpful sanity check for debugging, etc.                    */
+/***************************************************************/
+void LayeredSubstrate::GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
+                                                          HMatrix *XMatrix,
+                                                          HMatrix *GMatrix)
+{
+  UpdateCachedEpsMu(Omega);
+  (void )XMatrix;
+  (void )GMatrix;
+#if 0
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  qFunctionData MyData, *Data=&MyData;
+  Data->XMatrix    = XMatrix;
+  Data->RTwiddle   = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
+  Data->WMatrix    = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
+  Data->STwiddle   = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
+  Data->GTwiddle   = new HMatrix(6,               6,               LHM_COMPLEX);
+  Data->byqFile    = WritebyqFiles ? fopen("/tmp/q2D.log","w") : 0;
+
+  int FDim = 36*XMatrix->NR;
+  bool ThetaSymmetric=false;
+  qIntegrate(Omega, qIntegrandFullSC, (void *)Data, GMatrix->ZM, FDim, ThetaSymmetric);
+  
+  if (Data->byqFile) fclose(Data->byqFile);
+
+  delete Data->RTwiddle;
+  delete Data->WMatrix;
+  delete Data->STwiddle;
+  delete Data->GTwiddle;
+#endif
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
+                                                          HMatrix *XMatrix,
+                                                          HMatrix *GMatrix)
+{
+  UpdateCachedEpsMu(Omega);
+
+  /***************************************************************/
+  /* evaluate Sommerfeld integral to get 'gScalar' integrals for  */
+  /* all evaluation points                                        */
+  /***************************************************************/
+  SommerfeldIntegrandData MySID, *SID=&MySID;
+  SID->Substrate  = this;
+  SID->Omega      = Omega;
+  SID->q0         = 0.0;
+  SID->uTransform = false;
+  SID->XMatrix    = XMatrix;
+  SID->RTwiddle   = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
+  SID->WMatrix    = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
+  SID->STwiddle   = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
+  SID->NumPoints  = 0;
+  SID->byqFile    = 0;
+
+  double Rhox  = XMatrix->GetEntryD(0,0) - XMatrix->GetEntryD(0,3);
+  double Rhoy  = XMatrix->GetEntryD(0,1) - XMatrix->GetEntryD(0,4);
+  double Rho   = sqrt(Rhox*Rhox + Rhoy*Rhoy);
+  double zDest = XMatrix->GetEntryD(0,2), zSource=XMatrix->GetEntryD(0,5);
+  
+  //MySID->byqFile=WritebyqFiles ? fopen("/tmp/q2D.log","w") : 0;
+
+  int NX    = XMatrix->NR;
+  int zfdim = NUMGSCALAR*NX;
+  int fdim  = 2*zfdim;
+
+  cdouble *Error = new cdouble[zfdim];
+ 
+  char *s=getenv("SOMMERFELD_BYQFILE");
+  if (s)
+   SID->byqFile=fopen(s,"w");
+
+  s=getenv("SOMMERFELD_INTEGRATOR_BYPASS");
+  if (s && s[0]=='1')
+   { SID->uTransform=true;
+     double uMin=0.0, uMax=1.0;
+     Log("Computing gScalar integrals via simple quadrature...");
+     int ndim=1;
+     pcubature(fdim, SommerfeldIntegrand, (void *)SID,
+               ndim, &uMin, &uMax, qMaxEval, qAbsTol, qRelTol, ERROR_PAIRED,
+               (double *)(GMatrix->ZM), (double *)Error);
+     Log("...%i points",SID->NumPoints);
+   }
+  else
+   { bool Verbose=true;
+     int xNu=0;
+     s=getenv("SCUFF_SOMMERFELD_XNU");
+     if (s)
+      { xNu = s[0] - '0';
+        Log("Setting xNu=%i.\n",xNu);
+      };
+
+     /*--------------------------------------------------------------*/
+     /* compute a, c parameters for the contour-integral portion of */
+     /* the Sommerfeld integral via the procedure described in      */
+     /* Golubovic et al, "Efficient Algorithms for Computing        */
+     /* Sommerfeld Intergral Tails," IEEE Transactions on Antennas  */
+     /* and Propagation **60** 2409 (2012).                         */
+     /* DOI: 10.1109/TAP.2012.2189718                               */
+     /*--------------------------------------------------------------*/
+     double MaxRealn2 = 0.0;
+     for(int nl=0; nl<NumLayers; nl++)
+      MaxRealn2 = fmax(MaxRealn2, real(EpsLayer[nl]*MuLayer[nl]));
+     double a = 1.5*sqrt(MaxRealn2)*real(Omega);
+     double c = real(Omega);
+   
+      //TODO investigate me
+     if ( Rho>fabs(zDest-zSource) && real(Omega*Rho)>1.0 )
+      c = 1.0/Rho;
+   
+     Log("Computing gScalar integrals via Sommerfeld integrator...");
+     SommerfeldIntegrate(SommerfeldIntegrand, (void *)SID, zfdim,
+                         a, c, xNu, Rho, qMaxEval, qMaxEval,
+                         qAbsTol, qRelTol, GMatrix->ZM, Error, Verbose);
+     Log("...%i points",SID->NumPoints);
+   };
+  if (SID->byqFile) fclose(SID->byqFile);
+  delete[] Error;
+
+  /*--------------------------------------------------------------*/
+  /*- for each evaluation point, get the full 6x6 substrate DGF  -*/
+  /*- from the gScalar integrals, then add the homogeneous DGF   -*/
+  /*- if necessary                                               -*/
+  /*--------------------------------------------------------------*/
+  for(int nx=NX-1; nx>=0; nx--)
+   { 
+     Rhox = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
+     Rhoy = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
+     double Theta = atan2(Rhoy,Rhox);
+     double CT=cos(Theta), ST=sin(Theta);
+
+     cdouble g[NUMGSCALAR];
+     memcpy(g, GMatrix->ZM + nx*NUMGSCALAR, NUMGSCALAR*sizeof(cdouble));
+
+     cdouble *G = GMatrix->ZM + nx*36;
+     G[_EEXX] = g[_EE2A]*CT*CT + g[_EE0P] + g[_EE2B];
+     G[_EEXY] = g[_EE2A]*CT*ST;
+     G[_EEXZ] = g[_EE1A]*CT;
+     G[_EEYX] = g[_EE2A]*CT*ST;
+     G[_EEYY] = g[_EE2A]*ST*ST + g[_EE0P] + g[_EE2B];
+     G[_EEYZ] = g[_EE1A]*ST;
+     G[_EEZX] = g[_EE1B]*CT;
+     G[_EEZY] = g[_EE1B]*ST;
+     G[_EEZZ] = g[_EE0Z];
+
+     G[_EMXX] =      g[_EM2A]*CT*ST;
+     G[_EMXY] =      g[_EM2A]*ST*ST + g[_EM0P];
+     G[_EMXZ] = -1.0*g[_EM1A]*ST;
+     G[_EMYX] = -1.0*g[_EM2A]*CT*CT - g[_EM0P];
+     G[_EMYY] = -1.0*g[_EM2A]*CT*ST;
+     G[_EMYZ] =      g[_EM1A]*CT;
+     G[_EMZX] = -1.0*g[_EM1B]*ST;
+     G[_EMZY] =      g[_EM1B]*CT;
+     G[_EMZZ] =      g[_EM1A]+g[_EM1B];
+
+     G[_MEXX] =      g[_ME2A]*CT*ST;
+     G[_MEXY] =      g[_ME2A]*ST*ST + g[_ME0P];
+     G[_MEXZ] = -1.0*g[_ME1A]*ST;
+     G[_MEYX] = -1.0*g[_ME2A]*CT*CT - g[_ME0P];
+     G[_MEYY] = -1.0*g[_ME2A]*CT*ST;
+     G[_MEYZ] =      g[_ME1A]*CT;
+     G[_MEZX] = -1.0*g[_ME1B]*ST;
+     G[_MEZY] =      g[_ME1B]*CT;
+     G[_MEZZ] =      g[_ME1A]+g[_ME1B];
+
+     G[_MMXX] = g[_MM2A]*CT*CT + g[_MM0P] + g[_MM2B];
+     G[_MMXY] = g[_MM2A]*CT*ST;
+     G[_MMXZ] = g[_MM1A]*CT;
+     G[_MMYX] = g[_MM2A]*CT*ST;
+     G[_MMYY] = g[_MM2A]*ST*ST + g[_MM0P] + g[_MM2B];
+     G[_MMYZ] = g[_MM1A]*ST;
+     G[_MMZX] = g[_MM1B]*CT;
+     G[_MMZY] = g[_MM1B]*ST;
+     G[_MMZZ] = g[_MM0Z];
+   };
+
+  delete SID->RTwiddle;
+  delete SID->WMatrix;
+  delete SID->STwiddle;
+}
+
+/***************************************************************/
 /* switchboard routine *****************************************/
 /***************************************************************/
 HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
                                            HMatrix *XMatrix,
                                            HMatrix *GMatrix,
-                                           DGFMethod Method)
+                                           DGFMethod Method,
+                                           bool AddHomogeneousDGF)
 {
   int NX=XMatrix->NR;
   Log("Computing substrate DGF at %i points...",NX);
@@ -158,12 +356,43 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
        GetSubstrateDGF_FullSurfaceCurrent(Omega, XMatrix, GMatrix);
        break;
 
-//     case FAST_SURFACE_CURRENT:
-//     case AUTO:
-//     default:
-//       GetSubstrateDGF_FastSurfaceCurrent(Omega, XMatrix, GMatrix);
-//       break;
+     case FAST_SURFACE_CURRENT:
+     case AUTO:
+     default:
+       GetSubstrateDGF_FastSurfaceCurrent(Omega, XMatrix, GMatrix);
+       break;
    };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (AddHomogeneousDGF)
+   for(int nx=0; nx<XMatrix->NR; nx++)
+    { double XDS[6];
+      XMatrix->GetEntriesD(nx,":",XDS);
+      int nl=GetLayerIndex(XDS[2]);
+      if (nl!=GetLayerIndex(XDS[5]))
+       continue;
+      cdouble EpsRel=EpsLayer[nl], MuRel=MuLayer[nl];
+      cdouble k=sqrt(EpsRel*MuRel)*Omega;
+      cdouble ZRel=sqrt(MuRel/EpsRel);
+      double R[3];
+      VecSub(XDS+0, XDS+3, R);
+      cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
+      scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
+      HMatrix ScriptG(6,6,LHM_COMPLEX,GMatrix->ZM + nx*36);
+      for(int P=0; P<2; P++)
+       for(int Q=0; Q<2; Q++)
+        { cdouble PreFac = II*k;
+          if (P==0 && Q==0) PreFac*=ZVAC*ZRel;
+          if (P==1 && Q==0) PreFac*=-1.0;
+          if (P==1 && Q==1) PreFac/=(ZVAC*ZRel);
+          for(int Mu=0; Mu<3; Mu++)
+           for(int Nu=0; Nu<3; Nu++)
+            ScriptG.AddEntry(3*P+Mu,3*Q+Nu,PreFac*(P==Q ? G[Mu][Nu] : C[Mu][Nu]));
+        };
+    };
+    
      
   return GMatrix;
 }  
@@ -181,7 +410,7 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
 /***************************************************************/
 void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
                                        double XD[3], double XS[3],
-                                       cdouble ScriptG[6][6], DGFMethod Method)
+                                       cdouble ScriptG[6][6], DGFMethod Method, bool AddHomogeneousDGF)
 { 
   double XBuffer[6];
   HMatrix XMatrix(1,6,LHM_REAL,XBuffer);
@@ -191,7 +420,7 @@ void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   cdouble GBuffer[36];
   HMatrix GMatrix(36,1,LHM_COMPLEX,GBuffer);
 
-  GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method);
+  GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method, AddHomogeneousDGF);
 
   for(int Mu=0; Mu<6; Mu++)
    for(int Nu=0; Nu<6; Nu++)

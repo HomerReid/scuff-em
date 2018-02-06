@@ -18,11 +18,11 @@
  */
 
 /*
- * FullWave_SurfaceCurrents.cc -- compute the Fourier-space dyadic Green's
- *                             -- function for a layered substrate
- *                             -- using the method of induced surface currents
+ * GTwiddle.cc -- compute the Fourier-space dyadic Green's function
+ *             -- function for a layered substrate using the method
+ *             -- of induced surface currents
  *
- * homer reid                  -- 3/2017-9/2017
+ * homer reid  -- 3/2017-9/2017
  *
  */
 #include <stdio.h>
@@ -36,61 +36,15 @@
 #include "libSpherical.h"
 #include "libSubstrate.h"
 
-#define II cdouble(0.0,1.0)
-#ifndef ZVAC
-#define ZVAC 376.73031346177
-#endif
-
-#define SQRT2 1.41421356237309504880
-
-#define EE_XX 0
-#define EE_XY 1
-#define EE_XZ 2
-#define ME_XX 3
-#define ME_XY 4
-#define ME_XZ 5
-#define EE_YX 6
-#define EE_YY 7
-#define EE_YZ 8
-#define ME_YX 9
-#define ME_YY 10
-#define ME_YZ 11
-#define EE_ZX 12
-#define EE_ZY 13
-#define EE_ZZ 14
-#define ME_ZX 15
-#define ME_ZY 16
-#define ME_ZZ 17
-#define EM_XX 18
-#define EM_XY 19
-#define EM_XZ 20
-#define MM_XX 21
-#define MM_XY 22
-#define MM_XZ 23
-#define EM_YX 24
-#define EM_YY 25
-#define EM_YZ 26
-#define MM_YX 27
-#define MM_YY 28
-#define MM_YZ 29
-#define EM_ZX 30
-#define EM_ZY 31
-#define EM_ZZ 32
-#define MM_ZX 33
-#define MM_ZY 34
-#define MM_ZZ 35
-
-const char *TimeNames[]={"G0", "BESSEL", "W", "SOLVE", "STAMP"};
-
 /***************************************************************/
 /* compute the 3x3 submatrices that enter the quadrants of the */
-/* Fourier transform of the (6x6) homogeneous DGF              */
+/* Fourier transform of the 6x6 DGF for a homogeneous medium   */
 /***************************************************************/
-void GetGC0Twiddle(cdouble k2, double q2D[2], cdouble qz, double Sign,
+void GetGC0Twiddle(cdouble k2, cdouble q2D[2], cdouble qz, double Sign,
                    cdouble GT[3][3], cdouble CT[3][3])
 {
-  double qx  = q2D[0];
-  double qy  = q2D[1];
+  cdouble qx  = q2D[0];
+  cdouble qy  = q2D[1];
 
   GT[0][0] = 1.0 - qx*qx/k2;
   GT[1][1] = 1.0 - qy*qy/k2;
@@ -115,7 +69,7 @@ void GetGC0Twiddle(cdouble k2, double q2D[2], cdouble qz, double Sign,
 /* Get the (Fourier-space) 6x6 homogeneous DGF for the         */
 /* medium occupying substrate layer #nl.                       */
 /***************************************************************/
-void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, double q2D[2],
+void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
                                           double zDest, double zSource,
                                           cdouble ScriptG0Twiddle[6][6],
                                           int nl, double Sign, bool Accumulate,
@@ -138,6 +92,7 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, double q2D[2],
   cdouble EpsRel=EpsLayer[nl], MuRel=MuLayer[nl];
   cdouble k2=EpsRel*MuRel*Omega*Omega;
   cdouble qz = sqrt(k2 - q2D[0]*q2D[0] - q2D[1]*q2D[1]);
+  if (imag(qz)<0) qz*=-1.0;
 
   cdouble GT[3][3], CT[3][3];
   cdouble ExpFac = exp(II*qz*fabs(zDest-zSource));
@@ -191,7 +146,7 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, double q2D[2],
 /* Fourier coefficients in all regions to yield the vector of         */
 /* surface-current Fourier coefficients on all material interfaces    */
 /**********************************************************************/
-void LayeredSubstrate::ComputeW(cdouble Omega, double q2D[2], HMatrix *W)
+void LayeredSubstrate::ComputeW(cdouble Omega, cdouble q2D[2], HMatrix *W)
 {
   UpdateCachedEpsMu(Omega);
 
@@ -238,8 +193,16 @@ void LayeredSubstrate::ComputeW(cdouble Omega, double q2D[2], HMatrix *W)
 /* Get the (Fourier-space) 6x6 *inhomogeneous* DGF, i.e. the   */
 /* (Fourier components of) the fields due to point sources in  */
 /* the presence of the substrate.                              */
+/*                                                             */
+/* RTwiddle: user-allocated cdouble-valued 6x4N  HMatrix       */ 
+/* WMatrix : user-allocated cdouble-valued 4Nx4N HMatrix       */
+/* STwiddle: user-allocated cdouble-valued 4Nx6  HMatrix       */
+/* GTwiddle: user-allocated cdouble-valued 6x6  HMatrix        */
+/*                                                             */
+/*  where N = number of dielectric interface layers, not       */
+/*  counting the ground plane (if present)                     */
 /***************************************************************/
-void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
+void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                                          double zDest, double zSource,
                                          HMatrix *RTwiddle,
                                          HMatrix *WMatrix,
@@ -264,23 +227,23 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
   
   /**********************************************************************/
   /* assemble RHS vector for each (source point, polarization, orientation).*/
-  /* loops over p and q run over the interfaces above and below the dest*/
+  /* loops over a and b run over the interfaces above and below the dest*/
   /* or source point.                                                   */
   /**********************************************************************/
   double TT=Secs();
   int DestLayer   = GetLayerIndex(zDest);
-  int pMin        = (DestLayer==0               ? 1 : 0 );
-  int pMax        = (DestLayer==NumInterfaces   ? 0 : 1 );
+  int aMin        = (DestLayer==0               ? 1 : 0 );
+  int aMax        = (DestLayer==NumInterfaces   ? 0 : 1 );
   cdouble ScriptG0TDest[2][6][6];
-  for(int p=pMin, nlDest=DestLayer-1+p; p<=pMax; p++, nlDest++)
-   GetScriptG0Twiddle(Omega, q2D, zDest, zInterface[nlDest], ScriptG0TDest[p], DestLayer, 0.0, false, dzDest, false);
+  for(int a=aMin, nlDest=DestLayer-1+a; a<=aMax; a++, nlDest++)
+   GetScriptG0Twiddle(Omega, q2D, zDest, zInterface[nlDest], ScriptG0TDest[a], DestLayer, 0.0, false, dzDest, false);
 
   int SourceLayer  = GetLayerIndex(zSource);
-  int qMin         = (SourceLayer==0             ? 1 : 0 );
-  int qMax         = (SourceLayer==NumInterfaces ? 0 : 1 );
+  int bMin         = (SourceLayer==0             ? 1 : 0 );
+  int bMax         = (SourceLayer==NumInterfaces ? 0 : 1 );
   cdouble ScriptG0TSource[2][6][6];
-  for(int q=qMin, nlSource=SourceLayer-1+q; q<=qMax; q++, nlSource++)
-   GetScriptG0Twiddle(Omega, q2D, zInterface[nlSource], zSource, ScriptG0TSource[q], SourceLayer, 0.0, false, false, dzSource);
+  for(int b=bMin, nlSource=SourceLayer-1+b; b<=bMax; b++, nlSource++)
+   GetScriptG0Twiddle(Omega, q2D, zInterface[nlSource], zSource, ScriptG0TSource[b], SourceLayer, 0.0, false, false, dzSource);
 
   Times[G0TIME] += Secs() - TT;
  
@@ -298,143 +261,22 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, double q2D[2],
   RTwiddle->Zero();
   STwiddle->Zero();
   double Sign[2]={-1.0, 1.0};
-  for(int p=pMin, nlDest=DestLayer-1+p; p<=pMax; p++, nlDest++)
+  for(int a=aMin, nlDest=DestLayer-1+a; a<=aMax; a++, nlDest++)
    for(int i=0; i<6; i++)
-    { RTwiddle->SetEntry(i, 4*nlDest+0, Sign[p]*ScriptG0TDest[p][i][0]);
-      RTwiddle->SetEntry(i, 4*nlDest+1, Sign[p]*ScriptG0TDest[p][i][1]);
-      RTwiddle->SetEntry(i, 4*nlDest+2, Sign[p]*ScriptG0TDest[p][i][3]);
-      RTwiddle->SetEntry(i, 4*nlDest+3, Sign[p]*ScriptG0TDest[p][i][4]);
+    { RTwiddle->SetEntry(i, 4*nlDest+0, Sign[a]*ScriptG0TDest[a][i][0]);
+      RTwiddle->SetEntry(i, 4*nlDest+1, Sign[a]*ScriptG0TDest[a][i][1]);
+      RTwiddle->SetEntry(i, 4*nlDest+2, Sign[a]*ScriptG0TDest[a][i][3]);
+      RTwiddle->SetEntry(i, 4*nlDest+3, Sign[a]*ScriptG0TDest[a][i][4]);
     };
-  for(int q=qMin, nlSource=SourceLayer-1+q; q<=qMax; q++, nlSource++)
+  for(int b=bMin, nlSource=SourceLayer-1+b; b<=bMax; b++, nlSource++)
    for(int j=0; j<6; j++)
-    { STwiddle->SetEntry(4*nlSource+0, j, -1.0*Sign[q]*ScriptG0TSource[q][0][j]);
-      STwiddle->SetEntry(4*nlSource+1, j, -1.0*Sign[q]*ScriptG0TSource[q][1][j]);
-      STwiddle->SetEntry(4*nlSource+2, j, -1.0*Sign[q]*ScriptG0TSource[q][3][j]);
-      STwiddle->SetEntry(4*nlSource+3, j, -1.0*Sign[q]*ScriptG0TSource[q][4][j]);
+    { STwiddle->SetEntry(4*nlSource+0, j, -1.0*Sign[b]*ScriptG0TSource[b][0][j]);
+      STwiddle->SetEntry(4*nlSource+1, j, -1.0*Sign[b]*ScriptG0TSource[b][1][j]);
+      STwiddle->SetEntry(4*nlSource+2, j, -1.0*Sign[b]*ScriptG0TSource[b][3][j]);
+      STwiddle->SetEntry(4*nlSource+3, j, -1.0*Sign[b]*ScriptG0TSource[b][4][j]);
     };
   WMatrix->LUSolve(STwiddle);
   RTwiddle->Multiply(STwiddle, GTwiddle);
   Times[SOLVETIME]+=Secs()-TT;
 }
 
-
-/***************************************************************/
-/* Get the substrate Green's function by evaluating the full   */
-/* 2D Fourier integral with no fancy accelerations. This is    */
-/* too slow for use in practical calculations but offers a     */
-/* helpful sanity check for debugging, etc.                    */
-/***************************************************************/
-void LayeredSubstrate::GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
-                                                          HMatrix *XMatrix,
-                                                          HMatrix *GMatrix)
-{
-#if 0
-  UpdateCachedEpsMu(Omega);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  qFunctionData MyData, *Data=&MyData;
-  Data->XMatrix    = XMatrix;
-  Data->RTwiddle   = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
-  Data->WMatrix    = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
-  Data->STwiddle   = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
-  Data->GTwiddle   = new HMatrix(6,               6,               LHM_COMPLEX);
-  Data->byqFile    = WritebyqFiles ? fopen("/tmp/q2D.log","w") : 0;
-
-  int FDim = 36*XMatrix->NR;
-  bool ThetaSymmetric=false;
-  qIntegrate(Omega, qFunctionFullSC, (void *)Data, GMatrix->ZM, FDim, ThetaSymmetric);
-  
-  if (Data->byqFile) fclose(Data->byqFile);
-
-  delete Data->RTwiddle;
-  delete Data->WMatrix;
-  delete Data->STwiddle;
-  delete Data->GTwiddle;
-#endif
-}
-
-/***************************************************************/
-/* Extract the 18 distinct theta-independent scalar quantities */
-/* from the full 36-component Fourier-space Green's function.  */
-/***************************************************************/
-#define _EE0P  0
-#define _EE0Z  1
-#define _EE1A  2
-#define _EE1B  3
-#define _EE2   4
-#define _EM0   5
-#define _EM1A  6
-#define _EM1B  7
-#define _EM2   8
-#define _ME0   9
-#define _ME1A 10
-#define _ME1B 11
-#define _ME2  12
-#define _MM0P 13 
-#define _MM0Z 14
-#define _MM1A 15
-#define _MM1B 16
-#define _MM2  17
-
-#define NUMGSCALARS 18
-
-// gTwiddleVD[0][0] = g scalar factors
-// gTwiddleVD[0][1] = dg/dzDest   (if dzDest=true)
-// gTwiddleVD[1][0] = dg/dzSource (if dzSource=true)
-// gTwiddleVD[1][1] = d2g/dzDestdzSource (if dzDest=dzSource=true)
-void GetgTwiddle_SurfaceCurrent(LayeredSubstrate *Substrate, cdouble Omega,
-                 double qMag, double zDest, double zSource,
-                 HMatrix *RTwiddle, HMatrix *WMatrix,
-                 HMatrix *STwiddle, cdouble gTwiddleVD[2][2][NUMGSCALARS],
-                 bool dzDest, bool dzSource)
-{
-  cdouble gBuf[4*36];
-  HMatrix   GTwiddle(6,6,LHM_COMPLEX,gBuf+0*36);
-  HMatrix     dGTdzD(6,6,LHM_COMPLEX,gBuf+1*36);
-  HMatrix     dGTdzS(6,6,LHM_COMPLEX,gBuf+2*36);
-  HMatrix d2GTdzDdzS(6,6,LHM_COMPLEX,gBuf+3*36);
-
-  double q2D[2];
-  q2D[0]=qMag;
-  q2D[1]=0.0;
-
-  for(int ndzDest=0; ndzDest <= (dzDest ? 1 : 0); ndzDest++)
-   for(int ndzSource=0; ndzSource <= (dzSource ? 1 : 0); ndzSource++)
-    {   
-     Substrate->GetScriptGTwiddle(Omega, q2D, zDest, zSource,
-                                  RTwiddle, WMatrix, STwiddle, 
-                                  &GTwiddle, 
-                                  (ndzDest==1), (ndzSource==1));
-
-     cdouble *gScalars = gTwiddleVD[ndzDest][ndzSource];
-
-     gScalars[_EE0P]  = GTwiddle.GetEntry(0+1,0+1);
-     gScalars[_EE0Z]  = GTwiddle.GetEntry(0+2,0+2);
-     gScalars[_EE1A]  = GTwiddle.GetEntry(0+0,0+2);
-     gScalars[_EE2]   = GTwiddle.GetEntry(0+0,0+0) - gScalars[_EE0P];
-
-     gScalars[_EM0]  = GTwiddle.GetEntry(0+0,3+1);
-     gScalars[_EM1A] = GTwiddle.GetEntry(0+1,3+2);
-     gScalars[_EM1B] = GTwiddle.GetEntry(0+2,3+1);
-     gScalars[_EM2]  = -1.0*(GTwiddle.GetEntry(0+1,3+0) + gScalars[_EM0]);
-
-     gScalars[_MM0P] = GTwiddle.GetEntry(3+1,3+1);
-     gScalars[_MM0Z] = GTwiddle.GetEntry(3+2,3+2);
-     gScalars[_MM1A] = GTwiddle.GetEntry(3+0,3+2);
-     gScalars[_MM2]  = GTwiddle.GetEntry(3+0,3+0) - gScalars[_MM0P];
-
-     // the following are only independent of the preceding
-     // if zDest, zSource lie in different substrate layers
-     // so in principle their calculation could be omitted
-     // for the same-layer case
-     gScalars[_EE1B] = GTwiddle.GetEntry(0+2,0+0);
-     gScalars[_ME0 ] = GTwiddle.GetEntry(3+1,0+0);
-     gScalars[_ME1A] = GTwiddle.GetEntry(3+2,0+1);
-     gScalars[_ME1B] = GTwiddle.GetEntry(3+1,0+2);
-     gScalars[_ME2 ] = -1.0*(GTwiddle.GetEntry(3+0,0+1) + gScalars[_ME0]);
-     gScalars[_MM1B] = GTwiddle.GetEntry(3+2,3+0);
-   };
-
-}

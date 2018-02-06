@@ -27,13 +27,15 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdarg.h>
-#include <fenv.h>
+#include <unistd.h>
 
 #include "libhrutil.h"
 #include "libMDInterp.h"
 #include "libMatProp.h"
 #include "libSGJC.h"
 #include "libSubstrate.h"
+
+const char *TimeNames[]={"G0", "BESSEL", "W", "SOLVE", "STAMP"};
 
 /***************************************************************/
 /* constructor entry point 1: construct from a .substrate file */
@@ -53,7 +55,7 @@ LayeredSubstrate::LayeredSubstrate(const char *FileName)
 }
 
 /***************************************************************/
-/* constructor entry point 2: construct starting from the      */
+/* constructor entry point 3: construct starting from the      */
 /* second line of a SUBSTRATE ... ENDSUBSTRATE section in a    */
 /* previously opened file                                      */
 /***************************************************************/
@@ -294,4 +296,21 @@ int LayeredSubstrate::GetLayerIndex(double z)
 { for(int ni=0; ni<NumInterfaces; ni++)
    if (z>zInterface[ni]) return ni;
   return NumInterfaces;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+LayeredSubstrate *CreateLayeredSubstrate(const char *FileContent)
+{
+  char *FileName=strdup("XXXXXX");
+  if ( mkstemp(FileName) == -1 )
+   ErrExit("could not create temporary file");
+  FILE *f=fopen(FileName,"w");
+  fputs(FileContent,f);
+  fclose(f);
+  LayeredSubstrate *S=new LayeredSubstrate(FileName);
+  unlink(FileName);
+  free(FileName);
+  return S;
 }

@@ -91,6 +91,10 @@ typedef struct fInterpData
 
 void fInterp1DStatic(double Rho, void *UserData, double *fInterp)
 {
+(void) Rho;
+(void) UserData;
+(void) fInterp;
+#if 0
   fInterpData *fID   = (fInterpData *)UserData;
   LayeredSubstrate *Substrate = fID->Substrate;
   double zD                   = fID->zD;
@@ -119,6 +123,7 @@ void fInterp1DStatic(double Rho, void *UserData, double *fInterp)
   fInterp[3] = dqI[1];
   fInterp[4] =  qI[2];
   fInterp[5] = dqI[2];
+#endif
 
 }
 

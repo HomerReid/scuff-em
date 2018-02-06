@@ -30,64 +30,112 @@
 #include <string.h>
 #include <math.h>
 
+#include <algorithm>
+#include <vector>
+
 #include <libhrutil.h>
 #include "libhmat.h"
 
-#define SORTCOLUMN 0
+typedef std::vector<int>  ivec;
+typedef std::vector<char> cvec;
 
 /***************************************************************/
+/* row-sorting class passed to std::sort.                      */
+/*                                                             */
+/* sort type = M:    ascending by absolute magnitude           */
+/*             I   : ascending by imag part                    */
+/*             R, V: ascending by real part                    */
+/*           = m, i, r, v: descending                          */
 /***************************************************************/
+struct RowSorter
+{
+  RowSorter(HMatrix *M, ivec SortColumns, cvec SortType);
+
+  bool operator() (int nri, int nrj);
+
+  HMatrix *M;
+  ivec SortColumns;
+  cvec SortType;
+  
+};
+
+RowSorter::RowSorter(HMatrix *_M, ivec _SortColumns, cvec _SortType): M(_M), SortColumns(_SortColumns), SortType(_SortType)
+{ 
+  if ( SortType.size()!=SortColumns.size() )
+   ErrExit("%s:%i: numbers of columns and flags disagree (%i,%i)",
+            __FILE__,__LINE__,SortType.size(), SortColumns.size());
+
+  for(int nnc=0, nc=SortColumns[0]; nnc<SortColumns.size(); nc=SortColumns[++nnc])
+   { if ( nc<0 || nc>=M->NC )
+      ErrExit("invalid column index (%i,%i) in HMatrix::Sort",nc,M->NC);
+     if ( !strchr("mirvMIRV", SortType[nnc]) )
+      ErrExit("unknown sort type (%c) in HMatrix::Sort",SortType[nnc]);
+   };
+}
+
+bool RowSorter::operator() (int nri, int nrj)
+{
+  for (int nnc=0, nc=SortColumns[0]; nnc<SortColumns.size(); nc=SortColumns[++nnc])
+   { cdouble zvi = M->GetEntry(nri, nc), zvj = M->GetEntry(nrj, nc);
+     if (zvi==zvj) continue;
+     char c = tolower(SortType[nnc]);
+     bool Descending = ( c == SortType[nnc] );
+     bool Lesser = ( c=='m' ?  (abs(zvi)  < abs(zvj)  ) :
+                     c=='i' ?  (imag(zvi) < imag(zvj) ) :
+                               (real(zvi) < real(zvj) )
+                   );
+     return Lesser ^ Descending;
+   }
+  return true;
+}
+
 /***************************************************************/
-int RealAscendingSort(const void *p1, const void *p2)
-{ 
-  double *RP1=(double *)p1;
-  double *RP2=(double *)p2;
+/* sort type = M:    ascending by absolute magnitude           */
+/*             I:    ascending by imag part                    */
+/*             R, V: ascending by real part                    */
+/*           = m, i, r, v: descending                          */
+/***************************************************************/
+HMatrix *SortHMatrix(HMatrix *M, ivec SortColumns, cvec SortType)
+{
+  int NR=M->NR, NC=M->NC;
 
-  double Diff=RP1[SORTCOLUMN] - RP2[SORTCOLUMN];
-  if (Diff>0.0) 
-   return 1;
-  if (Diff==0.0) 
-   return 0;
-  return -1;
+  ivec RowIndices(NR);
+  for(int nr=0; nr<NR; nr++) 
+   RowIndices[nr]=nr;
+  RowSorter MyRowSorter(M, SortColumns, SortType);
+  std::sort (RowIndices.begin(), RowIndices.end(), MyRowSorter);
+
+  HMatrix *NewM = new HMatrix(M);
+  for(int nr=0; nr<NR; nr++)
+   for(int nc=0; nc<NC; nc++)
+    NewM->SetEntry(nr, nc, M->GetEntry(RowIndices[nr], nc));
+
+  return NewM;
 }
 
-int RealDescendingSort(const void *p1, const void *p2)
+void HMatrix::Sort(ivec SortColumns, cvec SortType)
 { 
-  double *RP1=(double *)p1;
-  double *RP2=(double *)p2;
-
-  double Diff=RP2[SORTCOLUMN] - RP1[SORTCOLUMN];
-  if (Diff>0.0) 
-   return 1;
-  if (Diff==0.0) 
-   return 0;
-  return -1;
+  if (StorageType!=LHM_NORMAL)
+   ErrExit("matrix sort not yet implemented for packed matrices");
+  HMatrix *NewM=SortHMatrix(this, SortColumns, SortType);
+  if (RealComplex==LHM_REAL)
+   memcpy(DM, NewM->DM, NR*NC*sizeof(double));
+  else
+   memcpy(ZM, NewM->ZM, NR*NC*sizeof(cdouble));
+  delete NewM;
 }
 
-int ComplexAscendingSort(const void *p1, const void *p2)
-{ 
-  cdouble *RP1=(cdouble *)p1;
-  cdouble *RP2=(cdouble *)p2;
+void HMatrix::Sort(ivec SortColumns)
+{ Sort(SortColumns, cvec(SortColumns.size(),'V')); }
 
-  double Diff=abs(RP1[SORTCOLUMN]) - abs(RP2[SORTCOLUMN]);
-  if (Diff>0.0) 
-   return 1;
-  if (Diff==0.0) 
-   return 0;
-  return -1;
-}
 
-int ComplexDescendingSort(const void *p1, const void *p2)
-{ 
-  cdouble *RP1=(cdouble *)p1;
-  cdouble *RP2=(cdouble *)p2;
-
-  double Diff=abs(RP2[SORTCOLUMN]) - abs(RP1[SORTCOLUMN]);
-  if (Diff>0.0) 
-   return 1;
-  if (Diff==0.0) 
-   return 0;
-  return -1;
+void HMatrix::Sort(int WhichColumn, const char *Options)
+{
+  ivec SortColumns(1, WhichColumn);
+  cvec SortType(1, 'V');
+  if (Options && !strcasecmp(Options,"--descending"))
+   SortType[0]='v';
+  Sort(SortColumns, SortType);
 }
 
 /***************************************************************/
@@ -103,6 +151,7 @@ int ComplexDescendingSort(const void *p1, const void *p2)
 /*  --ascending  (default)                                     */
 /*  --descending                                               */
 /***************************************************************/
+#if 0
 void HMatrix::Sort(int WhichColumn, const char *Options)
 {
   int Ascending=1;
@@ -184,9 +233,5 @@ void HMatrix::Sort(int WhichColumn, const char *Options)
       };
    };
 
-}
-
-void HMatrix::Sort(int WhichColumn)
-{
-  Sort(WhichColumn,0);
-}
+} 
+#endif

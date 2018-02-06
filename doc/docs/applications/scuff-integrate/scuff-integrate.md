@@ -281,7 +281,8 @@ and of the surrounding environment. By default, all bodies
 and the environment are at absolute zero, $T=0$ K; if
 you do not modify this situation by setting a nonzero temperature
 for at least one body (or the environment), all heat-transfer
-rates and forces/torques will be zero.
+rates and forces/torques will be zero. The command-line option
+for setting 
 
 + `--Temperature N T`
 

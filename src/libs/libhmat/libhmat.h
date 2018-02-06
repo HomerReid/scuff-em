@@ -31,6 +31,7 @@
 #include <math.h>
 #include <cmath>
 #include <complex>
+#include <vector>
 
 /***************************************************************/
 /***************************************************************/
@@ -38,11 +39,13 @@
 #ifndef cdouble
 typedef std::complex<double> cdouble;
 #endif 
+#ifndef ivec
+typedef std::vector <int> ivec;
+#endif
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-
 // values for the RealComplex argument to functions
 #define LHM_REAL    0
 #define LHM_COMPLEX 1
@@ -270,9 +273,11 @@ class HMatrix
    // sort of the inverse of InsertBlock
    void ExtractBlock(int RowOffset, int ColOffset, HMatrix *B);
 
-   /* sort the rows by the value of a column */
-   void Sort(int WhichColumn, const char *Options);
-   void Sort(int WhichColumn);
+   /* sort the rows by the values of one or more columns */
+   void Sort(std::vector<int> SortColumns,
+             std::vector<char> SortType);
+   void Sort(std::vector<int> SortColumns);
+   void Sort(int SortColumn, const char *Options=0);
 
    // compute vector-matrix-vector product X'*this*Y
    cdouble BilinearProduct(HVector *X, HVector *Y=0);
@@ -387,6 +392,10 @@ HMatrix *CopyHMatrixUnpacked(HMatrix *Mpacked);
 
 // contatenate A and B to create a new HMatrix
 HMatrix *Concat(HMatrix *A, HMatrix *B, int How=LHM_HORIZONTAL);
+
+// make a sorted copy of a matrix
+HMatrix *SortHMatrix(HMatrix *M, std::vector<int> SortColumns, 
+                                 std::vector<char> SortType);
 
 /***************************************************************/
 /* SMatrix class definition ************************************/
