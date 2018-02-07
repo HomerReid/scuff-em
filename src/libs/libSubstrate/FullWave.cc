@@ -163,6 +163,70 @@ void LayeredSubstrate::GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetLambdaMatrices(double Theta, double Lambda[7][3][3])
+{ 
+  double CT=cos(Theta), ST=sin(Theta);
+  memset( (double *)Lambda, 0, 7*3*3*sizeof(double));
+
+  Lambda[_LAMBDA0P][0][0]=1.0;
+  Lambda[_LAMBDA0P][1][1]=1.0;
+  Lambda[_LAMBDA0Z][2][2]=1.0;
+
+  Lambda[_LAMBDA1 ][0][2]=CT;
+  Lambda[_LAMBDA1 ][1][2]=ST;
+
+  Lambda[_LAMBDA2 ][0][0]=CT*CT;
+  Lambda[_LAMBDA2 ][0][1]=CT*ST;
+  Lambda[_LAMBDA2 ][1][0]=ST*CT;
+  Lambda[_LAMBDA2 ][1][1]=ST*ST;
+
+  Lambda[_LAMBDA0X][0][1]=1.0;
+  Lambda[_LAMBDA0X][1][0]=-1.0;
+
+  Lambda[_LAMBDA1X][0][2]=-ST;
+  Lambda[_LAMBDA1X][1][2]=+CT;
+  Lambda[_LAMBDA1X][2][2]=1.0;
+
+  Lambda[_LAMBDA2X][0][0]=CT*ST;
+  Lambda[_LAMBDA2X][1][1]=-CT*ST;
+  Lambda[_LAMBDA2X][0][1]=ST*ST;
+  Lambda[_LAMBDA2X][1][0]=-CT*CT;
+}
+
+/***************************************************************/
+/* compute a, c parameters for the contour-integral portion of */
+/* the Sommerfeld integral via the procedure described in      */
+/* Golubovic et al, "Efficient Algorithms for Computing        */
+/* Sommerfeld Intergral Tails," IEEE Transactions on Antennas  */
+/* and Propagation **60** 2409 (2012).                         */
+/* DOI: 10.1109/TAP.2012.2189718                               */
+/*--------------------------------------------------------------*/
+void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
+                     double Rho, double zDest, double zSource,
+                     double *pa, double *pc)
+{
+  int NumLayers     = S->NumLayers;
+  cdouble *EpsLayer = S->EpsLayer;
+  cdouble *MuLayer  = S->MuLayer;
+
+  double MaxRealn2 = 0.0;
+  for(int nl=0; nl<NumLayers; nl++)
+   MaxRealn2 = fmax(MaxRealn2, real(EpsLayer[nl]*MuLayer[nl]));
+  double a = 1.5*sqrt(MaxRealn2)*real(Omega);
+  double c = real(Omega);
+   
+  if ( Rho>fabs(zDest-zSource) && real(Omega*Rho)>1.0 )
+   c = 1.0/Rho;
+
+  *pa=a;
+  *pc=c;
+  
+}
+   
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
                                                           HMatrix *XMatrix,
                                                           HMatrix *GMatrix)
@@ -221,25 +285,10 @@ void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
       { xNu = s[0] - '0';
         Log("Setting xNu=%i.\n",xNu);
       };
+ 
+     double a, c;
+     GetacSommerfeld(this, Omega, Rho, zDest, zSource, &a, &c);
 
-     /*--------------------------------------------------------------*/
-     /* compute a, c parameters for the contour-integral portion of */
-     /* the Sommerfeld integral via the procedure described in      */
-     /* Golubovic et al, "Efficient Algorithms for Computing        */
-     /* Sommerfeld Intergral Tails," IEEE Transactions on Antennas  */
-     /* and Propagation **60** 2409 (2012).                         */
-     /* DOI: 10.1109/TAP.2012.2189718                               */
-     /*--------------------------------------------------------------*/
-     double MaxRealn2 = 0.0;
-     for(int nl=0; nl<NumLayers; nl++)
-      MaxRealn2 = fmax(MaxRealn2, real(EpsLayer[nl]*MuLayer[nl]));
-     double a = 1.5*sqrt(MaxRealn2)*real(Omega);
-     double c = real(Omega);
-   
-      //TODO investigate me
-     if ( Rho>fabs(zDest-zSource) && real(Omega*Rho)>1.0 )
-      c = 1.0/Rho;
-   
      Log("Computing gScalar integrals via Sommerfeld integrator...");
      SommerfeldIntegrate(SommerfeldIntegrand, (void *)SID, zfdim,
                          a, c, xNu, Rho, qMaxEval, qMaxEval,

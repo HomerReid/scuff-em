@@ -516,10 +516,11 @@ void LogC(const char *format, ...)
   fclose(f);
 }
 
-void InitializeLog(char *argv0)
+void InitializeLog(char *argv0, const char *Path)
 { char *CodeName=GetFileBase(argv0);
   if (LogFileName==0)
-   SetLogFileName("%s.log",CodeName);
+   Path ? SetLogFileName("%s/%s.log",Path,CodeName)
+        : SetLogFileName("%s.log",CodeName);
   Log("%s running on %s:%d (%s)",CodeName, GetHostName(), getpid(), GetTimeString());
 }
 

@@ -141,6 +141,16 @@ extern const char *TimeNames[];
 #define _MMYZ 34
 #define _MMZZ 35
 
+#define _LAMBDA0P 0
+#define _LAMBDA0Z 1
+#define _LAMBDA1  2
+#define _LAMBDA2  3
+#define _LAMBDA0X 4
+#define _LAMBDA1X 5
+#define _LAMBDA2X 6
+#define NUMLAMBDA 7
+void GetLambdaMatrices(double Theta, double Lambda[7][3][3]);
+
 /***************************************************************/
 /* prototype for user-defined Fourier integrand                */
 /***************************************************************/

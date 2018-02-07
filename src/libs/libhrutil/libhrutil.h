@@ -92,7 +92,7 @@ void Warn(const char *format, ...);
 /* General-purpose status logging ******************************/
 /***************************************************************/
 void SetLogFileName(const char *format, ...);
-void InitializeLog(char *argv0);
+void InitializeLog(char *argv0, const char *Path=0);
 void SetConsoleLogging();
 void Log(const char *format, ...);
 void LogC(const char *format, ...);

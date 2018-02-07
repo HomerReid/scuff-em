@@ -45,6 +45,40 @@
 #define SQRT2 1.41421356237309504880
 
 /********************************************************************/
+/* If environment variable SCUFF_GTWIDDLE_ONLY is set, zero out all */
+/* components of the gTwiddle vector except those listed in         */
+/* SCUFF_GTWIDDLE_ONLY                                              */
+/* example: export SCUFF_GTWIDDLE_ONLY="4 7 12"                     */
+/********************************************************************/
+void ZerogTwiddle(cdouble *gTwiddle)
+{
+  static bool Retain[NUMGTWIDDLE], Init=false;
+  
+  if (!Init)
+   { 
+     Init=true;
+     for(int ng=0; ng<NUMGTWIDDLE; ng++) Retain[ng]=true;
+     char *s=getenv("SCUFF_GTWIDDLE_ONLY");
+     if (!s) return;
+     for(int ng=0; ng<NUMGTWIDDLE; ng++) Retain[ng]=false;
+     char *Tokens[25];
+     int NumTokens=Tokenize(s, Tokens, 25);
+     for(int nt=0; nt<NumTokens; nt++)
+      { int ng;
+        sscanf(Tokens[nt],"%i",&ng);
+        Retain[ng]=true;
+        Log("Retaining #%i\n",ng);
+      };
+   };
+
+  for(int ng=0; ng<NUMGTWIDDLE; ng++)
+   if (!Retain[ng])
+    gTwiddle[ng]=0.0;
+  
+}
+
+
+/********************************************************************/
 /* Call GetGTwiddle to compute the full 6x6 Fourier-space DGF, then */
 /* extract from it the 18 distinct scalar functions gTwiddle(q)     */
 /* that get paired with Bessel-function factors to form the         */
@@ -105,6 +139,10 @@ void LayeredSubstrate::gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
      gTwiddle[_ME1B] = GTwiddle.GetEntry(3+1,0+2);
      gTwiddle[_ME2A] = -1.0*(GTwiddle.GetEntry(3+0,0+1) + gTwiddle[_ME0P]);
      gTwiddle[_MM1B] = GTwiddle.GetEntry(3+2,3+0);
+
+     /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     ZerogTwiddle(gTwiddle);
+     /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
 
 }
@@ -151,6 +189,9 @@ void LayeredSubstrate::gTwiddleHardCoded(cdouble Omega, cdouble q,
      gTwiddle[_MM1A] = -1.0*MMFactor*Sign*q*qz/k2;
      gTwiddle[_MM1B] = -1.0*MMFactor*Sign*q*qz/k2;
      gTwiddle[_MM2A] = MMFactor*-1.0*q2/k2;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     ZerogTwiddle(gTwiddle);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    }
   else if (NumInterfaces==1)
    {
@@ -201,7 +242,7 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
   cdouble Omega                = SID->Omega;
   double q0                    = SID->q0;
   bool uTransform              = SID->uTransform;
-  HMatrix *XMatrix             = SID->XMatrix; 
+  HMatrix *XMatrix             = SID->XMatrix;
   HMatrix *RTwiddle            = SID->RTwiddle;
   HMatrix *WMatrix             = SID->WMatrix; 
   HMatrix *STwiddle            = SID->STwiddle;
@@ -237,7 +278,7 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
   cdouble gBuffer[4*NUMGTWIDDLE];
   cdouble *gTwiddleVD[2][2]={{gBuffer+0*NUMGTWIDDLE, gBuffer+1*NUMGTWIDDLE},
                              {gBuffer+2*NUMGTWIDDLE, gBuffer+3*NUMGTWIDDLE}};
-  cdouble J[3], J1oqRho;
+  cdouble J[4];
   double ScaleFac=1.0;
   double LastzDest=1.234e56, LastzSource=2.345e67, LastRho=3.456e78;
   for(int nx=0; nx<XMatrix->NR; nx++)
@@ -273,9 +314,9 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
         bool Scale = (abs(qRho)<1.0e-4 ? false : true);
         ScaleFac = Scale ? exp(fabs(imag(qRho))) : 1.0;
         AmosBessel('J', qRho, 0, 3, Scale, J, Workspace);
-        J1oqRho = ( (abs(qRho) < 1.0e-4) ? 0.5*(1.0 - qRho*qRho/8.0)
-                                         : J[1]/qRho
-                  );
+        J[3] = ( (abs(qRho) < 1.0e-4) ? 0.5*(1.0 - qRho*qRho/8.0)
+                                      : J[1]/qRho
+               );
         J[1]*=II;
         J[2]*=-1.0;
       };
@@ -292,26 +333,26 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
      Integrand[_EE1A] = Factor*gTwiddle[_EE1A]*J[1];
      Integrand[_EE1B] = Factor*gTwiddle[_EE1B]*J[1];
      Integrand[_EE2A] = Factor*gTwiddle[_EE2A]*J[2];
-     Integrand[_EE2B] = Factor*gTwiddle[_EE2A]*J1oqRho;
+     Integrand[_EE2B] = Factor*gTwiddle[_EE2A]*J[3];
 
      Integrand[_EM0P] = Factor*gTwiddle[_EM0P]*J[0];
      Integrand[_EM1A] = Factor*gTwiddle[_EM1A]*J[1];
      Integrand[_EM1B] = Factor*gTwiddle[_EM1B]*J[1];
      Integrand[_EM2A] = Factor*gTwiddle[_EM2A]*J[2];
-     Integrand[_EM2B] = Factor*gTwiddle[_EM2A]*J1oqRho;
+     Integrand[_EM2B] = Factor*gTwiddle[_EM2A]*J[3];
 
      Integrand[_ME0P] = Factor*gTwiddle[_ME0P]*J[0];
      Integrand[_ME1A] = Factor*gTwiddle[_ME1A]*J[1];
      Integrand[_ME1B] = Factor*gTwiddle[_ME1B]*J[1];
      Integrand[_ME2A] = Factor*gTwiddle[_ME2A]*J[2];
-     Integrand[_ME2B] = Factor*gTwiddle[_ME2A]*J1oqRho;
+     Integrand[_ME2B] = Factor*gTwiddle[_ME2A]*J[3];
 
      Integrand[_MM0P] = Factor*gTwiddle[_MM0P]*J[0];
      Integrand[_MM0Z] = Factor*gTwiddle[_MM0Z]*J[0];
      Integrand[_MM1A] = Factor*gTwiddle[_MM1A]*J[1];
      Integrand[_MM1B] = Factor*gTwiddle[_MM1B]*J[1];
      Integrand[_MM2A] = Factor*gTwiddle[_MM2A]*J[2];
-     Integrand[_MM2B] = Factor*gTwiddle[_MM2A]*J1oqRho;
+     Integrand[_MM2B] = Factor*gTwiddle[_MM2A]*J[3];
 
      if (byqFile)
       { fprintf(byqFile,"%e %e %e %e %e ",real(q),imag(q),Rho,zDest,zSource);

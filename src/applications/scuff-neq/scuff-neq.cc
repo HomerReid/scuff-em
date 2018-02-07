@@ -235,14 +235,14 @@ int main(int argc, char *argv[])
   SNEQD->SourceOnly=-1;
   if (SourceObject)
    { G->GetSurfaceByLabel(SourceObject, &(SNEQD->SourceOnly) );
-     if (SNEQD->SourceOnly)
+     if (SNEQD->SourceOnly == -1)
       ErrExit("geometry contains no object with label %s",SourceObject);
      Log("Computing only quantities sourced by object %s.",SourceObject);
    };
   SNEQD->DestOnly=-1;
   if (DestObject)
    { G->GetSurfaceByLabel(DestObject, &(SNEQD->DestOnly) );
-     if (SNEQD->DestOnly)
+     if (SNEQD->DestOnly == -1)
       ErrExit("geometry contains no object with label %s",DestObject);
      Log("Computing only PFT quantities for object %s.",DestObject);
    };
