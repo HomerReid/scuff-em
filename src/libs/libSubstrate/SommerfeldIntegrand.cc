@@ -246,6 +246,8 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
   HMatrix *RTwiddle            = SID->RTwiddle;
   HMatrix *WMatrix             = SID->WMatrix; 
   HMatrix *STwiddle            = SID->STwiddle;
+  bool dzSource                = SID->dzSource;
+  bool dzDest                  = SID->dzDest;
   SID->NumPoints++;
   FILE *byqFile                = SID->byqFile;
  
@@ -267,9 +269,6 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
      q = q0 + u/(1.0-u);
      Jac = 1.0/( (1.0-u)*(1.0-u) );
    };
-
-  bool dzSource=false;
-  bool dzDest=false;
 
   /***************************************************************/
   /* get gTwiddle functions **************************************/
@@ -325,39 +324,46 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
      /* assemble integrand vector ***********************************/
      /***************************************************************/
      cdouble Factor = q*Jac*ScaleFac / (2.0*M_PI);
-     cdouble *gTwiddle=gTwiddleVD[0][0];
-     cdouble *Integrand = zfval + nx*NUMGSCALAR;
+     cdouble *Integrand = zfval;
+     for(int dzd=0; dzd<=(dzDest ? 1 : 0); dzd++)
+      for(int dzs=0; dzs<=(dzSource ? 1 : 0); dzs++)
+       { 
+         cdouble *gTwiddle=gTwiddleVD[dzd][dzs];
 
-     Integrand[_EE0P] = Factor*gTwiddle[_EE0P]*J[0];
-     Integrand[_EE0Z] = Factor*gTwiddle[_EE0Z]*J[0];
-     Integrand[_EE1A] = Factor*gTwiddle[_EE1A]*J[1];
-     Integrand[_EE1B] = Factor*gTwiddle[_EE1B]*J[1];
-     Integrand[_EE2A] = Factor*gTwiddle[_EE2A]*J[2];
-     Integrand[_EE2B] = Factor*gTwiddle[_EE2A]*J[3];
+         Integrand[_EE0P] = Factor*gTwiddle[_EE0P]*J[0];
+         Integrand[_EE0Z] = Factor*gTwiddle[_EE0Z]*J[0];
+         Integrand[_EE1A] = Factor*gTwiddle[_EE1A]*J[1];
+         Integrand[_EE1B] = Factor*gTwiddle[_EE1B]*J[1];
+         Integrand[_EE2A] = Factor*gTwiddle[_EE2A]*J[2];
+         Integrand[_EE2B] = Factor*gTwiddle[_EE2A]*J[3];
+    
+         Integrand[_EM0P] = Factor*gTwiddle[_EM0P]*J[0];
+         Integrand[_EM1A] = Factor*gTwiddle[_EM1A]*J[1];
+         Integrand[_EM1B] = Factor*gTwiddle[_EM1B]*J[1];
+         Integrand[_EM2A] = Factor*gTwiddle[_EM2A]*J[2];
+         Integrand[_EM2B] = Factor*gTwiddle[_EM2A]*J[3];
+    
+         Integrand[_ME0P] = Factor*gTwiddle[_ME0P]*J[0];
+         Integrand[_ME1A] = Factor*gTwiddle[_ME1A]*J[1];
+         Integrand[_ME1B] = Factor*gTwiddle[_ME1B]*J[1];
+         Integrand[_ME2A] = Factor*gTwiddle[_ME2A]*J[2];
+         Integrand[_ME2B] = Factor*gTwiddle[_ME2A]*J[3];
+    
+         Integrand[_MM0P] = Factor*gTwiddle[_MM0P]*J[0];
+         Integrand[_MM0Z] = Factor*gTwiddle[_MM0Z]*J[0];
+         Integrand[_MM1A] = Factor*gTwiddle[_MM1A]*J[1];
+         Integrand[_MM1B] = Factor*gTwiddle[_MM1B]*J[1];
+         Integrand[_MM2A] = Factor*gTwiddle[_MM2A]*J[2];
+         Integrand[_MM2B] = Factor*gTwiddle[_MM2A]*J[3];
 
-     Integrand[_EM0P] = Factor*gTwiddle[_EM0P]*J[0];
-     Integrand[_EM1A] = Factor*gTwiddle[_EM1A]*J[1];
-     Integrand[_EM1B] = Factor*gTwiddle[_EM1B]*J[1];
-     Integrand[_EM2A] = Factor*gTwiddle[_EM2A]*J[2];
-     Integrand[_EM2B] = Factor*gTwiddle[_EM2A]*J[3];
+         if (byqFile)
+          { fprintf(byqFile,"%e %e %e %e %e %i %i ",real(q),imag(q),Rho,zDest,zSource,dzd,dzs);
+            fprintVecCR(byqFile,Integrand,NUMGSCALAR);
+          };
 
-     Integrand[_ME0P] = Factor*gTwiddle[_ME0P]*J[0];
-     Integrand[_ME1A] = Factor*gTwiddle[_ME1A]*J[1];
-     Integrand[_ME1B] = Factor*gTwiddle[_ME1B]*J[1];
-     Integrand[_ME2A] = Factor*gTwiddle[_ME2A]*J[2];
-     Integrand[_ME2B] = Factor*gTwiddle[_ME2A]*J[3];
+         Integrand += NUMGSCALAR;
 
-     Integrand[_MM0P] = Factor*gTwiddle[_MM0P]*J[0];
-     Integrand[_MM0Z] = Factor*gTwiddle[_MM0Z]*J[0];
-     Integrand[_MM1A] = Factor*gTwiddle[_MM1A]*J[1];
-     Integrand[_MM1B] = Factor*gTwiddle[_MM1B]*J[1];
-     Integrand[_MM2A] = Factor*gTwiddle[_MM2A]*J[2];
-     Integrand[_MM2B] = Factor*gTwiddle[_MM2A]*J[3];
-
-     if (byqFile)
-      { fprintf(byqFile,"%e %e %e %e %e ",real(q),imag(q),Rho,zDest,zSource);
-        fprintVecCR(byqFile,Integrand,NUMGSCALAR);
-      };
+       };
 
    }; // for(int nx=0; nx<XMatrix->NR; nx++)
 

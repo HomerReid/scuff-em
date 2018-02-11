@@ -136,9 +136,10 @@ cdouble MosigMichalski(int K, double *xValues, cdouble *uValues,
 /* the contour is z = q0*t - i*qR*sin(pi*t) for t=[0,1]        */
 /***************************************************************/
 typedef struct SommerfeldIntegralData
- { double q0, qR;
-   integrand UserIntegrand;
+ { integrand UserIntegrand;
    void *UserData;
+   double q0, qR;
+   bool uTransform;
    int NumPoints;
  } SommerfeldIntegralData;
 
@@ -146,20 +147,34 @@ int ContourIntegrand(unsigned ndim, const double *x, void *UserData,
                      unsigned fdim, double *fval)
 { (void)ndim;
   SommerfeldIntegralData *SIData = (SommerfeldIntegralData *)UserData;
-  double q0                    = SIData->q0;
-  double qR                    = SIData->qR;
+  double q0                      = SIData->q0;
+  double qR                      = SIData->qR;
+  bool uTransform                = SIData->uTransform;
   SIData->NumPoints++;
 
   double t=x[0]; 
-  cdouble z=t, J=1.0;
-  if (q0!=0.0)
-   { z = q0*t - II*qR*sin(M_PI*t);
-     J =   q0 - II*qR*M_PI*cos(M_PI*t);
-   }; 
+  cdouble q, Jac;
+  if (uTransform)
+   { 
+     if (t==1.0)
+      { memset(fval, 0, fdim*sizeof(double));
+        return 0;
+      };
+     q   = q0 + t/(1.0-t);
+     Jac = 1.0/((1.0-t)*(1.0-t));
+   }
+  else if (q0!=0.0)
+   { q   = q0*t - II*qR*sin(M_PI*t);
+     Jac =   q0 - II*qR*M_PI*cos(M_PI*t);
+   } 
+  else 
+   { q   = t;
+     Jac = 1.0;
+   };
 
-  SIData->UserIntegrand(2, (double *)(&z), SIData->UserData, fdim, fval);
+  SIData->UserIntegrand(2, (double *)(&q), SIData->UserData, fdim, fval);
 
-  if (q0!=0.0) VecScale( (cdouble *)fval, J, fdim/2);
+  if (Jac!=1.0) VecScale( (cdouble *)fval, Jac, fdim/2);
 
   return 0;
 }
@@ -177,9 +192,54 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
   if (Verbose)
    Log("SI(%e,%e,%i,%e)",q0,qR,xNu,Rho);
 
+  SommerfeldIntegralData SIData;
+  SIData.UserIntegrand = f;
+  SIData.UserData      = fdata;
+
+  /***************************************************************/
+  /* evaluate first integral from 0 to BreakPoints[0]            */
+  /***************************************************************/
+  SIData.q0            = q0;
+  SIData.qR            = qR;
+  SIData.uTransform    = false;
+  SIData.NumPoints     = 0;
+  double tMin=0.0, tMax=1.0;
+  pcubature(2*zfdim, ContourIntegrand, (void *)&SIData,
+            1, &tMin, &tMax, MaxEvalA, AbsTol, RelTol, ERROR_PAIRED,
+            (double *)Integral, (double *)Error);
+  if (Verbose)
+   Log(" contour integral: %i calls (%s)",SIData.NumPoints,CD2S(Integral[0]));
+
+ 
+  if (MaxEvalB==0.0) return;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (xNu==-1)
+   { 
+     SIData.uTransform  = true;
+     SIData.NumPoints   = 0;
+     cdouble *Integral2 = new cdouble[zfdim];
+     cdouble *Error2    = new cdouble[zfdim];
+     pcubature(2*zfdim, ContourIntegrand, (void *)&SIData,
+               1, &tMin, &tMax, MaxEvalB, AbsTol, RelTol, ERROR_PAIRED,
+               (double *)Integral2, (double *)Error2);
+     VecPlusEquals(Integral, 1.0, Integral2, zfdim);
+     VecPlusEquals(Error,    1.0, Error2,    zfdim);
+     delete[] Integral2;
+     delete[] Error2;
+     if (Verbose)
+      Log(" q Integral: %i calls (%s)",SIData.NumPoints,CD2S(Integral2[0]));
+     return; 
+   };
+
+  /***************************************************************/
+  /* evaluate accelerated sum of series of remaining terms       */
+  /***************************************************************/
   int kOffset;
   for(kOffset=0; kOffset<NUMBESSELZEROS; kOffset++)
-   if (BesselJZeros[xNu][kOffset] >= q0*Rho)
+   if (BesselJZeros[xNu][kOffset] > q0*Rho)
     break;
   if (kOffset > (NUMBESSELZEROS-KMAX-2) )
    ErrExit("%s:%i: internal error(%e,%e)",__FILE__,__LINE__,q0,Rho);
@@ -189,28 +249,8 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
   double qValues[KMAX+2];
   for(int k=0; k<=(KMAX+1); k++)
    qValues[k] = BesselJZeros[xNu][k + kOffset] / Rho;
-
-  SommerfeldIntegralData SIData;
-  SIData.UserIntegrand = f;
-  SIData.UserData      = fdata;
-
-  /***************************************************************/
-  /* evaluate first integral from 0 to BreakPoints[0]            */
-  /***************************************************************/
-  SIData.q0            = qValues[0];
-  SIData.qR            = qR;
-  SIData.NumPoints     = 0;
-  double tMin=0.0, tMax=1.0;
-  pcubature(2*zfdim, ContourIntegrand, (void *)&SIData,
-            1, &tMin, &tMax, MaxEvalA, AbsTol, RelTol, ERROR_PAIRED,
-            (double *)Integral, (double *)Error);
-  if (Verbose)
-   Log(" contour integral: %i calls (%s)",SIData.NumPoints,CD2S(Integral[0]));
-
-  /***************************************************************/
-  /* evaluate accelerated sum of series of remaining terms       */
-  /***************************************************************/
   SIData.q0=0.0;
+  SIData.uTransform=false;
   SIData.NumPoints=0;
   cdouble *uValues = new cdouble[zfdim*(KMAX+1)];
   for(int k=0; k<=KMAX; k++)

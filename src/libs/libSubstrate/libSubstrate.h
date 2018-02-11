@@ -365,7 +365,7 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
                          size_t MaxEvalA, size_t MaxEvalB,
                          double AbsTol, double RelTol,
                          cdouble *Integral, cdouble *Error,
-                         bool Verbose);
+                         bool Verbose=false);
 
 /***************************************************************/
 /* SommerfeldIntegrand.cc **************************************/
@@ -380,6 +380,7 @@ typedef struct SommerfeldIntegrandData
    HMatrix *RTwiddle;
    HMatrix *WMatrix;
    HMatrix *STwiddle;
+   bool dzDest, dzSource;
    int NumPoints;
    FILE *byqFile;
  } SommerfeldIntegrandData;

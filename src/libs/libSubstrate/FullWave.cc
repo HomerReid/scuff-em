@@ -246,6 +246,8 @@ void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
   SID->RTwiddle   = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
   SID->WMatrix    = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
   SID->STwiddle   = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
+  SID->dzSource   = false;
+  SID->dzDest     = false;
   SID->NumPoints  = 0;
   SID->byqFile    = 0;
 
