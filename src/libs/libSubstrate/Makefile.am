@@ -42,10 +42,13 @@ OTHER_LIBS=                      \
 
 TESTS = tFullWaveSubstrate tSommerfeldIntegrand
 
-check_PROGRAMS = tFullWaveSubstrate tSommerfeldIntegrand
+check_PROGRAMS = tFullWaveSubstrate tSommerfeldIntegrand tDerivatives
  
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la
 
 tSommerfeldIntegrand_SOURCES = tSommerfeldIntegrand.cc
 tSommerfeldIntegrand_LDADD = libSubstrate.la ../libscuff/libscuff.la
+
+tDerivatives_SOURCES = tDerivatives.cc
+tDerivatives_LDADD = libSubstrate.la ../libscuff/libscuff.la

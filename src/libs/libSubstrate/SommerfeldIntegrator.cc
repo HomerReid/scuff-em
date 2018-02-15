@@ -141,6 +141,7 @@ typedef struct SommerfeldIntegralData
    double q0, qR;
    bool uTransform;
    int NumPoints;
+   FILE *LogFile;
  } SommerfeldIntegralData;
 
 int ContourIntegrand(unsigned ndim, const double *x, void *UserData,
@@ -161,7 +162,7 @@ int ContourIntegrand(unsigned ndim, const double *x, void *UserData,
         return 0;
       };
      q   = q0 + t/(1.0-t);
-     Jac = 1.0/((1.0-t)*(1.0-t));
+     Jac = 1.0 / ( (1.0-t)*(1.0-t) );
    }
   else if (q0!=0.0)
    { q   = q0*t - II*qR*sin(M_PI*t);
@@ -170,9 +171,15 @@ int ContourIntegrand(unsigned ndim, const double *x, void *UserData,
   else 
    { q   = t;
      Jac = 1.0;
-   };
+   }
 
-  SIData->UserIntegrand(2, (double *)(&q), SIData->UserData, fdim, fval);
+  int nDim=2;
+  SIData->UserIntegrand(nDim, (double *)(&q), SIData->UserData, fdim, fval);
+
+  if (SIData->LogFile)
+   { fprintf(SIData->LogFile,"%e %e ",real(q),imag(q));
+     fprintVecCR(SIData->LogFile,fval,fdim);
+   }
 
   if (Jac!=1.0) VecScale( (cdouble *)fval, Jac, fdim/2);
 
@@ -187,7 +194,7 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
                          size_t MaxEvalA, size_t MaxEvalB,
                          double AbsTol, double RelTol,
                          cdouble *Integral, cdouble *Error,
-                         bool Verbose)
+                         bool Verbose, const char *SILogFileName)
 {
   if (Verbose)
    Log("SI(%e,%e,%i,%e)",q0,qR,xNu,Rho);
@@ -195,85 +202,135 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
   SommerfeldIntegralData SIData;
   SIData.UserIntegrand = f;
   SIData.UserData      = fdata;
+  SIData.LogFile       = SILogFileName ? fopen(SILogFileName,"a") : 0;
 
   /***************************************************************/
-  /* evaluate first integral from 0 to BreakPoints[0]            */
+  /* evaluate contour integral to compute \int_0^{q0}            */
   /***************************************************************/
-  SIData.q0            = q0;
-  SIData.qR            = qR;
-  SIData.uTransform    = false;
-  SIData.NumPoints     = 0;
-  double tMin=0.0, tMax=1.0;
-  pcubature(2*zfdim, ContourIntegrand, (void *)&SIData,
-            1, &tMin, &tMax, MaxEvalA, AbsTol, RelTol, ERROR_PAIRED,
-            (double *)Integral, (double *)Error);
-  if (Verbose)
-   Log(" contour integral: %i calls (%s)",SIData.NumPoints,CD2S(Integral[0]));
-
+  if (MaxEvalA>0)
+   {  SIData.q0            = q0;
+      SIData.qR            = qR;
+      SIData.uTransform    = false;
+      SIData.NumPoints     = 0;
+      double tMin=0.0, tMax=1.0;
+      int nDim=1;
+      pcubature(2*zfdim, ContourIntegrand, (void *)&SIData,
+                nDim, &tMin, &tMax, MaxEvalA, AbsTol, RelTol, ERROR_PAIRED,
+                (double *)Integral, (double *)Error);
+      if (SIData.LogFile) fprintf(SIData.LogFile,"\n\n");
+      if (Verbose)
+       Log(" contour integral to %e: %i calls (%s)",q0,SIData.NumPoints,CD2S(Integral[0]));
+   }
+  else
+   { memset(Integral, 0, zfdim*sizeof(cdouble));
+     memset(Error, 0, zfdim*sizeof(cdouble));
+   };
  
-  if (MaxEvalB==0.0) return;
+  if (MaxEvalB==0) 
+   { if (SIData.LogFile) fclose(SIData.LogFile);
+     return;
+   };
 
   /***************************************************************/
-  /***************************************************************/
+  /* if xNu==-1, evaluate the tail (i.e. \int_{q0}^\infty ) by   */
+  /* simple adaptive quadrature                                  */
   /***************************************************************/
   if (xNu==-1)
    { 
+     SIData.q0          = q0;
      SIData.uTransform  = true;
      SIData.NumPoints   = 0;
      cdouble *Integral2 = new cdouble[zfdim];
      cdouble *Error2    = new cdouble[zfdim];
+     double tMin=0.0, tMax=1.0;
+     int nDim=1;
      pcubature(2*zfdim, ContourIntegrand, (void *)&SIData,
-               1, &tMin, &tMax, MaxEvalB, AbsTol, RelTol, ERROR_PAIRED,
+               nDim, &tMin, &tMax, MaxEvalB, AbsTol, RelTol, ERROR_PAIRED,
                (double *)Integral2, (double *)Error2);
+     if (SIData.LogFile) fprintf(SIData.LogFile,"\n\n");
      VecPlusEquals(Integral, 1.0, Integral2, zfdim);
      VecPlusEquals(Error,    1.0, Error2,    zfdim);
      delete[] Integral2;
      delete[] Error2;
      if (Verbose)
       Log(" q Integral: %i calls (%s)",SIData.NumPoints,CD2S(Integral2[0]));
+     if (SIData.LogFile) fclose(SIData.LogFile);
      return; 
    };
 
   /***************************************************************/
-  /* evaluate accelerated sum of series of remaining terms       */
+  /* otherwise, evaluate tail contribution using Mosig-Michalski */
+  /* series acceleration                                         */
   /***************************************************************/
-  int kOffset;
-  for(kOffset=0; kOffset<NUMBESSELZEROS; kOffset++)
-   if (BesselJZeros[xNu][kOffset] > q0*Rho)
-    break;
-  if (kOffset > (NUMBESSELZEROS-KMAX-2) )
-   ErrExit("%s:%i: internal error(%e,%e)",__FILE__,__LINE__,q0,Rho);
-  if (Verbose)
-   Log(" kOffset=%i\n",kOffset);
-
+  SIData.q0            = 0.0;
+  SIData.uTransform    = false;
   double qValues[KMAX+2];
-  for(int k=0; k<=(KMAX+1); k++)
-   qValues[k] = BesselJZeros[xNu][k + kOffset] / Rho;
-  SIData.q0=0.0;
-  SIData.uTransform=false;
-  SIData.NumPoints=0;
-  cdouble *uValues = new cdouble[zfdim*(KMAX+1)];
-  for(int k=0; k<=KMAX; k++)
-   { double qMin = qValues[k];
-     double qMax = qValues[k+1];
+  cdouble *uValues     = new cdouble[zfdim*(KMAX+1)];
+  cdouble *SValues     = new cdouble[zfdim];
+  cdouble *LastSValues = new cdouble[zfdim];
+
+  /*--------------------------------------------------------------*/
+  /* compute nx1, the index of the first BesselJZero such that   */
+  /*  BesselJZeros[nx1-1] < q0*Rho < BesselJZeros[nx1]           */
+  /*--------------------------------------------------------------*/
+  int nx1;
+  for(nx1=0; nx1<NUMBESSELZEROS; nx1++)
+   if ( q0*Rho < BesselJZeros[xNu][nx1] )
+    break;
+  if (nx1 == NUMBESSELZEROS )
+   ErrExit("%s:%i: internal error(%e,%e)",__FILE__,__LINE__,q0,Rho);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  qValues[0]=q0;
+  memset(SValues, 0, zfdim*sizeof(cdouble));
+  memset(LastSValues, 0, zfdim*sizeof(cdouble));
+  int NumConvergedIters=0;
+  int kMax = KMAX;
+  if (nx1 + kMax + 1 >= NUMBESSELZEROS)
+   kMax= NUMBESSELZEROS-2-nx1;
+  for(int k=0; k<=kMax; k++)
+   {
+     // compute the kth term in the series, u_k
+     SIData.NumPoints=0;
+     double qMin = qValues[k];
+     double qMax = qValues[k+1] = BesselJZeros[xNu][nx1+k+1]/Rho;
      cdouble *uk = uValues + k*zfdim;
-     pcubature(2*zfdim, f, fdata, 1, &qMin, &qMax,
+     pcubature(2*zfdim, ContourIntegrand, (void *)&SIData, 1, &qMin, &qMax,
                MaxEvalB, AbsTol, RelTol,
                ERROR_PAIRED, (double *)uk, (double *)Error);
+     if (SIData.LogFile) fprintf(SIData.LogFile,"\n\n");
      Log(" series term %i (%g,%g): %i calls (%s)",k,qMin,qMax,SIData.NumPoints,CD2S(uk[0]));
+
+     // execute the k-th order nested Mosig-Michalski recursion
+     // to compute the approximate series sum, S
+     double Mu=2.0;
+     memcpy(LastSValues, SValues, zfdim*sizeof(cdouble));
+     for(unsigned nf=0; nf<zfdim; nf++)
+      SValues[nf] = MosigMichalski(k, qValues, uValues, zfdim, nf, Mu);
+
+     // convergence analysis
+     bool AllConverged=true;
+     for(int nf=0; AllConverged && nf<zfdim; nf++)
+      { double Delta=abs(SValues[nf]-LastSValues[nf]);
+        if ( Delta>AbsTol && Delta>RelTol*abs(SValues[nf]) )
+         AllConverged=false;
+      };
+     NumConvergedIters = (AllConverged ? NumConvergedIters+1 : 0);
+     if (NumConvergedIters==2)
+      break;
    };
 
-  /***************************************************************/
-  /* on iteration k (=0,1,2,...):                                */
-  /*  1) compute integral from x[k] to x[k+1] and store those    */
-  /*     values as u[k], i.e. the kth term in the series         */
-  /*  2) evalate integral from x[k] to x[k+1] and store those    */
-  /***************************************************************/
-  double Mu=2.0;
-  for(unsigned nf=0; nf<zfdim; nf++)
-   Integral[nf] += MosigMichalski(KMAX, qValues, uValues, zfdim, nf, Mu);
-  
+  for(int nf=0; nf<zfdim; nf++)
+   { Integral[nf] += SValues[nf];
+     Error[nf]    += abs(SValues[nf] - LastSValues[nf]);
+   };
+  if (SIData.LogFile) fclose(SIData.LogFile);
+
   delete [] uValues;
+  delete [] SValues;
+  delete [] LastSValues;
 
 }
 

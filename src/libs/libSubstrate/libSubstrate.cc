@@ -18,8 +18,15 @@
  */
 
 /*
- * libSubstrate.cc -- implicit handling of multilayered material substrates
- *                 -- this file: stuff common to static and full-wave cases
+ * libSubstrate.cc -- library for computing dyadic Green's functions of
+ *                 -- layered dielectric substrates
+ *
+ *                 -- note: although this library is distributed with
+ *                 -- scuff-em and depends on some of the scuff-em
+ *                 -- support libraries, it is independent of the 
+ *                 -- actual surface-integral-equation solver
+ *                 -- implemented by scuff-em, and should be of more
+ *                 -- general applicability.
  *
  * homer reid   -- 3/2017
  *

@@ -38,13 +38,24 @@
 
 /***************************************************************/
 /* compute the 3x3 submatrices that enter the quadrants of the */
-/* Fourier transform of the 6x6 DGF for a homogeneous medium   */
+/* Fourier transform of the 6x6 DGF for a homogeneous medium.  */
 /***************************************************************/
 void GetGC0Twiddle(cdouble k2, cdouble q2D[2], cdouble qz, double Sign,
                    cdouble GT[3][3], cdouble CT[3][3])
 {
   cdouble qx  = q2D[0];
   cdouble qy  = q2D[1];
+
+  if (k2==0.0)
+   { cdouble q3D[3];
+     q3D[0]=q2D[0]; q3D[1]=q2D[1]; q3D[2]=Sign*qz;
+     for(int i=0; i<3; i++)
+      for(int j=0; j<3; j++)
+       { GT[i][j] = -1.0*q3D[i]*q3D[j];
+         CT[i][j] = 0.0;
+       }
+     return;
+   }
 
   GT[0][0] = 1.0 - qx*qx/k2;
   GT[1][1] = 1.0 - qy*qy/k2;
@@ -68,17 +79,20 @@ void GetGC0Twiddle(cdouble k2, cdouble q2D[2], cdouble qz, double Sign,
 /***************************************************************/
 /* Get the (Fourier-space) 6x6 homogeneous DGF for the         */
 /* medium occupying substrate layer #nl.                       */
+/* If Omega==0, return instead the quantity                    */
+/*  \lim_{\omega \to 0 }  -i\omega * GTwiddle(\omega)          */
 /***************************************************************/
 void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
                                           double zDest, double zSource,
                                           cdouble ScriptG0Twiddle[6][6],
-                                          int nl, double Sign, bool Accumulate,
+                                          int ForceLayer, double Sign, bool Accumulate,
                                           bool dzDest, bool dzSource)
 {
   if (!Accumulate)
    memset( (cdouble *) ScriptG0Twiddle, 0, 36*sizeof(cdouble) );
 
-  // autodetect region if not specified 
+  // autodetect region unless user forced it
+  int nl = ForceLayer;
   if (nl==-1)
    { nl = GetLayerIndex(zDest);
      if (nl!=GetLayerIndex(zSource) ) 
@@ -86,11 +100,11 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
    };
 
   // autodetect sign if not specified 
-  if (Sign==0.0) 
+  if (Sign==0.0)
    Sign = ( (zDest >= zSource) ? 1.0 : -1.0 );
 
   cdouble EpsRel=EpsLayer[nl], MuRel=MuLayer[nl];
-  cdouble k2=EpsRel*MuRel*Omega*Omega;
+  cdouble k2 = EpsRel*MuRel*Omega*Omega;
   cdouble qz = sqrt(k2 - q2D[0]*q2D[0] - q2D[1]*q2D[1]);
   if (imag(qz)<0) qz*=-1.0;
 
@@ -101,11 +115,17 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
   if (dzSource)
    ExpFac *= -1.0*Sign*II*qz;
   GetGC0Twiddle(k2, q2D, qz, Sign, GT, CT);
-  cdouble Factor = (qz==0.0 ? 0.0 : -0.5*Omega*ExpFac/qz);
-  cdouble EEPrefac = Factor*MuRel*ZVAC;
+  cdouble Factor;
+  if (qz==0.0)
+   Factor=0.0;
+  else if (Omega==0.0)
+   Factor=0.5*II*ExpFac/qz;
+  else
+   Factor=-0.5*Omega*ExpFac/qz;
+  cdouble EEPrefac = Factor*ZVAC/EpsRel;
   cdouble EMPrefac = +0.5*ExpFac;
   cdouble MEPrefac = -0.5*ExpFac;
-  cdouble MMPrefac = Factor*EpsRel/ZVAC;
+  cdouble MMPrefac = Factor/(ZVAC*MuRel);
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
     { ScriptG0Twiddle[0+i][0+j] += EEPrefac * GT[i][j];
@@ -126,11 +146,16 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
    ExpFac *= +1.0*II*qz;
   if (dzSource)
    ExpFac *= +1.0*II*qz;
-  Factor = (qz==0.0 ? 0.0 : -0.5*Omega*ExpFac/qz);
-  EEPrefac = Factor*MuRel*ZVAC;
+  if (qz==0.0)
+   Factor=0.0;
+  else if (Omega==0.0)
+   Factor=0.5*II*ExpFac/qz;
+  else
+   Factor=-0.5*Omega*ExpFac/qz;
+  EEPrefac = Factor*ZVAC/EpsRel;
   EMPrefac = +0.5*ExpFac;
   MEPrefac = -0.5*ExpFac;
-  MMPrefac = Factor*EpsRel/ZVAC;
+  MMPrefac = Factor/(ZVAC*MuRel);
   const static double ImageSign[3] = {-1.0, -1.0, +1.0};
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
@@ -218,7 +243,11 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   if (ForceFreeSpace)
    { 
      cdouble ScriptG0Twiddle[6][6];
-     GetScriptG0Twiddle(Omega, q2D, zDest, zSource, ScriptG0Twiddle, dzDest, dzSource);
+     bool ForceLayer=false;
+     double Sign=0.0;
+     bool Accumulate=false;
+     GetScriptG0Twiddle(Omega, q2D, zDest, zSource, ScriptG0Twiddle,
+                        ForceLayer, Sign, Accumulate, dzDest, dzSource);
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
        GTwiddle->SetEntry(Mu,Nu,ScriptG0Twiddle[Mu][Nu]);
@@ -236,14 +265,18 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   int aMax        = (DestLayer==NumInterfaces   ? 0 : 1 );
   cdouble ScriptG0TDest[2][6][6];
   for(int a=aMin, nlDest=DestLayer-1+a; a<=aMax; a++, nlDest++)
-   GetScriptG0Twiddle(Omega, q2D, zDest, zInterface[nlDest], ScriptG0TDest[a], DestLayer, 0.0, false, dzDest, false);
+   GetScriptG0Twiddle(Omega, q2D, zDest, zInterface[nlDest],
+                      ScriptG0TDest[a], DestLayer, a ? -1.0 : 1.0, false,
+                      dzDest, false);
 
   int SourceLayer  = GetLayerIndex(zSource);
   int bMin         = (SourceLayer==0             ? 1 : 0 );
   int bMax         = (SourceLayer==NumInterfaces ? 0 : 1 );
   cdouble ScriptG0TSource[2][6][6];
   for(int b=bMin, nlSource=SourceLayer-1+b; b<=bMax; b++, nlSource++)
-   GetScriptG0Twiddle(Omega, q2D, zInterface[nlSource], zSource, ScriptG0TSource[b], SourceLayer, 0.0, false, false, dzSource);
+   GetScriptG0Twiddle(Omega, q2D, zInterface[nlSource], zSource,
+                      ScriptG0TSource[b], SourceLayer, b ? 1.0 : -1.0, false,
+                      false, dzSource);
 
   Times[G0TIME] += Secs() - TT;
  
@@ -279,4 +312,3 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   RTwiddle->Multiply(STwiddle, GTwiddle);
   Times[SOLVETIME]+=Secs()-TT;
 }
-

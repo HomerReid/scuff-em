@@ -99,18 +99,18 @@ lies at $z=z\subt{GP}.$
 \subsubsection*{Definition of the substrate DGF}
 
 For given source and evaluation (or ``destination'')
-points $\{\vb x_s, \vb x_d\}$ at a given angular frequency
+points $\{\vb x\subt{S}, \vb x\subt{D}\}$ at a given angular frequency
 $\omega$ in the presence of a multilayer substrate,
-the $\vb E$ and $\vb H$ fields at $\vb x_d$ due to 
-point sources at $\vb x_s$ receive corrections (relative
+the $\vb E$ and $\vb H$ fields at $\vb x\subt{D}$ due to 
+point sources at $\vb x\subt{S}$ receive corrections (relative
 to their free-space values) due to the presence of the
 substrate. These are described by the substrate dyadic Green's 
-function $\bmc G(\omega; \vb x_d, \vb x_s),$ a
+function $\bmc G(\omega; \vb x\subt{D}, \vb x\subt{S}),$ a
 $6\times 6$ matrix with a $2\times 2$ block structure:
 %====================================================================%
 \begin{subequations}
 \begin{align} 
- \bmc G(\omega; \vb x_d, \vb x_s)
+ \bmc G(\omega; \vb x\subt{D}, \vb x\subt{S})
 &=
  \left(\begin{array}{cc}
    \bmc G\supt{EE} & \bmc G\supt{EM} \\
@@ -120,22 +120,22 @@ $6\times 6$ matrix with a $2\times 2$ block structure:
 \mc G\supt{PQ}_{ij}&=
 \left(\begin{parbox}{0.6\textwidth}
   { substrate contribution to $i$-component of 
-    P-type field at $\vb x_d$ due to 
-    $j$-directed Q-type source at $\vb x_s$
+    P-type field at $\vb x\subt{D}$ due to 
+    $j$-directed Q-type source at $\vb x\subt{S}$
     with angular frequency $\omega$
   } \end{parbox}\right)
 \end{align}
 \label{ScriptGDef}%
 \end{subequations}
 %====================================================================%
-Iff $\vb x_s, \vb x_d$ lie in the same layer of the multilayer
+Iff $\vb x\subt{S}, \vb x\subt{D}$ lie in the same layer of the multilayer
 substrate, then to get the \textit{total} fields
 (\ref{ScriptGDef}) must be augmented by the contribution
 of the homogeneous DGF of the medium::
 %====================================================================%
 \numeq{GTotal}
 {
- \bmc G\sups{total}(\omega, \vb x_s, \vb x_d)
+ \bmc G\sups{total}(\omega, \vb x\subt{S}, \vb x\subt{D})
 =
  \left(\begin{array}{cc}
    \bmc G\supt{EE} & \bmc G\supt{EM} \\
@@ -146,39 +146,44 @@ of the homogeneous DGF of the medium::
    ik_r Z_0 Z^r \vb G & ik_r \vb C           \\
   -ik_r \vb C & \frac{ik_r}{Z_0 Z^r} \vb C \\
  \end{array}\right),
- \quad \vb x_s, \vb x_d \in \text{layer \#$r$}
+ \quad \vb x\subt{S}, \vb x\subt{D} \in \text{layer \#$r$}
 }
 where $k_r, Z^r$ are the wavevector and relative wave impedance
 of substrate layer $r$.
 %====================================================================%
-On the other hand, if $\vb x_s, \vb x_d$ lie in different
+On the other hand, if $\vb x\subt{S}, \vb x\subt{D}$ lie in different
 layers then $\bmc G$ in (\ref{ScriptGDef}) already gives
-the total field at $\vb x_d$.
+the total field at $\vb x\subt{D}$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection*{Mechanics of implementation in {\sc scuff-em}}
+\subsubsection*{Organization of {\sc scuff-em} implementation and this memo}
 
-The full-wave substrate implementation in {\sc scuff-em}
-consists of multiple working parts that fit together
-in a somewhat modular fashion.
-Roughly speaking, the problem may be divided into two parts:
+The full-wave substrate implementation in {\sc scuff-em} consists of
+multiple working parts that fit together in a somewhat modular fashion.
+
+Roughly speaking, the computational problem may be divided into two parts:
 %====================================================================%
 \begin{description}
   \item[(a)] For given source and evaluation (or ``destination'')
-             points $\{\vb x_s, \vb x_d\}$ at a given angular frequency
+             points $\{\vb x\subt{S}, \vb x\subt{D}\}$ at a given 
+             angular frequency
              $\omega$ in the presence of a multilayer substrate,
              numerically compute the substrate DGF correction
-             $\bmc G(\omega, \vb x_d, \vb x_s)$.
-             This task is independent of {\sc scuff-em}.
-             (Section \ref{ScriptGComputationSection}.)
+             $\bmc G(\omega, \vb x\subt{D}, \vb x\subt{S})$.
+             This task is independent of {\sc scuff-em}
+             and is implemented by a standalone library
+             called {\sc libsubstrate}, described in
+             Section \ref{libSubstrateSection} of this memo.
   \item[(b)] For a {\sc scuff-em} geometry in the presence of a
              substrate, compute the substrate corrections to the BEM
              system matrix $\vb M$ and RHS vector $\vb v$,
              as well as the substrate corrections
              to post-processing quantities such as scattered fields.
-             (Section \ref{BEMSection}.)
+             This is done by the file \texttt{Substrate.cc}
+             in {\sc libscuff} and is described in 
+             Section \ref{libscuffIntegrationSection} of this memo.
 \end{description}
 %====================================================================%
 
@@ -186,21 +191,32 @@ Roughly speaking, the problem may be divided into two parts:
 %####################################################################%
 %####################################################################% 
 \newpage
-\section{{\sc libsubstrate:} Numerical computation of $\bmc G$}
-\label{ScriptGComputationSection}
+\section{{\sc libsubstrate:} Numerical computation of substrate Green's functions}
+\label{libSubstrateSection}
 
-The {\sc libsubstrate} code that implements step \textbf{(a)} above 
-(numerical computation of the substrate DGF $\bmc G$) 
-divides the problem into several steps:
+Numerical evaluation of substrate contributions to
+dyadic Green's functions is handled by a C++ library 
+called {\sc libsubstrate}.
+Although this library is packaged and distributed with {\sc scuff-em}
+and depends on other support libraries in the {\sc scuff-em}
+distribution, it is independent of the particular integral-equation
+formulation implemented by {\sc libscuff}, and thus should be
+of general utility beyond {\sc scuff-em}.
+
+\subsection{Overview of computational strategy}
+\label{libSubstrateStrategy}
+
+{\sc libsubstrate} decomposes the problem of computing
+$\bmc G$ into several logical steps, as follows:
 
 \begin{description}
- \item[(a1)] Solve a linear system to obtain the Fourier-space
+ \item[1.] Solve a linear system to obtain the Fourier-space
              representation $\bmc{\wt G(\vb q)}$. Here $\vb q=(q_x,q_y)$ is a
              2D Fourier variable. (Section \ref{GTwiddleSection}.)
- \item[(a2)] Reduce the two-dimensional integral over $\vb q$ to a
+ \item[2.] Reduce the two-dimensional integral over $\vb q$ to a
              one-dimensional integral over $|\vb q|\equiv q$.
              (Section \ref{gTwiddleSection}.)
- \item[(a3)] Evaluate the $q$ integral using known methods for
+ \item[3.] Evaluate the $q$ integral using established methods for
              evaluating Sommerfeld integrals.
              (Section \ref{SommerfeldSection}.)
 \end{description}
@@ -233,7 +249,7 @@ the substrate.}
 To compute the substrate correction to the fields of external sources,
 I consider the effective tangential electric and magnetic
 surface currents $\vb K$ and $\vb N$ induced on the interfacial 
-ayers by the external field sources 
+layers by the external field sources 
 (Figure \ref{SurfaceCurrentFigure}). This is the direct extension
 to full-wave problems of the formalism I used in the electrostatic
 case, and it comports well with the spirit of
@@ -713,8 +729,9 @@ similar.)
 %####################################################################%
 %####################################################################%
 \newpage
-\section{Substrate contributions to panel and panel-panel integrals}
-\label{BEMCorrectionSection}
+\section{{\sc scuff-em} integration: Substrate contributions to
+         BEM matrix and RHS vector}
+\label{libscuffIntegrationSection}
 
 \begin{align*}
  \bmc G\supt{PQ}(\rho, \theta, z\subt{D}, z\subt{S})
@@ -734,6 +751,12 @@ g^{\text{\tiny PQ}\nu p}(\rho)
 M\supt{PQ}_{\alpha\beta}
  \VMV{\vb b_\alpha}{\bmc G\supt{PQ}}{\vb b_\beta}
 \end{align*}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\newpage
+\section{Unit-test framework}
 
 %####################################################################%
 %####################################################################%
