@@ -198,7 +198,7 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   /*--------------------------------------------------------------*/
   /*- sanity check                                               -*/
   /*--------------------------------------------------------------*/
-  if (fabs(zGP)!=HUGE_VAL && zGP>zInterface[NumInterfaces-1])
+  if (fabs(zGP)!=HUGE_VAL && NumInterfaces>0 && zGP>zInterface[NumInterfaces-1])
    { ErrMsg=vstrdup("%sground plane must lie below all dielectric layers",FileLine);
      return;
    };

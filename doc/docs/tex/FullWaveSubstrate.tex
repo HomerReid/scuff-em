@@ -74,8 +74,9 @@ If the ground plane is absent, layer $N$ is an
 infinite half-space\footnote{As in the electrostatic case,
 this means that a finite-thickness substrate consisting of
 $N$ material layers is described as a stack of $N+1$ layers
-in which the bottommost layer is an infinite vacuum half-space.}
-($z\subt{N}=-\infty$).
+in which the bottommost layer is an infinite half-space
+($z\subt{N+1}=-\infty$) with the material properties of vacuum
+($\epsilon_{N+1}=\mu_{N+1}=1$).}
 %####################################################################%
 %####################################################################%
 %####################################################################%
@@ -98,10 +99,21 @@ lies at $z=z\subt{GP}.$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection*{Definition of the substrate DGF}
 
-I will use the symbol $\vbGamma(\omega, \vb x\subt{D}, \vb x\subt{S})$
+I will use the symbol $\vbGamma(\omega; \vb x\subt{D}, \vb x\subt{S})$
 for the \textit{total} 6$\times$6 dyadic Green's function
 relating time-harmonic fields at $\vb x\subt{D}$ to sources
-at $\vb x\subt{S}$:
+at $\vb x\subt{S}$: thus,
+if $\bmc S\equiv {\vb J \choose \vb M}$ is the 6-vector distribution
+of free electric and magnetic currents in the presence of the 
+substrate, then the 6-vector of
+electric and magnetic fields $\bmc F\equiv {\vb E \choose \vb H}$
+is given by 
+%====================================================================%
+$$ \bmc F(\vb x\subt{D}) = \int \vbGamma(\vb x\subt{D}, \vb x\subt{S})
+   \cdot \bmc S(\vb x\subt{S}) d\vb x\subt{S}.
+$$
+%====================================================================%
+The $6\times 6$ tensor $\vbGamma$ has a $2\times 2$ block structure:
 %====================================================================%
 \begin{subequations}
 \begin{align} 
@@ -113,10 +125,10 @@ at $\vb x\subt{S}$:
  \end{array}\right)
 \intertext{with the $3\times 3$ subblocks defined by} 
 \Gamma\supt{PQ}_{ij}(\omega, \vb x\subt{D}, \vb x\subt{S})&=
-\left(\begin{parbox}{0.6\textwidth}
+\left(\begin{parbox}{0.63\textwidth}
   { $i$-component of P-type field at $\vb x\subt{D}$ due to
-    $j$-directed Q-type source at $\vb x\subt{S}$, all fields
-    and sources having time dependence $\sim e^{-i\omega t}$
+    $j$-directed Q-type point current source at $\vb x\subt{S}$,
+    all fields and sources having time dependence $\sim e^{-i\omega t}$
   } \end{parbox}\right)
 \end{align}
 \label{vbGammaDef}%
@@ -130,22 +142,30 @@ $\vbGamma^{0r}$ (where the $r$ index labels the medium, which
 in this case will be one of the layers in
 Figure \ref{SubstrateGeometryFigure}, i.e. $r\in\{1,2,\cdots,N\}$):
 %====================================================================%
-\begin{align}
-   \vbGamma(\vb x\subt{D}, \vb x\subt{S}) 
-&= \vbGamma^{0r}(\vb x\subt{D}-\vb x\subt{S}),
- \qquad 
-  \Big( \vb x\subt{D},\vb x\subt{S} 
-          \in \text{infinite homogeneous medium $r$}
-  \Big)
-\nonumber\\
- \vbGamma^{0r}(\vb r)
-&\equiv
+$$\vb x\subt{D},\vb x\subt{S} \in \text{infinite homogeneous medium } r
+  \quad \Longrightarrow \quad 
+   \vbGamma(\omega; \vb x\subt{D}, \vb x\subt{S})
+= \vbGamma^{0r}(\omega; \vb x\subt{D}-\vb x\subt{S})
+$$
+where
+\numeq{vbGamma0Def}
+{
+ \vbGamma^{0r}(\omega, \vb r)
+ \equiv
  \left(\begin{array}{cc}
    ik_r Z_0 Z^r \vb G(k_r,\vb r) & ik_r \vb C(k_r,\vb r)         \\[3pt]
   -ik_r \vb C(k_r,\vb r) & \frac{ik_r}{Z_0 Z^r} \vb G(k_r,\vb r) \\
  \end{array}\right)
-\label{vbGamma0Def}
-\end{align}
+}
+$$ k_r \equiv \sqrt{\epsilon_0 \epsilon^r \mu_0 \mu^r}\cdot \omega,
+   \qquad 
+   Z_r \equiv \sqrt\frac{\mu_0 \mu^r}{\epsilon_0 \epsilon^r},
+   \qquad
+   G_{ij}=\left(\delta_{ij} - \frac{1}{k^2}\partial_i \partial_j\right)
+   \frac{e^{ik|\vb r|}}{4\pi|\vb r|},
+   \qquad
+   C_{ij}=-\frac{1}{ik}\varepsilon_{ik\ell}\partial_k G_{\ell j}
+$$
 %====================================================================%
 \paragraph{Inhomogeneous DGF}
 

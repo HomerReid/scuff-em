@@ -115,23 +115,33 @@ void LayeredSubstrate::GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
   if (dzSource)
    ExpFac *= -1.0*Sign*II*qz;
   GetGCTwiddle(k2, q2D, qz, Sign, GT, CT);
-  cdouble Factor;
+
+  cdouble EEPreFac, EMPreFac, MEPreFac, MMPreFac;
   if (qz==0.0)
-   Factor=0.0;
+   { EEPreFac = 0.0;
+     EMPreFac = 0.5;
+     MEPreFac = -0.5;
+     MMPreFac = 0.0;
+   }
   else if (Omega==0.0)
-   Factor=0.5*II*ExpFac/qz;
+   { EEPreFac = 0.5*II*ZVAC/(EpsRel*qz);
+     EMPreFac = 0.0;
+     MEPreFac = 0.0;
+     MMPreFac = 0.5*II/(ZVAC*MuRel*qz);
+   }
   else
-   Factor=-0.5*Omega*ExpFac/qz;
-  cdouble EEPrefac = Factor*ZVAC/EpsRel;
-  cdouble EMPrefac = +0.5*ExpFac;
-  cdouble MEPrefac = -0.5*ExpFac;
-  cdouble MMPrefac = Factor/(ZVAC*MuRel);
+   { EEPreFac = -0.5*Omega*ZVAC*MuRel/qz;
+     EMPreFac = +0.5;
+     MEPreFac = -0.5;
+     MMPreFac = -0.5*Omega*EpsRel/(ZVAC*qz);
+   }
+
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
-    { Gamma0Twiddle[0+i][0+j] += EEPrefac * GT[i][j];
-      Gamma0Twiddle[0+i][3+j] += EMPrefac * CT[i][j];
-      Gamma0Twiddle[3+i][0+j] += MEPrefac * CT[i][j];
-      Gamma0Twiddle[3+i][3+j] += MMPrefac * GT[i][j];
+    { Gamma0Twiddle[0+i][0+j] += EEPreFac * ExpFac * GT[i][j];
+      Gamma0Twiddle[0+i][3+j] += EMPreFac * ExpFac * CT[i][j];
+      Gamma0Twiddle[3+i][0+j] += MEPreFac * ExpFac * CT[i][j];
+      Gamma0Twiddle[3+i][3+j] += MMPreFac * ExpFac * GT[i][j];
     };
   if ( nl<NumInterfaces || isinf(zGP) ) return;
 
@@ -139,30 +149,21 @@ void LayeredSubstrate::GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
   /* add image contribution if we are in the bottommost layer    */
   /* and a ground plane is present                               */
   /***************************************************************/
-  // only need to refetch if Sign was +1 before
-  if (Sign>0.0) GetGCTwiddle(k2, q2D, qz, -1.0, GT, CT);
+  // only need to refetch if Sign was -1 before
+  if (Sign<0.0) GetGCTwiddle(k2, q2D, qz, +1.0, GT, CT);
   ExpFac = exp(II*qz*fabs(zDest + zSource - 2.0*zGP));
   if (dzDest)
    ExpFac *= +1.0*II*qz;
   if (dzSource)
    ExpFac *= +1.0*II*qz;
-  if (qz==0.0)
-   Factor=0.0;
-  else if (Omega==0.0)
-   Factor=0.5*II*ExpFac/qz;
-  else
-   Factor=-0.5*Omega*ExpFac/qz;
-  EEPrefac = Factor*ZVAC/EpsRel;
-  EMPrefac = +0.5*ExpFac;
-  MEPrefac = -0.5*ExpFac;
-  MMPrefac = Factor/(ZVAC*MuRel);
   const static double ImageSign[3] = {-1.0, -1.0, +1.0};
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
-    { Gamma0Twiddle[0+i][0+j] += ImageSign[j] * EEPrefac * GT[i][j];
-      Gamma0Twiddle[0+i][3+j] -= ImageSign[j] * EMPrefac * CT[i][j];
-      Gamma0Twiddle[3+i][0+j] += ImageSign[j] * MEPrefac * CT[i][j];
-      Gamma0Twiddle[3+i][3+j] -= ImageSign[j] * MMPrefac * GT[i][j];
+    { Gamma0Twiddle[0+i][0+j] += ImageSign[j] * EEPreFac * ExpFac * GT[i][j];
+      Gamma0Twiddle[0+i][3+j] -= ImageSign[j] * EMPreFac * ExpFac * CT[i][j];
+      // EXPLAIN ME I don't understand why the following two signs aren't flipped.
+      Gamma0Twiddle[3+i][0+j] -= ImageSign[j] * MEPreFac * ExpFac * CT[i][j];
+      Gamma0Twiddle[3+i][3+j] += ImageSign[j] * MMPreFac * ExpFac * GT[i][j];
     };
 }
 
@@ -207,11 +208,24 @@ void LayeredSubstrate::ComputeW(cdouble Omega, cdouble q2D[2], HMatrix *W)
           for(int i=0; i<2; i++)
            for(int j=0; j<2; j++)
             W->AddEntry(RowOffset+2*EH+i, ColOffset+2*KN+j, Sign*Gamma0Twiddle[3*EH+i][3*KN+j]);
-      };
-   };
+      }
+   }
   if (LogLevel >= LIBSUBSTRATE_VERBOSE) 
    Log("LU factorizing...");
   W->LUFactorize();
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+cdouble *LayeredSubstrate::CreateScriptGTwiddleWorkspace()
+{ int NI = NumInterfaces;
+  int RSSize = 6*4*NI, WSize=16*NI*NI, WorkSize=2*RSSize + WSize;
+  return (cdouble *)mallocEC(WorkSize*sizeof(cdouble));
+}
+
+void LayeredSubstrate::DestroyScriptGTwiddleWorkspace(cdouble *Workspace)
+{ if (Workspace) free(Workspace);
 }
 
 /***************************************************************/
@@ -219,20 +233,24 @@ void LayeredSubstrate::ComputeW(cdouble Omega, cdouble q2D[2], HMatrix *W)
 /* (Fourier components of) the fields due to point sources in  */
 /* the presence of the substrate.                              */
 /*                                                             */
-/* RTwiddle: user-allocated cdouble-valued 6x4N  HMatrix       */ 
-/* WMatrix : user-allocated cdouble-valued 4Nx4N HMatrix       */
-/* STwiddle: user-allocated cdouble-valued 4Nx6  HMatrix       */
-/* GTwiddle: user-allocated cdouble-valued 6x6  HMatrix        */
+/* GTwiddle must point to a user-allocated complex-valued 6x6  */
+/*  HMatrix.                                                   */
 /*                                                             */
-/*  where N = number of dielectric interface layers, not       */
+/* If Workspace is nonzero, it should be a user-allocated      */
+/* cdouble array of length 48*N + 16*N*N                       */
+/* where N = number of dielectric interface layers, not        */
 /*  counting the ground plane (if present)                     */
+/*                                                             */
+/* If dzDest and/or dzSource are true, the derivative with     */
+/* respect to zDest and/or zSource is returned instead.        */
+/*                                                             */
+/* If AddGamma0Twiddle is true, the free-space DGF is added    */
+/* (only if source and destination points lie in same region). */
 /***************************************************************/
 void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                                          double zDest, double zSource,
-                                         HMatrix *RTwiddle,
-                                         HMatrix *WMatrix,
-                                         HMatrix *STwiddle,
                                          HMatrix *GTwiddle,
+                                         cdouble *Workspace,
                                          bool dzDest, bool dzSource,
                                          bool AddGamma0Twiddle)
 {
@@ -241,7 +259,11 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   /**********************************************************************/
   /**********************************************************************/
   /**********************************************************************/
-  if (ForceFreeSpace)
+  int NI=NumInterfaces;
+  bool GroundPlaneOnly=(NI==0);
+  if (GroundPlaneOnly && !AddGamma0Twiddle) 
+   ErrExit("%s:%i:internal error",__FILE__,__LINE__);
+  if (ForceFreeSpace || (GroundPlaneOnly && AddGamma0Twiddle))
    { 
      cdouble Gamma0Twiddle[6][6];
      int ForceLayer=-1;
@@ -253,8 +275,24 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
       for(int Nu=0; Nu<6; Nu++)
        GTwiddle->SetEntry(Mu,Nu,Gamma0Twiddle[Mu][Nu]);
      return;
-   };
-  
+   }
+
+  /**********************************************************************/
+  /* compute GTwiddle as a sum of matrix-matrix-matrix products via     */
+  /* equation (18) in the memo:                                         */
+  /*  GTwiddle = \sum RTwiddle * W * STwiddle,                          */
+  /* where RTwiddle has dimension 6  x 4N                               */
+  /*       W        has dimension 4N x 4N                               */
+  /*       STwiddle has dimension 4N x 6                                */
+  /**********************************************************************/
+  bool OwnsWorkspace = (Workspace==0);
+  if (OwnsWorkspace)
+   Workspace = CreateScriptGTwiddleWorkspace();
+  int RSSize = 6*4*NI, WSize=16*NI*NI;
+  HMatrix RTwiddle(6,    4*NI, LHM_COMPLEX, Workspace + 0             );
+  HMatrix WMatrix (4*NI, 4*NI, LHM_COMPLEX, Workspace + RSSize        );
+  HMatrix STwiddle(4*NI, 6,    LHM_COMPLEX, Workspace + RSSize + WSize);
+
   /**********************************************************************/
   /* assemble RHS vector for each (source point, polarization, orientation).*/
   /* loops over a and b run over the interfaces above and below the dest*/
@@ -285,33 +323,35 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   /* assemble W matrix **************************************************/
   /**********************************************************************/
   TT=Secs();
-  ComputeW(Omega, q2D,  WMatrix);
+  ComputeW(Omega, q2D, &WMatrix);
   Times[WTIME]+=Secs()-TT;
 
   /**********************************************************************/
   /**********************************************************************/
   /**********************************************************************/
   TT=Secs();
-  RTwiddle->Zero();
-  STwiddle->Zero();
+  RTwiddle.Zero();
+  STwiddle.Zero();
   double Sign[2]={-1.0, 1.0};
   for(int a=aMin, nlDest=DestLayer-1+a; a<=aMax; a++, nlDest++)
    for(int i=0; i<6; i++)
-    { RTwiddle->SetEntry(i, 4*nlDest+0, Sign[a]*ScriptG0TDest[a][i][0]);
-      RTwiddle->SetEntry(i, 4*nlDest+1, Sign[a]*ScriptG0TDest[a][i][1]);
-      RTwiddle->SetEntry(i, 4*nlDest+2, Sign[a]*ScriptG0TDest[a][i][3]);
-      RTwiddle->SetEntry(i, 4*nlDest+3, Sign[a]*ScriptG0TDest[a][i][4]);
+    { RTwiddle.SetEntry(i, 4*nlDest+0, Sign[a]*ScriptG0TDest[a][i][0]);
+      RTwiddle.SetEntry(i, 4*nlDest+1, Sign[a]*ScriptG0TDest[a][i][1]);
+      RTwiddle.SetEntry(i, 4*nlDest+2, Sign[a]*ScriptG0TDest[a][i][3]);
+      RTwiddle.SetEntry(i, 4*nlDest+3, Sign[a]*ScriptG0TDest[a][i][4]);
     };
   for(int b=bMin, nlSource=SourceLayer-1+b; b<=bMax; b++, nlSource++)
    for(int j=0; j<6; j++)
-    { STwiddle->SetEntry(4*nlSource+0, j, -1.0*Sign[b]*ScriptG0TSource[b][0][j]);
-      STwiddle->SetEntry(4*nlSource+1, j, -1.0*Sign[b]*ScriptG0TSource[b][1][j]);
-      STwiddle->SetEntry(4*nlSource+2, j, -1.0*Sign[b]*ScriptG0TSource[b][3][j]);
-      STwiddle->SetEntry(4*nlSource+3, j, -1.0*Sign[b]*ScriptG0TSource[b][4][j]);
+    { STwiddle.SetEntry(4*nlSource+0, j, -1.0*Sign[b]*ScriptG0TSource[b][0][j]);
+      STwiddle.SetEntry(4*nlSource+1, j, -1.0*Sign[b]*ScriptG0TSource[b][1][j]);
+      STwiddle.SetEntry(4*nlSource+2, j, -1.0*Sign[b]*ScriptG0TSource[b][3][j]);
+      STwiddle.SetEntry(4*nlSource+3, j, -1.0*Sign[b]*ScriptG0TSource[b][4][j]);
     };
-  WMatrix->LUSolve(STwiddle);
-  RTwiddle->Multiply(STwiddle, GTwiddle);
+  WMatrix.LUSolve(&STwiddle);
+  RTwiddle.Multiply(&STwiddle, GTwiddle);
   Times[SOLVETIME]+=Secs()-TT;
+
+  if (OwnsWorkspace) DestroyScriptGTwiddleWorkspace(Workspace);
 
   /**********************************************************************/
   /**********************************************************************/

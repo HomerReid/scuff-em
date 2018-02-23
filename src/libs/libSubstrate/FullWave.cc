@@ -203,9 +203,7 @@ void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
   SID->q0          = 0.0;
   SID->uTransform  = false;
   SID->XMatrix     = XMatrix;
-  SID->RTwiddle    = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
-  SID->WMatrix     = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
-  SID->STwiddle    = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
+  SID->Workspace   = CreateScriptGTwiddleWorkspace();
   SID->dRho        = false;
   SID->dzSource    = false;
   SID->dzDest      = false;
@@ -322,9 +320,7 @@ void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
      G[_MMZZ] = g[_MM0Z];
    };
 
-  delete SID->RTwiddle;
-  delete SID->WMatrix;
-  delete SID->STwiddle;
+  DestroyScriptGTwiddleWorkspace(SID->Workspace);
 }
 
 /***************************************************************/

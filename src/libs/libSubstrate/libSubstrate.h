@@ -261,24 +261,25 @@ public:
    void GetqIntegral(double RhoMag, double zD, double zS, double qIntegral[3]);
 
    // helper functions for full-wave DGF calculation
-   void ComputeW(cdouble Omega, cdouble q[2], HMatrix *W);
    void GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
                          double zDest, double zSource,
                          cdouble Gamma0Twiddle[6][6],
                          int ForceLayer=-1, double ForceSign=0.0,
                          bool Accumulate=false,
                          bool dzDest=false, bool dzSource=false);
+
+   void ComputeW(cdouble Omega, cdouble q[2], HMatrix *W);
+   cdouble *CreateScriptGTwiddleWorkspace();
+   void DestroyScriptGTwiddleWorkspace(cdouble *Workspace);
    void GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                           double zDest, double zSource,
-                          HMatrix *RTwiddle, HMatrix *WMatrix,
-                          HMatrix *STwiddle, HMatrix *GTwiddle,
+                          HMatrix *GTwiddle, cdouble *Workspace=0,
                           bool dzDest=false, bool dzSource=false,
                           bool AddGamma0Twiddle=false);
+
    void gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
                              double zDest, double zSource,
-                             HMatrix *RTwiddle, HMatrix *WMatrix,
-                             HMatrix *STwiddle,
-                             cdouble *gTwiddleVD[2][2],
+                             cdouble *gTwiddleVD[2][2], cdouble *Workspace,
                              bool dzDest=false, bool dzSource=false);
    void gTwiddleHardCoded(cdouble Omega, cdouble q,
                           double zDest, double zSource,
@@ -287,9 +288,8 @@ public:
 
    void qThetaIntegral(cdouble Omega, cdouble q, double Rho[2],
                        double zDest, double zSource, int NTheta,
-                       HMatrix *RTwiddle, HMatrix *WMatrix,
-                       HMatrix *STwiddle, cdouble *Integrand,
-                       bool dRho=false, bool dzDest=false, 
+                       cdouble *Integrand, cdouble *Workspace=0,
+                       bool dRho=false, bool dzDest=false,
                        bool dzSource=false);
 
    void RotateG(cdouble Gij[6][6], double Phi);
@@ -374,9 +374,7 @@ typedef struct SommerfeldIntegrandData
    double q0;
    bool uTransform;
    HMatrix *XMatrix;
-   HMatrix *RTwiddle;
-   HMatrix *WMatrix;
-   HMatrix *STwiddle;
+   cdouble *Workspace;
    bool dRho, dzDest, dzSource;
    bool Accumulate;
    bool SubtractQS;

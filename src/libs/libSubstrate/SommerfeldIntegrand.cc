@@ -168,8 +168,8 @@ void ZerogTwiddle(cdouble *gTwiddle)
 /********************************************************************/
 void LayeredSubstrate::gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
                                             double zDest, double zSource,
-                                            HMatrix *RTwiddle, HMatrix *WMatrix,
-                                            HMatrix *STwiddle, cdouble *gTwiddleVD[2][2],
+                                            cdouble *gTwiddleVD[2][2],
+                                            cdouble *Workspace,
                                             bool dzDest, bool dzSource)
 {
   cdouble GBuffer[36];
@@ -182,8 +182,7 @@ void LayeredSubstrate::gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
   for(int ndzDest=0; ndzDest <= (dzDest ? 1 : 0); ndzDest++)
    for(int ndzSource=0; ndzSource <= (dzSource ? 1 : 0); ndzSource++)
     {   
-     GetScriptGTwiddle(Omega, q2D, zDest, zSource,
-                       RTwiddle, WMatrix, STwiddle, &GTwiddle, 
+     GetScriptGTwiddle(Omega, q2D, zDest, zSource, &GTwiddle, Workspace,
                        (ndzDest==1), (ndzSource==1));
 
      cdouble *gTwiddle = gTwiddleVD[ndzDest][ndzSource];
@@ -314,14 +313,16 @@ void LayeredSubstrate::gTwiddleHardCoded(cdouble Omega, cdouble q,
 /***************************************************************/
 /***************************************************************/
 void LayeredSubstrate::qThetaIntegral(cdouble Omega, cdouble q, double Rho[2],
-                                  double zDest, double zSource, int NTheta,
-                                  HMatrix *RTwiddle, HMatrix *WMatrix, HMatrix *STwiddle, 
-                                  cdouble *Integrand, bool dRho, bool dzDest, bool dzSource)
+                                      double zDest, double zSource, int NTheta,
+                                      cdouble *Integrand, cdouble *Workspace,
+                                      bool dRho, bool dzDest, bool dzSource)
 {
   (void )dRho;
   double Weight     = 1.0/NTheta;
   double DeltaTheta = 2.0*M_PI/NTheta;
   memset(Integrand, 0, 36*sizeof(cdouble));
+  cdouble qRho      = q*sqrt(Rho[0]*Rho[0] + Rho[1]*Rho[1]);
+  double Theta_Rho  = atan2(Rho[1], Rho[0]);
   for(int nTheta=0; nTheta<NTheta; nTheta++)
    {   
      double Theta_q = nTheta*DeltaTheta;
@@ -329,10 +330,13 @@ void LayeredSubstrate::qThetaIntegral(cdouble Omega, cdouble q, double Rho[2],
      q2D[0]=q*cos(Theta_q);
      q2D[1]=q*sin(Theta_q);
      HMatrix GTwiddle(6,6,LHM_COMPLEX);
-     GetScriptGTwiddle(Omega, q2D, zDest, zSource,
-                       RTwiddle, WMatrix, STwiddle, &GTwiddle,
+     GetScriptGTwiddle(Omega, q2D, zDest, zSource, &GTwiddle, Workspace,
                        dzDest, dzSource);
-     cdouble ExpFac=exp(II*(q2D[0]*Rho[0] + q2D[1]*Rho[1]));
+     //cdouble ExpFac=exp(II*(q2D[0]*Rho[0] + q2D[1]*Rho[1]));
+     double CosFac=cos(Theta_q - Theta_Rho);
+     cdouble ExpFac=exp(II*qRho*CosFac);
+     if (dRho) 
+      ExpFac *= II*q*CosFac;
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
        Integrand[6*Mu + Nu]+=Weight*ExpFac*GTwiddle.GetEntry(Mu,Nu);
@@ -352,9 +356,7 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
   double q0                    = SID->q0;
   bool uTransform              = SID->uTransform;
   HMatrix *XMatrix             = SID->XMatrix;
-  HMatrix *RTwiddle            = SID->RTwiddle;
-  HMatrix *WMatrix             = SID->WMatrix; 
-  HMatrix *STwiddle            = SID->STwiddle;
+  cdouble *Workspace           = SID->Workspace;
   bool dRho                    = SID->dRho;
   bool dzDest                  = SID->dzDest;
   bool dzSource                = SID->dzSource;
@@ -410,8 +412,7 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
         RhoVec[0]=Rhox;
         RhoVec[1]=Rhoy;
         S->qThetaIntegral(Omega, q, RhoVec, zDest, zSource, S->qThetaPoints,
-                          RTwiddle, WMatrix, STwiddle, Integrand,
-                          dRho, dzDest, dzSource);
+                          Integrand, Workspace, dRho, dzDest, dzSource);
         Integrand += 36;
         continue;
       }
@@ -433,8 +434,7 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
                               gTwiddleVD, dzDest, dzSource);
         else
          S->gTwiddleFromGTwiddle(Omega, q, zDest, zSource, 
-                                 RTwiddle, WMatrix, STwiddle,
-                                 gTwiddleVD, dzDest, dzSource);
+                                 gTwiddleVD, Workspace, dzDest, dzSource);
       };
      
      /***************************************************************/
@@ -525,9 +525,7 @@ SommerfeldIntegrandData *CreateSommerfeldIntegrandData(LayeredSubstrate *S)
   Data->uTransform=0.0;
 
   int NI=S->NumInterfaces;
-  Data->RTwiddle = new HMatrix(6,    4*NI, LHM_COMPLEX);
-  Data->WMatrix  = new HMatrix(4*NI, 4*NI, LHM_COMPLEX);
-  Data->STwiddle = new HMatrix(4*NI, 6,    LHM_COMPLEX);
+  Data->Workspace = S->CreateScriptGTwiddleWorkspace();
 
   Data->dRho=Data->dzDest=Data->dzSource=Data->SubtractQS=Data->Accumulate=false;
   Data->byqFile=0;
@@ -538,8 +536,6 @@ SommerfeldIntegrandData *CreateSommerfeldIntegrandData(LayeredSubstrate *S)
 
 void DestroySommerfeldIntegrandData(SommerfeldIntegrandData *Data)
 {
-  if (Data->RTwiddle) delete Data->RTwiddle;
-  if (Data->WMatrix)  delete Data->WMatrix;
-  if (Data->STwiddle) delete Data->STwiddle;
+  Data->Substrate->DestroyScriptGTwiddleWorkspace(Data->Workspace);
   delete Data;
 }
