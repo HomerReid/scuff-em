@@ -91,6 +91,7 @@ void GetGExact(cdouble Omega, double XDS[6], bool GroundPlane,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 bool RunUnitTest(int NumTest, cdouble Omega, double *XDS, FILE *DataFile=0)
 {
   Log("Running unit test %i (%s)...",NumTest,TestNames[NumTest]);
@@ -116,6 +117,7 @@ bool RunUnitTest(int NumTest, cdouble Omega, double *XDS, FILE *DataFile=0)
   delete S;
   return true;
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -128,63 +130,49 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- process command-line arguments -----------------------------*/
   /*--------------------------------------------------------------*/
-  int UnitTest=-1;
+  int NumTest=-1;
   char *SubstrateFile=0;
   cdouble Omega=1.0;
   double XDS[6]={1.0, 0.9, 0.8, 0.7, 0.8, 0.4};
   char *XDSFile=0;
-  bool FreeSpace=false;
+  bool Full=false;
   bool OmitFreeSpace=false;
-  bool HardCoded=false;
-  int EntryOnly=-1;
-  bool EEOnly=false; 
-  bool XYOnly=false;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
-   { {"UnitTest",      PA_INT,     1, 1, (void *)&UnitTest,   0, "run a single unit test"},
+   { {"NumTest",       PA_INT,     1, 1, (void *)&NumTest,   0, "run a single unit test"},
      {"SubstrateFile", PA_STRING,  1, 1, (void *)&SubstrateFile, 0, ".substrate file"},
      {"Omega",         PA_CDOUBLE, 1, 1, (void *)&Omega,      0, "angular frequency"},
      {"XDS",           PA_DOUBLE,  6, 1, (void *)XDS,         0, ""},
      {"XDSFile",       PA_STRING,  1, 1, (void *)&XDSFile,    0, ""},
-     {"FreeSpace",     PA_BOOL,    1, 1, (void *)&FreeSpace,  0, ""},
+     {"Full",          PA_BOOL,    0, 1, (void *)&Full,       0, ""},
      {"OmitFreeSpace", PA_BOOL,    0, 1, (void *)&OmitFreeSpace, 0, ""},
-     {"HardCoded",     PA_BOOL,    1, 1, (void *)&HardCoded,  0, ""},
-     {"EntryOnly",     PA_INT,     1, 1, (void *)&EntryOnly,  0, ""},
-     {"EEOnly",        PA_BOOL,    0, 1, (void *)&EEOnly,     0, ""},
-     {"XYOnly",        PA_BOOL,    0, 1, (void *)&XYOnly,     0, ""},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
 
-  /***************************************************************/
-  /* If the user specified an --XDSFile, compute substrate DGF   */
-  /* at all points and write results to data file.               */
-  /***************************************************************/
-  if (XDSFile)
-   { HMatrix *XMatrix=new HMatrix(XDSFile);
-     if (XMatrix==0) ErrExit("invalid file %s",XDSFile);
-     LayeredSubstrate *S = 0;
-     if (SubstrateFile)
-      S=new LayeredSubstrate(SubstrateFile);
-     else
-      S=CreateLayeredSubstrate(TestSubstrates[0]);
-     if (FreeSpace) S->ForceFreeSpace=true;
-     if (HardCoded) S->HardCoded=true;
-     FILE *DataFile=fopen("/tmp/tFullWaveSubstrate.out","w");
-     for(int nx=0; nx<XMatrix->NR; nx++)
-      { XMatrix->GetEntriesD(nx,":",XDS);
-        cdouble ScriptG[6][6];
-        S->GetSubstrateDGF(Omega, XDS+0, XDS+3, ScriptG, AUTO, true);
-        fprintVec(DataFile,XDS,6);
-        fprintVecCR(DataFile,(cdouble *)ScriptG,36);
-      }
-     fclose(DataFile);
-     exit(0);
+  //if (NumTest==-1 && SubstrateFile==0
+  // RunUnitTest(0, Omega, XDS);
+
+  LayeredSubstrate *S = 0;
+  if (SubstrateFile)
+   S=new LayeredSubstrate(SubstrateFile);
+  else
+   { S=CreateLayeredSubstrate(TestSubstrates[NumTest]);
+     if (NumTest==0)
+      S->ForceFreeSpace=true;
    }
+  
+  HMatrix *XMatrix = XDSFile ? new HMatrix(XDSFile)
+                             : new HMatrix(1,6,LHM_REAL,XDS);
 
-  /***************************************************************/
-  /* Otherwise run unit tests. ***********************************/
-  /***************************************************************/
-  RunUnitTest(0, Omega, XDS);
-
+  FILE *DataFile=fopen("/tmp/tFullWaveSubstrate.out","w");
+  for(int nx=0; nx<XMatrix->NR; nx++)
+   { XMatrix->GetEntriesD(nx,":",XDS);
+     cdouble ScriptG[6][6];
+     DGFMethod Method=Full ? FULL_SURFACE_CURRENT : AUTO;
+     S->GetSubstrateDGF(Omega, XDS+0, XDS+3, ScriptG, Method, true);
+     fprintVec(DataFile,XDS,6);
+     fprintVecCR(DataFile,(cdouble *)ScriptG,36);
+   }
+  fclose(DataFile);
 }

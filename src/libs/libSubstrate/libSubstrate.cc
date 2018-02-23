@@ -245,8 +245,9 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
 
   EntryOnly=-1;
   LayerOnly=-1;
-  EEOnly=XYOnly=ForceFreeSpace=StaticLimit=false;
+  qThetaPoints=0;
   ForceMethod=AUTO;
+  EEOnly=XYOnly=ForceFreeSpace=StaticLimit=false;
 
   ErrMsg=0;
 }

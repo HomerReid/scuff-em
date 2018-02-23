@@ -229,6 +229,8 @@ void LayeredSubstrate::gTwiddleHardCoded(cdouble Omega, cdouble q,
                                          cdouble *gTwiddleVD[2][2],
                                          bool dzDest, bool dzSource)
 {
+  (void) dzDest;
+  (void) dzSource;
   bool QuasiStatic = real(Omega)<0.0;
   if (QuasiStatic) Omega*=-1.0;
 
@@ -311,6 +313,35 @@ void LayeredSubstrate::gTwiddleHardCoded(cdouble Omega, cdouble q,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void LayeredSubstrate::qThetaIntegral(cdouble Omega, cdouble q, double Rho[2],
+                                  double zDest, double zSource, int NTheta,
+                                  HMatrix *RTwiddle, HMatrix *WMatrix, HMatrix *STwiddle, 
+                                  cdouble *Integrand, bool dRho, bool dzDest, bool dzSource)
+{
+  (void )dRho;
+  double Weight     = 1.0/NTheta;
+  double DeltaTheta = 2.0*M_PI/NTheta;
+  memset(Integrand, 0, 36*sizeof(cdouble));
+  for(int nTheta=0; nTheta<NTheta; nTheta++)
+   {   
+     double Theta_q = nTheta*DeltaTheta;
+     cdouble q2D[2];
+     q2D[0]=q*cos(Theta_q);
+     q2D[1]=q*sin(Theta_q);
+     HMatrix GTwiddle(6,6,LHM_COMPLEX);
+     GetScriptGTwiddle(Omega, q2D, zDest, zSource,
+                       RTwiddle, WMatrix, STwiddle, &GTwiddle,
+                       dzDest, dzSource);
+     cdouble ExpFac=exp(II*(q2D[0]*Rho[0] + q2D[1]*Rho[1]));
+     for(int Mu=0; Mu<6; Mu++)
+      for(int Nu=0; Nu<6; Nu++)
+       Integrand[6*Mu + Nu]+=Weight*ExpFac*GTwiddle.GetEntry(Mu,Nu);
+   }
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int SommerfeldIntegrand(unsigned ndim, const double *x,
                         void *UserData, unsigned fdim, double *fval)
 {
@@ -355,7 +386,7 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
   /***************************************************************/
   /* assemble gTwiddle integrands for all spatial evaluation points */
   /***************************************************************/
-  cdouble *zfval = (cdouble *)fval;
+  cdouble *Integrand = (cdouble *)fval;
   cdouble gBuffer[4*NUMGTWIDDLE];
   cdouble *gTwiddleVD[2][2]={{gBuffer+0*NUMGTWIDDLE, gBuffer+1*NUMGTWIDDLE},
                              {gBuffer+2*NUMGTWIDDLE, gBuffer+3*NUMGTWIDDLE}};
@@ -369,6 +400,21 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
      double Rho     = sqrt(Rhox*Rhox + Rhoy*Rhoy);
      double zDest   = XMatrix->GetEntryD(nx,2);
      double zSource = XMatrix->GetEntryD(nx,5);
+
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     if (S->qThetaPoints>0)
+      { 
+        double RhoVec[2];
+        RhoVec[0]=Rhox;
+        RhoVec[1]=Rhoy;
+        S->qThetaIntegral(Omega, q, RhoVec, zDest, zSource, S->qThetaPoints,
+                          RTwiddle, WMatrix, STwiddle, Integrand,
+                          dRho, dzDest, dzSource);
+        Integrand += 36;
+        continue;
+      }
 
      /***************************************************************/
      /* get gTwiddle factors ****************************************/
@@ -405,7 +451,6 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
      /* assemble integrand vector ***********************************/
      /***************************************************************/
      cdouble Factor = q*Jac/(2.0*M_PI);
-     cdouble *Integrand = zfval;
      for(int dr=0; dr<=(dRho ? 1 : 0); dr++)
       for(int dzd=0; dzd<=(dzDest ? 1 : 0); dzd++)
        for(int dzs=0; dzs<=(dzSource ? 1 : 0); dzs++)
@@ -462,8 +507,11 @@ int SommerfeldIntegrand(unsigned ndim, const double *x,
      SommerfeldIntegrand(ndim, x, UserData, fdim, fval);
      SID->Omega=OmegaSave;
      SID->Accumulate=false;
-     SommerfeldIntegrand(ndim, x, UserData, fdim, fval);
    }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   return 0;
 
 }

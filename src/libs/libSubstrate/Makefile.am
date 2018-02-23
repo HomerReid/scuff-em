@@ -7,7 +7,6 @@ libSubstrate_la_SOURCES = 	\
  Interpolation.cc		\
  FullWave.cc                	\
  GTwiddle.cc                    \
- qIntegrate.cc              	\
  Static.cc			\
  SommerfeldIntegrand.cc         \
  SommerfeldIntegrator.cc
@@ -40,9 +39,12 @@ OTHER_LIBS=                      \
  ../libSpherical/libSpherical.la \
  ../libhrutil/libhrutil.la
 
-TESTS = tFullWaveSubstrate tSommerfeldIntegrand
+TESTS = tGTwiddle tFullWaveSubstrate tSommerfeldIntegrand
 
-check_PROGRAMS = tFullWaveSubstrate tSommerfeldIntegrand tDerivatives
+check_PROGRAMS = tGTwiddle tFullWaveSubstrate tSommerfeldIntegrand tDerivatives
+ 
+tGTwiddle_SOURCES = tGTwiddle.cc
+tGTwiddle_LDADD = libSubstrate.la ../libscuff/libscuff.la
  
 tFullWaveSubstrate_SOURCES = tFullWaveSubstrate.cc
 tFullWaveSubstrate_LDADD = libSubstrate.la ../libscuff/libscuff.la

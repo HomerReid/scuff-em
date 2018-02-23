@@ -43,8 +43,7 @@
 #define POL_TM 1
 
 // methods for full-wave DGF computation
-enum DGFMethod {AUTO, FAST_SURFACE_CURRENT, FULL_SURFACE_CURRENT,
-                STATIC_LIMIT};
+enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT};
 
 #define LIBSUBSTRATE_NOLOGGING 0
 #define LIBSUBSTRATE_TERSE     1
@@ -99,6 +98,9 @@ extern const char *TimeNames[];
 #define NUMGTWIDDLE 18
 #define NUMGSCALAR  22
 
+// the 6x6 dyadic Green's function is unrolled
+// to a vector of dimension 36 as if it were a C/C++ 
+// matrix, *not* as if it were a lapack/libhmat matrix.
 #define _EEXX 0
 #define _EEYX 1
 #define _EEZX 2
@@ -219,24 +221,9 @@ public:
    void GetSubstrateDGF_StaticLimit(cdouble Omega, HMatrix *XMatrix,
                                     HMatrix *GMatrix);
 
-   void GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
-                                           HMatrix *XMatrix,
-                                           HMatrix *GMatrix);
-
-
-   void GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
-                                           HMatrix *XMatrix,
-                                           HMatrix *GMatrix);
-
-   /*--------------------------------------------------------------*/
-   /* general-purpose routine for evaluating q (Fourier) integrals */
-   /*--------------------------------------------------------------*/
-   void GetqIntegral(double RhoMag, double zD, double zS, 
-                     double qIntegral[3]);
-  
-   void qIntegrate(cdouble Omega, qFunction UserFunction,
-                   void *UserData, cdouble *Integral, int FDim,
-                   bool ThetaIndependent=true);
+   void GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
+                                       HMatrix *XMatrix,
+                                       HMatrix *GMatrix);
 
    /*--------------------------------------------------------------*/
    /*- routines for working with interpolation tables -------------*/
@@ -271,20 +258,22 @@ public:
    double GetStaticG0Correction(double z);
    double GetStaticG0Correction(double zD, double zS);
    void GetSigmaTwiddle(double zS, double q, double *SigmaTwiddle);
+   void GetqIntegral(double RhoMag, double zD, double zS, double qIntegral[3]);
 
    // helper functions for full-wave DGF calculation
    void ComputeW(cdouble Omega, cdouble q[2], HMatrix *W);
-   void GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
-                           double zDest, double zSource,
-                           cdouble ScriptG0Twiddle[6][6],
-                           int ForceLayer=-1, double ForceSign=0.0,
-                           bool Accumulate=false,
-                           bool dzDest=false, bool dzSource=false);
+   void GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
+                         double zDest, double zSource,
+                         cdouble Gamma0Twiddle[6][6],
+                         int ForceLayer=-1, double ForceSign=0.0,
+                         bool Accumulate=false,
+                         bool dzDest=false, bool dzSource=false);
    void GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                           double zDest, double zSource,
                           HMatrix *RTwiddle, HMatrix *WMatrix,
                           HMatrix *STwiddle, HMatrix *GTwiddle,
-                          bool dzDest=false, bool dzSource=false);
+                          bool dzDest=false, bool dzSource=false,
+                          bool AddGamma0Twiddle=false);
    void gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
                              double zDest, double zSource,
                              HMatrix *RTwiddle, HMatrix *WMatrix,
@@ -295,6 +284,13 @@ public:
                           double zDest, double zSource,
                           cdouble *gTwiddleVD[2][2],
                           bool dzDest=false, bool dzSource=false);
+
+   void qThetaIntegral(cdouble Omega, cdouble q, double Rho[2],
+                       double zDest, double zSource, int NTheta,
+                       HMatrix *RTwiddle, HMatrix *WMatrix,
+                       HMatrix *STwiddle, cdouble *Integrand,
+                       bool dRho=false, bool dzDest=false, 
+                       bool dzSource=false);
 
    void RotateG(cdouble Gij[6][6], double Phi);
    void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);
@@ -341,9 +337,10 @@ public:
    // flags to help in debugging
    int EntryOnly;
    int LayerOnly;
+   DGFMethod ForceMethod;
+   int qThetaPoints;
    bool EEOnly;
    bool XYOnly;
-   DGFMethod ForceMethod;
    bool ForceFreeSpace;
    bool HardCoded;
    bool StaticLimit;

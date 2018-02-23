@@ -40,8 +40,8 @@
 /* compute the 3x3 submatrices that enter the quadrants of the */
 /* Fourier transform of the 6x6 DGF for a homogeneous medium.  */
 /***************************************************************/
-void GetGC0Twiddle(cdouble k2, cdouble q2D[2], cdouble qz, double Sign,
-                   cdouble GT[3][3], cdouble CT[3][3])
+void GetGCTwiddle(cdouble k2, cdouble q2D[2], cdouble qz, double Sign,
+                  cdouble GT[3][3], cdouble CT[3][3])
 {
   cdouble qx  = q2D[0];
   cdouble qy  = q2D[1];
@@ -80,16 +80,16 @@ void GetGC0Twiddle(cdouble k2, cdouble q2D[2], cdouble qz, double Sign,
 /* Get the (Fourier-space) 6x6 homogeneous DGF for the         */
 /* medium occupying substrate layer #nl.                       */
 /* If Omega==0, return instead the quantity                    */
-/*  \lim_{\omega \to 0 }  -i\omega * GTwiddle(\omega)          */
+/*  \lim_{\omega \to 0 }  -i\omega * Gamma(\omega)             */
 /***************************************************************/
-void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
-                                          double zDest, double zSource,
-                                          cdouble ScriptG0Twiddle[6][6],
-                                          int ForceLayer, double Sign, bool Accumulate,
-                                          bool dzDest, bool dzSource)
+void LayeredSubstrate::GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
+                                        double zDest, double zSource,
+                                        cdouble Gamma0Twiddle[6][6],
+                                        int ForceLayer, double Sign, bool Accumulate,
+                                        bool dzDest, bool dzSource)
 {
   if (!Accumulate)
-   memset( (cdouble *) ScriptG0Twiddle, 0, 36*sizeof(cdouble) );
+   memset( (cdouble *) Gamma0Twiddle, 0, 36*sizeof(cdouble) );
 
   // autodetect region unless user forced it
   int nl = ForceLayer;
@@ -114,7 +114,7 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
    ExpFac *= +1.0*Sign*II*qz;
   if (dzSource)
    ExpFac *= -1.0*Sign*II*qz;
-  GetGC0Twiddle(k2, q2D, qz, Sign, GT, CT);
+  GetGCTwiddle(k2, q2D, qz, Sign, GT, CT);
   cdouble Factor;
   if (qz==0.0)
    Factor=0.0;
@@ -128,10 +128,10 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
   cdouble MMPrefac = Factor/(ZVAC*MuRel);
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
-    { ScriptG0Twiddle[0+i][0+j] += EEPrefac * GT[i][j];
-      ScriptG0Twiddle[0+i][3+j] += EMPrefac * CT[i][j];
-      ScriptG0Twiddle[3+i][0+j] += MEPrefac * CT[i][j];
-      ScriptG0Twiddle[3+i][3+j] += MMPrefac * GT[i][j];
+    { Gamma0Twiddle[0+i][0+j] += EEPrefac * GT[i][j];
+      Gamma0Twiddle[0+i][3+j] += EMPrefac * CT[i][j];
+      Gamma0Twiddle[3+i][0+j] += MEPrefac * CT[i][j];
+      Gamma0Twiddle[3+i][3+j] += MMPrefac * GT[i][j];
     };
   if ( nl<NumInterfaces || isinf(zGP) ) return;
 
@@ -140,7 +140,7 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
   /* and a ground plane is present                               */
   /***************************************************************/
   // only need to refetch if Sign was +1 before
-  if (Sign>0.0) GetGC0Twiddle(k2, q2D, qz, -1.0, GT, CT);
+  if (Sign>0.0) GetGCTwiddle(k2, q2D, qz, -1.0, GT, CT);
   ExpFac = exp(II*qz*fabs(zDest + zSource - 2.0*zGP));
   if (dzDest)
    ExpFac *= +1.0*II*qz;
@@ -159,10 +159,10 @@ void LayeredSubstrate::GetScriptG0Twiddle(cdouble Omega, cdouble q2D[2],
   const static double ImageSign[3] = {-1.0, -1.0, +1.0};
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
-    { ScriptG0Twiddle[0+i][0+j] += ImageSign[j] * EEPrefac * GT[i][j];
-      ScriptG0Twiddle[0+i][3+j] -= ImageSign[j] * EMPrefac * CT[i][j];
-      ScriptG0Twiddle[3+i][0+j] += ImageSign[j] * MEPrefac * CT[i][j];
-      ScriptG0Twiddle[3+i][3+j] -= ImageSign[j] * MMPrefac * GT[i][j];
+    { Gamma0Twiddle[0+i][0+j] += ImageSign[j] * EEPrefac * GT[i][j];
+      Gamma0Twiddle[0+i][3+j] -= ImageSign[j] * EMPrefac * CT[i][j];
+      Gamma0Twiddle[3+i][0+j] += ImageSign[j] * MEPrefac * CT[i][j];
+      Gamma0Twiddle[3+i][3+j] -= ImageSign[j] * MMPrefac * GT[i][j];
     };
 }
 
@@ -190,15 +190,15 @@ void LayeredSubstrate::ComputeW(cdouble Omega, cdouble q2D[2], HMatrix *W)
 
         // contributions of surface currents on interface z_b
         // to tangential-field matching equations at interface z_a
-        cdouble ScriptG0Twiddle[6][6];
+        cdouble Gamma0Twiddle[6][6];
         double Sign=-1.0;
         if ( b==(a-1) )
-         GetScriptG0Twiddle(Omega, q2D, za, zb, ScriptG0Twiddle, a);
+         GetGamma0Twiddle(Omega, q2D, za, zb, Gamma0Twiddle, a);
         else if ( b==(a+1) )
-         GetScriptG0Twiddle(Omega, q2D, za, zb, ScriptG0Twiddle, b);
+         GetGamma0Twiddle(Omega, q2D, za, zb, Gamma0Twiddle, b);
         else // (b==a)
-         { GetScriptG0Twiddle(Omega, q2D, za, za, ScriptG0Twiddle, a,   +1.0);
-           GetScriptG0Twiddle(Omega, q2D, za, za, ScriptG0Twiddle, a+1, -1.0, true);
+         { GetGamma0Twiddle(Omega, q2D, za, za, Gamma0Twiddle, a,   +1.0);
+           GetGamma0Twiddle(Omega, q2D, za, za, Gamma0Twiddle, a+1, -1.0, true);
            Sign=1.0;
          };
 
@@ -206,7 +206,7 @@ void LayeredSubstrate::ComputeW(cdouble Omega, cdouble q2D[2], HMatrix *W)
          for(int KN=0; KN<2; KN++)
           for(int i=0; i<2; i++)
            for(int j=0; j<2; j++)
-            W->AddEntry(RowOffset+2*EH+i, ColOffset+2*KN+j, Sign*ScriptG0Twiddle[3*EH+i][3*KN+j]);
+            W->AddEntry(RowOffset+2*EH+i, ColOffset+2*KN+j, Sign*Gamma0Twiddle[3*EH+i][3*KN+j]);
       };
    };
   if (LogLevel >= LIBSUBSTRATE_VERBOSE) 
@@ -233,7 +233,8 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                                          HMatrix *WMatrix,
                                          HMatrix *STwiddle,
                                          HMatrix *GTwiddle,
-                                         bool dzDest, bool dzSource)
+                                         bool dzDest, bool dzSource,
+                                         bool AddGamma0Twiddle)
 {
   UpdateCachedEpsMu(Omega);
 
@@ -242,15 +243,15 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   /**********************************************************************/
   if (ForceFreeSpace)
    { 
-     cdouble ScriptG0Twiddle[6][6];
-     bool ForceLayer=false;
+     cdouble Gamma0Twiddle[6][6];
+     int ForceLayer=-1;
      double Sign=0.0;
      bool Accumulate=false;
-     GetScriptG0Twiddle(Omega, q2D, zDest, zSource, ScriptG0Twiddle,
-                        ForceLayer, Sign, Accumulate, dzDest, dzSource);
+     GetGamma0Twiddle(Omega, q2D, zDest, zSource, Gamma0Twiddle,
+                      ForceLayer, Sign, Accumulate, dzDest, dzSource);
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
-       GTwiddle->SetEntry(Mu,Nu,ScriptG0Twiddle[Mu][Nu]);
+       GTwiddle->SetEntry(Mu,Nu,Gamma0Twiddle[Mu][Nu]);
      return;
    };
   
@@ -265,17 +266,17 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   int aMax        = (DestLayer==NumInterfaces   ? 0 : 1 );
   cdouble ScriptG0TDest[2][6][6];
   for(int a=aMin, nlDest=DestLayer-1+a; a<=aMax; a++, nlDest++)
-   GetScriptG0Twiddle(Omega, q2D, zDest, zInterface[nlDest],
-                      ScriptG0TDest[a], DestLayer, a ? -1.0 : 1.0, false,
-                      dzDest, false);
+   GetGamma0Twiddle(Omega, q2D, zDest, zInterface[nlDest],
+                    ScriptG0TDest[a], DestLayer, 0.0, false,
+                    dzDest, false);
 
   int SourceLayer  = GetLayerIndex(zSource);
   int bMin         = (SourceLayer==0             ? 1 : 0 );
   int bMax         = (SourceLayer==NumInterfaces ? 0 : 1 );
   cdouble ScriptG0TSource[2][6][6];
   for(int b=bMin, nlSource=SourceLayer-1+b; b<=bMax; b++, nlSource++)
-   GetScriptG0Twiddle(Omega, q2D, zInterface[nlSource], zSource,
-                      ScriptG0TSource[b], SourceLayer, b ? 1.0 : -1.0, false,
+   GetGamma0Twiddle(Omega, q2D, zInterface[nlSource], zSource,
+                      ScriptG0TSource[b], SourceLayer, 0.0, false,
                       false, dzSource);
 
   Times[G0TIME] += Secs() - TT;
@@ -311,4 +312,21 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   WMatrix->LUSolve(STwiddle);
   RTwiddle->Multiply(STwiddle, GTwiddle);
   Times[SOLVETIME]+=Secs()-TT;
+
+  /**********************************************************************/
+  /**********************************************************************/
+  /**********************************************************************/
+  if (AddGamma0Twiddle && (DestLayer==SourceLayer) )
+   { 
+     cdouble Gamma0Twiddle[6][6];
+     int ForceLayer=-1;
+     bool ForceSign=0.0;
+     bool Accumulate=false;
+     GetGamma0Twiddle(Omega, q2D, zDest, zSource, Gamma0Twiddle,
+                      ForceLayer, ForceSign, Accumulate, dzDest, dzSource);
+     for(int Mu=0; Mu<6; Mu++)
+      for(int Nu=0; Nu<6; Nu++)
+       GTwiddle->AddEntry(Mu,Nu,Gamma0Twiddle[Mu][Nu]);
+     return;
+   };
 }

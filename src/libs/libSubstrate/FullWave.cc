@@ -122,45 +122,6 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
 }
 
 /***************************************************************/
-/* Get the substrate Green's function by evaluating the full   */
-/* 2D Fourier integral with no fancy accelerations. This is    */
-/* too slow for use in practical calculations but offers a     */
-/* helpful sanity check for debugging, etc.                    */
-/***************************************************************/
-void LayeredSubstrate::GetSubstrateDGF_FullSurfaceCurrent(cdouble Omega,
-                                                          HMatrix *XMatrix,
-                                                          HMatrix *GMatrix)
-{
-  UpdateCachedEpsMu(Omega);
-  (void )XMatrix;
-  (void )GMatrix;
-#if 0
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  qFunctionData MyData, *Data=&MyData;
-  Data->XMatrix    = XMatrix;
-  Data->RTwiddle   = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
-  Data->WMatrix    = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
-  Data->STwiddle   = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
-  Data->GTwiddle   = new HMatrix(6,               6,               LHM_COMPLEX);
-  Data->byqFile    = WritebyqFiles ? fopen("/tmp/q2D.log","w") : 0;
-
-  int FDim = 36*XMatrix->NR;
-  bool ThetaSymmetric=false;
-  qIntegrate(Omega, qIntegrandFullSC, (void *)Data, GMatrix->ZM, FDim, ThetaSymmetric);
-  
-  if (Data->byqFile) fclose(Data->byqFile);
-
-  delete Data->RTwiddle;
-  delete Data->WMatrix;
-  delete Data->STwiddle;
-  delete Data->GTwiddle;
-#endif
-}
-
-/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void GetLambdaMatrices(double Theta, double Lambda[7][3][3])
@@ -223,13 +184,12 @@ void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
   
 }
    
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
-                                                          HMatrix *XMatrix,
-                                                          HMatrix *GMatrix)
+void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
+                                                      HMatrix *XMatrix,
+                                                      HMatrix *GMatrix)
 {
   UpdateCachedEpsMu(Omega);
 
@@ -238,19 +198,22 @@ void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
   /* all evaluation points                                        */
   /***************************************************************/
   SommerfeldIntegrandData MySID, *SID=&MySID;
-  SID->Substrate  = this;
-  SID->Omega      = Omega;
-  SID->q0         = 0.0;
-  SID->uTransform = false;
-  SID->XMatrix    = XMatrix;
-  SID->RTwiddle   = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
-  SID->WMatrix    = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
-  SID->STwiddle   = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
-  SID->dzSource   = false;
-  SID->dzDest     = false;
-  SID->NumPoints  = 0;
-  SID->byqFile    = 0;
-
+  SID->Substrate   = this;
+  SID->Omega       = Omega;
+  SID->q0          = 0.0;
+  SID->uTransform  = false;
+  SID->XMatrix     = XMatrix;
+  SID->RTwiddle    = new HMatrix(6, 4*NumInterfaces, LHM_COMPLEX);
+  SID->WMatrix     = new HMatrix(4*NumInterfaces, 4*NumInterfaces, LHM_COMPLEX);
+  SID->STwiddle    = new HMatrix(4*NumInterfaces, 6,               LHM_COMPLEX);
+  SID->dRho        = false;
+  SID->dzSource    = false;
+  SID->dzDest      = false;
+  SID->Accumulate  = false;
+  SID->SubtractQS  = false;
+  SID->byqFile     = 0;
+  SID->NumPoints   = 0;
+ 
   double Rhox  = XMatrix->GetEntryD(0,0) - XMatrix->GetEntryD(0,3);
   double Rhoy  = XMatrix->GetEntryD(0,1) - XMatrix->GetEntryD(0,4);
   double Rho   = sqrt(Rhox*Rhox + Rhoy*Rhoy);
@@ -259,7 +222,7 @@ void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
   //MySID->byqFile=WritebyqFiles ? fopen("/tmp/q2D.log","w") : 0;
 
   int NX    = XMatrix->NR;
-  int zfdim = NUMGSCALAR*NX;
+  int zfdim = NX * (qThetaPoints ? 36 : NUMGSCALAR);
   int fdim  = 2*zfdim;
 
   cdouble *Error = new cdouble[zfdim];
@@ -299,6 +262,8 @@ void LayeredSubstrate::GetSubstrateDGF_FastSurfaceCurrent(cdouble Omega,
    };
   if (SID->byqFile) fclose(SID->byqFile);
   delete[] Error;
+
+  if (qThetaPoints>0) return;
 
   /*--------------------------------------------------------------*/
   /*- for each evaluation point, get the full 6x6 substrate DGF  -*/
@@ -403,14 +368,10 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
        GetSubstrateDGF_StaticLimit(Omega, XMatrix, GMatrix);
        break;
 
-     case FULL_SURFACE_CURRENT:
-       GetSubstrateDGF_FullSurfaceCurrent(Omega, XMatrix, GMatrix);
-       break;
-
-     case FAST_SURFACE_CURRENT:
+     case SURFACE_CURRENT:
      case AUTO:
      default:
-       GetSubstrateDGF_FastSurfaceCurrent(Omega, XMatrix, GMatrix);
+       GetSubstrateDGF_SurfaceCurrent(Omega, XMatrix, GMatrix);
        break;
    };
 
@@ -431,7 +392,6 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
       VecSub(XDS+0, XDS+3, R);
       cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
       scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
-      HMatrix ScriptG(6,6,LHM_COMPLEX,GMatrix->ZM + nx*36);
       for(int P=0; P<2; P++)
        for(int Q=0; Q<2; Q++)
         { cdouble PreFac = II*k;
@@ -440,7 +400,9 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
           if (P==1 && Q==1) PreFac/=(ZVAC*ZRel);
           for(int Mu=0; Mu<3; Mu++)
            for(int Nu=0; Nu<3; Nu++)
-            ScriptG.AddEntry(3*P+Mu,3*Q+Nu,PreFac*(P==Q ? G[Mu][Nu] : C[Mu][Nu]));
+            GMatrix->AddEntry( 6*(3*P+Mu) + 3*Q+Nu, nx,
+                               PreFac*(P==Q ? G[Mu][Nu] : C[Mu][Nu])
+                             );
         };
     };
     
