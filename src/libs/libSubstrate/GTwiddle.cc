@@ -162,8 +162,8 @@ void LayeredSubstrate::GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
     { Gamma0Twiddle[0+i][0+j] += ImageSign[j] * EEPreFac * ExpFac * GT[i][j];
       Gamma0Twiddle[0+i][3+j] -= ImageSign[j] * EMPreFac * ExpFac * CT[i][j];
       // EXPLAIN ME I don't understand why the following two signs aren't flipped.
-      Gamma0Twiddle[3+i][0+j] -= ImageSign[j] * MEPreFac * ExpFac * CT[i][j];
-      Gamma0Twiddle[3+i][3+j] += ImageSign[j] * MMPreFac * ExpFac * GT[i][j];
+      Gamma0Twiddle[3+i][0+j] += ImageSign[j] * MEPreFac * ExpFac * CT[i][j];
+      Gamma0Twiddle[3+i][3+j] -= ImageSign[j] * MMPreFac * ExpFac * GT[i][j];
     };
 }
 
@@ -254,13 +254,18 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                                          bool dzDest, bool dzSource,
                                          bool AddGamma0Twiddle)
 {
+  if (zDest<zGP || zSource<zGP) // source or destination point below ground plane
+   { GTwiddle->Zero();
+     return;
+   }
+
   UpdateCachedEpsMu(Omega);
 
   /**********************************************************************/
   /**********************************************************************/
   /**********************************************************************/
   int NI=NumInterfaces;
-  bool GroundPlaneOnly=(NI==0);
+  bool GroundPlaneOnly = (NI==0);
   if (GroundPlaneOnly && !AddGamma0Twiddle) 
    ErrExit("%s:%i:internal error",__FILE__,__LINE__);
   if (ForceFreeSpace || (GroundPlaneOnly && AddGamma0Twiddle))

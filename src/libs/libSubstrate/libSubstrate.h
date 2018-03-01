@@ -96,70 +96,7 @@ extern const char *TimeNames[];
 #define _MM2B 21
 
 #define NUMGTWIDDLE 18
-#define NUMGSCALAR  22
-
-// the 6x6 dyadic Green's function is unrolled
-// to a vector of dimension 36 as if it were a C/C++ 
-// matrix, *not* as if it were a lapack/libhmat matrix.
-#define _EEXX 0
-#define _EEYX 1
-#define _EEZX 2
-#define _MEXX 3
-#define _MEYX 4
-#define _MEZX 5
-
-#define _EEXY 6
-#define _EEYY 7
-#define _EEZY 8
-#define _MEXY 9
-#define _MEYY 10
-#define _MEZY 11
-
-#define _EEXZ 12
-#define _EEYZ 13
-#define _EEZZ 14
-#define _MEXZ 15
-#define _MEYZ 16
-#define _MEZZ 17
-
-#define _EMXX 18
-#define _EMYX 19
-#define _EMZX 20
-#define _MMXX 21
-#define _MMYX 22
-#define _MMZX 23
-
-#define _EMXY 24
-#define _EMYY 25
-#define _EMZY 26
-#define _MMXY 27
-#define _MMYY 28
-#define _MMZY 29
-
-#define _EMXZ 30
-#define _EMYZ 31
-#define _EMZZ 32
-#define _MMXZ 33
-#define _MMYZ 34
-#define _MMZZ 35
-
-#define _LAMBDA0P 0
-#define _LAMBDA0Z 1
-#define _LAMBDA1  2
-#define _LAMBDA2  3
-#define _LAMBDA0X 4
-#define _LAMBDA1X 5
-#define _LAMBDA2X 6
-#define NUMLAMBDA 7
-void GetLambdaMatrices(double Theta, double Lambda[7][3][3]);
-
-/***************************************************************/
-/* prototype for user-defined Fourier integrand                */
-/***************************************************************/
-class LayeredSubstrate;
-typedef void (*qFunction)(LayeredSubstrate *Substrate,
-                          double q2D[2], cdouble Omega,
-                          void *UserData, cdouble *Integrand);
+#define NUMGFRAK    22
 
 /***************************************************************/
 /* data structure for layered material substrate               */
@@ -204,7 +141,12 @@ public:
 
    /*--------------------------------------------------------------*/
    /* full-wave case: get the 6x6 dyadic Green's function giving   */
-   /* the E,H fields at XD due to J, M currents at XS              */
+   /* the E,H fields at XD due to J, M currents at XS.             */
+   /*                                                              */
+   /* slightly confusing: GMatrix is a 36xN matrix (where N is the */
+   /* number of evaluation points) whose nth column is the 6x6     */
+   /* dyadic GF for eval point #n stored in column-major order,    */
+   /* i.e. as a fortran/lapack/libhmat style array, not a C array. */
    /*--------------------------------------------------------------*/
    HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
                             HMatrix *GMatrix=0, DGFMethod Method=AUTO, bool AddHomogeneousDGF=false);
@@ -281,20 +223,12 @@ public:
                              double zDest, double zSource,
                              cdouble *gTwiddleVD[2][2], cdouble *Workspace,
                              bool dzDest=false, bool dzSource=false);
-   void gTwiddleHardCoded(cdouble Omega, cdouble q,
-                          double zDest, double zSource,
-                          cdouble *gTwiddleVD[2][2],
-                          bool dzDest=false, bool dzSource=false);
+   void GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
+                 cdouble *Workspace=0, bool SubstractQS=false,
+                 bool dRho=false, bool dzDest=false, bool dzSource=false);
+   void gFrakToScriptG(cdouble gFrak[NUMGFRAK], double Theta,
+                       cdouble ScriptG[36]);
 
-   void qThetaIntegral(cdouble Omega, cdouble q, double Rho[2],
-                       double zDest, double zSource, int NTheta,
-                       cdouble *Integrand, cdouble *Workspace=0,
-                       bool dRho=false, bool dzDest=false,
-                       bool dzSource=false);
-
-   void RotateG(cdouble Gij[6][6], double Phi);
-   void RotateG(cdouble G[6][6], int P, int Q, double CP, double SP);
- 
    void GetReflectionCoefficients(double Omega, double *q,
                                   cdouble r[2][2]);
    int GetLayerIndex(double z);
@@ -335,18 +269,11 @@ public:
    double Times[NUMTIMES];
 
    // flags to help in debugging
-   int EntryOnly;
-   int LayerOnly;
    DGFMethod ForceMethod;
-   int qThetaPoints;
-   bool EEOnly;
-   bool XYOnly;
    bool ForceFreeSpace;
-   bool HardCoded;
    bool StaticLimit;
    int LogLevel;
    bool WritebyqFiles;
-   
  };
 
 void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double PhiE[4]);
@@ -363,28 +290,5 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
                          double AbsTol, double RelTol,
                          cdouble *Integral, cdouble *Error,
                          bool Verbose=false, const char *LogFileName=0);
-
-/***************************************************************/
-/* SommerfeldIntegrand.cc **************************************/
-/***************************************************************/
-typedef struct SommerfeldIntegrandData 
- {
-   LayeredSubstrate *Substrate;
-   cdouble Omega;
-   double q0;
-   bool uTransform;
-   HMatrix *XMatrix;
-   cdouble *Workspace;
-   bool dRho, dzDest, dzSource;
-   bool Accumulate;
-   bool SubtractQS;
-   FILE *byqFile;
-   int NumPoints;
- } SommerfeldIntegrandData;
-
-SommerfeldIntegrandData *CreateSommerfeldIntegrandData(LayeredSubstrate *S);
-void DestroySommerfeldIntegrandData(SommerfeldIntegrandData *Data);
-int SommerfeldIntegrand(unsigned ndim, const double *x,
-                        void *UserData, unsigned fdim, double *fval);
 
 #endif // LIBSUBSTRATE_H

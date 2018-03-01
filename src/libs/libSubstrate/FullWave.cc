@@ -44,6 +44,72 @@ void CalcGC(double R[3], cdouble Omega,
 }
 
 /***************************************************************/
+/* add the 6x6 homogeneous DGF for a medium with given         */
+/* relative permittivity and permeability                      */
+/* on return, Gamma0 contains the 6x6 matrix as a column-major */
+/* array, i.e. Gamma0 could be the ZM field of a 6x6 HMatrix   */
+/* (NOT a [6][6] C++ array).                                   */
+/***************************************************************/
+void AddGamma0(double XD[3], double XS[3], cdouble Omega,
+               cdouble EpsRel, cdouble MuRel, cdouble *Gamma0,
+               double zGP=-1.0*HUGE_VAL, bool Image=false)
+{
+  double R[3];
+  R[0]=XD[0]-XS[0];
+  R[1]=XD[1]-XS[1];
+  R[2]=XD[2]-XS[2];
+  double r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2], r=sqrt(r2), r3=r*r2;
+  cdouble k2=EpsRel*MuRel*Omega*Omega, k=sqrt(k2);
+  cdouble ik=II*k, ik2=ik*ik, ikr=ik*r, ikr2=ikr*ikr;
+  
+  cdouble G[3][3], C[3][3];
+  memset( (cdouble *)G, 0, 9*sizeof(cdouble));
+  memset( (cdouble *)C, 0, 9*sizeof(cdouble));
+
+  // compute 3x3 G and C matrices
+  if (r2==0.0)
+   {
+     G[0][0] = G[1][1] = G[2][2] = II*real(k)/(6.0*M_PI);
+   }
+  else
+   { cdouble ExpFac=exp(ik*r) / (4.0*M_PI*r3);
+     cdouble f2=(1.0-ikr+ikr2)/ik2, f3=(-3.0+3.0*ikr-ikr2)/(ikr2);
+     G[0][0] = G[1][1] = G[2][2] = f2*ExpFac;
+     for(int i=0; i<3; i++)
+      for(int j=0; j<3; j++)
+       G[i][j] += f3*ExpFac*R[i]*R[j];
+  
+     ExpFac*=(-1.0+ikr)/(ik);
+     C[0][1]=ExpFac*R[2]; C[1][0]=-C[0][1];
+     C[1][2]=ExpFac*R[0]; C[2][1]=-C[1][2];
+     C[2][0]=ExpFac*R[1]; C[0][2]=-C[2][0];
+   }
+
+  // add quadrants of 6x6 DGF
+  cdouble PreFac[2][2];
+  PreFac[0][0]=II*Omega*MuRel*ZVAC;
+  PreFac[0][1]=+1.0*II*k;
+  PreFac[1][0]=-1.0*II*k;
+  PreFac[1][1]=II*Omega*EpsRel/ZVAC;
+  HMatrix Gamma0Matrix(6,6,LHM_COMPLEX,Gamma0);
+  double ImageSign[2][3]={{1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}};
+  if (Image) 
+   ImageSign[0][0]=ImageSign[0][1]=ImageSign[2][2]=-1.0;
+  for(int P=0; P<2; P++)
+   for(int Q=0; Q<2; Q++)
+    for(int i=0; i<3; i++)
+     for(int j=0; j<3; j++)
+      Gamma0Matrix.AddEntry(3*P+i, 3*Q+j, ImageSign[Q][j]*PreFac[P][Q]*(P==Q ? G[i][j] : C[i][j]));
+
+  if (!isinf(zGP))
+   { R[2] = XD[2] + XS[2] - 2.0*zGP;
+     double Zero[3]={0.0, 0.0, 0.0};
+     AddGamma0(R, Zero, Omega, EpsRel, MuRel, Gamma0, -1.0*HUGE_VAL, true);
+   };
+
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
@@ -113,75 +179,67 @@ void LayeredSubstrate::GetSubstrateDGF_StaticLimit(cdouble Omega,
      double XD[6], *XS=XD+3;
      XMatrix->GetEntriesD(nx,"0:5",XD);
 
-     cdouble ScriptG[6][6];
-     GetSubstrateDGF_StaticLimit(Omega, XD, XS, ScriptG);
+     cdouble ScriptGStatic[6][6];
+     GetSubstrateDGF_StaticLimit(Omega, XD, XS, ScriptGStatic);
+
+     cdouble *ScriptGBuffer = GMatrix->ZM + nx*36;
+     HMatrix ScriptG(6,6,LHM_COMPLEX,ScriptGBuffer);
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
-       GMatrix->SetEntry(6*Mu+Nu, nx, ScriptG[Mu][Nu] );
+       ScriptG.SetEntry(Mu, Nu, ScriptGStatic[Mu][Nu]);
    };
 }
 
 /***************************************************************/
+/* given a vector of 22 gFrak values and Theta, fill in the 6x6 tensor ScriptG(Rho) */
 /***************************************************************/
-/***************************************************************/
-void GetLambdaMatrices(double Theta, double Lambda[7][3][3])
-{ 
-  double CT=cos(Theta), ST=sin(Theta);
-  memset( (double *)Lambda, 0, 7*3*3*sizeof(double));
-
-  Lambda[_LAMBDA0P][0][0]=1.0;
-  Lambda[_LAMBDA0P][1][1]=1.0;
-  Lambda[_LAMBDA0Z][2][2]=1.0;
-
-  Lambda[_LAMBDA1 ][0][2]=CT;
-  Lambda[_LAMBDA1 ][1][2]=ST;
-
-  Lambda[_LAMBDA2 ][0][0]=CT*CT;
-  Lambda[_LAMBDA2 ][0][1]=CT*ST;
-  Lambda[_LAMBDA2 ][1][0]=ST*CT;
-  Lambda[_LAMBDA2 ][1][1]=ST*ST;
-
-  Lambda[_LAMBDA0X][0][1]=1.0;
-  Lambda[_LAMBDA0X][1][0]=-1.0;
-
-  Lambda[_LAMBDA1X][0][2]=-ST;
-  Lambda[_LAMBDA1X][1][2]=+CT;
-  Lambda[_LAMBDA1X][2][2]=1.0;
-
-  Lambda[_LAMBDA2X][0][0]=CT*ST;
-  Lambda[_LAMBDA2X][1][1]=-CT*ST;
-  Lambda[_LAMBDA2X][0][1]=ST*ST;
-  Lambda[_LAMBDA2X][1][0]=-CT*CT;
-}
-
-/***************************************************************/
-/* compute a, c parameters for the contour-integral portion of */
-/* the Sommerfeld integral via the procedure described in      */
-/* Golubovic et al, "Efficient Algorithms for Computing        */
-/* Sommerfeld Intergral Tails," IEEE Transactions on Antennas  */
-/* and Propagation **60** 2409 (2012).                         */
-/* DOI: 10.1109/TAP.2012.2189718                               */
-/*--------------------------------------------------------------*/
-void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
-                     double Rho, double zDest, double zSource,
-                     double *pa, double *pc)
+void LayeredSubstrate::gFrakToScriptG(cdouble gFrak[NUMGFRAK], double Theta,
+                                      cdouble ScriptGBuffer[36])
 {
-  int NumLayers     = S->NumLayers;
-  cdouble *EpsLayer = S->EpsLayer;
-  cdouble *MuLayer  = S->MuLayer;
+  double CT=cos(Theta), ST=sin(Theta);
 
-  double MaxRealn2 = 0.0;
-  for(int nl=0; nl<NumLayers; nl++)
-   MaxRealn2 = fmax(MaxRealn2, real(EpsLayer[nl]*MuLayer[nl]));
-  double a = 1.5*sqrt(MaxRealn2)*real(Omega);
-  double c = real(Omega);
-   
-  if ( Rho>fabs(zDest-zSource) && real(Omega*Rho)>1.0 )
-   c = 1.0/Rho;
+  HMatrix ScriptG(6,6,LHM_COMPLEX,ScriptGBuffer);
 
-  *pa=a;
-  *pc=c;
-  
+  ScriptG.SetEntry(0+0, 0+0,      gFrak[_EE2A]*CT*CT + gFrak[_EE0P] + gFrak[_EE2B]);
+  ScriptG.SetEntry(0+0, 0+1,      gFrak[_EE2A]*CT*ST);
+  ScriptG.SetEntry(0+0, 0+2,      gFrak[_EE1A]*CT);
+  ScriptG.SetEntry(0+1, 0+0,      gFrak[_EE2A]*ST*CT);
+  ScriptG.SetEntry(0+1, 0+1,      gFrak[_EE2A]*ST*ST + gFrak[_EE0P] + gFrak[_EE2B]);
+  ScriptG.SetEntry(0+1, 0+2,      gFrak[_EE1A]*ST);
+  ScriptG.SetEntry(0+2, 0+0,      gFrak[_EE1B]*CT);
+  ScriptG.SetEntry(0+2, 0+1,      gFrak[_EE1B]*ST);
+  ScriptG.SetEntry(0+2, 0+2,      gFrak[_EE0Z]);
+
+  ScriptG.SetEntry(0+0, 3+0,      gFrak[_EM2A]*CT*ST);
+  ScriptG.SetEntry(0+0, 3+1,      gFrak[_EM2A]*ST*ST + gFrak[_EM0P]);
+  ScriptG.SetEntry(0+0, 3+2, -1.0*gFrak[_EM1A]*ST);
+  ScriptG.SetEntry(0+1, 3+0, -1.0*gFrak[_EM2A]*CT*CT - gFrak[_EM0P]);
+  ScriptG.SetEntry(0+1, 3+1, -1.0*gFrak[_EM2A]*CT*ST);
+  ScriptG.SetEntry(0+1, 3+2,      gFrak[_EM1A]*CT);
+  ScriptG.SetEntry(0+2, 3+0, -1.0*gFrak[_EM1B]*ST);
+  ScriptG.SetEntry(0+2, 3+1,      gFrak[_EM1B]*CT);
+  ScriptG.SetEntry(0+2, 3+2,      gFrak[_EM1A] + gFrak[_EM1B]);
+
+  ScriptG.SetEntry(3+0, 0+0,      gFrak[_ME2A]*CT*ST);
+  ScriptG.SetEntry(3+0, 0+1,      gFrak[_ME2A]*ST*ST + gFrak[_ME0P]);
+  ScriptG.SetEntry(3+0, 0+2, -1.0*gFrak[_ME1A]*ST);
+  ScriptG.SetEntry(3+1, 0+0, -1.0*gFrak[_ME2A]*CT*CT - gFrak[_ME0P]);
+  ScriptG.SetEntry(3+1, 0+1, -1.0*gFrak[_ME2A]*CT*ST);
+  ScriptG.SetEntry(3+1, 0+2,      gFrak[_ME1A]*CT);
+  ScriptG.SetEntry(3+2, 0+0, -1.0*gFrak[_ME1B]*ST);
+  ScriptG.SetEntry(3+2, 0+1,      gFrak[_ME1B]*CT);
+  ScriptG.SetEntry(3+2, 0+2,      gFrak[_ME1A] + gFrak[_ME1B]);
+
+  ScriptG.SetEntry(3+0, 3+0,      gFrak[_MM2A]*CT*CT + gFrak[_MM0P] + gFrak[_MM2B]);
+  ScriptG.SetEntry(3+0, 3+1,      gFrak[_MM2A]*CT*ST);
+  ScriptG.SetEntry(3+0, 3+2,      gFrak[_MM1A]*CT);
+  ScriptG.SetEntry(3+1, 3+0,      gFrak[_MM2A]*ST*CT);
+  ScriptG.SetEntry(3+1, 3+1,      gFrak[_MM2A]*ST*ST + gFrak[_MM0P] + gFrak[_MM2B]);
+  ScriptG.SetEntry(3+1, 3+2,      gFrak[_MM1A]*ST);
+  ScriptG.SetEntry(3+2, 3+0,      gFrak[_MM1B]*CT);
+  ScriptG.SetEntry(3+2, 3+1,      gFrak[_MM1B]*ST);
+  ScriptG.SetEntry(3+2, 3+2,      gFrak[_MM0Z]);
+
 }
    
 /***************************************************************/
@@ -189,138 +247,31 @@ void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
 /***************************************************************/
 void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
                                                       HMatrix *XMatrix,
-                                                      HMatrix *GMatrix)
+                                                      HMatrix *ScriptGMatrix)
 {
   UpdateCachedEpsMu(Omega);
 
   /***************************************************************/
-  /* evaluate Sommerfeld integral to get 'gScalar' integrals for  */
-  /* all evaluation points                                        */
+  /* Get gFrak for all evaluation points (and store it in the    */
+  /* ScriptGMatrix buffer for convenience)                       */
   /***************************************************************/
-  SommerfeldIntegrandData MySID, *SID=&MySID;
-  SID->Substrate   = this;
-  SID->Omega       = Omega;
-  SID->q0          = 0.0;
-  SID->uTransform  = false;
-  SID->XMatrix     = XMatrix;
-  SID->Workspace   = CreateScriptGTwiddleWorkspace();
-  SID->dRho        = false;
-  SID->dzSource    = false;
-  SID->dzDest      = false;
-  SID->Accumulate  = false;
-  SID->SubtractQS  = false;
-  SID->byqFile     = 0;
-  SID->NumPoints   = 0;
- 
-  double Rhox  = XMatrix->GetEntryD(0,0) - XMatrix->GetEntryD(0,3);
-  double Rhoy  = XMatrix->GetEntryD(0,1) - XMatrix->GetEntryD(0,4);
-  double Rho   = sqrt(Rhox*Rhox + Rhoy*Rhoy);
-  double zDest = XMatrix->GetEntryD(0,2), zSource=XMatrix->GetEntryD(0,5);
-  
-  //MySID->byqFile=WritebyqFiles ? fopen("/tmp/q2D.log","w") : 0;
+  GetgFrak(Omega, XMatrix, ScriptGMatrix->ZM);
 
-  int NX    = XMatrix->NR;
-  int zfdim = NX * (qThetaPoints ? 36 : NUMGSCALAR);
-  int fdim  = 2*zfdim;
-
-  cdouble *Error = new cdouble[zfdim];
- 
-  char *s=getenv("SOMMERFELD_BYQFILE");
-  if (s)
-   SID->byqFile=fopen(s,"w");
-
-  s=getenv("SOMMERFELD_INTEGRATOR_BYPASS");
-  if (s && s[0]=='1')
-   { SID->uTransform=true;
-     double uMin=0.0, uMax=1.0;
-     Log("Computing gScalar integrals via simple quadrature...");
-     int ndim=1;
-     pcubature(fdim, SommerfeldIntegrand, (void *)SID,
-               ndim, &uMin, &uMax, qMaxEval, qAbsTol, qRelTol, ERROR_PAIRED,
-               (double *)(GMatrix->ZM), (double *)Error);
-     Log("...%i points",SID->NumPoints);
-   }
-  else
-   { bool Verbose=true;
-     int xNu=0;
-     s=getenv("SCUFF_SOMMERFELD_XNU");
-     if (s)
-      { xNu = s[0] - '0';
-        Log("Setting xNu=%i.\n",xNu);
-      };
- 
-     double a, c;
-     GetacSommerfeld(this, Omega, Rho, zDest, zSource, &a, &c);
-
-     Log("Computing gScalar integrals via Sommerfeld integrator...");
-     SommerfeldIntegrate(SommerfeldIntegrand, (void *)SID, zfdim,
-                         a, c, xNu, Rho, qMaxEval, qMaxEval,
-                         qAbsTol, qRelTol, GMatrix->ZM, Error, Verbose);
-     Log("...%i points",SID->NumPoints);
-   };
-  if (SID->byqFile) fclose(SID->byqFile);
-  delete[] Error;
-
-  if (qThetaPoints>0) return;
-
-  /*--------------------------------------------------------------*/
-  /*- for each evaluation point, get the full 6x6 substrate DGF  -*/
-  /*- from the gScalar integrals, then add the homogeneous DGF   -*/
-  /*- if necessary                                               -*/
-  /*--------------------------------------------------------------*/
-  for(int nx=NX-1; nx>=0; nx--)
+  /***************************************************************/
+  /*- for each evaluation point, get the full 6x6 substrate DGF  */
+  /*- from the vector of gFrak components                        */
+  /***************************************************************/
+  for(int nx=XMatrix->NR-1; nx>=0; nx--)
    { 
-     Rhox = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
-     Rhoy = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
+     double Rhox = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
+     double Rhoy = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
      double Theta = atan2(Rhoy,Rhox);
-     double CT=cos(Theta), ST=sin(Theta);
 
-     cdouble g[NUMGSCALAR];
-     memcpy(g, GMatrix->ZM + nx*NUMGSCALAR, NUMGSCALAR*sizeof(cdouble));
+     cdouble gFrak[NUMGFRAK];
+     memcpy(gFrak, ScriptGMatrix->ZM + nx*NUMGFRAK, NUMGFRAK*sizeof(cdouble));
 
-     cdouble *G = GMatrix->ZM + nx*36;
-     G[_EEXX] = g[_EE2A]*CT*CT + g[_EE0P] + g[_EE2B];
-     G[_EEXY] = g[_EE2A]*CT*ST;
-     G[_EEXZ] = g[_EE1A]*CT;
-     G[_EEYX] = g[_EE2A]*CT*ST;
-     G[_EEYY] = g[_EE2A]*ST*ST + g[_EE0P] + g[_EE2B];
-     G[_EEYZ] = g[_EE1A]*ST;
-     G[_EEZX] = g[_EE1B]*CT;
-     G[_EEZY] = g[_EE1B]*ST;
-     G[_EEZZ] = g[_EE0Z];
-
-     G[_EMXX] =      g[_EM2A]*CT*ST;
-     G[_EMXY] =      g[_EM2A]*ST*ST + g[_EM0P];
-     G[_EMXZ] = -1.0*g[_EM1A]*ST;
-     G[_EMYX] = -1.0*g[_EM2A]*CT*CT - g[_EM0P];
-     G[_EMYY] = -1.0*g[_EM2A]*CT*ST;
-     G[_EMYZ] =      g[_EM1A]*CT;
-     G[_EMZX] = -1.0*g[_EM1B]*ST;
-     G[_EMZY] =      g[_EM1B]*CT;
-     G[_EMZZ] =      g[_EM1A]+g[_EM1B];
-
-     G[_MEXX] =      g[_ME2A]*CT*ST;
-     G[_MEXY] =      g[_ME2A]*ST*ST + g[_ME0P];
-     G[_MEXZ] = -1.0*g[_ME1A]*ST;
-     G[_MEYX] = -1.0*g[_ME2A]*CT*CT - g[_ME0P];
-     G[_MEYY] = -1.0*g[_ME2A]*CT*ST;
-     G[_MEYZ] =      g[_ME1A]*CT;
-     G[_MEZX] = -1.0*g[_ME1B]*ST;
-     G[_MEZY] =      g[_ME1B]*CT;
-     G[_MEZZ] =      g[_ME1A]+g[_ME1B];
-
-     G[_MMXX] = g[_MM2A]*CT*CT + g[_MM0P] + g[_MM2B];
-     G[_MMXY] = g[_MM2A]*CT*ST;
-     G[_MMXZ] = g[_MM1A]*CT;
-     G[_MMYX] = g[_MM2A]*CT*ST;
-     G[_MMYY] = g[_MM2A]*ST*ST + g[_MM0P] + g[_MM2B];
-     G[_MMYZ] = g[_MM1A]*ST;
-     G[_MMZX] = g[_MM1B]*CT;
-     G[_MMZY] = g[_MM1B]*ST;
-     G[_MMZZ] = g[_MM0Z];
+     gFrakToScriptG(gFrak, Theta, ScriptGMatrix->ZM + nx*36);
    };
-
-  DestroyScriptGTwiddleWorkspace(SID->Workspace);
 }
 
 /***************************************************************/
@@ -374,33 +325,51 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+#if 0
   if (AddHomogeneousDGF)
    for(int nx=0; nx<XMatrix->NR; nx++)
-    { double XDS[6];
+    { 
+      double XDS[6];
       XMatrix->GetEntriesD(nx,":",XDS);
       int nl=GetLayerIndex(XDS[2]);
-      if (nl!=GetLayerIndex(XDS[5]))
-       continue;
+      if (nl!=GetLayerIndex(XDS[5])) continue;
       cdouble EpsRel=EpsLayer[nl], MuRel=MuLayer[nl];
-      cdouble k=sqrt(EpsRel*MuRel)*Omega;
-      cdouble ZRel=sqrt(MuRel/EpsRel);
       double R[3];
       VecSub(XDS+0, XDS+3, R);
       cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
       scuff::CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
+
+      cdouble k=sqrt(EpsRel*MuRel)*Omega;
+      cdouble ZRel=sqrt(MuRel/EpsRel);
+      cdouble PreFac[2][2];
+      PreFac[0][0] =      II*k*ZVAC*ZRel;   // EE
+      PreFac[0][1] =      II*k;             // EM
+      PreFac[1][0] = -1.0*II*k;             // ME
+      PreFac[1][1] =      II*k/(ZVAC*ZRel); // ME
+
+      HMatrix ScriptG(6,6,LHM_COMPLEX,GMatrix->ZM + nx*36);
       for(int P=0; P<2; P++)
        for(int Q=0; Q<2; Q++)
-        { cdouble PreFac = II*k;
-          if (P==0 && Q==0) PreFac*=ZVAC*ZRel;
-          if (P==1 && Q==0) PreFac*=-1.0;
-          if (P==1 && Q==1) PreFac/=(ZVAC*ZRel);
-          for(int Mu=0; Mu<3; Mu++)
-           for(int Nu=0; Nu<3; Nu++)
-            GMatrix->AddEntry( 6*(3*P+Mu) + 3*Q+Nu, nx,
-                               PreFac*(P==Q ? G[Mu][Nu] : C[Mu][Nu])
-                             );
-        };
+        for(int i=0; i<3; i++)
+         for(int j=0; j<3; j++)
+          ScriptG.AddEntry(3*P+i, 3*Q+j, PreFac[P][Q]*(P==Q ? G[i][j] : C[i][j]));
     };
+#endif
+#if 1
+  if (AddHomogeneousDGF)
+   for(int nx=0; nx<XMatrix->NR; nx++)
+    { double XDS[6];
+      XMatrix->GetEntriesD(nx,":",XDS);
+      if ( XDS[2]<zGP || XDS[5]<zGP )
+       continue;
+      int nl=GetLayerIndex(XDS[2]);
+      if (nl!=GetLayerIndex(XDS[5])) continue;
+      cdouble EpsRel=EpsLayer[nl], MuRel=MuLayer[nl];
+      double MyzGP = (nl==NumInterfaces ? zGP : -1.0*HUGE_VAL);
+      AddGamma0(XDS+0, XDS+3, Omega, EpsRel, MuRel, GMatrix->ZM + nx*36, MyzGP);
+    };
+#endif
+    
     
      
   return GMatrix;
@@ -417,9 +386,9 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
-                                       double XD[3], double XS[3],
-                                       cdouble ScriptG[6][6], DGFMethod Method, bool AddHomogeneousDGF)
+void LayeredSubstrate::GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3],
+                                       cdouble ScriptG[6][6], DGFMethod Method,
+                                       bool AddHomogeneousDGF)
 { 
   double XBuffer[6];
   HMatrix XMatrix(1,6,LHM_REAL,XBuffer);
@@ -431,7 +400,8 @@ void LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
 
   GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method, AddHomogeneousDGF);
 
+  HMatrix ScriptGMatrix(6,6,LHM_COMPLEX,GBuffer);
   for(int Mu=0; Mu<6; Mu++)
    for(int Nu=0; Nu<6; Nu++)
-    ScriptG[Mu][Nu] = GMatrix.GetEntry(6*Mu + Nu,0);  
+    ScriptG[Mu][Nu] = ScriptGMatrix.GetEntry(Mu,Nu);
 }

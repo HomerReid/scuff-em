@@ -243,11 +243,8 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   I3DRhoMin=I3DZDMin=I3DZSMin=HUGE_VAL;
   I3DRhoMax=I3DZDMax=I3DZSMax=-HUGE_VAL;
 
-  EntryOnly=-1;
-  LayerOnly=-1;
-  qThetaPoints=0;
   ForceMethod=AUTO;
-  EEOnly=XYOnly=ForceFreeSpace=StaticLimit=false;
+  ForceFreeSpace=StaticLimit=false;
 
   ErrMsg=0;
 }

@@ -43,6 +43,7 @@
 /*  G = G_ij in a coordinate system in which (x,y)=(Rho*CP,Rho*SP)*/
 /* p,q label the quadrant: EE, EM, ME, MM                         */
 /*******************************************************************/
+#if 0
 void LayeredSubstrate::RotateG(cdouble G[6][6], int p, int q, double CP, double SP)
 {
   cdouble GP[3][3];
@@ -77,6 +78,7 @@ void LayeredSubstrate::RotateG(cdouble Gij[6][6], double Phi)
    for(int q=0; q<2; q++)
     RotateG(Gij, p, q, CP, SP);
 }
+#endif
 
 /***************************************************************/
 /* entry point with the proper prototype for passage to the    */
@@ -182,13 +184,15 @@ void LayeredSubstrate::InitAccelerator1D(cdouble Omega,
   /* number of nonzero components that must be stored per grid   */
   /* point                                                       */
   /***************************************************************/
-  int nzFun;
+  int nzFun=22;
+/*
   if (EEOnly && XYOnly)
    nzFun = 2;
   else if (EEOnly)
    nzFun = 5;
   else
    nzFun = 14;
+*/
   int nFun = 2*nzFun; // 2 real-valued functions for each z-valued function
 
   /***************************************************************/
@@ -329,7 +333,7 @@ bool LayeredSubstrate::GetSubstrateDGF_Interp1D(cdouble Omega, double *XD, doubl
   /***************************************************************/
   /* rotate back to original coordinates *************************/
   /***************************************************************/
-  RotateG(Gij, atan2(RhoY, RhoX) );
+  //RotateG(Gij, atan2(RhoY, RhoX) );
   return true;
 }
 
@@ -487,7 +491,7 @@ bool LayeredSubstrate::GetSubstrateDGF_Interp3D(cdouble Omega, double *XD, doubl
   /***************************************************************/
   /* rotate back to original coordinates *************************/
   /***************************************************************/
-  RotateG(Gij, atan2(RhoY, RhoX) );
+  //RotateG(Gij, atan2(RhoY, RhoX) );
   return true;
 }
 

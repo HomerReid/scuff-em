@@ -48,11 +48,17 @@ using namespace scuff;
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
+/* global variables ********************************************/
+/***************************************************************/
+double Eta=1.0e-6; 
+double Threshold=1.0e-6; 
+bool PrintSuccesses=false;
+
+/***************************************************************/
 /* test satisfaction of boundary conditions at material        */
 /* interface #ni                                               */
 /***************************************************************/
-bool TestInterface(LayeredSubstrate *S, int ni, cdouble Omega, cdouble q2D[2],
-                   double Eta=1.0e-6, double Threshold=1.0e-6)
+bool TestInterface(LayeredSubstrate *S, int ni, cdouble Omega, cdouble q2D[2])
 { 
   
   int NI       = S->NumInterfaces;
@@ -120,22 +126,30 @@ bool TestInterface(LayeredSubstrate *S, int ni, cdouble Omega, cdouble q2D[2],
      printf("Interface %i, source in layer %i (zSource=%g): ref val %e \n",ni,nl,zSource,RefVal);
      printf("         | %23s | %23s | RD\n","Above","Below");
      SetDefaultCD2SFormat("{%+.3e,%+.3e}");
-     bool ThisPassed=true;
+     int NumPassed=0;
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
        { cdouble X=GAbove.GetEntry(Mu,Nu);
          cdouble Y=GBelow.GetEntry(Mu,Nu);
          double RelDiff = abs(X-Y) / RefVal;
          bool MuNuPassed = RelDiff<=Threshold;
-         ThisPassed &= MuNuPassed;
+         if (MuNuPassed) 
+          { NumPassed++;
+            if (!PrintSuccesses) continue;
+          };
          if (!MuNuPassed) printf("\033[1;31m");
          const char EH[3]="EH", xyz[4]="xyz";
          printf("%c%c%c%c | %s | %s | %e\n",EH[Mu/3],EH[Nu/3],xyz[Mu%3],xyz[Nu%3],CD2S(X),CD2S(Y),RelDiff);
-         if (!MuNuPassed) printf("\033[0m");
+         printf("\033[0m");
       };
-     if (!ThisPassed)
-      Warn(" test failed for interface %i with source in layer %i",ni,nl);
-     AllPassed&=ThisPassed;
+     if (NumPassed!=36)
+      { printf("\033[1;31m");
+        printf("%i/%i tests failed for interface %i with source in layer %i\n",36-NumPassed,36,ni,nl);
+        printf("\033[0m");
+        AllPassed=false;
+      }
+     else 
+      printf(" all tests passed for interface %i with source in layer %i\n",ni,nl);
 
    } // //for(int nl=0; nl<S->NumLayers; nl++)
 
@@ -145,8 +159,7 @@ bool TestInterface(LayeredSubstrate *S, int ni, cdouble Omega, cdouble q2D[2],
 /***************************************************************/
 /* test satisfaction of boundary conditions at ground plane    */
 /***************************************************************/
-bool TestGroundPlane(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2],
-                     double Eta=1.0e-6, double Threshold=1.0e-6)
+bool TestGroundPlane(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2])
 { 
   if (isinf(S->zGP))
    return true;
@@ -201,17 +214,30 @@ bool TestGroundPlane(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2],
 
      printf("GP, source in layer %i (zSource=%g): ref val %e \n",nl,zSource,RefVal);
      printf("    | %23s | abs/ref \n","G(zGP)");
+     int NumPassed=0;
      for(int Mu=0; Mu<6; Mu++)
       for(int Nu=0; Nu<6; Nu++)
        { if (Mu==2 || Mu==5) continue;
          cdouble X=GGP.GetEntry(Mu,Nu);
          double RelDiff = abs(X) / RefVal;
-         if (RelDiff>Threshold) printf("\033[1;31m");
+         bool MuNuPassed = RelDiff<=Threshold;
+         if (MuNuPassed) 
+          { NumPassed++;
+            if (!PrintSuccesses) continue;
+          };
          const char EH[3]="EH", xyz[4]="xyz";
+         if (!MuNuPassed) printf("\033[1;31m");
          printf("%c%c%c%c | %s | %e\n",EH[Mu/3],EH[Nu/3],xyz[Mu%3],xyz[Nu%3],CD2S(X),RelDiff);
-         if (RelDiff>Threshold) printf("\033[0m");
-         AllPassed &= (RelDiff<=Threshold);
-      };
+         printf("\033[0m");
+       };
+     if (NumPassed!=24)
+      { printf("\033[1;31m");
+        printf("%i/%i tests failed for groundplane with source in layer %i\n",24-NumPassed,24,nl);
+        printf("\033[0m");
+        AllPassed=false;
+      }
+     else 
+      printf(" all tests passed for groundplane with source in layer %i\n",nl);
 
    } // //for(int nl=0; nl<S->NumLayers; nl++)
 
@@ -221,23 +247,20 @@ bool TestGroundPlane(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2],
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-bool RunUnitTest(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2], 
-                  double Eta=1.0e-6, double Threshold=1.0e-6)
+bool RunUnitTest(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2])
 {
-
   bool AllPassed=true;
   for(int ni=0; ni<S->NumInterfaces; ni++)
-   AllPassed &= TestInterface(S, ni, Omega, q2D, Eta, Threshold);
+   AllPassed &= TestInterface(S, ni, Omega, q2D);
   if (!isinf(S->zGP))
-   AllPassed &= TestGroundPlane(S, Omega, q2D, Eta, Threshold);
+   AllPassed &= TestGroundPlane(S, Omega, q2D);
   return AllPassed;
 }
 
-bool RunUnitTest(int nTest, cdouble Omega, cdouble q2D[2], 
-                double Eta=1.0e-6, double Threshold=1.0e-6)
+bool RunUnitTest(int nTest, cdouble Omega, cdouble q2D[2])
 { 
   LayeredSubstrate *S = CreateLayeredSubstrate(TestSubstrates[nTest]);
-  bool Status = RunUnitTest(S, Omega, q2D, Eta, Threshold);
+  bool Status = RunUnitTest(S, Omega, q2D);
   delete S;
   return Status;
 }
@@ -258,8 +281,6 @@ int main(int argc, char *argv[])
   char *XDSFile=0;
   cdouble Omega=0.7;
   cdouble q2D[2]={0.1, 0.2};
-  double Eta=1.0e-6;
-  double Threshold=1.0e-2;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"Test",          PA_INT,     1, 1, (void *)&WhichTest,     0, "index of unit test"},
@@ -269,6 +290,7 @@ int main(int argc, char *argv[])
      {"q2D",           PA_CDOUBLE, 2, 1, (void *)q2D,            0, "qx qy"},
      {"Eta",           PA_DOUBLE,  1, 1, (void *)&Eta,           0, ""},
      {"Threshold",     PA_DOUBLE,  1, 1, (void *)&Threshold,     0, ""},
+     {"PrintSuccesses",PA_BOOL,    0, 1, (void *)&PrintSuccesses, 0, ""},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -279,7 +301,7 @@ int main(int argc, char *argv[])
   bool AllPassed=true;
   if (SubstrateFile==0 && WhichTest==-1)
    { for(int nTest=0; nTest<NUMTESTS; nTest++)
-       AllPassed &= RunUnitTest(nTest, Omega, q2D, Eta, Threshold);
+       AllPassed &= RunUnitTest(nTest, Omega, q2D);
      return AllPassed;
    };
 
@@ -289,7 +311,7 @@ int main(int argc, char *argv[])
   else
    S=new LayeredSubstrate(SubstrateFile);
 
-  AllPassed=RunUnitTest(S, Omega, q2D, Eta, Threshold);
+  AllPassed=RunUnitTest(S, Omega, q2D);
 
   /***************************************************************/
   /***************************************************************/
@@ -300,7 +322,7 @@ int main(int argc, char *argv[])
      for(int nx=0; nx<XDSMatrix->NR; nx++)
       { double zDest = XDSMatrix->GetEntryD(nx,2), zSource = XDSMatrix->GetEntryD(nx,5);
         HMatrix GTwiddle(6,6,LHM_COMPLEX);
-        S->GetScriptGTwiddle(Omega, q2D, zDest, zSource, &GTwiddle);
+        S->GetScriptGTwiddle(Omega, q2D, zDest, zSource, &GTwiddle, 0, false, false, true);
         cdouble EpsRel = S->EpsLayer[S->GetLayerIndex(zDest)];
         cdouble MuRel  = S->MuLayer[S->GetLayerIndex(zDest)];
         fprintf(f,"%e %e ",zDest,zSource);

@@ -147,7 +147,9 @@ $$\vb x\subt{D},\vb x\subt{S} \in \text{infinite homogeneous medium } r
    \vbGamma(\omega; \vb x\subt{D}, \vb x\subt{S})
 = \vbGamma^{0r}(\omega; \vb x\subt{D}-\vb x\subt{S})
 $$
-where
+where\footnote{Cf. Section 3 of the companion memo
+``{\sc libscuff} implementation and Technical Details,''
+\url{http://homerreid.github.io/scuff-em-documentation/tex/lsInnards.pdf}}
 \numeq{vbGamma0Def}
 {
  \vbGamma^{0r}(\omega, \vb r)
@@ -158,13 +160,14 @@ where
  \end{array}\right)
 }
 $$ k_r \equiv \sqrt{\epsilon_0 \epsilon^r \mu_0 \mu^r}\cdot \omega,
-   \qquad 
-   Z_r \equiv \sqrt\frac{\mu_0 \mu^r}{\epsilon_0 \epsilon^r},
-   \qquad
+   \quad 
+   Z_0Z^r \equiv \sqrt\frac{\mu_0 \mu^r}{\epsilon_0 \epsilon^r},
+$$
+$$
    G_{ij}=\left(\delta_{ij} - \frac{1}{k^2}\partial_i \partial_j\right)
    \frac{e^{ik|\vb r|}}{4\pi|\vb r|},
-   \qquad
-   C_{ij}=-\frac{1}{ik}\varepsilon_{ik\ell}\partial_k G_{\ell j}
+   \quad
+   C_{ij}=\frac{\varepsilon_{i\ell m}}{ik} \partial_\ell G_{m j}
 $$
 %====================================================================%
 \paragraph{Inhomogeneous DGF}
@@ -191,7 +194,6 @@ denote by the symbol $\bmc G$:
 Like $\vbGamma$, $\bmc G$ is a 
 $6\times 6$ matrix with a $2\times 2$ block structure:
 %====================================================================%
-\begin{subequations}
 \begin{align} 
  \bmc G(\omega; \vb x\subt{D}, \vb x\subt{S})
 &=
@@ -199,16 +201,16 @@ $6\times 6$ matrix with a $2\times 2$ block structure:
    \bmc G\supt{EE} & \bmc G\supt{EM} \\
    \bmc G\supt{ME} & \bmc G\supt{MM}
  \end{array}\right)
+\label{ScriptGDef}
 \intertext{with the $3\times 3$ subblocks defined by} 
 \mc G\supt{PQ}_{ij}&=
-\left(\begin{parbox}{0.6\textwidth}
-  { P-type field at $\vb x\subt{D}$ due to
+\left(\begin{parbox}{0.83\textwidth}
+  { $i$-component of P-type field at $\vb x\subt{D}$ due to
     surface currents on substrate interface layers induced
-    by $j$-directed Q-type source at $\vb x\subt{S}$
+    by $j$-directed Q-type source at $\vb x\subt{S}.$
   } \end{parbox}\right)
+\nonumber
 \end{align}
-\label{ScriptGDef}%
-\end{subequations}
 {\sc libsubstrate} is a code for numerical computation of $\bmc G$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -519,7 +521,7 @@ $
 and 
 %====================================================================%
 $$ \vb g(k; \vb q) =
-   \vb 1 - \frac{\vb q\vb q^\dagger}{k^2},
+   \vb 1 - \frac{\vb q\vb q^\top}{k^2},
    \qquad 
    \vb c^\pm
    =\left(\begin{array}{cc} 0 & \mp 1 \\ \pm 1 & 0 \end{array}\right)
@@ -657,28 +659,74 @@ out by the routine \texttt{GetGTwiddle} in {\sc libsubstrate}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\subsection{Reduction of 2D integrals over $\vb q$ to 1D (Sommerfeld) integrals over $q$}
+\subsection{Reduction of 2D Fourier integrals to 1D (Sommerfeld) integrals}
 \label{gTwiddleSection}
 
 The real-space DGF correction is the inverse Fourier transform of
 (\ref{ScriptGFourier}):
 %====================================================================%
-\begin{align*}
+\begin{align}
   \bmc G(\vbrho, z\subt{D}, z\subt{S})
 &= \int \frac{d^2 \vb q}{(2\pi)^2}
   \wt{\bmc G}
       (\vb q; z\subt{D};z\subt{S}) e^{i\vb q \cdot \vbrho}
-\intertext{or, in polar coordinates $(q_x,q_y)=(q\cos\theta_{\vb q}, q\sin\theta_{\vb q}),$}
+\nonumber
+\intertext{or, in polar coordinates with 
+           $(q_x,q_y)=(q\cos\theta_q, q\sin\theta_q),$
+           $(\rho_x,\rho_y)=(\rho\cos\theta_\rho, \rho\sin\theta_\rho),$}
+\bmc G(\vbrho)
 &= \int_{0}^\infty \frac{q\,dq}{2\pi}
    \int_0^{2\pi} \frac{d \theta_q}{2\pi}
-   \wt{\bmc G} (\vb q; z\subt{D};z\subt{S}) e^{iq\rho \cos(\theta_q - \theta_\rho)}.
-\end{align*}
+   \wt{\bmc G} (\vb q) e^{iq\rho \cos(\theta_q - \theta_\rho)}.
+\label{q2DIntegral}
+\end{align}
 %====================================================================%
+(Here and for much of this section I suppress $z\subt{D,S}$ arguments,
+but one must remember that they are always there.\footnote{More specifically,
+the ``$g$-like'' quantities
+$\bmc G(\vbrho), \wt{\bmc G}(\vb q), \wt{g}(q), \wt{\mathfrak{g}}(q,\rho),$
+and $\mathfrak{g}(\rho)$ all depend on $z\subt{S,D}$,
+but the matrix-valued functions $\vbLambda_n(\theta)$ do not.})
 The goal of this section is to integrate out the angular variable $\theta_q$
 to reduce the 2D integral over $\vb q$
-to a 1D integral over $q=|\vb q|$.
+to a 1D integral over $q=|\vb q|$. In abbreviated form this 
+proceeds as follows:
+%====================================================================%
+\begin{enumerate}
+ \item Separate variables by writing $\wt{\bmc G}(\vb q)$ as a sum of
+       products of $\theta_{q}$-independent scalar functions
+       $\wt g(q)$ times $q-$independent matrix-valued functions
+       $\vbLambda(\theta_{q})$ (Section \ref{wtGDecomposition}):
+       $$ \wt{\bmc G}(\vb q)=\sum_{n=1}^{18}
+          \wt{g}^{(n)}(q) \vbLambda^{(n)}(\theta_{q})
+       $$
+ \item Evaluate integrals over $\theta_{q}$ analytically to yield
+       Bessel functions $J_\nu(q\rho)$ multiplying $q$-independent
+       matrix-valued functions $\vbLambda(\theta_{\rho})$
+       (Section \ref{qThetaIntegral}).
+       After this step (\ref{q2DIntegral}) reads
+       \numeq{ScriptGgfrak}
+        { \bmc G(\vbrho)
+           = \sum_{m=1}^{22}
+             \underbrace{
+               \left[ \int_{0}^\infty \wt{\mathfrak{g}}^{(m)}(q,\rho)\,dq\right]
+                        }_{\mathfrak{g}^{(m)}(\rho)}
+             \vbLambda^{(m)}(\theta_{\rho})
+        }
+       where the $\wt{\mathfrak{g}}(q,\rho)$ functions are linear combinations
+       of the $\wt{g}(q)$ functions times Bessel functions in $q\rho$
+       and other factors.
+ \item Evaluate the remaining integrals over $q$ numerically
+       using sophisticated tricks for evaluating Sommereld
+       integrals (Section \ref{SommerfeldIntegral}).
+\end{enumerate}
+%====================================================================%
 
-\paragraph{Scalar$\times$matrix structure of $\wt{\bmc G}$}
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Factor $\wt{\bmc G}$ into $q$-independent and $\theta_{\vb q}$-independent terms}
+\label{wtGDecomposition}
 
 I begin by noting that $\wt{\bmc G}(\vb q)$ may be decomposed as a sum
 of scalar functions of $q=|\vb q|$ times $q$-independent
@@ -686,8 +734,8 @@ matrix-valued functions of $\theta_{\vb q}:$
 %====================================================================%
 \numeq{gTwiddleDef}
 {
-\wt{\bmc G}(\vb q)=\sum_{n=1}^{18}
-   \wt{g}^{(n)}(q) \vbLambda^{(n)}(\theta_{\vb q})
+  \wt{\bmc G}(\vb q)=\sum_{n=1}^{18}
+  \wt{g}^{(n)}(q) \vbLambda^{(n)}(\theta_{\vb q})
 }
 %====================================================================%
 For example, the upper two quadrants read
@@ -710,20 +758,20 @@ For example, the upper two quadrants read
                }_{\vbLambda^{0z}}
 \\[10pt]
 %--------------------------------------------------------------------%
- + &\wt{g}\supt{EE1A}(q)
+ + &\wt{g}\supt{EE1}(q)
     \underbrace{ \left(\begin{array}{ccc}
                        0 & 0 & \cos\theta_{\vb q} \\ 
                        0 & 0 & \sin\theta_{\vb q} \\ 
                        0 & 0 & 0
                  \end{array}\right)
                }_{\vbLambda^{1}(\theta_{\vb q})}
- +  \wt{g}\supt{EE1B}(q)
+ +  \wt{g}\supt{EE1$\top$}(q)
     \underbrace{ \left(\begin{array}{ccc}
                        0 & 0 & 0 \\
                        0 & 0 & 0 \\
                        \cos\theta_{\vb q} & \sin\theta_{\vb q} & 0
                  \end{array}\right)
-               }_{\vbLambda^{1\dagger}(\theta_{\vb q})}
+               }_{\vbLambda^{1\top}(\theta_{\vb q})}
 \\[10pt]
 %--------------------------------------------------------------------%
   +&\wt{g}\supt{EE2}(q)
@@ -733,18 +781,18 @@ For example, the upper two quadrants read
     \cos\theta_{\vb q} \sin\theta_{\vb q} & \sin^2\theta_{\vb q}  & 0 \\
     0                     & 0                    & 0 
    \end{array}\right)
-               }_{\vbLambda^{2A}(\theta_{\vb q})}
+               }_{\vbLambda^{2}(\theta_{\vb q})}
 \\[20pt]
 %--------------------------------------------------------------------%
  \wt{\bmc G\supt{EM}}(\vb q)
- = &g\supt{EM0$\parallel$}(q)
+ = &\wt g\supt{EM0$\parallel$}(q)
     \underbrace{ \left(\begin{array}{ccc}
                        0 & 1 & 0 \\ 
                       -1 & 0 & 0 \\ 
                        0 & 0 & 0 
                  \end{array}\right)
                }_{\vbLambda^{0\times}}
-  +g\supt{EM2}(q)
+  +\wt g\supt{EM2}(q)
    \underbrace{
    \left(\begin{array}{ccc}
     \cos\theta_{\vb q} \sin\theta_{\vb q} & \sin^2\theta_{\vb q} & 0 \\
@@ -754,7 +802,7 @@ For example, the upper two quadrants read
               }_{\vbLambda^{2\times}}
 \\[10pt]
 %--------------------------------------------------------------------%
-  + &g\supt{EM1A}(q)
+  + &\wt g\supt{EM1}(q)
    \underbrace{
     \left(\begin{array}{ccc}
     0 & 0 & -\sin\theta_{\vb q} \\
@@ -762,40 +810,25 @@ For example, the upper two quadrants read
     0 & 0 & 1
    \end{array}\right)
               }_{\vbLambda^{1\times}}
-  + g\supt{EM1B}(q)
+  + \wt g\supt{EM1$\top$}(q)
    \underbrace{
     \left(\begin{array}{ccc}
     0 & 0 & 0 \\
     0 & 0 & 0 \\
    -\sin\theta_{\vb q} & \cos\theta_{\vb q} & 1
    \end{array}\right)
-              }_{\vbLambda^{1\times\dagger}}
+              }_{\vbLambda^{1\times\top}}
 \end{align*}
-and the expressions for $\wt{\bmc G}\supt{ME}$ and $\wt{\bmc G}\supt{MM}$
-are similar, involving the same $\Lambda$ matrices with different 
+where the $\top$ superscript indicates matrix transpose.
+The expressions for $\wt{\bmc G}\supt{ME}$ and $\wt{\bmc G}\supt{MM}$
+are similar, involving the same $\Lambda$ matrices with different
 $\wt{g}$ prefactors.
 
-The real-space substrate DGF reads
-%====================================================================%
-\begin{align*}
-  \bmc G(\vbrho, z\subt{D}, z\subt{S})
-&= \int_{0}^\infty \frac{q\,dq}{2\pi}
-   \int_0^{2\pi} \frac{d \theta_q}{2\pi}
-   \wt{\bmc G} (\vb q; z\subt{D};z\subt{S}) e^{iq\rho \cos(\theta_q - \theta_\rho)}.
-\intertext{Insert (\ref{gTwiddleDef}):}
-&= \sum_n \int_{0}^\infty \frac{q\,dq}{2\pi}
-   \wt g^{(n)}(q)
-   \int_0^{2\pi} \frac{d \theta_q}{2\pi}\vbLambda^{(n)}(\theta_q)e^{iq\rho (\theta_q-\theta_\rho)}
-\intertext{Evaluate $\theta_q$ integrals using Table \ref{BesselIntegralTable}:}
-&= \sum_m \vbLambda^{(m)}(\theta_\rho)
-   \int_{0}^\infty \wt{\mathfrak{g}}^{(m)}(q) \,dq
-\end{align*}
-%====================================================================%
-\begin{align*}
- \wt{\mathfrak{g}}\supt{EE0$\parallel$}(q) 
- &= \frac{q}{2\pi}
-    \left[ \wt{g}\supt{EE0$\parallel$}(q) J_0(q\rho) +\wt{g}\supt{EE2}(q)\frac{J_1(q\rho)}{q\rho} \right]
-\end{align*}
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Evaluate $\theta_{\vb q}$ integrals}
+\label{qThetaIntegral}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -831,13 +864,91 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Using Table \ref{BesselIntegralTable}, the $\theta_{\vb q}$ integral
+in (\ref{q2DIntegral}) may be evaluated analytically to yield
+Bessel-function factors $J_\nu(q\rho)$ $(\nu\in\{0,1,2\})$
+times $\vbLambda$ matrices, now evaluated at $\theta_{\vbrho}$. For
+example, one term in the expansion of $\bmc G(\vbrho)$ is
+%====================================================================%
+\begin{align*}
+  \int_0^\infty \frac{q dq}{2\pi} \wt{g}\supt{EE1}(q)
+  \underbrace{
+  \int_0^{2\pi} \frac{d\theta_q}{2\pi}
+                \vbLambda\supt{1}(\theta_q)e^{iq\rho\cos(\theta_q-\theta_\rho)}
+             }_{iJ_1(q\rho)\vbLambda^1(\theta_\rho)}
+&= \underbrace{
+   \left\{\int_0^\infty 
+   \underbrace{
+   \left[\frac{q}{2\pi} \wt{g}\supt{EE1}(q)\cdot iJ_1(q\rho)\right]
+              }_{\wt{\mathfrak g}\supt{EE1}(q,\rho)}
+   \right\}}_{\mathfrak{g}\supt{EE1}(\rho)}
+   \vbLambda^1(\theta_\rho)
+\end{align*}
+%====================================================================%
+The full set of rules defining the $\wt{\mathfrak{g}}$ is
+%====================================================================%
+\begin{subequations}
+\begin{align}
+  \wt{\mathfrak{g}}\supt{EE0$\parallel$}(q,\rho)
+&\equiv\frac{q}{2\pi}\left[    \wt{g}\supt{EE0$\parallel$}(q) J_0(q\rho)
+                       +  \wt{g}\supt{EE2}(q) \frac{J_1(q\rho)}{q\rho}
+               \right]
+\\
+  \wt{\mathfrak{g}}\supt{EE0z}(q,\rho)
+&\equiv\frac{q}{2\pi}\wt{g}\supt{EE0z}(q) J_0(q\rho)
+\\
+  \wt{\mathfrak{g}}\supt{EE1}(q,\rho)
+&\equiv i\frac{q}{2\pi}\wt{g}\supt{EE1}(q) J_1(q\rho)
+\\
+  \wt{\mathfrak{g}}\supt{EE1$\top$}(q,\rho)
+&\equiv i\frac{q}{2\pi}\wt{g}\supt{EE1$\top$}(q) J_1(q\rho)
+\\
+  \wt{\mathfrak{g}}\supt{EE2}(q,\rho)
+&\equiv-\frac{q}{2\pi}\wt{g}\supt{EE2}(q) J_2(q\rho)
+\\
+  \wt{\mathfrak{g}}\supt{EM0$\parallel \times$}(q,\rho)
+&\equiv\frac{q}{2\pi}\left[    \wt{g}\supt{EM0$\parallel$}(q) J_0(q\rho)
+                       +  \wt{g}\supt{EM2}(q) \frac{J_1(q\rho)}{q\rho}
+                 \right]
+\\
+  \wt{\mathfrak{g}}\supt{EM1$\times$}(q,\rho)
+&\equiv i\frac{q}{2\pi}\wt{g}\supt{EM1A}(q) J_1(q\rho)
+\\
+  \wt{\mathfrak{g}}\supt{EM1$\times\top$}(q,\rho)
+&\equiv i\frac{q}{2\pi}\wt{g}\supt{EM1B}(q) J_1(q\rho)
+\\
+  \wt{\mathfrak{g}}\supt{EM2$\times$}(q,\rho)
+&\equiv-\frac{q}{2\pi}\wt{g}\supt{EM2}J_2(q\rho)
+\end{align}
+\label{wtgFrakDef}%
+\end{subequations}
+%====================================================================%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\subsection{Evaluation of Sommerfeld integrals}
-\label{SommerfeldSection}
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{Evaluate Sommerfeld integrals over $q$}
+\label{SommerfeldIntegral}
+
+Assembling the above pieces, the substrate DGF correction $\bmc G$
+is a sum of 22 terms:\footnote{This tally treats the integrals
+of the two integrand terms on the RHS of (\ref{wtgFrakDef}a) as two separate
+integrals [and similarly for (\ref{wtgFrakDef}f) and the corresponding
+equations for the ME and MM quadrants.] If the terms
+are lumped together then the number of distinct $\mathfrak{g}$ functions
+is 18.}
+%====================================================================%
+\begin{align}
+  \bmc G(\rho) &= \sum_{m=1}^{22} \mathfrak{g}^{(m)}(\rho) \vbLambda(\theta_\rho),
+\nonumber
+\intertext{where the $\mathfrak{g}^{(m)}(\rho)$ functions are defined by
+           Sommerfeld integrals:}
+  \mathfrak{g}^{(m)}(\rho)
+ &\equiv\int_0^\infty \wt{\mathfrak{g}}^{(m)}(q,\rho) \, dq.
+\label{frakgDef}
+\end{align}
+  
+%====================================================================%
 
 %####################################################################%
 %####################################################################%
@@ -847,24 +958,86 @@ $$
          BEM matrix and RHS vector}
 \label{libscuffIntegrationSection}
 
-\begin{align*}
- \bmc G\supt{PQ}(\rho, \theta, z\subt{D}, z\subt{S})
-  &= \sum_{\nu p} 
-      g^{\text{\tiny PQ}\nu p}(\rho, z\subt{D}, z\subt{S})
-      \vbLambda^{\text{\tiny PQ}\nu p}(\theta)
-\label{GPQExpression}
-\\
-g^{\text{\tiny PQ}\nu p}(\rho)
-&=\int \frac{qdq}{(2\pi)}
-       \wt{g}^{\text{\tiny PQ}\nu p}(q)
-        J_\nu(q\rho) e^{i\alpha(q,z\subt{D},z\subt{S})} 
-        \vbLambda^{\text{\tiny PQ}\nu p}(\theta)
-\end{align*}
+\subsection{SIE matrix elements: Panel-panel integrals}
 
-\begin{align*}
-M\supt{PQ}_{\alpha\beta}
- \VMV{\vb b_\alpha}{\bmc G\supt{PQ}}{\vb b_\beta}
-\end{align*}
+If $\mc S_\alpha, S_\beta$ are two \texttt{RWGSurfaces} 
+exposed to the outermost (ambient) region in a {\sc scuff-em}
+geometry, then the elements of the SIE matrix elements corresponding
+to any pair of basis functions
+$\{\vb b_a\in \mc S_\alpha, \vb b_b\in \mc S_\beta\}$ receive
+corrections of the form
+%====================================================================%
+\begin{align}
+   \Delta M\supt{PQ}_{ab}
+ &=\Vmv{\vb b_a}{\bmc G\supt{PQ}}{\vb b_b}
+\nn
+&\equiv \iint
+    \vb    b_a(\vb x_a)
+    \cdot \bmc G\supt{PQ}(\vb x_a, \vb x_b)
+    \cdot \vb b_b(\vb x_b)
+    \,d\vb x_b 
+    \,d\vb x_a 
+\label{MPQabDef}
+\end{align}
+%====================================================================%
+I will consider two different approaches for evaluating the
+panel-panel integrals\footnote{I refer to 4-dimensional
+integrals like (\ref{MPQabDef}) as ``panel-panel integrals'' because
+they are a sum of contributions of integrals over pairs of flat
+triangular panels.} here:
+%====================================================================%
+\begin{enumerate}
+ \item The \textit{spectral inner} approach: In this case I simply evaluate
+       the panel-panel cubature in (\ref{MPQabDef}), with values of
+       $\bmc G$ at each cubature point computed via the methods
+       of {\sc libsubstrate} as described in the previous section
+       (possibly accelerated via interpolation tables).
+       I call this the ``spectral inner'' method because in this case 
+       the $q$ integral in the definition of $\bmc G$
+       is the innermost of 3 integrals. Indeed, inserting equation
+       (\ref{ScriptGgfrak}) we have
+%====================================================================%
+\begin{align}
+\Delta M\supt{PQ}_{ab}
+&\equiv \iint
+    \vb    b_a(\vb x_a)
+    \left\{ \sum \mathfrak{g}^{(m)}(\rho) \vbLambda^{(m)}(\theta_\rho) \right\}
+    \vb b_b(\vb x_b)
+    \,d\vb x_b \,d\vb x_a
+\nonumber
+\intertext{(where $\vbrho=(\vb x_a-\vb x_b)_\parallel=
+           (\rho\cos \theta_\rho, \rho\sin \theta_\rho)$.
+           Recalling the definition (\ref{frakgDef}), this is a sum
+           of triple integrals:
+          }
+&\equiv \iint
+    \vb    b_a(\vb x_a)
+    \left\{ \sum\left[\int_0^\infty \wt{\mathfrak{g}}^{(m)}(q,\rho)dq\right]
+                     \vbLambda^{(m)}(\theta_\rho) \right\}
+     \cdot \vb b_b(\vb x_b)
+    \,d\vb x_b \,d\vb x_a.
+ \label{DeltaMSpectralOuter}
+\end{align}
+
+\item The \textit{spectral outer} approach: In this case I rearrange the
+order of integration in (\ref{DeltaMSpectralOuter}) so that the $q$ integral
+is the \textit{outermost} integral, with an integrand defined for each $q$
+by a panel-panel integral involving the spectral-domain GF:
+%====================================================================%
+\begin{align}
+\Delta M\supt{PQ}_{ab}
+&= \int_0^\infty \left\{
+    \iint \vb b_a(\vb x_a)
+      \Big[ \sum \wt{\mathfrak{g}}^{(m)}(q,\rho) \vbLambda^{(m)}(\theta_\rho) 
+      \Big]
+          \vb b_b(\vb x_b)
+    \,d\vb x_b \,d\vb x_a\right\} dq
+ \label{DeltaMSpectralOuter}
+\end{align}
+%====================================================================%
+
+\end{enumerate}
+
 
 %####################################################################%
 %####################################################################%
@@ -887,7 +1060,7 @@ The unit-test code \texttt{tGTwiddle.cc} tests that the full
 Fourier-space DGF $\wt \vbGamma(\vb q, z\subt{D}, z\subt{S})$ satisfies the appropriate
 boundary conditions at each layer of the layered substrate, namely
 %====================================================================%
-\numeq{tgTwiddleCOndition1}
+\numeq{tgTwiddleCondition1}
 { C^+(\text{P},i,\ell) \wt{\Gamma}\supt{PQ}_{ij}(\vb q, z_\ell+\eta, z\subt{S})
    C^-(\text{P},i,\ell) \wt{\Gamma}\supt{PQ}_{ij}(\vb q, z_\ell-\eta, z\subt{S})
 }
@@ -913,7 +1086,7 @@ $$
 %====================================================================%
 If a ground plane is present, we have the additional condition
 %====================================================================%
-\numeq{tgTwiddleCOndition2}
+\numeq{tgTwiddleCondition2}
 {\wt{\Gamma}\supt{PQ}_{ij}(q,z\subt{GP},z\subt{S})=0 \qtq{for} i\in \{x,y\}.}
 %====================================================================%
 Conditions (\ref{tgTwiddleCondition1}) and (\ref{tgTwiddleCondition2})
@@ -923,4 +1096,35 @@ and $j\in\{1,2,3\}$ and of the values of $\vb q$ and $z\subt{S}$.
 %####################################################################%
 %####################################################################%
 %####################################################################%
+\appendix
+\newpage
+\section{PEC traces on grounded dielectric slab}
+
+%====================================================================%
+\begin{align*}
+ \mathbb{E}_\alpha(\vb x_0)
+&=i\omega\mu_0 \int d\vb x_\alpha$
+  \vb b_\alpha(\vb x_\alpha) g\subt{A}(\vb x_0, \vb x_\alpha)
+  
+  d\vb x_\alpha
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+  M\supt{EE}_{\alpha\beta}
+&=\Vmv{\vb b_\alpha}{\vbGamma\supt{EE}}{\vb b_\beta} 
+\\
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ g\subt{A}(\vb x\subt{D}, \vb x\subt{S})
+&=\frac{1}{4\pi}
+  \int \frac{J_0(q\rho)}{D\supt{TE}} 
+  \left\{\begin{array}{c} e^{-
+\end{align*}
+%====================================================================%
+
 \end{document} 

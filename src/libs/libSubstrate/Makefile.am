@@ -6,10 +6,10 @@ libSubstrate_la_SOURCES = 	\
  libSubstrate.cc		\
  Interpolation.cc		\
  FullWave.cc                	\
+ gFrak.cc                       \
  GTwiddle.cc                    \
- Static.cc			\
- SommerfeldIntegrand.cc         \
- SommerfeldIntegrator.cc
+ SommerfeldIntegrator.cc        \
+ Static.cc
 
 #if $(MMAKE)
 #AM_CXXFLAGS=-ggdb -O0

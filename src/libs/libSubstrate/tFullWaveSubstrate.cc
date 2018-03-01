@@ -61,30 +61,31 @@ void CalcGC(double R[3], cdouble Omega,
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
 }
 
+void AddGamma0(double XD[3], double XS[3], cdouble Omega,
+               cdouble EpsRel, cdouble MuRel, cdouble *Gamma0,
+               double zGP=-1.0*HUGE_VAL, bool Image=false);
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetGExact(cdouble Omega, double XDS[6], bool GroundPlane,
-               cdouble ScriptG[6][6])
+void GetGamma0(double XDS[6], cdouble Omega, cdouble EpsRel, cdouble MuRel,
+               cdouble Gamma0[6][6])
 {
   double R[3];
   VecSub(XDS+0, XDS+3, R);
-  if (GroundPlane) R[2]=XDS[2]+XDS[5];
   cdouble G[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
-  CalcGC(R, Omega, 1.0, 1.0, G, C, dG, dC);
+  CalcGC(R, Omega, EpsRel, MuRel, G, C, dG, dC);
+  cdouble k=sqrt(EpsRel*MuRel)*Omega;
+  cdouble ZAbs=ZVAC*sqrt(MuRel/EpsRel);
   for(int P=0; P<2; P++)
    for(int Q=0; Q<2; Q++)
-    { cdouble PreFac = II*Omega;
-      if (P==0 && Q==0) PreFac*=ZVAC; // EE quadrant
+    { cdouble PreFac = II*k;
+      if (P==0 && Q==0) PreFac*=ZAbs; // EE quadrant
       if (P==1 && Q==0) PreFac*=-1.0; // ME quadrant
-      if (P==1 && Q==1) PreFac/=ZVAC; // MM quadrant
+      if (P==1 && Q==1) PreFac/=ZAbs; // MM quadrant
       for(int Mu=0; Mu<3; Mu++)
        for(int Nu=0; Nu<3; Nu++)
-        { double Sign = 1.0;
-          if (GroundPlane && ((Q==0 && Nu<2) || (Q==1 && Nu==2)))
-           Sign=-1.0;
-          ScriptG[3*P+Mu][3*Q+Nu]=PreFac*Sign*(P==Q ? G[Mu][Nu] : C[Mu][Nu]);
-        };
+        Gamma0[3*P+Mu][3*Q+Nu]=PreFac*(P==Q ? G[Mu][Nu] : C[Mu][Nu]);
     };
 }
 
@@ -102,17 +103,17 @@ bool RunUnitTest(int NumTest, cdouble Omega, double *XDS, FILE *DataFile=0)
   cdouble GTest[6][6];
   S->GetSubstrateDGF(Omega, XDS+0, XDS+3, GTest);
 
-  cdouble GExact[6][6];
+  cdouble GVacuum[6][6];
   if (NumTest==0 || NumTest==2)
-   GetGExact(Omega, XDS, (NumTest==2), GExact);
+   GetGVacuum(Omega, XDS, (NumTest==2), GVacuum);
 
   if (DataFile)
    { fprintVec(DataFile,XDS,6);
-     fprintVec(DataFile,(cdouble *)GExact,36);
+     fprintVec(DataFile,(cdouble *)GVacuum,36);
      fprintVecCR(DataFile,(cdouble *)GTest,36);
    }
   else
-   Compare((cdouble *)GExact, (cdouble *)GTest, 36, "Exact", "Test");
+   Compare((cdouble *)GVacuum, (cdouble *)GTest, 36, "Exact", "Test");
 
   delete S;
   return true;
@@ -161,18 +162,43 @@ int main(int argc, char *argv[])
      if (NumTest==0)
       S->ForceFreeSpace=true;
    }
+  S->UpdateCachedEpsMu(Omega);
+  cdouble EpsRel = S->EpsLayer[1];
+  cdouble MuRel  = S->MuLayer[1];
   
   HMatrix *XMatrix = XDSFile ? new HMatrix(XDSFile)
                              : new HMatrix(1,6,LHM_REAL,XDS);
 
   FILE *DataFile=fopen("/tmp/tFullWaveSubstrate.out","w");
+  SetDefaultCD2SFormat("%e %e");
   for(int nx=0; nx<XMatrix->NR; nx++)
    { XMatrix->GetEntriesD(nx,":",XDS);
+
      cdouble ScriptG[6][6];
-     DGFMethod Method=Full ? FULL_SURFACE_CURRENT : AUTO;
+     DGFMethod Method=AUTO;
+     bool AddHomogeneousDGF=true;
      S->GetSubstrateDGF(Omega, XDS+0, XDS+3, ScriptG, Method, true);
+     
+     HMatrix MyXMatrix(1,6);
+     MyXMatrix.SetEntriesD(0,":",XDS);
+     HMatrix MyGMatrix(6,6,LHM_COMPLEX);
+     AddGamma0(XDS+0, XDS+3, Omega, EpsRel, MuRel, MyGMatrix.ZM, S->zGP);
+
      fprintVec(DataFile,XDS,6);
-     fprintVecCR(DataFile,(cdouble *)ScriptG,36);
+     for(int i=0; i<6; i++)
+      for(int j=0; j<6; j++)
+       fprintf(DataFile,"%s ",CD2S(ScriptG[i][j]));
+     for(int i=0; i<6; i++)
+      for(int j=0; j<6; j++)
+        fprintf(DataFile,"%s ",CD2S(MyGMatrix.GetEntry(i,j)));
+     fprintf(DataFile,"\n");
+
+ //  HMatrix MyGMatrix(36,1,LHM_COMPLEX);
+ //  S->GetSubstrateDGF(Omega, &MyXMatrix, &MyGMatrix, AUTO, AddHomogeneousDGF);
+
+ //   cdouble Gamma0BF[6][6];
+ //    GetGamma0(XDS, Omega, EpsRel, MuRel, Gamma0BF);
+
    }
   fclose(DataFile);
 }
