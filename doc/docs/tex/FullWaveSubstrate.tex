@@ -871,13 +871,14 @@ times $\vbLambda$ matrices, now evaluated at $\theta_{\vbrho}$. For
 example, one term in the expansion of $\bmc G(\vbrho)$ is
 %====================================================================%
 \begin{align*}
-  \int_0^\infty \frac{q dq}{2\pi} \wt{g}\supt{EE1}(q)
+& \int_0^\infty \frac{q dq}{2\pi} \wt{g}\supt{EE1}(q)
   \underbrace{
   \int_0^{2\pi} \frac{d\theta_q}{2\pi}
                 \vbLambda\supt{1}(\theta_q)e^{iq\rho\cos(\theta_q-\theta_\rho)}
              }_{iJ_1(q\rho)\vbLambda^1(\theta_\rho)}
-&= \underbrace{
-   \left\{\int_0^\infty 
+\\
+&\qquad= \underbrace{
+   \left\{\int_0^\infty \, dq
    \underbrace{
    \left[\frac{q}{2\pi} \wt{g}\supt{EE1}(q)\cdot iJ_1(q\rho)\right]
               }_{\wt{\mathfrak g}\supt{EE1}(q,\rho)}
@@ -885,6 +886,12 @@ example, one term in the expansion of $\bmc G(\vbrho)$ is
    \vbLambda^1(\theta_\rho)
 \end{align*}
 %====================================================================%
+The second line here defines some new symbols:
+$\wt{\mathfrak{g}}$ are functions of $q$ and $\rho$
+defined as products of $\wt{g}(q)$ factors times $J_\nu(q\rho)$
+factors and other factors, while $\mathfrak{g}$ are
+functions of $\rho$ obtained by integrating out the $q$ dependence
+of $\mathfrak{g}(q,\rho)$.
 The full set of rules defining the $\wt{\mathfrak{g}}$ is
 %====================================================================%
 \begin{subequations}
@@ -934,12 +941,12 @@ Assembling the above pieces, the substrate DGF correction $\bmc G$
 is a sum of 22 terms:\footnote{This tally treats the integrals
 of the two integrand terms on the RHS of (\ref{wtgFrakDef}a) as two separate
 integrals [and similarly for (\ref{wtgFrakDef}f) and the corresponding
-equations for the ME and MM quadrants.] If the terms
+equations for the ME and MM quadrants]. If the terms
 are lumped together then the number of distinct $\mathfrak{g}$ functions
 is 18.}
 %====================================================================%
 \begin{align}
-  \bmc G(\rho) &= \sum_{m=1}^{22} \mathfrak{g}^{(m)}(\rho) \vbLambda(\theta_\rho),
+  \bmc G(\rho) &= \sum_{m=1}^{22} \mathfrak{g}^{(m)}(\rho) \vbLambda^{(m)}(\theta_\rho),
 \nonumber
 \intertext{where the $\mathfrak{g}^{(m)}(\rho)$ functions are defined by
            Sommerfeld integrals:}
@@ -957,6 +964,15 @@ is 18.}
 \section{{\sc scuff-em} integration: Substrate contributions to
          BEM matrix and RHS vector}
 \label{libscuffIntegrationSection}
+
+\subsection{Fields of individual basis functions}
+
+%====================================================================%
+\begin{align*}
+ \bmc G\supt{EE}
+&=\int_{
+\end{align*}
+%====================================================================%
 
 \subsection{SIE matrix elements: Panel-panel integrals}
 
@@ -1005,8 +1021,8 @@ triangular panels.} here:
     \vb b_b(\vb x_b)
     \,d\vb x_b \,d\vb x_a
 \nonumber
-\intertext{(where $\vbrho=(\vb x_a-\vb x_b)_\parallel=
-           (\rho\cos \theta_\rho, \rho\sin \theta_\rho)$.
+\intertext{[where $\vbrho=(\vb x_a-\vb x_b)_\parallel=
+           (\rho\cos \theta_\rho, \rho\sin \theta_\rho)$].
            Recalling the definition (\ref{frakgDef}), this is a sum
            of triple integrals:
           }
@@ -1035,9 +1051,16 @@ by a panel-panel integral involving the spectral-domain GF:
  \label{DeltaMSpectralOuter}
 \end{align}
 %====================================================================%
-
 \end{enumerate}
 
+\begin{align*}
+ \mc G_{ij}\supt{EE}
+&=\delta_{ij}
+\end{align*}
+%A\begin{align*}
+%\Vmv{\vb b_\alpha}{\vbGamma_0}{\vb b_\beta}
+%&
+%\end{align*}
 
 %####################################################################%
 %####################################################################%
@@ -1092,39 +1115,5 @@ If a ground plane is present, we have the additional condition
 Conditions (\ref{tgTwiddleCondition1}) and (\ref{tgTwiddleCondition2})
 must hold \textit{independently} of the indices $\text{Q}\in\{\text{E},\text{H}\}$
 and $j\in\{1,2,3\}$ and of the values of $\vb q$ and $z\subt{S}$.
-
-%####################################################################%
-%####################################################################%
-%####################################################################%
-\appendix
-\newpage
-\section{PEC traces on grounded dielectric slab}
-
-%====================================================================%
-\begin{align*}
- \mathbb{E}_\alpha(\vb x_0)
-&=i\omega\mu_0 \int d\vb x_\alpha$
-  \vb b_\alpha(\vb x_\alpha) g\subt{A}(\vb x_0, \vb x_\alpha)
-  
-  d\vb x_\alpha
-\end{align*}
-%====================================================================%
-
-%====================================================================%
-\begin{align*}
-  M\supt{EE}_{\alpha\beta}
-&=\Vmv{\vb b_\alpha}{\vbGamma\supt{EE}}{\vb b_\beta} 
-\\
-\end{align*}
-%====================================================================%
-
-%====================================================================%
-\begin{align*}
- g\subt{A}(\vb x\subt{D}, \vb x\subt{S})
-&=\frac{1}{4\pi}
-  \int \frac{J_0(q\rho)}{D\supt{TE}} 
-  \left\{\begin{array}{c} e^{-
-\end{align*}
-%====================================================================%
 
 \end{document} 

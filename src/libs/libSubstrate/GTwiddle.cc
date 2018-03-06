@@ -271,7 +271,7 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   if (ForceFreeSpace || (GroundPlaneOnly && AddGamma0Twiddle))
    { 
      cdouble Gamma0Twiddle[6][6];
-     int ForceLayer=-1;
+     int ForceLayer=0;
      double Sign=0.0;
      bool Accumulate=false;
      GetGamma0Twiddle(Omega, q2D, zDest, zSource, Gamma0Twiddle,
@@ -303,7 +303,6 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
   /* loops over a and b run over the interfaces above and below the dest*/
   /* or source point.                                                   */
   /**********************************************************************/
-  double TT=Secs();
   int DestLayer   = GetLayerIndex(zDest);
   int aMin        = (DestLayer==0               ? 1 : 0 );
   int aMax        = (DestLayer==NumInterfaces   ? 0 : 1 );
@@ -322,19 +321,15 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
                       ScriptG0TSource[b], SourceLayer, 0.0, false,
                       false, dzSource);
 
-  Times[G0TIME] += Secs() - TT;
  
   /**********************************************************************/
   /* assemble W matrix **************************************************/
   /**********************************************************************/
-  TT=Secs();
   ComputeW(Omega, q2D, &WMatrix);
-  Times[WTIME]+=Secs()-TT;
 
   /**********************************************************************/
   /**********************************************************************/
   /**********************************************************************/
-  TT=Secs();
   RTwiddle.Zero();
   STwiddle.Zero();
   double Sign[2]={-1.0, 1.0};
@@ -354,7 +349,6 @@ void LayeredSubstrate::GetScriptGTwiddle(cdouble Omega, cdouble q2D[2],
     };
   WMatrix.LUSolve(&STwiddle);
   RTwiddle.Multiply(&STwiddle, GTwiddle);
-  Times[SOLVETIME]+=Secs()-TT;
 
   if (OwnsWorkspace) DestroyScriptGTwiddleWorkspace(Workspace);
 

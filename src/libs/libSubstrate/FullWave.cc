@@ -52,7 +52,7 @@ void CalcGC(double R[3], cdouble Omega,
 /***************************************************************/
 void AddGamma0(double XD[3], double XS[3], cdouble Omega,
                cdouble EpsRel, cdouble MuRel, cdouble *Gamma0,
-               double zGP=-1.0*HUGE_VAL, bool Image=false)
+               double zGP, bool Image)
 {
   double R[3];
   R[0]=XD[0]-XS[0];
@@ -247,7 +247,8 @@ void LayeredSubstrate::gFrakToScriptG(cdouble gFrak[NUMGFRAK], double Theta,
 /***************************************************************/
 void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
                                                       HMatrix *XMatrix,
-                                                      HMatrix *ScriptGMatrix)
+                                                      HMatrix *ScriptGMatrix,
+                                                      bool SubtractQS)
 {
   UpdateCachedEpsMu(Omega);
 
@@ -255,7 +256,8 @@ void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
   /* Get gFrak for all evaluation points (and store it in the    */
   /* ScriptGMatrix buffer for convenience)                       */
   /***************************************************************/
-  GetgFrak(Omega, XMatrix, ScriptGMatrix->ZM);
+  cdouble *Workspace=0;
+  GetgFrak(Omega, XMatrix, ScriptGMatrix->ZM, Workspace, SubtractQS);
 
   /***************************************************************/
   /*- for each evaluation point, get the full 6x6 substrate DGF  */
@@ -280,8 +282,8 @@ void LayeredSubstrate::GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
 HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
                                            HMatrix *XMatrix,
                                            HMatrix *GMatrix,
-                                           DGFMethod Method,
-                                           bool AddHomogeneousDGF)
+                                           bool AddHomogeneousDGF,
+                                           bool SubtractQS)
 {
   int NX=XMatrix->NR;
   Log("Computing substrate DGF at %i points...",NX);
@@ -307,6 +309,7 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  int Method=SURFACE_CURRENT;
   if (Omega==0.0) Method=STATIC_LIMIT;
   if (ForceMethod!=AUTO) Method=ForceMethod;
   switch(Method)
@@ -318,7 +321,7 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
      case SURFACE_CURRENT:
      case AUTO:
      default:
-       GetSubstrateDGF_SurfaceCurrent(Omega, XMatrix, GMatrix);
+       GetSubstrateDGF_SurfaceCurrent(Omega, XMatrix, GMatrix, SubtractQS);
        break;
    };
 
@@ -356,7 +359,7 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
     };
 #endif
 #if 1
-  if (AddHomogeneousDGF)
+  if (AddHomogeneousDGF && !ForceFreeSpace)
    for(int nx=0; nx<XMatrix->NR; nx++)
     { double XDS[6];
       XMatrix->GetEntriesD(nx,":",XDS);
@@ -378,17 +381,9 @@ HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *LayeredSubstrate::GetSubstrateDGF(cdouble Omega,
-                                           HMatrix *XMatrix,
-                                           DGFMethod Method)
-{ return GetSubstrateDGF(Omega, XMatrix, 0, Method); }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void LayeredSubstrate::GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3],
-                                       cdouble ScriptG[6][6], DGFMethod Method,
-                                       bool AddHomogeneousDGF)
+                                       cdouble ScriptG[6][6],
+                                       bool AddHomogeneousDGF, bool SubtractQS)
 { 
   double XBuffer[6];
   HMatrix XMatrix(1,6,LHM_REAL,XBuffer);
@@ -398,7 +393,7 @@ void LayeredSubstrate::GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3]
   cdouble GBuffer[36];
   HMatrix GMatrix(36,1,LHM_COMPLEX,GBuffer);
 
-  GetSubstrateDGF(Omega, &XMatrix, &GMatrix, Method, AddHomogeneousDGF);
+  GetSubstrateDGF(Omega, &XMatrix, &GMatrix, AddHomogeneousDGF, SubtractQS);
 
   HMatrix ScriptGMatrix(6,6,LHM_COMPLEX,GBuffer);
   for(int Mu=0; Mu<6; Mu++)

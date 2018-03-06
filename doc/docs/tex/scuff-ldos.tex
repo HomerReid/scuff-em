@@ -43,41 +43,69 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Homogeneous Green's functions}
+\section{Notation and conventions}
 
 Before doing anything we recall our notation and conventions
-for dyadic Green's functions.
-In a homogeneous material region with relative permittivity
-and permeability $\{\epsilon^r, \mu^r\}$, electric and magnetic
-volume currents $\vb J, \vb M$ give rise to electric and magnetic
-fields $\vb E, \vb H$ according to 
+for dyadic Green's functions (DGFs) and local densities of
+states (LDOS).
+
+\subsection*{Dyadic Green's functions}
+
+I use the symbol
+$\vbGamma=\left(\begin{smallmatrix}
+\vbGamma\supt{EE} & \vbGamma\supt{EM} \\
+\vbGamma\supt{ME} & \vbGamma\supt{MM}
+\end{smallmatrix}\right)$ for the 6x6 dyadic Green's function
+giving the electric and magnetic fields produced by
+time-harmonic electric and magnetic volume currents
+$\vb J, \vb M$:
+%====================================================================%
 $$
 \left\{\begin{array}{c} E_i(\vb x) \\[5pt] H_i(\vb x) \end{array}\right\}
 =
 \int
 \left(\begin{array}{cc}
- \Gamma_{ij}\supt{EE}(\vb x, \vb x^\prime) &
- \Gamma_{ij}\supt{EM}(\vb x, \vb x^\prime) \\[5pt]
- \Gamma_{ij}\supt{ME}(\vb x, \vb x^\prime) &
- \Gamma_{ij}\supt{MM}(\vb x, \vb x^\prime)
+ \Gamma_{ij}\supt{EE}(\omega; \vb x; \vb x^\prime) &
+ \Gamma_{ij}\supt{EM}(\omega; \vb x; \vb x^\prime) \\[5pt]
+ \Gamma_{ij}\supt{ME}(\omega; \vb x; \vb x^\prime) &
+ \Gamma_{ij}\supt{MM}(\omega; \vb x; \vb x^\prime)
 \end{array}\right)
-\left(\begin{array}{c} J_i(\vb x) \\[5pt] M_i(\vb x) \end{array}\right)
-dV
+\left(\begin{array}{c} J_j(\vb x^\prime) \\[5pt] M_j(\vb x^\prime) \end{array}\right)
+dV,
 $$
-where
+%====================================================================%
+where all fields and currents are understood to have time dependence 
+$\sim e^{-i\omega t}.$
+In general $\vbGamma$ can be decomposed as the sum of a homogeneous
+part (direct contribution of sources to fields in an infinite homogeneous
+medium) plus a scattering part:
+%====================================================================%
+\numeq{Full0Scat}{\vbGamma = \vbGamma^0 + \vbGamma\sups{scat}}
+%====================================================================%
+The homogeneous part may be written down in closed analytical form
+(see below), while the scattering part typically requires a numerical
+solver like {\sc scuff-em}.
+
+\subsection*{Homogenenous DGFs}
+
+In a homogeneous material region with relative permittivity
+and permeability $\{\epsilon^r, \mu^r\}$, the four quadrants of
+the 6$\times$6 tensor $\vbGamma^0$ may be expressed in terms of
+two $3\times 3$ tensors $\mb G, \mb C$:
 %====================================================================%
 \begin{subequations}
 \begin{align}
- \vbGamma\supt{EE} &= ikZ_0 Z^r \mb G \\
- \vbGamma\supt{EM} &= ik        \mb C \\
- \vbGamma\supt{ME} &= -ik       \mb C \\
- \vbGamma\supt{MM} &= \frac{ik}{Z_0 Z^r} \mb G
+ \vbGamma\supt{0,EE} &= ikZ_0 Z^r \mb G \\
+ \vbGamma\supt{0,EM} &= ik        \mb C \\
+ \vbGamma\supt{0,ME} &= -ik       \mb C \\
+ \vbGamma\supt{0,MM} &= \frac{ik}{Z_0 Z^r} \mb G
 \end{align}
 \label{GammaFromGC}
 \end{subequations}
 %====================================================================%
-where $k=\sqrt{\epsilon^r \mu^r}\cdot \omega$
-is the photon wavenumber in the medium, 
+where $k=\sqrt{\epsilon^r \mu^r}\cdot \omega/c$
+is the photon wavenumber in the medium ($c$ is the vacuum speed 
+of light),
 $Z^r=\sqrt\frac{\mu^r}{\epsilon^r}$ is the dimensionless relative
 wave impedance,
 $Z_0\approx 377\,\Omega$ is the impedance of free space, and
@@ -97,6 +125,77 @@ the $\mb G$ and $\mb C$ tensors are
 \label{GCDef}
 \end{subequations}
 %====================================================================%
+Note that $\mb G$ and $\mb C$ have units of inverse length.
+
+The prefactors in (\ref{GammaFromGC}a,d) may be written in the
+alternative forms
+%====================================================================%
+$$ ikZ_0 Z_r = i\omega \mu_0 \mu^r, \qquad 
+   \frac{ik}{Z_0 Z_r} = i\omega \epsilon_0 \epsilon^r
+$$ 
+%====================================================================%
+where $\{\epsilon_0,\mu_0\}$ are permittivity and permeability of
+free space. I prefer the forms in (\ref{GammaFromGC}) because
+then I don't have to remember the annoying values or units of
+$\{\epsilon_0, \mu_0\}$
+
+In the limit $\vb r\to 0$, the real part of $\mb G$ blows up,
+but the imaginary part remains finite and equal to
+%====================================================================%
+\numeq{ImG0}
+{ \text{Im }\mb G_{ij}(k, 0) =
+  \frac{\text{Re }k}{6\pi}\delta_{ij}.
+}
+%====================================================================%
+
+\subsection*{LDOS from DGFs}
+
+The electric and magnetic local densities of states at a point $\vb r$
+are related to the DGFs according to
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \rho\supt{E}(\omega; \vb r) &=
+\pf{k}{\pi c}\cdot
+\left[
+\frac{1}{ikZ_0 Z^r}
+   \text{Tr }\text{Im }\vbGamma\supt{EE}(\omega; \vb r, \vb r)
+\right]
+\\
+ \rho\supt{M}(\omega; \vb r) &=
+\pf{k}{\pi c}\cdot
+\left[
+\frac{Z_0 Z^r}{ik}
+\text{Tr }\text{Im }\vbGamma\supt{MM}(\vb r, \vb r)
+\right]
+\end{align}
+\label{RhoEMDef}
+\end{subequations}
+%====================================================================%
+where $k,Z^r$ are the wavelength and relative wave impedance
+of the medium at $\vb r$.
+
+My rationale for writing the prefactors in (\ref{RhoEMDef}) the way I do
+is that the quantities in square brackets have dimensions of inverse length
+(indeed, in the homogeneous case the quantities in square brackets
+are both equal to $\text{Tr }\text{Im }\mb G$), making it easy to
+check the units of $\rho$:
+%====================================================================%
+$$\Big[\rho\supt{E,M}\Big]
+  =
+  \left[\frac{k}{\pi c}\right]
+  \left[\frac{1}{\text{length}}\right]
+  =\left[\frac{1}{\text{length}^3\cdot\text{frequency}}\right]
+$$
+%====================================================================%
+
+\subsection*{Vacuum LDOS}
+
+To get the vacuum LDOS, I insert (\ref{GammaFromGC}) into (\ref{RhoEMDef})
+and use (\ref{ImG0}) to get
+$$ \rho_0\supt{E}(\omega)=\rho_0\supt{M}(\omega)=
+   \frac{k^2}{2\pi^2 c}=\frac{\omega^3}{2\pi^3 c^3}.
+$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -104,14 +203,19 @@ the $\mb G$ and $\mb C$ tensors are
 \newpage
 \section{Scattering Green's functions and LDOS in the non-periodic case}
 
-In the presence of scatterers, the scattering parts of the electric
-and magnetic dyadic Green's functions (DGFs) are
+In the presence of scatterers, the homogeneous DGFs are augmented
+by contributions from currents induced on the surfaces of
+material interfaces, cf. (\ref{Full0Scat}). In analogy to equations
+(\ref{GammaFromGC}a,d), I define electric and magnetic
+scattering versions of the $\mb G$ tensor:
 %====================================================================%
 \begin{align*}
  \mc G_{ij}\supt{E}(\omega; \vb x, \vb x^\prime)
-   \equiv
-   \frac{1}{ikZ_0 Z^r}
-  &\left( \parbox{0.65\textwidth}
+ &\equiv
+  \frac{1}{ikZ_0 Z^r}\vbGamma\supt{EE,scat}_{ij}(\omega; \vb x, \vb x^\prime) 
+\\
+ &=\frac{1}{ikZ_0 Z^r}
+   \left( \parbox{0.65\textwidth}
     { $i$-component of scattered $\vb E$-field at $\vb x$
       due to a unit-strength $j$-directed point \textbf{electric} 
       dipole radiator
@@ -122,9 +226,11 @@ and magnetic dyadic Green's functions (DGFs) are
 \\[5pt]
 %%--------------------------------------------------------------------%
  \mc G_{ij}\supt{M}(\omega; \vb x, \vb x^\prime)
-   \equiv
-   \frac{Z_0 Z^r}{ik}
-  &\left( \parbox{0.65\textwidth}
+  &\equiv
+   \frac{Z_0 Z^r}{ik}\vbGamma\supt{MM,scat}_{ij}(\omega; \vb x, \vb x^\prime) 
+\\
+  &=\frac{Z_0 Z^r}{ik}
+   \left( \parbox{0.65\textwidth}
     { $i$-component of scattered $\vb H$-field at $\vb x$
       due to a unit-strength $j$-directed point \textbf{magnetic}
       dipole radiator
@@ -134,39 +240,31 @@ and magnetic dyadic Green's functions (DGFs) are
    \right)
 \end{align*}
 %====================================================================%
-Note that the prefactors in the definitions here are the reciprocals
-of those in (\ref{GammaFromGC}a,d), and that
-$\bmc G\supt{E,M}$ both have dimensions of inverse
+Like $\mb G$, the tensors $\bmc G\supt{E,M}$ have dimensions of inverse
 length.
 
-The enhancement of the local density of states (LDOS)
-at frequency $\omega$ and at a point $\vb x$ in a 
-scattering geometry is related to the scattering DGFs according 
-to\footnote{K Joulain et al.,``Definition and measurement of the local 
-density of electromagnetic states close to an interface,''
-Physical Review B \textbf{68} 245405 (2003)}
+The enhancements of the electric and magnetic LDOS at frequency $\omega$
+at a point $\vb x$ in a scattering geometry are related to these
+scattering DGFs according to
+%\footnote{K Joulain et al.,``Definition and measurement of the local 
+%density of electromagnetic states close to an interface,''
+%Physical Review B \textbf{68} 245405 (2003)}
 %====================================================================%
-$$
-   \texttt{LDOS}(\omega; \vb x)
-   \equiv 
-   \frac{\rho(\omega; \vb x)}{\rho_0(\omega)}
-   \equiv 
-   \frac{\pi}{k_0^2}\text{Tr }\text{Im }
-   \Big[ \bmc G\supt{E}(\omega; \vb x, \vb x)
-        +\bmc G\supt{M}(\omega; \vb x, \vb x)
-   \Big]
+$$ \rho\supt{E}\subs{scat}(\omega; \vb x)
+   \equiv
+   \frac{k}{\pi c}\text{Tr }\text{Im } \bmc G\supt{E}(\omega; \vb x, \vb x),
+   \qquad
+   \rho\supt{m}\subs{scat}(\omega; \vb x)
+   \equiv
+   \frac{k}{\pi c}\text{Tr }\text{Im } \bmc G\supt{M}(\omega; \vb x, \vb x).
 $$
 %====================================================================%
-where $\rho_0(\omega)\equiv k^3_0/(\pi c)$ is the free-space
-LDOS and $k_0=\omega/c$ is the free-space wavenumber at the
-frequency in question.
-
 In {\sc scuff-em} the dyadic GFs may be computed easily by solving a
 scattering problem in which the incident fields arise from a point dipole
 radiator at a source point $\vb x\subt{S}$.
 For example, to compute $\mc G\supt{E}$ we take the incident fields 
 to be the fields of a unit-strength $j$-directed point electric dipole 
-source at $\vb s\supt{S}$:
+source at $\vb x\supt{S}$:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{EHED}
 {
@@ -178,8 +276,8 @@ source at $\vb s\supt{S}$:
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 where $\{\vb E, \vb H\}\supt{ED}\Big(\vb x; \{\vb x_0, \vb p_0\}\Big)$
-are the fields of a point electric dipole radiator 
-at $\vb x_0$ with dipole moment $\vb p_0$. 
+are the fields at $\vb x$ due to a point electric dipole radiator
+at $\vb x_0$ with dipole moment $\vb p_0$.
 (Expressions for these fields are given in 
 Appendix \ref{DipoleFieldsAppendix}).
 Then we simply solve an ordinary {\sc scuff-em} scattering

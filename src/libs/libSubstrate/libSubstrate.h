@@ -50,14 +50,6 @@ enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT};
 #define LIBSUBSTRATE_VERBOSE   2
 #define LIBSUBSTRATE_VERBOSE2  3
 
-#define G0TIME     0
-#define BESSELTIME 1
-#define WTIME      2
-#define SOLVETIME  3
-#define STAMPTIME  4
-#define NUMTIMES   5
-extern const char *TimeNames[];
-
 #ifndef ZVAC
 #define ZVAC 376.73031346177
 #endif
@@ -148,12 +140,12 @@ public:
    /* dyadic GF for eval point #n stored in column-major order,    */
    /* i.e. as a fortran/lapack/libhmat style array, not a C array. */
    /*--------------------------------------------------------------*/
-   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix,
-                            HMatrix *GMatrix=0, DGFMethod Method=AUTO, bool AddHomogeneousDGF=false);
-   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, DGFMethod Method);
-
+   HMatrix *GetSubstrateDGF(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix=0, 
+                            bool AddHomogeneousDGF=false,
+                            bool SubtractQS=false);
    void GetSubstrateDGF(cdouble Omega, double XD[3], double XS[3],
-                        cdouble ScriptG[6][6], DGFMethod Method=AUTO, bool AddHomogeneousDGF=false);
+                        cdouble ScriptG[6][6], bool AddHomogeneousDGF=false,
+                        bool SubtractQS=false);
 
    // various implementations of the full-wave calculation
    void GetSubstrateDGF_StaticLimit(cdouble Omega,
@@ -165,7 +157,8 @@ public:
 
    void GetSubstrateDGF_SurfaceCurrent(cdouble Omega,
                                        HMatrix *XMatrix,
-                                       HMatrix *GMatrix);
+                                       HMatrix *GMatrix,
+                                       bool SubtractQS=false);
 
    /*--------------------------------------------------------------*/
    /*- routines for working with interpolation tables -------------*/
@@ -223,8 +216,13 @@ public:
                              double zDest, double zSource,
                              cdouble *gTwiddleVD[2][2], cdouble *Workspace,
                              bool dzDest=false, bool dzSource=false);
+   void GetgFrakTwiddle(cdouble Omega, cdouble q, double Rho,
+                        double zDest, double zSource, cdouble *gFrakTwiddle,
+                        bool SubtractQS=false, bool EEOnly=false, 
+                        bool ScalarPPIs=false);
    void GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
                  cdouble *Workspace=0, bool SubstractQS=false,
+                 bool EEOnly=false, bool ScalarPPIs=false,
                  bool dRho=false, bool dzDest=false, bool dzSource=false);
    void gFrakToScriptG(cdouble gFrak[NUMGFRAK], double Theta,
                        cdouble ScriptG[36]);
@@ -266,8 +264,6 @@ public:
    double I3DZSMin,  I3DZSMax;
    cdouble I3DOmega;
 
-   double Times[NUMTIMES];
-
    // flags to help in debugging
    DGFMethod ForceMethod;
    bool ForceFreeSpace;
@@ -276,8 +272,15 @@ public:
    bool WritebyqFiles;
  };
 
+/***************************************************************/
+/* free-space Green's functions ********************************/
+/***************************************************************/
 void AddPhiE0(double XDest[3], double xs, double ys, double zs, double Q, double PhiE[4]);
 void AddPhiE0(double XDest[3], double XSource[3], double Q, double PhiE[4]);
+
+void AddGamma0(double XD[3], double XS[3], cdouble Omega,
+               cdouble EpsRel, cdouble MuRel, cdouble *Gamma0,
+               double zGP=-1.0*HUGE_VAL, bool Image=false);
 
 LayeredSubstrate *CreateLayeredSubstrate(const char *FileContent);
 
@@ -290,5 +293,9 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
                          double AbsTol, double RelTol,
                          cdouble *Integral, cdouble *Error,
                          bool Verbose=false, const char *LogFileName=0);
+
+void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
+                     double Rho, double zDest, double zSource,
+                     double *pa, double *pc);
 
 #endif // LIBSUBSTRATE_H

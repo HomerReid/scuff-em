@@ -58,8 +58,7 @@ void LayeredSubstrate::gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
                                             cdouble *Workspace,
                                             bool dzDest, bool dzSource)
 {
- 
-  Amos cdouble GBuffer[36];
+  cdouble GBuffer[36];
   HMatrix GTwiddle(6,6,LHM_COMPLEX,GBuffer);
 
   cdouble q2D[2];
@@ -196,6 +195,8 @@ typedef struct gFrakIntegrandData
    bool dRho, dzDest, dzSource;
    bool Accumulate;
    bool SubtractQS;
+   bool EEOnly;    
+   bool ScalarPPIs;
    FILE *byqFile;
    int NumPoints;
  } gFrakIntegrandData;
@@ -215,6 +216,8 @@ int gFrakIntegrand(unsigned ndim, const double *x,
   bool dzSource            = Data->dzSource;
   bool Accumulate          = Data->Accumulate;
   bool SubtractQS          = Data->SubtractQS;
+  bool EEOnly              = Data->EEOnly;
+  bool ScalarPPIs          = Data->ScalarPPIs;
   FILE *byqFile            = Data->byqFile;
   Data->NumPoints++;
  
@@ -237,6 +240,11 @@ int gFrakIntegrand(unsigned ndim, const double *x,
      q = q0 + u/(1.0-u);
      Jac = 1.0/( (1.0-u)*(1.0-u) );
    };
+  if (q==0.0)
+   q=1.0e-6;
+  cdouble q2=q*q;
+  cdouble Factor = q*Jac/(2.0*M_PI);
+  int NumgFrak = EEOnly ? 6 : NUMGFRAK;
 
   /***************************************************************/
   /* assemble gFrakTwiddle vector for all spatial evaluation points */
@@ -250,7 +258,7 @@ int gFrakIntegrand(unsigned ndim, const double *x,
   cdouble JdJ[2][4];
   double LastRho=1.234e56, LastzDest=2.345e67, LastzSource=3.456e78;
   bool LastdRho=false, LastdzDest=false,  LastdzSource=false;
-  for(int nx=0; nx<XMatrix->NR; nx++)
+  for(int nx=0, nn=0; nx<XMatrix->NR; nx++)
    { 
      double Rhox    = XMatrix->GetEntryD(nx, 0) - XMatrix->GetEntryD(nx,3);
      double Rhoy    = XMatrix->GetEntryD(nx, 1) - XMatrix->GetEntryD(nx,4);
@@ -287,7 +295,6 @@ int gFrakIntegrand(unsigned ndim, const double *x,
      /***************************************************************/
      /* assemble integrand vector ***********************************/
      /***************************************************************/
-     cdouble Factor = q*Jac/(2.0*M_PI);
      for(int dr=0; dr<=(dRho ? 1 : 0); dr++)
       for(int dzd=0; dzd<=(dzDest ? 1 : 0); dzd++)
        for(int dzs=0; dzs<=(dzSource ? 1 : 0); dzs++)
@@ -295,38 +302,54 @@ int gFrakIntegrand(unsigned ndim, const double *x,
           cdouble *J=JdJ[dr];
           cdouble *gTwiddle=gTwiddleVD[dzd][dzs];
 
-          Integrand[_EE0P] += Factor*gTwiddle[_EE0P]*J[0];
-          Integrand[_EE0Z] += Factor*gTwiddle[_EE0Z]*J[0];
-          Integrand[_EE1A] += Factor*gTwiddle[_EE1A]*J[1];
-          Integrand[_EE1B] += Factor*gTwiddle[_EE1B]*J[1];
-          Integrand[_EE2A] += Factor*gTwiddle[_EE2A]*J[2];
-          Integrand[_EE2B] += Factor*gTwiddle[_EE2A]*J[3];
+          cdouble *gFTwiddle = Integrand + NumgFrak*(nn++);
+
+          if (ScalarPPIs)
+           { int DestLayer  = S->GetLayerIndex(zDest);
+             cdouble EpsRel = S->EpsLayer[DestLayer], MuRel=S->MuLayer[DestLayer];
+             cdouble qz = sqrt(EpsRel*MuRel*Omega*Omega - q2);
+             gFTwiddle[_EE0P] += Factor*gTwiddle[_EE0P]*J[0];
+             gFTwiddle[_EE2A] += Factor*gTwiddle[_EE2A]*J[0]/q2;
+             gFTwiddle[_ME1A] += Factor*gTwiddle[_EE0P]*J[1]*q/(II*Omega*MuRel*ZVAC);
+             gFTwiddle[_ME0P] += -II*qz*Factor*gTwiddle[_EE0P]*J[0]/(II*Omega*MuRel*ZVAC);
+             gFTwiddle[_EM1A] -= Factor*gTwiddle[_MM0P]*J[1]*q/(II*Omega*EpsRel/ZVAC);
+             gFTwiddle[_EM0P] += -II*qz*Factor*gTwiddle[_MM0P]*J[0]/(II*Omega*EpsRel/ZVAC);
+             gFTwiddle[_MM0P] -= Factor*gTwiddle[_MM0P]*J[0];
+             gFTwiddle[_MM2A] += Factor*gTwiddle[_MM2A]*J[0]/q2;
+             continue;
+           }
+
+          gFTwiddle[_EE0P] += Factor*gTwiddle[_EE0P]*J[0];
+          gFTwiddle[_EE0Z] += Factor*gTwiddle[_EE0Z]*J[0];
+          gFTwiddle[_EE1A] += Factor*gTwiddle[_EE1A]*J[1];
+          gFTwiddle[_EE1B] += Factor*gTwiddle[_EE1B]*J[1];
+          gFTwiddle[_EE2A] += Factor*gTwiddle[_EE2A]*J[2];
+          gFTwiddle[_EE2B] += Factor*gTwiddle[_EE2A]*J[3];
+          if (EEOnly) continue;
      
-          Integrand[_EM0P] += Factor*gTwiddle[_EM0P]*J[0];
-          Integrand[_EM1A] += Factor*gTwiddle[_EM1A]*J[1];
-          Integrand[_EM1B] += Factor*gTwiddle[_EM1B]*J[1];
-          Integrand[_EM2A] += Factor*gTwiddle[_EM2A]*J[2];
-          Integrand[_EM2B] += Factor*gTwiddle[_EM2A]*J[3];
+          gFTwiddle[_EM0P] += Factor*gTwiddle[_EM0P]*J[0];
+          gFTwiddle[_EM1A] += Factor*gTwiddle[_EM1A]*J[1];
+          gFTwiddle[_EM1B] += Factor*gTwiddle[_EM1B]*J[1];
+          gFTwiddle[_EM2A] += Factor*gTwiddle[_EM2A]*J[2];
+          gFTwiddle[_EM2B] += Factor*gTwiddle[_EM2A]*J[3];
      
-          Integrand[_ME0P] += Factor*gTwiddle[_ME0P]*J[0];
-          Integrand[_ME1A] += Factor*gTwiddle[_ME1A]*J[1];
-          Integrand[_ME1B] += Factor*gTwiddle[_ME1B]*J[1];
-          Integrand[_ME2A] += Factor*gTwiddle[_ME2A]*J[2];
-          Integrand[_ME2B] += Factor*gTwiddle[_ME2A]*J[3];
+          gFTwiddle[_ME0P] += Factor*gTwiddle[_ME0P]*J[0];
+          gFTwiddle[_ME1A] += Factor*gTwiddle[_ME1A]*J[1];
+          gFTwiddle[_ME1B] += Factor*gTwiddle[_ME1B]*J[1];
+          gFTwiddle[_ME2A] += Factor*gTwiddle[_ME2A]*J[2];
+          gFTwiddle[_ME2B] += Factor*gTwiddle[_ME2A]*J[3];
      
-          Integrand[_MM0P] += Factor*gTwiddle[_MM0P]*J[0];
-          Integrand[_MM0Z] += Factor*gTwiddle[_MM0Z]*J[0];
-          Integrand[_MM1A] += Factor*gTwiddle[_MM1A]*J[1];
-          Integrand[_MM1B] += Factor*gTwiddle[_MM1B]*J[1];
-          Integrand[_MM2A] += Factor*gTwiddle[_MM2A]*J[2];
-          Integrand[_MM2B] += Factor*gTwiddle[_MM2A]*J[3];
+          gFTwiddle[_MM0P] += Factor*gTwiddle[_MM0P]*J[0];
+          gFTwiddle[_MM0Z] += Factor*gTwiddle[_MM0Z]*J[0];
+          gFTwiddle[_MM1A] += Factor*gTwiddle[_MM1A]*J[1];
+          gFTwiddle[_MM1B] += Factor*gTwiddle[_MM1B]*J[1];
+          gFTwiddle[_MM2A] += Factor*gTwiddle[_MM2A]*J[2];
+          gFTwiddle[_MM2B] += Factor*gTwiddle[_MM2A]*J[3];
 
           if (byqFile)
            { fprintf(byqFile,"%e %e %e %e %e %i %i %i ",real(q),imag(q),Rho,zDest,zSource,dr,dzd,dzs);
-             fprintVecCR(byqFile,Integrand,NUMGFRAK);
+             fprintVecCR(byqFile,gFTwiddle,NumgFrak);
            };
-
-          Integrand += NUMGFRAK;
         };
 
    }; // for(int nx=0; nx<XMatrix->NR; nx++)
@@ -352,6 +375,41 @@ int gFrakIntegrand(unsigned ndim, const double *x,
   return 0;
 
 } // gFrakIntegrand(...)
+
+void LayeredSubstrate::GetgFrakTwiddle(cdouble Omega, cdouble q, double Rho,
+                                       double zDest, double zSource,
+                                       cdouble*gFrakTwiddle,
+                                       bool SubtractQS, bool EEOnly,
+                                       bool ScalarPPIs)
+{
+  double XDS[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  XDS[0]=Rho;
+  XDS[2]=zDest;
+  XDS[5]=zSource;
+  HMatrix XMatrix(1,6,LHM_REAL,XDS);
+  
+  gFrakIntegrandData MyData, *Data=&MyData;
+
+  Data->Substrate  = this;
+  Data->Omega      = Omega;
+  Data->q0         = 0.0;
+  Data->uTransform = false;
+  Data->XMatrix    = &XMatrix;
+  Data->Workspace  = 0;
+  Data->dRho       = false;
+  Data->dzDest     = false;
+  Data->dzSource   = false;
+  Data->Accumulate = false;
+  Data->SubtractQS = SubtractQS;
+  Data->EEOnly     = EEOnly;
+  Data->EEOnly     = ScalarPPIs;
+  Data->byqFile    = 0;
+  Data->NumPoints  = 0;
+
+  int zfdim = EEOnly ? 6 : NUMGFRAK;
+  int ndim=2;
+  gFrakIntegrand(ndim, (double *)&q, (void *)Data, 2*zfdim, (double *)gFrakTwiddle);
+}
 
 /***************************************************************/
 /* compute a, c parameters for the contour-integral portion of */
@@ -387,7 +445,8 @@ void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 void LayeredSubstrate::GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
-                                cdouble *Workspace, bool SubtractQS,
+                                cdouble *Workspace,
+                                bool SubtractQS, bool EEOnly, bool ScalarPPIs,
                                 bool dRho, bool dzDest, bool dzSource)
 {
   int NX         = XMatrix->NR;
@@ -423,6 +482,8 @@ void LayeredSubstrate::GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
   Data->dzDest      = dzSource;
   Data->Accumulate  = false;
   Data->SubtractQS  = SubtractQS;
+  Data->EEOnly      = EEOnly;
+  Data->ScalarPPIs  = ScalarPPIs;
   Data->byqFile     = byqFile;
   Data->NumPoints   = 0;
   
