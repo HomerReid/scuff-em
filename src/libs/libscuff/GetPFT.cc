@@ -59,19 +59,6 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                bool FarField, char *PlotFileName, 
                GTransformation *GT1, GTransformation *GT2);
 
-// matrix-trace version of DSIPFT for non-equilibrium calculations
-void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
-                    double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
-                    char *BSMesh, double R, int NumPoints,
-                    bool FarField, char *PlotFileName,
-                    GTransformation *GT1, GTransformation *GT2);
-
-// PFT by energy/momentum transfer method
-HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
-                         HVector *KNVector, HMatrix *DRMatrix,
-                         HMatrix *PFTMatrix, bool Interior,
-                         int EMTPFTIMethod, bool Itemize=false);
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -195,7 +182,6 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      int DSIPoints        = Options->DSIPoints;
      bool DSIFarField     = Options->DSIFarField;
      double *kBloch       = Options->kBloch;
-     bool *NeedQuantity   = Options->NeedQuantity;
      GTransformation *GT1 = S->OTGT;
      GTransformation *GT2 = S->GT;
 
@@ -208,8 +194,7 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
                 DSIFarField, FluxFileName, GT1, GT2);
      else 
       GetDSIPFTTrace(this, Omega, DRMatrix,
-                     PFT, NeedQuantity,
-                     DSIMesh, DSIRadius, DSIPoints,
+                     PFT, DSIMesh, DSIRadius, DSIPoints,
                      DSIFarField, FluxFileName, GT1, GT2);
    }
   else if (PFTMethod==SCUFF_PFT_MOMENTS)
@@ -368,8 +353,6 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   Options->DSIRadius=0.0;
   Options->DSIPoints=302;
   Options->DSIFarField=false;
-  for(int nq=0; nq<NUMPFT; nq++) 
-   Options->NeedQuantity[nq]=true;
  
   // options affecting EMTPFT power computation
   Options->Itemize=false;

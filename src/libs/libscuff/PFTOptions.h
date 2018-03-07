@@ -111,7 +111,6 @@ typedef struct PFTOptions
    double DSIRadius;
    int DSIPoints;
    bool DSIFarField;
-   bool NeedQuantity[NUMPFT];
 
    // options affecting EMT PFT computation
    bool Itemize;
@@ -135,11 +134,26 @@ typedef struct PFTOptions
 PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 
 /***************************************************************/
-/***************************************************************/
+/* PFT algorithms **********************************************/
 /***************************************************************/
 class RWGGeometry;
+
+// matrix-trace version of DSIPFT for non-equilibrium calculations
+void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
+                    double PFT[NUMPFT],
+                    char *DSIMesh, double DSIRadius, int DSIPoints,
+                    bool FarField=false, char *PlotFileName=0,
+		    GTransformation *GT1=0, GTransformation *GT2=0);
+
 HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HMatrix *DRMatrix, HMatrix *FMatrix=0);
+                        HMatrix *DRMatrix, HMatrix *FMatrix=0);
+
+// PFT by energy/momentum transfer method
+HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
+                         HVector *KNVector, HMatrix *DRMatrix=0,
+                         HMatrix *PFTMatrix=0, bool Interior=false,
+                         int EMTPFTIMethod=SCUFF_EMTPFTI_DEFAULT,
+                         bool Itemize=false);
 
 void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
                     bool IsPECA, int KNIndexA,

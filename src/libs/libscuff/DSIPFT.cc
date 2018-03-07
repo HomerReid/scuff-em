@@ -586,14 +586,13 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
 /***************************************************************/
 /***************************************************************/
 void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
-                    double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
+                    double PFT[NUMPFT],
                     char *DSIMesh, double DSIRadius, int DSIPoints,
                     bool FarField, char *PlotFileName,
                     GTransformation *GT1, GTransformation *GT2)
 {
   (void) FarField;
   (void) PlotFileName;
-  (void) NeedQuantity;
 
   /***************************************************************/
   /***************************************************************/

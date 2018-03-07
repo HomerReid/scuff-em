@@ -33,6 +33,8 @@
 #include <libhmat.h>
 #include <libscuff.h>
 
+#include <vector>
+
 using namespace scuff;
 
 // these are 'quantity flags' and 'quantity indices' used to 
@@ -65,7 +67,18 @@ using namespace scuff;
 #define QMETHOD_CLIFF    1
 #define QMETHOD_TRAPSIMP 2
 
-#define MAXPFTMETHODS 6
+/*--------------------------------------------------------------*/
+/* each instance of this structure corresponds to a single      */
+/* displaced-surface-integral PFT calculation                   */
+/*--------------------------------------------------------------*/
+typedef struct DSIPFTData
+ { RWGSurface *TrackingSurface;
+   char *DSIMesh;
+   double DSIRadius;
+   int DSIPoints;
+   char *Label;
+ } DSIPFTData;
+typedef std::vector <DSIPFTData *>DSIPFTDataList;
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -88,16 +101,9 @@ typedef struct SNEQData
    HMatrix *SRFMatrix; // storage for spatially-resolved fluxes
    int NX;             // number of spatially-resolved points
    int NumSRQs;        // number of spatially-resolved quantities
-
-   /*--------------------------------------------------------------*/
-   /*- options for computing power, force, torque -----------------*/
-   /*--------------------------------------------------------------*/
-   PFTOptions PFTOpts;
-   HMatrix *PFTMatrix;
-   HMatrix *PFTByRegion, **RegionRegionPFT;
-   int NumPFTMethods;
-   int PFTMethods[MAXPFTMETHODS];
-   char *SIFluxFileNames[MAXPFTMETHODS];
+   HMatrix *EMTPFTBySurface;
+   HMatrix *EMTPFTByRegion;
+   DSIPFTDataList DSIPFTs;
 
    /*--------------------------------------------------------------*/
    /* storage for the BEM matrix and its subblocks.                */
@@ -117,15 +123,15 @@ typedef struct SNEQData
    HVector *DSIOmegaPoints;
    bool PlotFlux;       // generate flux plots
    bool OmitSelfTerms;
-   int SourceOnly, DestOnly;
+   int SourceRegion;
 
  } SNEQData;
 
 /*--------------------------------------------------------------*/
 /*- in CreateSNEQData.cc ---------------------------------------*/
 /*--------------------------------------------------------------*/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         int *PFTMethods, int NumPFTMethods,
+SNEQData *CreateSNEQData(RWGGeometry *G, char *TransFile,
+                         bool EMTPFT, DSIPFTDataList DSIPFTs,
                          char *EPFile, char *pFileBase);
 
 /*--------------------------------------------------------------*/

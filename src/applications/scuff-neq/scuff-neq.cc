@@ -41,9 +41,47 @@
 #define MAXFREQ  10    // max number of frequencies 
 #define MAXCACHE 10    // max number of cache files for preload
 
+#define MAXDSI   10
+
 #define MAXSTR   1000
 
 #define II cdouble(0.0,1.0)
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+DSIPFTData *CreateDSIPFTData(RWGGeometry *G, char *DSIMesh,
+                             char *SurfaceLabel=0,
+                             char *DSIRadius=0, char *DSIPoints=0)
+{ 
+  DSIPFTData *Data=(DSIPFTData *)mallocEC(sizeof(DSIPFTData));
+  Data->DSIMesh=DSIMesh;
+  Data->DSIRadius=0.0;
+  Data->DSIPoints=0;
+
+  if (SurfaceLabel)
+   { Data->TrackingSurface = G->GetSurfaceByLabel(SurfaceLabel);
+     if ( !(Data->TrackingSurface))
+      ErrExit("geometry has no tracking surface %s",SurfaceLabel);
+   };
+  if (DSIRadius) sscanf(DSIRadius,"%le",&(Data->DSIRadius));
+  if (DSIPoints) sscanf(DSIPoints,"%i",&(Data->DSIPoints));
+
+  if (!SurfaceLabel)
+   { Data->Label=vstrdup("%s",GetFileBase(DSIMesh));
+     Log("Computing DSIPFT with fixed mesh %s.",DSIMesh);
+   }
+  else if (DSIMesh)
+   { Data->Label=vstrdup("%s.%s",SurfaceLabel,GetFileBase(DSIMesh));
+     Log("Computing DSIPFT for %s (mesh %s)",SurfaceLabel,DSIMesh);
+   }
+  else 
+   { Data->Label=vstrdup("%s.R%g.N%i",SurfaceLabel,Data->DSIRadius,Data->DSIPoints);
+     Log("Computing DSIPFT for %s (radius %g, %i points)",SurfaceLabel,Data->DSIRadius,Data->DSIPoints);
+   }
+
+  return Data;
+}
 
 /***************************************************************/
 /***************************************************************/
@@ -64,8 +102,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *TransFile=0;
-  char *SourceObject=0;
-  char *DestObject=0;
+  char *SourceRegion=0;
 
   /*--------------------------------------------------------------*/
   char *EPFile=0;
@@ -77,13 +114,11 @@ int main(int argc, char *argv[])
 
   /*--------------------------------------------------------------*/
   bool EMTPFT      = false;
-  bool OPFT        = false;
-  bool DSIPFT      = false;
-  int DSIPoints    = 0;
-  int DSIPoints2   = 0;
-  char *DSIMesh    = 0;
-  double DSIRadius = 0.0;
-  bool DSIFarField = false;
+
+  /*--------------------------------------------------------------*/
+  char *FDSIMeshes[MAXDSI];    int nFDSIMeshes=0;
+  char *TDSIMeshes[2*MAXDSI];  int nTDSIMeshes=0;
+  char *TDSISpheres[3*MAXDSI]; int nTDSISpheres=0;
   char *DSIOmegaFile = 0;
 
   /*--------------------------------------------------------------*/
@@ -101,35 +136,31 @@ int main(int argc, char *argv[])
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
-     {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
-     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
+     {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,      0,             "geometry file"},
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,    0,             "list of geometrical transformation"},
 /**/
-     {"SourceObject",   PA_STRING,  1, 1,       (void *)&SourceObject, 0,           "label of source object"},
-     {"DestObject",     PA_STRING,  1, 1,       (void *)&DestObject, 0,             "label of destination object"},
+     {"SourceRegion",   PA_STRING,  1, 1,       (void *)&SourceRegion, 0,             "compute only quantities due to sources in region xx"},
 /**/     
-     {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile, 0,             "list of evaluation points for spatially-resolved flux"},
+     {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile,       0,             "list of evaluation points for spatially-resolved flux"},
 /**/     
-     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
-     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
-     {"OmegaKBFile",    PA_STRING,  1, 1,       (void *)&OmegaKBFile, 0,             "list of (Omega, kx, ky) points"},
+     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals,   "(angular) frequency"},
+     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,    &nOmegaFiles,  "list of (angular) frequencies"},
+     {"OmegaKBFile",    PA_STRING,  1, 1,       (void *)&OmegaKBFile,  0,             "list of (Omega, kx, ky) points"},
 /**/
-     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "prefix for names of .log, .flux, .out files"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,     0,             "prefix for names of .log, .flux, .out files"},
 /**/     
-     {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
-     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms,   0,             "write spatially-resolved flux data"},
+     {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,     0,             "write spatially-resolved flux data"},
 /**/
-     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,     0,             "compute SIFlux using EMT method"},
-     {"OPFT",           PA_BOOL,    0, 1,       (void *)&OPFT,       0,             "compute SIFlux using overlap method"},
-     {"DSIPFT",         PA_BOOL,    0, 1,       (void *)&DSIPFT,     0,             "compute SIFlux using displaced surface integral method"},
-     {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
-     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of cubature points for DSIPFT over sphere (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
-     {"DSIPoints2",     PA_INT,     1, 1,       (void *)&DSIPoints2, 0,             "number of cubature points for DSIPFT second opinion"},
-     {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
-     {"DSIOmegaFile",   PA_STRING,  1, 1,       (void *)&DSIOmegaFile,  0,          "list of frequencies at which to perform DSI calculations"},
+     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,       0,             "compute SIFlux using EMT method"},
 /**/
-     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
-     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
-     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
+     {"FixedDSIMesh",      PA_STRING, 1, MAXDSI,  (void *)FDSIMeshes,  &nFDSIMeshes,  "fixed DSIPFT mesh"},
+     {"TrackingDSIMesh",   PA_STRING, 2, MAXDSI,  (void *)TDSIMeshes,  &nTDSIMeshes,  "tracking DSIPFT object, mesh (e.g. --TrackingDSIMesh MyObject MyMesh.msh)"},
+     {"TrackingDSISphere", PA_STRING, 3, MAXDSI,  (void *)TDSISpheres, &nTDSISpheres, "tracking DSIPFT object, radius, #points (e.g. --TrackingDSISphere MyObject 3.0 302) (#points=6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
+     {"DSIOmegaFile",   PA_STRING,  1, 1,       (void *)&DSIOmegaFile,  0,             "list of frequencies at which to perform DSI calculations"},
+/**/
+     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,                "read/write cache"},
+     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,      "read cache"},
+     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,                "write cache"},
 /**/     
      {0,0,0,0,0,0,0}
    };
@@ -146,29 +177,7 @@ int main(int argc, char *argv[])
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
 
-  if (DSIPFT && DSIPoints==0)
-   DSIPoints=230;
-
-  /*******************************************************************/
-  /* determine which PFT methods were requested       ****************/
-  /*******************************************************************/
-  int NumPFTMethods=0, PFTMethods[MAXPFTMETHODS];
-  if(EMTPFT)
-   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
-  if(OPFT)
-   PFTMethods[NumPFTMethods++] = SCUFF_PFT_OVERLAP;
-  if(DSIMesh)
-   PFTMethods[NumPFTMethods++] = -SCUFF_PFT_DSI;
-  if(DSIPoints)
-   PFTMethods[NumPFTMethods++] = DSIPoints;
-  if(DSIPoints2)
-   PFTMethods[NumPFTMethods++] = DSIPoints2;
-
-  if (NumPFTMethods==0 && EPFile==0)
-   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
-
-  if (DSIMesh) 
-   PlotFlux=true;
+  RWGGeometry *G=new RWGGeometry(GeoFile);
 
   /*******************************************************************/
   /*******************************************************************/
@@ -213,18 +222,27 @@ int main(int argc, char *argv[])
    };
 
   /*******************************************************************/
+  /* process DSIPFT-related options **********************************/
+  /*******************************************************************/
+  if (EMTPFT)
+   Log("Computing EMTPFT");
+  DSIPFTDataList DSIPFTs;
+  for(int n=0; n<nFDSIMeshes; n++)
+   DSIPFTs.push_back(CreateDSIPFTData(G,FDSIMeshes[n]));
+  for(int n=0; n<nTDSIMeshes; n++)
+   DSIPFTs.push_back(CreateDSIPFTData(G,TDSIMeshes[2*n+1],TDSIMeshes[2*n+0]));
+  for(int n=0; n<nTDSISpheres; n++)
+   DSIPFTs.push_back(CreateDSIPFTData(G,0,TDSISpheres[3*n+0],
+                                          TDSISpheres[3*n+1],
+                                          TDSISpheres[3*n+2]));
+
+  /*******************************************************************/
   /* create the SNEQData structure that contains all the info needed */
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile,
-                                 PFTMethods, NumPFTMethods,
-                                 EPFile, FileBase);
-  RWGGeometry *G=SNEQD->G;
+  SNEQData *SNEQD=CreateSNEQData(G, TransFile, EMTPFT, DSIPFTs, EPFile, FileBase);
   SNEQD->PlotFlux                = PlotFlux;
   SNEQD->OmitSelfTerms           = OmitSelfTerms;
-  SNEQD->PFTOpts.DSIMesh         = DSIMesh;
-  SNEQD->PFTOpts.DSIRadius       = DSIRadius;
-  SNEQD->PFTOpts.DSIFarField     = DSIFarField;
   SNEQD->DSIOmegaPoints          = DSIOmegaFile ? new HVector(DSIOmegaFile) : 0;
 
   if (OmegaKBPoints && !G->LBasis)
@@ -232,20 +250,13 @@ int main(int argc, char *argv[])
   else if (G->LBasis && !OmegaKBPoints==0)
    ErrExit("--OmegaKBPoints is required for extended geometries");
 
-  SNEQD->SourceOnly=-1;
-  if (SourceObject)
-   { G->GetSurfaceByLabel(SourceObject, &(SNEQD->SourceOnly) );
-     if (SNEQD->SourceOnly == -1)
-      ErrExit("geometry contains no object with label %s",SourceObject);
-     Log("Computing only quantities sourced by object %s.",SourceObject);
-   };
-  SNEQD->DestOnly=-1;
-  if (DestObject)
-   { G->GetSurfaceByLabel(DestObject, &(SNEQD->DestOnly) );
-     if (SNEQD->DestOnly == -1)
-      ErrExit("geometry contains no object with label %s",DestObject);
-     Log("Computing only PFT quantities for object %s.",DestObject);
-   };
+  SNEQD->SourceRegion=-1;
+  if (SourceRegion)
+   { SNEQD->SourceRegion=G->GetRegionByLabel(SourceRegion);
+     if (SNEQD->SourceRegion== -1)
+      ErrExit("geometry contains no region with label %s",SourceRegion);
+     Log("Computing only quantities sourced by region %s.",SourceRegion);
+   }
          
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */

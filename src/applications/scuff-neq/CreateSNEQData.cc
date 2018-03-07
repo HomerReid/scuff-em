@@ -42,9 +42,18 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName, bool ByRegion=false)
+void WriteFilePreamble(SNEQData *SNEQD, bool IsEMTPFTFile=false,
+                       char *DSILabel=0)
+                       
+                       
 {
-  FILE *f = ByRegion ? vfopen("%s.byRegion","a",FileName) : fopen(FileName,"a");
+  FILE *f;
+  if (IsEMTPFTFile)
+   f=vfopen("%s.EMTPFT.SIFlux","a",SNEQD->FileBase);
+  else if (DSILabel)
+   f=vfopen("%s.%s.DSIPFT.SIFlux","a",SNEQD->FileBase,DSILabel);
+  else
+   f=vfopen("%s.SRFlux","a",SNEQD->FileBase);
   fprintf(f,"\n");
   fprintf(f,"# scuff-neq run on ");
   fprintf(f,"%s (%s)\n",GetHostName(),GetTimeString());
@@ -57,13 +66,22 @@ void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName, bool ByRegion=fals
    fprintf(f,"# %i kBloch_x \n",nq++);
   if (LDim>=2)
    fprintf(f,"# %i kBloch_y \n",nq++);
-  if (ByRegion)
+  if (IsEMTPFTFile)
    fprintf(f,"# %i (sourceRegion,destRegion) \n",nq++);
   else
-   fprintf(f,"# %i (sourceSurface,destSurface) \n",nq++);
-  for(int nPFT=0; nPFT<NUMPFT; nPFT++)
-   fprintf(f,"# %i %s flux spectral density\n",
-  nq++,QuantityNames[nPFT]);
+   fprintf(f,"# %i sourceRegion \n",nq++);
+
+  if (IsEMTPFTFile || DSILabel!=0) // SIFlux file
+   { 
+     for(int nPFT=0; nPFT<NUMPFT; nPFT++)
+      fprintf(f,"# %i %s flux spectral density\n", nq++,QuantityNames[nPFT]);
+   }
+  else // SRFlux file
+   { fprintf(f,"# %2i %2i %2i Px,    Py,    Pz  \n",nq,nq+1,nq+2); nq+=3;
+     fprintf(f,"# %2i %2i %2i Txx,   Txy,   Txz \n",nq,nq+1,nq+2); nq+=3;
+     fprintf(f,"# %2i %2i %2i Tyx,   Tyy,   Tyz \n",nq,nq+1,nq+2); nq+=3;
+     fprintf(f,"# %2i %2i %2i Tzx,   Tzy,   Tzz \n",nq,nq+1,nq+2); nq+=3;
+   };
 
   fclose(f);
 }
@@ -71,20 +89,18 @@ void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName, bool ByRegion=fals
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         int *PFTMethods, int NumPFTMethods,
+SNEQData *CreateSNEQData(RWGGeometry *G, char *TransFile,
+                         bool EMTPFT, DSIPFTDataList DSIPFTs,
                          char *EPFile, char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
   SNEQD->WriteCache=0;
-  SNEQD->SourceOnly=-1;
-  SNEQD->DestOnly=-1;
+  SNEQD->SourceRegion=-1;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G=new RWGGeometry(GeoFile);
   SNEQD->G=G;
   
   if (pFileBase)
@@ -105,41 +121,25 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
    ErrExit("file %s: %s",TransFile,ErrMsg);
   if (SNEQD->NumTransformations==1 && !strcmp(SNEQD->GTCList[0]->Tag,"DEFAULT"))
    sprintf(SNEQD->GTCList[0]->Tag,"0.0");
+  
+  int NT = SNEQD->NumTransformations;
+  int NS = SNEQD->G->NumSurfaces;
+  int NR = SNEQD->G->NumRegions;
 
   /*--------------------------------------------------------------*/
   /*- figure out which PFT methods were requested and write       */
   /*- SIFlux file preambles                                       */
   /*--------------------------------------------------------------*/
-  SNEQD->PFTMatrix = new HMatrix(G->NumSurfaces, NUMPFT);
-  InitPFTOptions( &(SNEQD->PFTOpts) );
-  SNEQD->NumPFTMethods = NumPFTMethods;
   SNEQD->DSIOmegaPoints=0;
-  for(int npm=0; npm<NumPFTMethods; npm++)
-   { 
-     SNEQD->PFTMethods[npm] = PFTMethods[npm];
-
-     char PFTName[20];
-     if (PFTMethods[npm] == -SCUFF_PFT_DSI)
-      { SNEQD->PFTMethods[npm] = SCUFF_PFT_DSI;
-        snprintf(PFTName,20,"DSIMesh");
-      }
-     else if (PFTMethods[npm]>20)
-      { SNEQD->PFTMethods[npm]=SCUFF_PFT_DSI;
-        snprintf(PFTName,20,"DSI%i",PFTMethods[npm]);
-      }
-     else if (PFTMethods[npm]==SCUFF_PFT_OVERLAP)
-      sprintf(PFTName,"OPFT");
-     else if (PFTMethods[npm]==SCUFF_PFT_EMT_EXTERIOR)
-      sprintf(PFTName,"EMTPFT");
-
-     SNEQD->SIFluxFileNames[npm]
-      = vstrdup("%s.SIFlux.%s",SNEQD->FileBase,PFTName);
-     WriteSIFluxFilePreamble(SNEQD, SNEQD->SIFluxFileNames[npm]);
-   };
-  
-  int NT = SNEQD->NumTransformations;
-  int NS = SNEQD->G->NumSurfaces;
-  int NR = SNEQD->G->NumRegions;
+  SNEQD->EMTPFTBySurface = SNEQD->EMTPFTByRegion = 0;
+  if (EMTPFT)
+   { SNEQD->EMTPFTBySurface = new HMatrix(NS, NUMPFT);
+     SNEQD->EMTPFTByRegion  = new HMatrix(NR, NUMPFT);
+     WriteFilePreamble(SNEQD, true);
+   }
+  SNEQD->DSIPFTs = DSIPFTs;
+  for(unsigned n=0; n<DSIPFTs.size(); n++)
+   WriteFilePreamble(SNEQD, false, DSIPFTs[n]->Label);
 
   /*--------------------------------------------------------------*/
   /*- read the list of evaluation points for spatially-resolved  -*/
@@ -160,7 +160,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
         SNEQD->SRXMatrix = new HMatrix(S->NumVertices, 3);
         for(int nv=0; nv<S->NumVertices; nv++)
          SNEQD->SRXMatrix->SetEntriesD(nv,"0:2",S->Vertices + 3*nv);
-        Log("Read %i SR eval points from mesh %s",S->NumVertices,EPFile);
         delete S;
       }
      else
@@ -169,9 +168,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
         if (SNEQD->SRXMatrix->ErrMsg)
          ErrExit(SNEQD->SRXMatrix->ErrMsg); 
       }
+     Log("Computing SR flux at %i points in file %s",SNEQD->SRXMatrix->NR,EPFile);
      int NX = SNEQD->NX = SNEQD->SRXMatrix->NR;
      SNEQD->NumSRQs = NT*NS*NX*NUMSRFLUX;
      SNEQD->SRFMatrix = new HMatrix(NX, NUMSRFLUX);
+     WriteFilePreamble(SNEQD);
    };
 
   /*--------------------------------------------------------------*/
@@ -209,46 +210,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->M        = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   SNEQD->DRMatrix = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   Log("After W, Rytov: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (SNEQD->NumSRQs>0)
-   { FILE *f=vfopen("%s.SRFlux","a",SNEQD->FileBase);
-     fprintf(f,"\n");
-     fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
-     fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1 transform tag\n");
-     fprintf(f,"# 2 omega \n");
-     int nq=3;
-     int LDim = SNEQD->G->LBasis ? SNEQD->G->LBasis->NC : 0;
-     if (LDim>=1)
-      fprintf(f,"# %i kBloch_x \n",nq++);
-     if (LDim==2)
-      fprintf(f,"# %i kBloch_y \n",nq++);
-     fprintf(f,"# %i, %i, %i x,y,z (coordinates of eval point)\n",nq,nq+1,nq+2);
-     nq+=3;
-     fprintf(f,"# %i sourceObject \n",nq++);
-     fprintf(f,"# %2i %2i %2i Px,    Py,    Pz  \n",nq,nq+1,nq+2); nq+=3;
-     fprintf(f,"# %2i %2i %2i Txx,   Txy,   Txz \n",nq,nq+1,nq+2); nq+=3;
-     fprintf(f,"# %2i %2i %2i Tyx,   Tyy,   Tyz \n",nq,nq+1,nq+2); nq+=3;
-     fprintf(f,"# %2i %2i %2i Tzx,   Tzy,   Tzz \n",nq,nq+1,nq+2); nq+=3;
-     fclose(f);
-   };
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  SNEQD->PFTByRegion=0;
-  SNEQD->RegionRegionPFT=0;
-  if( NS > (NR-1) ) 
-   { SNEQD->PFTByRegion = new HMatrix(NR, NUMPFT);
-     SNEQD->RegionRegionPFT = (HMatrix **)mallocEC( NumPFTMethods*sizeof(HMatrix *));
-     for(int npm=0; npm<NumPFTMethods; npm++)
-      { SNEQD->RegionRegionPFT[npm]=new HMatrix( (NR+1)*(NR+1), NUMPFT);
-        WriteSIFluxFilePreamble(SNEQD, SNEQD->SIFluxFileNames[npm], true);
-      };
-   };
 
   Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   return SNEQD;
