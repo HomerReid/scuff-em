@@ -47,8 +47,8 @@ tensor over a bounding surface surrounding the body,
 or the *energy-momentum transfer* (EMT) method, which
 integrates the local power absorption and force over the 
 volume of the body. (Algorithms for spatially-integrated
-PFT calculation are discussed in 
-Refs. [ [3] and [4] ](scuff-neq.md#bibliography)
+PFT calculation are discussed in
+Refs. [[3]](scuff-neq.md#bibliography) and [[4]](scuff-neq.md#bibliography)
 below.
 
 
@@ -126,21 +126,23 @@ In the
 [FSC approach to non-equilibrium fluctuation phenomena][FSCPaper]
 implemented by [[scuff-neq]],
 the total thermally-averaged value of any SR or SI quantity $Q$
-is computed by summing the contributions of fluctuations from
-all bodies at all frequencies:
+is computed by summing the contributions of fluctuations due
+to thermal sources in all bodies at all frequencies:
 
 $$ \big\langle Q\big\rangle
-    = \int_0^\infty \, \sum_b \, \Theta(T_b,\omega) \Phi_b(\omega)\,d\omega
+    = \int_0^\infty \, \sum_s \, \Theta(T_s,\omega) \Phi_s(\omega)\,d\omega
+   \tag{1}
 $$
-where $T_b$ is the temperature of body$b$, $\Phi_b(\omega)$ is
-a temperature-independent *generalized flux* describing the 
-contribution of frequency-$\omega$ source fluctuations in body $b$,
+where $T_s$ is the temperature of body $s$, $\Phi_s(\omega)$ is
+a temperature-independent *generalized flux* describing the
+contribution of frequency-$\omega$ source fluctuations in body $s$,
 and 
-$$\Theta(T_b,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_b} - 1}$$
-is the Bose-Einstein factor.
+$$\Theta(T_s,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$$
+is the Bose-Einstein factor. (The $s$ subscript stands for "source.")
 
-The sum over bodies $b$ in this equation includes the
-contributions of the external environment. To isolate these
+The sum over source bodies $s$ in this equation includes the
+contributions of the external environment, viewed as an 
+infinite `body`. To isolate these
 contributions it is convenient to decompose $\langle Q \rangle$
 into a sum of two terms:
 $$ \begin{array}{rcl}
@@ -156,20 +158,20 @@ $$ \begin{array}{rcl}
 \\[8pt]
  \qquad \big\langle Q\big\rangle^{\small NEQ} 
 &\equiv& 
-  \displaystyle{\int_0^\infty \sum_b }
-  \Big[ \Theta(T_b, \omega) - \Theta(T_{\small env},\omega)\Big]
-        \Phi_b(\omega)\,d\omega 
+  \displaystyle{\int_0^\infty \sum_s }
+  \Big[ \Theta(T_s, \omega) - \Theta(T_{\small env},\omega)\Big]
+        \Phi_s(\omega)\,d\omega 
 \\[4pt]
 &=&
-  \displaystyle{\int_0^\infty \sum_b}
-  \Delta \Theta(T_b, \omega) \Phi_b(\omega)\,d\omega 
+  \displaystyle{\int_0^\infty \sum_s}
+  \Delta \Theta(T_s, \omega) \Phi_s(\omega)\,d\omega 
 \end{array}
 $$
 
 where 
 
-$$ \Delta \Theta(T_b, \omega) \equiv 
-   \Theta(T_b, \omega) - \Theta(T_{\small env},\omega).
+$$ \Delta \Theta(T_s, \omega) \equiv 
+   \Theta(T_s, \omega) - \Theta(T_{\small env},\omega).
 $$
 
 The quantity $\langle Q\rangle^{\small EQ}$
@@ -187,7 +189,7 @@ Casimir force, which is computed efficiently by
 On the other hand, if $Q$ is a spatially-integrated
 power transfer quantity, then 
 $\langle Q\rangle^{\small EQ}=0$ identically.)
-Thus this contribution is not computed by [[scuff-neq]].
+Thus the EQ contributions are not computed by [[scuff-neq]].
 
 The quantity $\langle Q\rangle^{\small NEQ}$
 is the extent to which $\langle Q\rangle$
@@ -205,16 +207,53 @@ the separate [[scuff-integrate]] utility to evaluate
 the actual $\omega$ integrals and compute thermally-averaged 
 power, force, and torque quantities at various temperatures.
 
+<a name="SIFluxAlgorithms"></a>
+# 2. Algorithms for spatially-integrated flux computations
+
+As noted above, the generalized flux $\Phi_b$ in equation (1)
+may describe either a spatially-*resolved* quantity (Poynting flux
+or Maxwell stress at a given point) or a spatially-*integrated*
+quantity (total power or momentum flow into a body).
+In the latter case, <span class=SC>scuff-neq</span> offers
+two distinct algorithms for evaluating the spatial integrals:
+
++Conceptually the simplest algorithm is the "displaced surface-integral"
+    (DSI) method, which computes total power and momentum flows
+    by numerically integrating Poynting flux and Maxwell stress over a closed
+    bounding surface. To use this algorithm, you must specify
+    the bounding surface and make some choices for how to evaluate the
+    numerical surface integral. 
+
++A more subtle algorithm is the "energy/momentum-transfer" (EMT) method,
+    which evaluates the flux of energy and momentum into each material
+    region of your geometry by exploiting equivalence-principle ideas
+    to relate these quantities to the work done on, 
+    and the force and torque exerted on, the effective electric and
+    magnetic surface currents flowing on the surfaces bounding the
+    region. In contrast to the DSI method, for this algorithm there
+    is no user-specified bounding mesh or indeed any other
+    user-configurable parameters.
+
+For geometries consisting of compact homogeneous bodies,
+the EMT and DSI methods should give equivalent results, 
+and in 
+
+On the other hand, the EMT approach offers a couple of conceptual
+advantages:
+
++Because 
+
++For objects
+
 <a name="CommandLineOptions"></a>
-# 2. <span class="SC">scuff-neq</span> command-line options
+# 3. <span class="SC">scuff-neq</span> command-line options
 
 ### Options specifying the geometry
 
-````--geometry  MyGeometry.scuffgeo
+````bash
+--geometry  MyGeometry.scuffgeo
 --TransFile MyTransFile
 ````
-
-{.toc}
 
 The mandatory `--geometry` option specifies the
 [<span class=SC>scuff-em</span> geometry file][Geometries]
@@ -228,22 +267,27 @@ each transform you request.
 
 ### Options specifying frequencies
 
-````--omega 1.23
+````
+--Omega 1.23
 --OmegaFile MyOmegaFile
 ````
 
-The first option here requests computation at just a
+The `--Omega` option requests computation at just a
 single angular frequency (interpreted in 
 [standard <span class=SC>scuff-em</span> units][Units]
-of $\omega_0=3\cdot 10^{14}$ rad/sec).
+of $\omega_0=3\cdot 10^{14}$ rad/sec). You may specify
+this option multiple times to request calcuation at multiple
+frequencies (e.g. `--Omega 1.23 --Omega 2.34`).
 
-The second option specifies a file containing a list
+
+The `--OmegaFile` specifies a file containing a list
 of frequencies $\omega$ (one per line) at which to compute
 generalized fluxes $\Phi(\omega)$.
 
 ### Options requesting spatially-integrated output quantities
 
-````--EMTPFT
+````
+--EMTPFT
 --DSIPFT
 --OPFT   
 ````
@@ -437,7 +481,7 @@ and Maxwell stress at each point in your `EPFile`.
 (See below for more information on what these values mean.)
 
 --------------------------------------------------
-# 4. Using <span class="SC">scuff-integrate</span> to perform frequency integrals
+# 3. Using <span class="SC">scuff-integrate</span> to perform frequency integrals
 
 After running [[scuff-neq]] to get temperature-independent 
 generalized flux data at various frequencies, we
@@ -640,7 +684,7 @@ the force flux has units of *nanoNewtons / watts*,
 and the torque flux has units of *nanoNewtons microns/watts.*
 
 <a name="Examples"></a>
-# 4. Examples of calculations using <span class="SC">scuff-neq</span>
+# 5. Examples of calculations using <span class="SC">scuff-neq</span>
 
 + [Heat radiation from a warm sphere in a cold environment][SiO2Spheres]
 

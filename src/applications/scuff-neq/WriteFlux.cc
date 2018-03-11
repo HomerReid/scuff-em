@@ -319,7 +319,7 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
      /*-     regions via all requested methods                       */
      /*-  c. compute spatially-resolved flux at all requested points */
      /*--------------------------------------------------------------*/
-     for(int SourceRegion=0; SourceRegion<NR; SourceRegion++)
+     for(int SourceRegion=1; SourceRegion<NR; SourceRegion++)
       {
         if ( SNEQD->SourceRegion!=-1 && SourceRegion!=SNEQD->SourceRegion )
          continue;
@@ -334,13 +334,14 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
          { GetEMTPFTMatrix(G, Omega, 0, 0, DRMatrix, EMTPFTBySurface);
            GetPFTByRegion(G, EMTPFTBySurface, EMTPFTByRegion);
            FILE *f=vfopen("%s.EMTPFT.SIFlux","a",FileBase);
-           if (kBloch) fprintVec(f,kBloch,G->LDim);
            for(int DestRegion=0; DestRegion<NR; DestRegion++)
-            { fprintf(f,"%s %e %i%i ",Tag,real(Omega),SourceRegion+1,DestRegion+1);
+            { fprintf(f,"%s %e %i%i ",Tag,real(Omega),SourceRegion,DestRegion);
+              if (kBloch) fprintVec(f,kBloch,G->LDim);
               for(int nq=0; nq<NUMPFT; nq++)
                fprintf(f,"%+.8e ",EMTPFTByRegion->GetEntryD(DestRegion,nq));
               fprintf(f,"\n");
             };
+           fclose(f);
          };
 
         /*--------------------------------------------------------------*/
@@ -348,7 +349,11 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
         /*--------------------------------------------------------------*/
         if (DoDSIAtThisFrequency(SNEQD, Omega))
          for(unsigned n=0; n<DSIPFTs.size(); n++)
-          { DSIPFTData *Data = DSIPFTs[n];
+          { DSIPFTData *Data  = DSIPFTs[n];
+            char *DSIMesh     = Data->DSIMesh;
+            double DSIRadius  = Data->DSIRadius;
+            int DSIPoints     = Data->DSIPoints;
+            HMatrix *RFMatrix = Data->RFMatrix;
             GTransformation *GT1 = 0, *GT2=0;
             if (Data->TrackingSurface)
              { GT1=Data->TrackingSurface->OTGT;
@@ -357,13 +362,13 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
             bool FarField=false;
             char *PlotFileName=0;
             double PFT[NUMPFT];
-            GetDSIPFTTrace(G, Omega, DRMatrix, PFT,
-                           Data->DSIMesh, Data->DSIRadius, Data->DSIPoints,
-                           FarField, PlotFileName, GT1, GT2);
+            bool Dirty = (SourceRegion==1);
+            GetDSIPFTTrace(G, Omega, DRMatrix, PFT, DSIMesh, DSIRadius, DSIPoints,
+                           FarField, PlotFileName, GT1, GT2, RFMatrix, Dirty);
             FILE *f=vfopen("%s.%s.DSIPFT.SIFlux","a",FileBase,Data->Label);
             fprintf(f,"%s %e ",Tag,real(Omega));
             if (kBloch) fprintVec(f,kBloch,G->LDim);
-            fprintf(f,"%i ",SourceRegion+1);
+            fprintf(f,"%i ",SourceRegion);
             fprintVecCR(f,PFT,NUMPFT);
             fclose(f);
           };
@@ -376,7 +381,10 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
           { 
             HMatrix *SRXMatrix = SNEQD->SRXMatrix;
             HMatrix *SRFMatrix = SNEQD->SRFMatrix;
-            GetSRFluxTrace(G, SRXMatrix, Omega, DRMatrix, SRFMatrix);
+            HMatrix *Workspace = SNEQD->SRFluxWorkspace;
+            bool Dirty = (SourceRegion==1);
+            GetSRFluxTrace(G, SRXMatrix, Omega, DRMatrix, SRFMatrix,
+                           Workspace, Dirty);
 
             FILE *f=vfopen("%s.SRFlux","a",FileBase);
             for(int nx=0; nx<SRXMatrix->NR; nx++)

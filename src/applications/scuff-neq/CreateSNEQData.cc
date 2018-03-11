@@ -145,10 +145,11 @@ SNEQData *CreateSNEQData(RWGGeometry *G, char *TransFile,
   /*- read the list of evaluation points for spatially-resolved  -*/
   /*- quantities                                                 -*/
   /*--------------------------------------------------------------*/
-  SNEQD->SRXMatrix = 0;
-  SNEQD->SRFMatrix = 0;
-  SNEQD->NX        = 0; 
-  SNEQD->NumSRQs   = 0;
+  SNEQD->SRXMatrix       = 0;
+  SNEQD->SRFMatrix       = 0;
+  SNEQD->NX              = 0;
+  SNEQD->NumSRQs         = 0;
+  SNEQD->SRFluxWorkspace = 0;
   if (EPFile)
    { 
      // if the EPFile has extension .msh, attempt to
@@ -172,6 +173,7 @@ SNEQData *CreateSNEQData(RWGGeometry *G, char *TransFile,
      int NX = SNEQD->NX = SNEQD->SRXMatrix->NR;
      SNEQD->NumSRQs = NT*NS*NX*NUMSRFLUX;
      SNEQD->SRFMatrix = new HMatrix(NX, NUMSRFLUX);
+     SNEQD->SRFluxWorkspace = new HMatrix(G->TotalBFs, 6*NX, LHM_COMPLEX);
      WriteFilePreamble(SNEQD);
    };
 

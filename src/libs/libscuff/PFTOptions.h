@@ -143,10 +143,12 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
                     double PFT[NUMPFT],
                     char *DSIMesh, double DSIRadius, int DSIPoints,
                     bool FarField=false, char *PlotFileName=0,
-		    GTransformation *GT1=0, GTransformation *GT2=0);
+		    GTransformation *GT1=0, GTransformation *GT2=0,
+                    HMatrix *RFMatrix=0, bool RFMatrixDirty=true);
 
 HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                        HMatrix *DRMatrix, HMatrix *FMatrix=0);
+                        HMatrix *DRMatrix, HMatrix *FMatrix=0,
+                        HMatrix *RFMatrix=0, bool RFMatrixDirty=true);
 
 // PFT by energy/momentum transfer method
 HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,

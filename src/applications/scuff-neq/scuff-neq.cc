@@ -80,6 +80,19 @@ DSIPFTData *CreateDSIPFTData(RWGGeometry *G, char *DSIMesh,
      Log("Computing DSIPFT for %s (radius %g, %i points)",SurfaceLabel,Data->DSIRadius,Data->DSIPoints);
    }
 
+  int NX=0;
+  if (DSIMesh)
+   { RWGSurface *BS = new RWGSurface(DSIMesh);
+     if (BS==0)
+      ErrExit("Could not read bounding mesh from file %s",DSIMesh);
+     NX=BS->NumVertices;
+     delete BS;
+   }
+  else
+   NX = Data->DSIPoints;
+  
+  Data->RFMatrix = new HMatrix(G->TotalBFs, 6*NX, LHM_COMPLEX);
+ 
   return Data;
 }
 

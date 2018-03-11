@@ -66,8 +66,18 @@ inline int GetSRFluxIndex(int NX, int nt, int nx, int nq)
 { return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + nq; }
 
 HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                        HMatrix *DRMatrix, HMatrix *FMatrix)
+                        HMatrix *DRMatrix, HMatrix *FMatrix,
+                        HMatrix *RFMatrix, bool RFMatrixDirty)
 { 
+  /***************************************************************/
+  /* FIXME ? *****************************************************/
+  /***************************************************************/
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   if (G->Surfaces[ns]->IsPEC)
+    ErrExit("GetSRFluxTrace not implemented for PEC bodies");
+  bool IsPECA=false;
+  bool IsPECB=false;
+
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
   /***************************************************************/
@@ -80,30 +90,29 @@ HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   if (FMatrix==0)
    FMatrix = new HMatrix(NX, NUMSRFLUX, LHM_REAL);
 
-  /***************************************************************/
-  /* FIXME ? *****************************************************/
-  /***************************************************************/
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   if (G->Surfaces[ns]->IsPEC)
-    ErrExit("GetSRFluxTrace not implemented for PEC bodies");
-  bool IsPECA=false;
-  bool IsPECB=false;
-
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
   /***************************************************************/
+  /* if RFMatrix is non-null and RFMatrixDirty=false, we assume  */
+  /* the RFMatrix has been precomputed for this XMatrix and this */
+  /* frequency and thus bypass its calculation.                  */
   /***************************************************************/
-  /***************************************************************/
-  int NBF = G->TotalBFs;
-  static int NBFSave = 0, NXSave=0;
-  static HMatrix *RFMatrix=0;
-  if (NBFSave!=NBF || NXSave<NX)
-   { NBFSave = NBF;
-     NXSave  = NX;
-     if (RFMatrix) delete RFMatrix;
-     RFMatrix = new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+  bool OwnsRFMatrix = (RFMatrix==0);
+  int NBF=G->TotalBFs;
+  if (RFMatrix && (RFMatrix->NR!=NBF || RFMatrix->NC!=6*NX) )
+   { Log(" wrong-size RFMatrix in GetSRFluxTrace (reallocating...)");
+     OwnsRFMatrix=true;
    };
-  G->GetRFMatrix(Omega, 0, XMatrix, RFMatrix);
+  if (OwnsRFMatrix)
+   RFMatrix=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+
+  if (OwnsRFMatrix==false && RFMatrixDirty==false)
+   Log(" Reusing cached RFMatrix");
+  else 
+   { Log(" Computing RF matrix for %i evaluation points...",NX);
+     G->GetRFMatrix(Omega, 0, XMatrix, RFMatrix);
+     Log(" ...done with RF matrix for %i evaluation points",NX);
+   }
 
   /***************************************************************/
   /* allocate per-thread storage to avoid costly synchronization */
@@ -589,7 +598,8 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
                     double PFT[NUMPFT],
                     char *DSIMesh, double DSIRadius, int DSIPoints,
                     bool FarField, char *PlotFileName,
-                    GTransformation *GT1, GTransformation *GT2)
+                    GTransformation *GT1, GTransformation *GT2,
+                    HMatrix *RFMatrix, bool RFMatrixDirty)
 {
   (void) FarField;
   (void) PlotFileName;
@@ -611,7 +621,8 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *SCRMatrix = GetSCRMatrix(DSIMesh, DSIRadius, DSIPoints, GT1, GT2);
-  HMatrix *SRMatrix  = GetSRFluxTrace(G, SCRMatrix, Omega, DRMatrix);
+  HMatrix *SRMatrix  = GetSRFluxTrace(G, SCRMatrix, Omega, DRMatrix, 0,
+                                      RFMatrix, RFMatrixDirty);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

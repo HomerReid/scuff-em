@@ -76,6 +76,7 @@ typedef struct DSIPFTData
    char *DSIMesh;
    double DSIRadius;
    int DSIPoints;
+   HMatrix *RFMatrix;
    char *Label;
  } DSIPFTData;
 typedef std::vector <DSIPFTData *>DSIPFTDataList;
@@ -101,6 +102,7 @@ typedef struct SNEQData
    HMatrix *SRFMatrix; // storage for spatially-resolved fluxes
    int NX;             // number of spatially-resolved points
    int NumSRQs;        // number of spatially-resolved quantities
+   HMatrix *SRFluxWorkspace;
    HMatrix *EMTPFTBySurface;
    HMatrix *EMTPFTByRegion;
    DSIPFTDataList DSIPFTs;
