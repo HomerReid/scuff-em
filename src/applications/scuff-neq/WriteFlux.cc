@@ -334,7 +334,7 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
          { GetEMTPFTMatrix(G, Omega, 0, 0, DRMatrix, EMTPFTBySurface);
            GetPFTByRegion(G, EMTPFTBySurface, EMTPFTByRegion);
            FILE *f=vfopen("%s.EMTPFT.SIFlux","a",FileBase);
-           for(int DestRegion=0; DestRegion<NR; DestRegion++)
+           for(int DestRegion=1; DestRegion<NR; DestRegion++)
             { fprintf(f,"%s %e %i%i ",Tag,real(Omega),SourceRegion,DestRegion);
               if (kBloch) fprintVec(f,kBloch,G->LDim);
               for(int nq=0; nq<NUMPFT; nq++)
