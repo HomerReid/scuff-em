@@ -68,9 +68,9 @@ void ComputeDRMatrix(SNEQData *SNEQD, int SourceRegion, HMatrix *DR)
      RWGSurface *S=G->Surfaces[SourceSurface];
      double Sign;
      if (S->RegionIndices[0] == SourceRegion)
-      Sign=1.0;
-     else if (S->RegionIndices[1] == SourceRegion)
       Sign=-1.0;
+     else if (S->RegionIndices[1] == SourceRegion)
+      Sign=1.0;
      else
       continue;
      int NBFS = S->NumBFs;
