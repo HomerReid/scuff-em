@@ -49,6 +49,12 @@ bool HMatrix::AbortOnIOError=true;
 /* HMatrix constructors that create an empty (zero) HMatrix    */
 /* with known dimensions                                       */
 /***************************************************************/
+HMatrix::HMatrix(int NRows, int NCols, cdouble *data)
+ { InitHMatrix(NRows, NCols, LHM_COMPLEX, LHM_NORMAL, (void *)data); }
+
+HMatrix::HMatrix(int NRows, int NCols, double *data)
+ { InitHMatrix(NRows, NCols, LHM_REAL, LHM_NORMAL, (void *)data); }
+
 HMatrix::HMatrix(int NRows, int NCols, int pRealComplex, void *data)
  { InitHMatrix(NRows, NCols, pRealComplex, LHM_NORMAL, data); }
 

@@ -42,7 +42,9 @@
 
 namespace scuff {
 
+#ifndef II
 #define II cdouble(0,1)
+#endif
 
 #define FIBBI_PEFIE1_RM1      0
 #define FIBBI_PEFIE1_R0       1
@@ -121,7 +123,6 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
    VecPlusEquals(R, -1.0, Displacement);
   double r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
   double r=sqrt(r2);
-
   double bdb  = VecDot(bA, bB);
   double DbDb = DivbA*DivbB;
   double bxb[3]; VecCross(bA, bB, bxb);

@@ -312,7 +312,7 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
 
      // convergence analysis
      bool AllConverged=true;
-     for(int nf=0; AllConverged && nf<zfdim; nf++)
+     for(unsigned nf=0; AllConverged && nf<zfdim; nf++)
       { double Delta=abs(SValues[nf]-LastSValues[nf]);
         if ( Delta>AbsTol && Delta>RelTol*abs(SValues[nf]) )
          AllConverged=false;

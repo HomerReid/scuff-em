@@ -118,60 +118,57 @@ void LayeredSubstrate::gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
 #define _J1 1
 #define _J2 2
 #define _JJ 3
-void GetJdJFactors(cdouble q, double Rho, cdouble JdJFactors[2][4], bool NeedRhoDerivatives=false)
+void GetJdJFactors(cdouble q, double Rho, cdouble JdJFactors[2][4],
+                   bool NeedRhoDerivatives, int NuMax)
 {
   cdouble qRho = q*Rho;
   cdouble J0, J1, J2,  J1oqRho;
   cdouble dJ0, dJ1, dJ2, dJ1oqRho;
   if ( abs(qRho)<1.0e-4 ) // series expansions for small arguments
    { cdouble qRho2=qRho*qRho;
-     J0    = 1.0 - qRho2/4.0;
-     J1    = J1oqRho*qRho;
-     J2    = 0.125*qRho2*(1.0-qRho2/12.0);
-     J1oqRho = 0.5*(1.0-qRho2/8.0);
-     if (NeedRhoDerivatives)
-      { dJ0      = -0.5*q*qRho;
-        dJ1      = q*J1oqRho + qRho*dJ1oqRho;
-        dJ2      = q*qRho/4.0 - qRho2*qRho*Rho/24.0;
-        dJ1oqRho = -0.125*q*qRho;
-      };
+     J0       = 1.0 - qRho2/4.0;
+     J1oqRho  = 0.5*(1.0-qRho2/8.0);
+     J1       = J1oqRho*qRho;
+     J2       = 0.125*qRho2*(1.0-qRho2/12.0);
+     dJ0      = -0.5*q*qRho;
+     dJ1oqRho = -0.125*q*qRho;
+     dJ1      = q*J1oqRho + qRho*dJ1oqRho;
+     dJ2      = q*qRho/4.0 - qRho2*qRho*Rho/24.0;
    }
   else if (abs(qRho)>1.0e4) // asymptotic forms for large argument
    { double rqRho = real(qRho);
      double JPreFac = sqrt(2.0/(M_PI*rqRho));
-     J0   = JPreFac * cos(rqRho - 0.25*M_PI);
-     J1   = JPreFac * cos(rqRho - 0.75*M_PI);
-     J2   = JPreFac * cos(rqRho - 1.25*M_PI);
-     J1oqRho = J1/qRho;
-     if (NeedRhoDerivatives)
-      { dJ0      = -0.5*J0/Rho - q*JPreFac*sin(rqRho-0.25*M_PI);
-        dJ1      = -0.5*J1/Rho - q*JPreFac*sin(rqRho-0.75*M_PI);
-        dJ1oqRho =    dJ1/qRho - J1oqRho/Rho;
-        dJ2      = -0.5*J2/Rho - q*JPreFac*sin(rqRho-1.25*M_PI);
-      };
+     J0       = JPreFac * cos(rqRho - 0.25*M_PI);
+     J1       = JPreFac * cos(rqRho - 0.75*M_PI);
+     J2       = JPreFac * cos(rqRho - 1.25*M_PI);
+     J1oqRho  = J1/qRho;
+     dJ0      = -0.5*J0/Rho - q*JPreFac*sin(rqRho-0.25*M_PI);
+     dJ1      = -0.5*J1/Rho - q*JPreFac*sin(rqRho-0.75*M_PI);
+     dJ1oqRho =    dJ1/qRho - J1oqRho/Rho;
+     dJ2      = -0.5*J2/Rho - q*JPreFac*sin(rqRho-1.25*M_PI);
    }
   else
    { double Workspace[12];
-     cdouble JFactors[3];
-     AmosBessel('J', qRho, 0.0, 3, false, JFactors, Workspace);
+     cdouble JFactors[3]={0.0, 0.0, 0.0};
+     int NumOrders = NuMax+1;
+     if (NeedRhoDerivatives && NuMax<2)
+      NumOrders++;
+     if (NumOrders>3) NumOrders=3;
+     AmosBessel('J', qRho, 0.0, NumOrders, false, JFactors, Workspace);
      J0=JFactors[0];
      J1=JFactors[1];
      J2=JFactors[2];
      J1oqRho = JFactors[1]/qRho;
-     if (NeedRhoDerivatives)
-      { dJ0 = -q*J1;
-        dJ1 = 0.5*q*(J0 - J2);
-        dJ1oqRho = dJ1/qRho - J1oqRho/Rho;
-        dJ2 = q*(J1 - 2.0*J2/qRho);
-      };
+     dJ0 = -q*J1;
+     dJ1 = 0.5*q*(J0 - J2);
+     dJ1oqRho = dJ1/qRho - J1oqRho/Rho;
+     dJ2 = q*(J1 - 2.0*J2/qRho);
    };
 
   JdJFactors[0][_J0] = J0;
   JdJFactors[0][_J1] = II*J1;
   JdJFactors[0][_J2] = -1.0*J2;
   JdJFactors[0][_JJ] = J1oqRho;
-
-  if (!NeedRhoDerivatives) return;
 
   JdJFactors[1][_J0] = dJ0;
   JdJFactors[1][_J1] = II*dJ1;
@@ -357,16 +354,18 @@ int gFrakIntegrand(unsigned ndim, const double *x,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SubtractQS && Omega!=0.0)
-   { cdouble OmegaSave=Omega;
-     int zfdim=fdim/2;
-     cdouble *zfval=(cdouble *)fval;
-     VecScale(zfval, -II*Omega, zfdim);
-     Data->Omega=0.0;
+  if (SubtractQS)
+   { cdouble *zfval=(cdouble *)fval;
+     int zfdim = fdim/2;
+     VecScale(zfval, -1.0, zfdim);
+     Data->Omega*=-1.0;
      Data->Accumulate=true;
+     Data->SubtractQS=false;
      gFrakIntegrand(ndim, x, UserData, fdim, fval);
-     Data->Omega=OmegaSave;
+     Data->Omega*=-1.0;
      Data->Accumulate=false;
+     Data->SubtractQS=true;
+     VecScale(zfval, -1.0, zfdim);
    }
 
   /***************************************************************/
@@ -444,10 +443,10 @@ void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LayeredSubstrate::GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
-                                cdouble *Workspace,
-                                bool SubtractQS, bool EEOnly, bool ScalarPPIs,
-                                bool dRho, bool dzDest, bool dzSource)
+int LayeredSubstrate::GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
+                               cdouble *Workspace,
+                               bool SubtractQS, bool EEOnly, bool ScalarPPIs,
+                               bool dRho, bool dzDest, bool dzSource)
 {
   int NX         = XMatrix->NR;
   int NF         = NUMGFRAK * (dRho?2:1) * (dzDest?2:1) * (dzSource?2:1);
@@ -515,7 +514,7 @@ void LayeredSubstrate::GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
 
      Log("Computing gFrak via Sommerfeld(a=%g,c=%g,xNu=%i,%s)...",a,c,xNu,STStr);
      SommerfeldIntegrate(gFrakIntegrand, (void *)Data, zfdim,
-                         a, c, xNu, Rho, qMaxEval, qMaxEval,
+                         a, c, xNu, Rho, qMaxEvalA, qMaxEvalB,
                          qAbsTol, qRelTol, gFrak, Error, Verbose);
    }
   Log("...%i points",Data->NumPoints);
@@ -527,5 +526,5 @@ void LayeredSubstrate::GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
   delete[] Error;
   if (OwnsWorkspace)
    DestroyScriptGTwiddleWorkspace(Workspace);
+  return Data->NumPoints;
 }
-

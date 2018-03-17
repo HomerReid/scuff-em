@@ -53,7 +53,6 @@ enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT};
 #ifndef ZVAC
 #define ZVAC 376.73031346177
 #endif
-#define II cdouble(0.0,1.0)
 #define SQRT2 1.41421356237309504880
 
 /********************************************************************/
@@ -89,6 +88,50 @@ enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT};
 
 #define NUMGTWIDDLE 18
 #define NUMGFRAK    22
+
+/********************************************************************/
+/* components of the vector of potentials computed for the single-  */
+/* interface case                                                   */
+/********************************************************************/
+#define _VSI_APAR  0
+#define _VSI_PHI   1
+#define _VSI_APERP 2
+#define _VSI_DRPHI 3
+#define _VSI_DZPHI 4
+#define NUMVSI     5
+
+/********************************************************************/
+/* labels for entries of extended potential and source vectors      */
+/********************************************************************/
+#define _AEX       0
+#define _AEY       1
+#define _AEZ       2
+#define _CURLAEX   3
+#define _CURLAEY   4
+#define _CURLAEZ   5
+#define _PHIE      6
+#define _GRADPHIEX 7
+#define _GRADPHIEY 8
+#define _GRADPHIEZ 9
+#define _AMX       10
+#define _AMY       11
+#define _AMZ       12
+#define _CURLAMX   13
+#define _CURLAMY   14
+#define _CURLAMZ   15
+#define _PHIM      16
+#define _GRADPHIMX 17
+#define _GRADPHIMY 18
+#define _GRADPHIMZ 19
+
+#define _KX   0
+#define _KY   1
+#define _KZ   2
+#define _DIVK 3
+#define _NX   4
+#define _NY   5
+#define _NZ   6
+#define _DIVN 7
 
 /***************************************************************/
 /* data structure for layered material substrate               */
@@ -187,15 +230,23 @@ public:
 
 // internal ("private") class methods
 
+   /*--------------------------------------------------------------*/
+   /*- utilities --------------------------------------------------*/
+   /*--------------------------------------------------------------*/
    void UpdateCachedEpsMu(cdouble Omega);
+   int GetLayerIndex(double z);
 
-   // helper functions for static DGF calculation
+   /*--------------------------------------------------------------*/
+   /* routines for static DGF calculation                          */
+   /*--------------------------------------------------------------*/
    double GetStaticG0Correction(double z);
    double GetStaticG0Correction(double zD, double zS);
    void GetSigmaTwiddle(double zS, double q, double *SigmaTwiddle);
    void GetqIntegral(double RhoMag, double zD, double zS, double qIntegral[3]);
 
-   // helper functions for full-wave DGF calculation
+   /*--------------------------------------------------------------*/
+   /* routines for full-wave DGF calculation                       */
+   /*--------------------------------------------------------------*/
    void GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
                          double zDest, double zSource,
                          cdouble Gamma0Twiddle[6][6],
@@ -212,6 +263,19 @@ public:
                           bool dzDest=false, bool dzSource=false,
                           bool AddGamma0Twiddle=false);
 
+   void GetLambda0Twiddle(cdouble Omega, cdouble q2D[2],
+                          double zDest, double zSource,
+                          HMatrix *Lambda0Twiddle,
+                          int ForceLayer=-1, double Sign=0.0, bool Accumulate=false,
+                          bool dzDest=false, bool dzSource=false);
+   cdouble *CreateScriptLTwiddleWorkspace();
+   void DestroyScriptLTwiddleWorkspace(cdouble *Workspace);
+   void GetScriptLTwiddle(cdouble Omega, cdouble q2D[2],
+                          double zDest, double zSource, HMatrix *LTwiddle,
+                          cdouble *Workspace=0, 
+                          bool dzDest=false, bool dzSource=false,
+                          bool AddLambda0Twiddle=false);
+
    void gTwiddleFromGTwiddle(cdouble Omega, cdouble q,
                              double zDest, double zSource,
                              cdouble *gTwiddleVD[2][2], cdouble *Workspace,
@@ -220,16 +284,24 @@ public:
                         double zDest, double zSource, cdouble *gFrakTwiddle,
                         bool SubtractQS=false, bool EEOnly=false, 
                         bool ScalarPPIs=false);
-   void GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
-                 cdouble *Workspace=0, bool SubstractQS=false,
-                 bool EEOnly=false, bool ScalarPPIs=false,
-                 bool dRho=false, bool dzDest=false, bool dzSource=false);
+   int GetgFrak(cdouble Omega, HMatrix *XMatrix, cdouble *gFrak,
+                cdouble *Workspace=0, bool SubstractQS=false,
+                bool EEOnly=false, bool ScalarPPIs=false,
+                bool dRho=false, bool dzDest=false, bool dzSource=false);
    void gFrakToScriptG(cdouble gFrak[NUMGFRAK], double Theta,
                        cdouble ScriptG[36]);
 
-   void GetReflectionCoefficients(double Omega, double *q,
-                                  cdouble r[2][2]);
-   int GetLayerIndex(double z);
+   /*--------------------------------------------------------------*/
+   /* routines for full-wave DFT for substrates with a single      */
+   /* dielectric interface (half-space or slab with ground plane)  */
+   /*--------------------------------------------------------------*/
+   int GetSingleInterfacePotentials(cdouble Omega, HMatrix *XMatrix,
+                                    HMatrix *VSIMatrix, bool PPIsOnly=false,
+                                    bool Subtract=false, bool CorrectionOnly=false);
+
+   int GetSingleInterfacePotentials(cdouble Omega, double Rho, double zDest,
+                                    cdouble *VSI, bool PPIsOnly=false,
+                                    bool Subtract=false, bool CorrectionOnly=false);
 
 // internal ("private") class data
 
@@ -246,7 +318,7 @@ public:
    double zGP;          // == z-coordinate of ground plane (or -inf if absent)
 
    // convergence parameters for q integration
-   int qMaxEval;
+   int qMaxEval, qMaxEvalA, qMaxEvalB;
    double qAbsTol;
    double qRelTol;
    int PPIOrder;
@@ -283,6 +355,12 @@ void AddGamma0(double XD[3], double XS[3], cdouble Omega,
                double zGP=-1.0*HUGE_VAL, bool Image=false);
 
 LayeredSubstrate *CreateLayeredSubstrate(const char *FileContent);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetJdJFactors(cdouble q, double Rho, cdouble JdJFactors[2][4],
+                   bool NeedRhoDerivatives=false, int NuMax=2);
 
 /***************************************************************/
 /* SommerfeldIntegrator.cc                                     */ 

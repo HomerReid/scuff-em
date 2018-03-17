@@ -94,7 +94,7 @@ void AddGamma0(double XD[3], double XS[3], cdouble Omega,
   HMatrix Gamma0Matrix(6,6,LHM_COMPLEX,Gamma0);
   double ImageSign[2][3]={{1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}};
   if (Image) 
-   ImageSign[0][0]=ImageSign[0][1]=ImageSign[2][2]=-1.0;
+   ImageSign[0][0]=ImageSign[0][1]=ImageSign[1][2]=-1.0;
   for(int P=0; P<2; P++)
    for(int Q=0; Q<2; Q++)
     for(int i=0; i<3; i++)

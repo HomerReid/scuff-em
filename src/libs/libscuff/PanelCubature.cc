@@ -662,6 +662,47 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
   
 }
 
+/* This and the next routine are type-1 panel and panel-panel */
+/* cubature functions that act as wrappers around a user's    */
+/* type-2 functions. They are used in the type-2 cubature     */
+/* routines to fall back on type-1 cubature routines if the   */
+/* user specifies an unsupported cubature order.              */
+typedef struct PCFWrapperData
+ { PCFunction2  *PCFunc2;
+   PPCFunction2 *PPCFunc2;
+   void *UserData;
+   int IDim;
+ } PCFWrapperData;
+
+void PCFunction_BFC2(double *x, PCData *PCD, void *UserData, double *Result)
+{
+  PCFWrapperData *PCFWD = (PCFWrapperData *)UserData;
+  double b[3];
+  b[0] = real(PCD->K[0]);
+  b[1] = real(PCD->K[1]);
+  b[2] = real(PCD->K[2]);
+  double Divb = real(PCD->DivK);
+  memset(Result,0,PCFWD->IDim * sizeof(double));
+  PCFWD->PCFunc2(x, b, Divb, PCFWD->UserData, 1.0, Result);
+}
+
+void PPCFunction_BFBFC2(double *x, double *xp, PPCData *PPCD, 
+                        void *UserData, double *Result)
+{
+  PCFWrapperData *PCFWD = (PCFWrapperData *)UserData;
+  double b[3], bp[3];
+  b[0] = real(PPCD->K1[0]);
+  b[1] = real(PPCD->K1[1]);
+  b[2] = real(PPCD->K1[2]);
+  double Divb = real(PPCD->DivK1);
+  bp[0] = real(PPCD->K2[0]);
+  bp[1] = real(PPCD->K2[1]);
+  bp[2] = real(PPCD->K2[2]);
+  double Divbp = real(PPCD->DivK2);
+  memset(Result,0,PCFWD->IDim * sizeof(double));
+  PCFWD->PPCFunc2(x, b, Divb, xp, bp, Divbp, PCFWD->UserData, 1.0, Result);
+}
+
 /***************************************************************/
 /* 20151118 streamlined implementation of GetBFCubature and    */
 /* GetBFBFCubature that are 2x and 4x faster respectively.     */
@@ -701,9 +742,23 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  if (Order==0 || Order==21 || Order==78)
+   { PCFWrapperData PCFWData; 
+     PCFWData.PCFunc2  = Integrand;
+     PCFWData.UserData = UserData;
+     PCFWData.IDim     = IDim;
+     double RelTol     = 1.0e-4;
+     double AbsTol     = 1.0e-8;
+     GetBFCubature(G, ns, ne, PCFunction_BFC2, (void *)&PCFWData, IDim,
+                   Order, RelTol, AbsTol, 0.0, 0, Integral);
+     return;                  
+   }
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   int NumPts;
   double *TCR=GetTCR(Order,&NumPts);
-  if (TCR==0) ErrExit("invalid cubature order in GetBFCubature2");
   memset(Integral, 0, IDim*sizeof(double));
   for(int np=0, ncp=0; np<NumPts; np++)
    { 
@@ -742,7 +797,8 @@ void GetBFBFCubature2(RWGSurface *S, int ne,
 {
   int NumPts;
   double *TCR=GetTCR(Order,&NumPts);
-  if (TCR==0) ErrExit("invalid cubature order in GetBFCubature2");
+  if (TCR==0)
+   ErrExit("unsupported cubature order in GetBFBFCubature2");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -847,6 +903,21 @@ void GetBFBFCubature2(RWGGeometry *G,
                       int Order, double *Integral,
                       int PanelOnlyA, int PanelOnlyB)
 {
+  if (Order==0 || Order==36 || Order==441)
+   { PCFWrapperData PCFWData; 
+     PCFWData.PPCFunc2 = Integrand;
+     PCFWData.UserData = UserData;
+     PCFWData.IDim     = IDim;
+     double RelTol     = 1.0e-4;
+     double AbsTol     = 1.0e-8;
+     GetBFBFCubature(G, ns, ne, nsP, neP, 0,
+                     PPCFunction_BFBFC2, (void *)&PCFWData, IDim,
+                     Order, RelTol, AbsTol, 0.0, 0, Integral);
+     return;                  
+   }
+
+  int NumPts;
+  double *TCR=GetTCR(Order,&NumPts);
   GetBFBFCubature2(G->Surfaces[ns], ne, G->Surfaces[nsP], neP,
                    Integrand, UserData, IDim, Order, Integral,
                    PanelOnlyA, PanelOnlyB);

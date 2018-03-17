@@ -211,6 +211,8 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   OmegaCache = -1.0;
 
   qMaxEval  = 2000;
+  qMaxEvalA = 2000;
+  qMaxEvalB = 2000;
   qAbsTol   = 1.0e-4;
   qRelTol   = 1.0e-2;
   PPIOrder  = 9;
@@ -220,6 +222,10 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   char *s;
   if ((s=getenv("SCUFF_SUBSTRATE_QMAXEVAL")))
    sscanf(s,"%i",&qMaxEval);
+  if ((s=getenv("SCUFF_SUBSTRATE_QMAXEVALA")))
+   sscanf(s,"%i",&qMaxEvalA);
+  if ((s=getenv("SCUFF_SUBSTRATE_QMAXEVALB")))
+   sscanf(s,"%i",&qMaxEvalB);
   if ((s=getenv("SCUFF_SUBSTRATE_QABSTOL")))
    sscanf(s,"%le",&qAbsTol);
   if ((s=getenv("SCUFF_SUBSTRATE_QRELTOL")))
@@ -270,16 +276,22 @@ LayeredSubstrate::~LayeredSubstrate()
 void LayeredSubstrate::Describe(FILE *f)
 { 
   if (f==0) f=stdout;
-  double zAbove=1.0/0.0, zBelow;
+  int MaxLength = strlen(MPLayer[0]->Name);
+  for(int n=1; n<NumLayers; n++)
+   { int Length = strlen(MPLayer[n]->Name);
+     if (Length>MaxLength) MaxLength=Length;
+   }
   int n=0;
-  for(; n<NumInterfaces; n++)
-   { zBelow = zInterface[n];
-     printf("Layer %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zBelow);
-     zAbove=zBelow;
-   };
-  printf("Layer %2i (%-20s): [%10g < z < %-10g]\n",n,MPLayer[n]->Name,zAbove,zGP);
-  if ( fabs(zGP) != HUGE_VAL) 
-   printf("Ground plane at z=%e.\n\n",zGP);
+  if (NumInterfaces>=1)
+   printf("Layer %2i (%-*s):              z > %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n]);
+  for(n=1; n<(NumInterfaces-1); n++)
+   printf("Layer %2i (%-*s): %-10g < z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n],zInterface[n-1]);
+  if ( fabs(zGP) == HUGE_VAL) 
+   printf("Layer %2i (%-*s):              z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n-1]);
+  else
+   { printf("Layer %2i (%-*s): %10g < z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zGP,zInterface[n-1]);
+     printf("Ground plane at z=%g.\n",zGP);
+   }
 }
 
 /***************************************************************/
@@ -287,6 +299,7 @@ void LayeredSubstrate::Describe(FILE *f)
 /***************************************************************/
 void LayeredSubstrate::UpdateCachedEpsMu(cdouble Omega)
 {
+  if (real(Omega)<0.0) Omega*=-1.0;
   if ( EqualFloat(OmegaCache, Omega) )
    return;
   OmegaCache=Omega;

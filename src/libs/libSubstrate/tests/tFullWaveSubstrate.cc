@@ -61,10 +61,6 @@ void CalcGC(double R[3], cdouble Omega,
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
 }
 
-void AddGamma0(double XD[3], double XS[3], cdouble Omega,
-               cdouble EpsRel, cdouble MuRel, cdouble *Gamma0,
-               double zGP=-1.0*HUGE_VAL, bool Image=false);
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/

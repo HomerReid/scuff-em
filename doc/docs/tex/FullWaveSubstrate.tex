@@ -71,7 +71,7 @@ and its lower surface lies at $z=z_n$.
 The ground plane, if present,
 lies at $z\equiv z\subt{N}\equiv z\subt{GP}$.
 If the ground plane is absent, layer $N$ is an
-infinite half-space\footnote{As in the electrostatic case,
+infinite half-space.\footnote{As in the electrostatic case,
 this means that a finite-thickness substrate consisting of
 $N$ material layers is described as a stack of $N+1$ layers
 in which the bottommost layer is an infinite half-space
@@ -639,7 +639,7 @@ for region $d$:
 \nn
 &= \sum_{q=0}^1  (-1)^{q+1}
    \wt{\vbGamma^{0d}}(z\subt{D} - z_{d+q-1}) \cdot \wt{\bmc S}_{d+q-1}
-\nonumber
+\label{FieldsFromInducedCurrents}\\
 \intertext{(The minus sign in the first term arises because, in my convention,
 surface currents on the upper surface of a region contribute to the fields
 in that region with a minus sign). Inserting (\ref{SWG}), the $i$ component
@@ -654,6 +654,52 @@ here---which is the $ij$ component of the substrate DGF---is}
 %====================================================================%
 The calculation of equation (\ref{ScriptGFourier}) is carried
 out by the routine \texttt{GetGTwiddle} in {\sc libsubstrate}.
+
+\subsection*{Green's functions for potentials}
+
+In equation (\ref{FieldsFromInducedCurrents}) I am computing
+the 6 components of the $\vb E$ and $\vb H$ fields produced
+by the induced surface currents. If instead I compute the
+\textit{potentials} produced by those currents I obtain a
+slightly different Green's function. Thus, let
+$\vb A\supt{E}, \Phi\supt{E}$ be the usual vector and scalar
+potential of an electric-current source in a homogeneous region,
+and let $\vb A\supt{M}, \Phi\supt{M}$ be their counterparts for 
+magnetic-current sources, i.e. if the electric and magnetic
+volume currents are $\vb J$ and $\vb M$ then
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+ \vb A\supt{E}(\vb x\subt{D})
+&= \mu
+   \int \vb J (\vb x\subt{S}) G_0(\vb x\subt{DS})\,d\vb x\subt{S},
+ \quad
+ \Phi\supt{E}(\vb x\subt{D})
+ = \frac{1}{i\omega \epsilon}
+   \int \left(\nabla\cdot \vb J\right) G_0(\vb x\subt{DS}) d\vb x\subt{S}
+\\
+%--------------------------------------------------------------------%
+ \vb A\supt{M}(\vb x\subt{D})
+&= \epsilon
+   \int \vb M (\vb x\subt{S}) G_0(\vb x\subt{DS})\,d\vb x\subt{S},
+ \quad
+ \Phi\supt{M}(\vb x\subt{D})
+ = \frac{1}{i\omega \mu}
+   \int \left(\nabla\cdot \vb M\right) G_0(\vb x\subt{DS}) d\vb x\subt{S}
+\end{align}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+with $\vb x\subt{DS}\equiv \vb x\subt{D}-\vb x\subt{S}$ and
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ G_0(k; \vb r)
+ &=\frac{e^{ik|\vb r|}}{4\pi|\vb r|}
+  =\int\frac{d^2 \vb q}{(2\pi)^2} 
+   \wt{G}_0(\vb q, z)e^{i\vb q\cdot \vbrho},
+ \qquad \wt{G}_0=\frac{i}{2q_z}e^{iq_z|z|}.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I write
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -970,7 +1016,7 @@ is 18.}
 %====================================================================%
 \begin{align*}
  \bmc G\supt{EE}
-&=\int_{
+&=
 \end{align*}
 %====================================================================%
 
@@ -1115,5 +1161,220 @@ If a ground plane is present, we have the additional condition
 Conditions (\ref{tgTwiddleCondition1}) and (\ref{tgTwiddleCondition2})
 must hold \textit{independently} of the indices $\text{Q}\in\{\text{E},\text{H}\}$
 and $j\in\{1,2,3\}$ and of the values of $\vb q$ and $z\subt{S}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+\newpage
+\section{Symbols and indices used in this document}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Symbols}
+
+%====================================================================%
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|c|l|}\hline
+\textbf{Symbol} & \textbf{Arguments} & \textbf{Description} \\\hline
+   $\bmc F$
+&  $\vb r$, geometry
+&  \parbox{0.75\textwidth}
+   { Field six-vector $\bmc F={\vb E \choose \vb H}$ }
+\\\hline%--------------------------------------------------------------------%
+   $\bmc C$
+&  $\vb r$, geometry
+&  \parbox{0.75 \textwidth}
+    { Current six-vector $\bmc C={\vb J \choose \vb M}$ or
+                         $\bmc C={\vb K \choose \vb N}$
+    }
+\\\hline%--------------------------------------------------------------------%
+   $\vbGamma$
+&  $\vbrho,z\subt{D},z\subt{S},\omega$, geometry
+& Full (bare+scattered) $6\times 6$ dyadic Green's function,
+  $\bmc F=\vbGamma \star \bmc C$
+\\\hline%--------------------------------------------------------------------%
+   $\vbGamma^{0r}$
+&  $\vbrho,z\subt{D},z\subt{S},\omega,\epsilon^r,\mu^r$
+& Bare (homogeneous) $6\times 6$ dyadic Green's function in region $r$
+\\\hline%--------------------------------------------------------------------%
+   $\bmc G$
+&  $\vbrho,z\subt{D},z\subt{S},\omega$, geometry
+& Scattering contribution to $\vbGamma$
+  ($\vbGamma=\vbGamma^{0r} + \bmc G$)
+\\\hline%--------------------------------------------------------------------%
+   $\bmc P$
+&  $\vb r$, geometry
+&  \parbox{0.75\textwidth}
+   { Potential eight-vector
+      $\bmc P=\left(\begin{array}{c} \vb A\supt{E} \\[-6pt] \Phi\supt{E} \\[-6pt]
+                                     \vb A\supt{M} \\[-6pt] \Phi\supt{M}
+               \end{array}
+         \right)
+      $
+    }
+\\\hline%--------------------------------------------------------------------%
+   $\bmc S$
+&  $\vb r$, geometry
+& \parbox{0.75 \textwidth}
+    { Source eight-vector
+      $\bmc S=\left(\begin{array}{c} \vb J \\[-6pt] \rho\supt{E} \\[-6pt]
+                                     \vb M \\[-6pt] \rho\supt{M}
+               \end{array}
+         \right)
+      $
+    }
+\\\hline%--------------------------------------------------------------------%
+   $\boldsymbol{\Lambda}$
+&  $\vbrho,z\subt{D},z\subt{S},\omega$, geometry
+& Full (bare+scattered) $8\times 8$ dyadic Green's function,
+  $\bmc P=\boldsymbol{\Pi} \star \bmc S$
+\\\hline%--------------------------------------------------------------------%
+   $\boldsymbol{\Lambda}^{0r}$
+&  $\vbrho,z\subt{D},z\subt{S},\omega$, geometry
+& Bare (homogeneous) $8\times 8$ dyadic Green's function
+  for region $r$
+\\\hline%--------------------------------------------------------------------%
+   $\bmc L$
+&  $\vbrho,z\subt{D},z\subt{S},\omega$, geometry
+& Scattering contribution to $\vbLambda$
+  ($\vbLambda=\vbLambda^{0r} + \bmc L$)
+\\\hline%--------------------------------------------------------------------%
+\end{tabular}
+\renewcommand{\arraystretch}{1.0}
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Indices}
+
+%====================================================================%
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|c|c|}\hline
+\textbf{Index} & \textbf{Range} & \textbf{Significance} 
+\\\hline
+  $i,j$
+& $\{1,2,3\}$
+& Cartesian directions $x,y,z$
+\\\hline%--------------------------------------------------------------------%
+  $I,J$
+& $\{1,2,3,4,5,6\}$
+& \parbox{0.75\textwidth}
+    { \medskip
+      Electric/magnetic field/current components
+     \begin{center}
+     \begin{tabular}{|c|c|}\hline
+       1,2,3 & $E_{x,y,z}$, $J_{x,y,z}$, $K_{x,y,z}$ \\\hline
+       4,5,6 & $H_{x,y,z}$, $M_{x,y,z}$, $N_{x,y,z}$ \\\hline
+     \end{tabular}
+     \end{center}
+    }
+\\\hline%--------------------------------------------------------------------%
+  $\mu,\nu$
+& $\{1,2,3,4,5,6,7,8\}$
+& \parbox{0.75\textwidth}
+    {\medskip 
+      Electric/magnetic potential/source components
+     \begin{center}
+     \begin{tabular}{|c|c|}\hline
+       1,2,3 & $A\supt{E}_{x,y,z}$, $J_{x,y,z}$, $K_{x,y,z}$  \\\hline
+       4     & $\Phi\supt{E}$, $\rho\supt{E}$, $\sigma\supt{E}$ \\\hline
+       5,6,7 & $A\supt{M}_{x,y,z}$, $M_{x,y,z}$, $N_{x,y,z}$  \\\hline
+       8     & $\Phi\supt{M}$, $\rho\supt{M}$, $\sigma\supt{M}$ \\\hline
+     \end{tabular}
+     \end{center}
+    }
+\\\hline
+\end{tabular}
+\renewcommand{\arraystretch}{1.0}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{$8\times 8$ Dyadic Green's Functions}
+
+The usual $6\times 6$ dyadic Green's function $\vbGamma$
+operates on a six-vector of currents to yield a six-vector
+of fields. It is convenient to consider a slightly different
+object that operates on an \textit{eight}-vector of sources
+to yield an \textit{eight}-vector of potentials.
+
+In the presence of magnetic currents, the usual (electric-current-sourced)
+vector and scalar potentials $\vb A\supt{E},\Phi\supt{E}$,
+are joined by their magnetic-current-sourced counterparts
+$\vb A\supt{M},\Phi\supt{M}$, which are related to the fields
+according to
+%====================================================================%
+\begin{align*}
+ \vb E &=    i\omega \mu \vb A\supt{E}
+           - \frac{1}{i\omega \epsilon}\nabla\Phi\supt{E}
+           - \nabla \times \vb A\supt{M}
+\\
+ \vb M &=   \nabla \times \vb A\supt{E}
+           + i\omega \epsilon \vb A\supt{M}
+           - \frac{1}{i\omega \mu}\nabla\Phi\supt{M}.
+\end{align*}
+%====================================================================%
+In a homogeneous region, the potentials\footnote{Note that my $\Phi\supt{E,M}$
+are $i\omega$ times the actual scalar potentials due to the charge
+distributions associated with currents $\vb J, \vb M$.}
+produced by given source distributions $\{\vb J, \vb M\}$ are
+%====================================================================%
+\begin{align*}
+ \vb A\supt{E}(\vb x\subt{D})
+ &= \int G_0(\vb x\subt{D}-\vb x\subt{S}) \vb J(\vb x\subt{S}) \, d\vb x\subt{S},
+\qquad \,\,\,\,
+ \Phi\supt{E}(\vb x\subt{D})
+ = \int G_0(\vb x\subt{D}-\vb x\subt{S}) \big[\nabla \cdot \vb J\big]
+    \, d\vb x\subt{S}
+\\
+ \vb A\supt{M}(\vb x\subt{D})
+ &= \int G_0(\vb x\subt{D}-\vb x\subt{S}) \vb M(\vb x\subt{S}) \, d\vb x\subt{S},
+\qquad 
+ \Phi\supt{M}(\vb x\subt{D})
+ = \int G_0(\vb x\subt{D}-\vb x\subt{S}) \big[\nabla \cdot \vb M\big]
+    \, d\vb x\subt{S}
+\end{align*}
+%====================================================================%
+where 
+%====================================================================%
+$$ G_0(\vb r)=\frac{e^{ik|\vb r|}}{4\pi |\vb r|}.$$
+%====================================================================%
+\renewcommand{\arraystretch}{1.25}
+$$
+ \left(\begin{array}{c}
+ E_x \\ E_y \\ E_z \\ H_x \\ H_y \\ H_z
+ \end{array}\right)
+=
+ \left(\begin{array}{cccccccc} 
+ i\omega \mu G_0 & 0 & 0 & -\frac{1}{i\omega\epsilon}\partial_x G_0  &
+ 0 & \partial_z G_0 & -\partial_y G_0 & 0 \\
+%--------------------------------------------------------------------%
+ 0 & i\omega \mu G_0 & 0 & -\frac{1}{i\omega\epsilon}\partial_y G_0  &
+ -\partial_z G_0 & 0 & \partial_x G_0 & 0 \\
+%--------------------------------------------------------------------%
+ 0 & 0 & i\omega\mu G_0  & -\frac{1}{i\omega\epsilon}\partial_z G_0  &
+ \partial_y G_0 & -\partial_x G_0 & 0 & 0 \\
+%--------------------------------------------------------------------%
+ 0 & -\partial_z G_0 & \partial_y G_0 & 0 & 
+ i\omega \epsilon G_0 & 0 & 0 & -\frac{1}{i\omega\mu}\partial_x G_0\\
+%--------------------------------------------------------------------%
+ \partial_z G_0 & 0 & \partial_x G_0 & 0 &
+ 0 & i\omega \epsilon G_0 & 0 & -\frac{1}{i\omega\mu}\partial_y G_0\\
+%--------------------------------------------------------------------%
+ -\partial_y G_0 & \partial_x G_0 & 0 & 0 &
+ 0 & 0 & i\omega \epsilon G_0 & -\frac{1}{i\omega\mu}\partial_z G_0
+\end{array}\right)
+\star
+ \left(\begin{array}{c}
+ J_x \\ J_y \\ J_z \\ \nabla \cdot \vb J \\ M_x \\ M_y \\ M_z \\ \nabla \cdot \vb M
+ \end{array}\right)
+$$
+\renewcommand{\arraystretch}{1.0}
+%====================================================================%
 
 \end{document} 

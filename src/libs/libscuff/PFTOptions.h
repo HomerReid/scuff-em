@@ -111,7 +111,6 @@ typedef struct PFTOptions
    double DSIRadius;
    int DSIPoints;
    bool DSIFarField;
-   bool NeedQuantity[NUMPFT];
 
    // options affecting EMT PFT computation
    bool Itemize;
@@ -139,7 +138,8 @@ PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 /***************************************************************/
 class RWGGeometry;
 HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HMatrix *DRMatrix, HMatrix *FMatrix=0);
+                   HMatrix *DRMatrix, HMatrix *FMatrix=0,
+                   HMatrix *RFMatrix=0, bool RFMatrixDirty=true);
 
 void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
                     bool IsPECA, int KNIndexA,
