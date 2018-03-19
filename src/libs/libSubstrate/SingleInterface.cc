@@ -34,6 +34,35 @@
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
+/* return value is updated prefactor for Phi terms *************/
+/***************************************************************/
+cdouble AddVSITerm(cdouble k, double Rho, double z, double h,
+                   cdouble Eta, bool PPIsOnly,
+                   int n, cdouble EtaFac, cdouble *V)
+{
+  double zn = z + (n==0 ? 0.0 : 2.0*n*h);
+  double r2 = Rho*Rho + zn*zn;
+  double r=sqrt(r2);
+  cdouble ikr=II*k*r;
+  double Sign = (n%2) ? -1.0 : 1.0;
+  cdouble ExpFac = Sign*ZVAC*exp(ikr) / (4.0*M_PI*r);
+
+  // contributions to V^A_parallel
+  if (n<=1) V[_VSI_APAR] += ExpFac;
+
+  // contributions to V^Phi and derivatives
+  ExpFac *= EtaFac;
+  V[_VSI_PHI] += ExpFac;
+  if (!PPIsOnly)
+   { ExpFac *= (ikr-1.0)/r2;
+     V[_VSI_DRPHI] += Rho*ExpFac;
+     if (fabs(z)>1.0e-12) V[_VSI_DZPHI] += zn*ExpFac;
+   };
+
+  return Eta*EtaFac;
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int GetVSICorrection(cdouble Omega, double Rho, double z,
@@ -41,86 +70,42 @@ int GetVSICorrection(cdouble Omega, double Rho, double z,
                      bool PPIsOnly, bool RetainSingularTerms,
                      int MaxTerms, double RelTol, double AbsTol)
 {
-  int NumPotentials = (PPIsOnly ? 2 : 5);
-  memset(V, 0, NumPotentials*sizeof(cdouble));
-
   cdouble k      = Omega;
   cdouble Eta    = (Eps-1.0)/(Eps+1.0);
-  cdouble ExpFac, ikr;
-  double r, r2;
 
-  /*--------------------------------------------------------------*/
-  /* terms singular at Rho=0                                      */
-  /*--------------------------------------------------------------*/
+  int NumPotentials = (PPIsOnly ? 2 : NUMVSI);
+  memset(V, 0, NumPotentials*sizeof(cdouble));
+
+  // n=0 terms (singular at Rho=0)
   if (RetainSingularTerms)
-   { r2 = Rho*Rho + z*z;
-     r=sqrt(r2);
-     ikr=II*k*r;
-     ExpFac = ZVAC*exp(ikr) / (4.0*M_PI*r);
-     V[_VSI_APAR]   += ExpFac;
-     V[_VSI_PHI ]   += (1.0-Eta)*ExpFac;
-     if (!PPIsOnly)
-      { ExpFac *= (ikr-1.0)/r2;
-        V[_VSI_DRPHI] += Rho*(1.0-Eta)*ExpFac;
-        V[_VSI_DZPHI] += z*(1.0-Eta)*ExpFac;
-      }
-   }
+   AddVSITerm(k, Rho, z, h, Eta, PPIsOnly, 0, 1.0-Eta, V);
 
-  if (isinf(h)) return 0;
+  if (isinf(h) || MaxTerms==1) return 1;
 
-  /*--------------------------------------------------------------*/
-  /*- first ground-plane image term-------------------------------*/
-  /*--------------------------------------------------------------*/
-  cdouble EtaFac = (1.0-Eta*Eta);
-  z += 2.0*h;
-  r2 = Rho*Rho + z*z;
-  r=sqrt(r2);
-  ikr=II*k*r;
-  ExpFac = ZVAC*exp(ikr) / (4.0*M_PI*r);
-  V[_VSI_APAR] -= ExpFac;
-  V[_VSI_PHI]  -= EtaFac*ExpFac;
-  if (!PPIsOnly)
-   { ExpFac *= (ikr-1.0)/r2;
-     V[_VSI_DRPHI] -= Rho*EtaFac*ExpFac;
-     V[_VSI_DZPHI] -= z*EtaFac*ExpFac;
-   }
- 
+  // n=1 (first ground-plane image)
+  cdouble EtaFac = AddVSITerm(k, Rho, z, h, Eta, PPIsOnly, 1, 1.0-Eta*Eta, V);
+  if (MaxTerms==2) return 1;
+
   /*--------------------------------------------------------------*/
   /*- second and higher ground-plane image terms -----------------*/
   /*--------------------------------------------------------------*/
-  double RefVals[3]; 
+  double RefVals[3];
   RefVals[0] = abs(V[_VSI_PHI]);
   RefVals[1] = abs(V[_VSI_DRPHI]);
   RefVals[2] = abs(V[_VSI_DZPHI]);
   int ConvergedIters=0;
-  for(int nTerms=1; nTerms<MaxTerms; nTerms++)
+  for(int nTermPairs=1; nTermPairs<MaxTerms/2; nTermPairs++)
    { 
-     // contribution of 2nth and (2n+1)th images
-     cdouble Terms[3]={0.0, 0.0, 0.0};
-     for(int n=0; n<2; n++)
-      { z += 2.0*h;
-        r2 = Rho*Rho + z*z;
-        r=sqrt(r2);
-        ikr=II*k*r;
-        ExpFac = ZVAC*exp(ikr) / (4.0*M_PI*r);
-        EtaFac *= -1.0*Eta;
-        Terms[0] += EtaFac*ExpFac;
-        if (PPIsOnly)
-         { ExpFac *= (ikr-1.0)/r2;
-           Terms[1] += Rho*EtaFac*ExpFac;
-           Terms[2] += z*EtaFac*ExpFac;
-         }
-      };
-
-     V[_VSI_PHI] -= Terms[0];
-     if (!PPIsOnly)
-      { V[_VSI_DRPHI] -= Terms[1];
-        V[_VSI_DZPHI] -= Terms[2];
-      }
+     cdouble Vn[NUMVSI]={0.0, 0.0, 0.0, 0.0, 0.0};
+     EtaFac = AddVSITerm(k, Rho, z, h, Eta, PPIsOnly, 2*nTermPairs,   EtaFac, Vn);
+     EtaFac = AddVSITerm(k, Rho, z, h, Eta, PPIsOnly, 2*nTermPairs+1, EtaFac, Vn);
+     VecPlusEquals(V, 1.0, Vn, NumPotentials);
+    
      bool AllConverged=true;
      for(int p=0; p<(PPIsOnly ? 1 : 3); p++)
-      { double absTerm = abs(Terms[p]);
-        if ( (absTerm > AbsTol) && (absTerm>RelTol*RefVals[p]) )
+      { int Index = (p==0 ? _VSI_PHI : p==1 ? _VSI_DRPHI : _VSI_DZPHI);
+        double absTerm = abs(Vn[Index]);
+        if ( (absTerm > AbsTol) && (absTerm>RelTol*RefVals[Index]) )
          AllConverged=false;
       }
      if (AllConverged)
@@ -128,7 +113,7 @@ int GetVSICorrection(cdouble Omega, double Rho, double z,
      else
       ConvergedIters=0;
      if (ConvergedIters==3)
-      return nTerms;
+      return 2*nTermPairs;
    }
 
   return 0; // never get here
@@ -142,7 +127,7 @@ void GetVSITwiddle(cdouble q, cdouble u0, cdouble u,
                    cdouble *VTVector, bool PPIsOnly)
 {
   if (q==0.0)
-   { memset(VTVector, 0, (PPIsOnly ? 2 : 5)*sizeof(cdouble));
+   { memset(VTVector, 0, (PPIsOnly ? 2 : NUMVSI)*sizeof(cdouble));
      return;
    };
 
@@ -155,7 +140,7 @@ void GetVSITwiddle(cdouble q, cdouble u0, cdouble u,
   cdouble J1Fac = PPIsOnly ? 0.0 : II*q*q*JdJFactors[0][1] / (2.0*M_PI);
   
   // fetch hyperbolic factors
-  cdouble uh = u*h, uh2=uh*uh;
+  cdouble uh = (isinf(h) ? 0.0 : u*h), uh2=uh*uh;
   cdouble uTanhFac, uCothFac, SinhFac, CoshFac, dzSinhFac;
   cdouble euz = (z<0.0) ? exp(u*z) : 1.0, emuz=1.0/euz;
   if ( isinf(h) || real(uh)>20.0 )
@@ -178,7 +163,7 @@ void GetVSITwiddle(cdouble q, cdouble u0, cdouble u,
      SinhFac   = (euh*euz - emuh*emuz)/(euh - emuh);
      CoshFac   = (euh*euz + emuh*emuz)/(euh + emuh);
      dzSinhFac = u*(euh*euz + emuh*emuz)/(euh - emuh);
-   };
+   }
   cdouble Num = u0+uTanhFac, DTE=u0+uCothFac, DTM=Eps*u0+uTanhFac, DTETM=DTE*DTM;
  
   VTVector[_VSI_APAR ] = ZVAC*J0Fac/DTE;
@@ -201,6 +186,8 @@ void GetVSITwiddle(cdouble q, cdouble u0, cdouble u,
      VTVector[_VSI_DRPHI] *= SinhFac;
      VTVector[_VSI_DZPHI] *= u*CoshFac/SinhFac;
    };
+
+  if (fabs(z)<1.0e-12) VTVector[_VSI_DZPHI]=0.0;
 }
 
 /***************************************************************/
@@ -210,6 +197,8 @@ typedef struct SingleInterfaceData
  { 
    LayeredSubstrate *S;
    cdouble Omega;
+   cdouble Eps;
+   double h;
    HMatrix *XMatrix;
    bool RetainTerm[2];
    bool PPIsOnly;
@@ -225,6 +214,8 @@ int qIntegrand_SingleInterface(unsigned ndim, const double *x, void *UserData,
   SingleInterfaceData *SIData = (SingleInterfaceData *)UserData;
   LayeredSubstrate *S  = SIData->S;
   cdouble Omega        = SIData->Omega;
+  cdouble Eps          = SIData->Eps;
+  double h             = SIData->h;
   HMatrix *XMatrix     = SIData->XMatrix;
   bool *RetainTerm     = SIData->RetainTerm;
   bool PPIsOnly        = SIData->PPIsOnly;
@@ -232,13 +223,11 @@ int qIntegrand_SingleInterface(unsigned ndim, const double *x, void *UserData,
   SIData->NumCalls++;
 
   S->UpdateCachedEpsMu(Omega);
-  cdouble Eps = S->EpsLayer[1];
-  double h    = S->zInterface[0] - S->zGP; // substrate thickness
 
   cdouble q  = x[0] + ((ndim==2) ? II*x[1] : 0.0);
   cdouble q2=q*q, u0 = sqrt(q2 - Omega*Omega), u = sqrt(q2 - Eps*Omega*Omega);
 
-  int NumPotentials = PPIsOnly ? 2 : 5;
+  int NumPotentials = PPIsOnly ? 2 : NUMVSI;
   int NX            = XMatrix->NR;
   HMatrix VTMatrix(NumPotentials, NX, (cdouble *)fval);
   for(int nx=0; nx<NX; nx++)
@@ -246,7 +235,6 @@ int qIntegrand_SingleInterface(unsigned ndim, const double *x, void *UserData,
      double Rhox    = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
      double Rhoy    = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
      double Rho     = sqrt(Rhox*Rhox + Rhoy*Rhoy);
-
      double zDest   = XMatrix->GetEntryD(nx,2);
      double zSource = XMatrix->GetEntryD(nx,5);
      double zDelta  = zDest - zSource;
@@ -261,7 +249,7 @@ int qIntegrand_SingleInterface(unsigned ndim, const double *x, void *UserData,
      if(RetainTerm[1])
       GetVSITwiddle(q, u0, u0, Rho, zDelta, Eps, h, VT0Vector, PPIsOnly);
 
-     VT0Vector[_VSI_APERP]=0.0;
+     VT0Vector[_VSI_APERP]=0.0; // we don't do the subtraction for this one
      for(int i=0; i<NumPotentials; i++)
       VTMatrix.SetEntry(i,nx,VTVector[i]-VT0Vector[i]);
  
@@ -285,7 +273,9 @@ int qIntegrand_SingleInterface(unsigned ndim, const double *x, void *UserData,
 int LayeredSubstrate::GetSingleInterfacePotentials(cdouble Omega,
                                                    HMatrix *XMatrix,
                                                    HMatrix *VMatrix,
-                                                   bool PPIsOnly, bool Subtract,
+                                                   bool PPIsOnly,
+                                                   bool Subtract,
+                                                   bool RetainSingularTerms,
                                                    bool CorrectionOnly)
 {
   UpdateCachedEpsMu(Omega);
@@ -315,17 +305,23 @@ int LayeredSubstrate::GetSingleInterfacePotentials(cdouble Omega,
   s=getenv("SOMMERFELD_MAXEVALB");
   if (s) sscanf(s,"%i",&MaxEvalB);
 
+  cdouble Eps = EpsLayer[1];
+  double h    = zInterface[0] - zGP;
+
   SingleInterfaceData SIData;
   SIData.S             = this;
   SIData.Omega         = Omega;
+  SIData.Eps           = Eps;
+  SIData.h             = h;
   SIData.XMatrix       = XMatrix;
   SIData.PPIsOnly      = PPIsOnly;
   SIData.RetainTerm[0] = !CorrectionOnly;
   SIData.RetainTerm[1] = (Subtract || CorrectionOnly);
   SIData.byqFile       = byqFile;
 
-  int NumPotentials = PPIsOnly ? 2 : 5;
-  int zfdim = NumPotentials * XMatrix->NR;
+  int NX = XMatrix->NR;
+  int NumPotentials = PPIsOnly ? 2 : NUMVSI;
+  int zfdim = NumPotentials * NX;
   cdouble *Error = new cdouble[zfdim]; 
   SIData.NumCalls=0;
   SommerfeldIntegrate(qIntegrand_SingleInterface, (void *)&SIData, zfdim,
@@ -334,12 +330,37 @@ int LayeredSubstrate::GetSingleInterfacePotentials(cdouble Omega,
   if (byqFile) fclose(byqFile);
   if (CorrectionOnly) VMatrix->Scale(-1.0);
   delete[] Error;
+
+  bool NeedCorrection = Subtract || (!Subtract && !RetainSingularTerms);
+  if (NeedCorrection)
+   for(int nx=0; nx<NX; nx++)
+    { Rhox     = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
+      Rhoy     = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
+      Rho      = sqrt(Rhox*Rhox + Rhoy*Rhoy);
+      double z = XMatrix->GetEntryD(nx,2) - XMatrix->GetEntryD(nx,5);
+      cdouble VCorr[NUMVSI];
+      cdouble *V=(cdouble *)VMatrix->GetColumnPointer(nx);
+      int NumTerms;
+      if (Subtract)
+       { NumTerms=GetVSICorrection(Omega, Rho, z, Eps, h, VCorr, PPIsOnly,
+                                   RetainSingularTerms, 1000, qRelTol, qAbsTol);
+         VecPlusEquals(V,1.0,VCorr,NumPotentials);
+       }
+      else if (!Subtract && !RetainSingularTerms)
+       { NumTerms=GetVSICorrection(Omega, Rho, z, Eps, h, VCorr, PPIsOnly,
+                                   true, 1, qRelTol, qAbsTol);
+         VecPlusEquals(V,-1.0,VCorr,NumPotentials);
+       }
+      Log("VSICorrection({w,Rho,z}={%g,%g,%g}: %i terms summed",real(Omega),Rho,z,NumTerms);
+    }
+    
   return SIData.NumCalls;
 }
 
 int LayeredSubstrate::GetSingleInterfacePotentials(cdouble Omega, double Rho,
-                                                   double zDest, cdouble *VSI, 
-                                                   bool PPIsOnly, bool Subtract, 
+                                                   double zDest, cdouble *VSI,
+                                                   bool PPIsOnly, bool Subtract,
+                                                   bool RetainSingularTerms,
                                                    bool CorrectionOnly)
 {
   double XDS[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -347,9 +368,9 @@ int LayeredSubstrate::GetSingleInterfacePotentials(cdouble Omega, double Rho,
   XDS[2]=zDest;
   HMatrix XMatrix(1,6,XDS);
 
-  int NumPotentials = (PPIsOnly ? 2 : 5);
+  int NumPotentials = (PPIsOnly ? 2 : NUMVSI);
   HMatrix VMatrix(NumPotentials, 1, VSI);
 
   return GetSingleInterfacePotentials(Omega, &XMatrix, &VMatrix, PPIsOnly, Subtract,
-                                      CorrectionOnly);
+                                      RetainSingularTerms, CorrectionOnly);
 }

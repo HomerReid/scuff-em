@@ -38,12 +38,6 @@ using namespace scuff;
 
 #define II cdouble(0.0,1.0)
 
-int GetVSICorrection(cdouble Omega, double Rho, double zDest,
-                     cdouble Eps, double h, cdouble *V,
-                     bool PPIsOnly=true, bool RetainSingularTerms=true,
-                     int MaxTerms=1000, 
-                     double RelTol=1.0e-6, double AbsTol=1.0e-12);
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -66,6 +60,7 @@ int main(int argc, char *argv[])
   int MaxTerms=1000;
   double RelTol=1.0e-6;
   double AbsTol=1.0e-12;
+  bool OmitSingularTerms=false;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"SubstrateFile",  PA_STRING,  1, 1, (void *)&SubstrateFile,  0, ".substrate file"},
@@ -80,6 +75,8 @@ int main(int argc, char *argv[])
 //
      {"PPIsOnly",       PA_BOOL,    0, 1, (void *)&PPIsOnly,       0, ""},
      {"CorrectionOnly", PA_BOOL,    0, 1, (void *)&CorrectionOnly, 0, "retain only correction"},
+     {"OmitSingularTerms", PA_BOOL, 0, 1, (void *)&OmitSingularTerms, 0, "omit singular contributions"},
+//
      {"MaxTerms",       PA_INT,     1, 1, (void *)&MaxTerms,       0, ""},
      {"RelTol",         PA_DOUBLE,  1, 1, (void *)&RelTol,         0, ""},
      {"AbsTol",         PA_DOUBLE,  1, 1, (void *)&AbsTol,         0, ""},
@@ -87,7 +84,7 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
 
-  LayeredSubstrate *S; 
+  LayeredSubstrate *S;
   if (SubstrateFile)
    { S = new LayeredSubstrate(SubstrateFile);
      S->UpdateCachedEpsMu(Omega);
@@ -119,22 +116,22 @@ int main(int argc, char *argv[])
      double Rhox   = XMatrix->GetEntryD(0,0) - XMatrix->GetEntryD(0,3);
      double Rhoy   = XMatrix->GetEntryD(0,1) - XMatrix->GetEntryD(0,4);
      double Rho    = sqrt(Rhox*Rhox + Rhoy*Rhoy);
-     double zDest  = XMatrix->GetEntryD(0,2);
+     double z      = XMatrix->GetEntryD(0,2) - XMatrix->GetEntryD(0,5);
 
-     cdouble VFull[5], VSubt[5]; 
-     int NFull = S->GetSingleInterfacePotentials(Omega, Rho, zDest, VFull, PPIsOnly, false, false);
-     int NSubt = S->GetSingleInterfacePotentials(Omega, Rho, zDest, VSubt, PPIsOnly, true , false);
+     bool Subtract;
+     cdouble VFull[5], VSubt[5];
 
+     Subtract=false;
+     int NFull = S->GetSingleInterfacePotentials(Omega, Rho, z, VFull, PPIsOnly,
+                                                 Subtract, !OmitSingularTerms);
      printf("Full (%5i calls): %s    %s\n",NFull,CD2S(VFull[0]),CD2S(VFull[1]));
+
+     Subtract=true;
+     int NSubt = S->GetSingleInterfacePotentials(Omega, Rho, z, VSubt, PPIsOnly,
+                                                 Subtract, !OmitSingularTerms);
      printf("Subt (%5i calls): %s    %s\n",NSubt,CD2S(VSubt[0]),CD2S(VSubt[1]));
 
-     cdouble VCorrection[5], VFull2[5];
-     int nTerms=GetVSICorrection(Omega, Rho, zDest, Eps, h, VCorrection, 
-                                 PPIsOnly, true, MaxTerms, RelTol, AbsTol);
-     printf("Corr (%5i terms): %s    %s\n",nTerms,CD2S(VCorrection[0]),CD2S(VCorrection[1]));
-     VecAdd(VSubt, VCorrection, VFull2, NumPotentials);
-
-     Compare(VFull, VFull2, NumPotentials, "Full", "Subt+Corr");
+     Compare(VFull, VSubt, NumPotentials, "Full", "Subt");
      exit(1);
    }
 

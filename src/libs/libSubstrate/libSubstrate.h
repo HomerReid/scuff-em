@@ -297,11 +297,14 @@ public:
    /*--------------------------------------------------------------*/
    int GetSingleInterfacePotentials(cdouble Omega, HMatrix *XMatrix,
                                     HMatrix *VSIMatrix, bool PPIsOnly=false,
-                                    bool Subtract=false, bool CorrectionOnly=false);
+                                    bool Subtract=true, bool RetainSingularTerms=true,
+                                    bool CorrectionOnly=false);
 
-   int GetSingleInterfacePotentials(cdouble Omega, double Rho, double zDest,
-                                    cdouble *VSI, bool PPIsOnly=false,
-                                    bool Subtract=false, bool CorrectionOnly=false);
+   int GetSingleInterfacePotentials(cdouble Omega, double Rho,
+                                    double zDest, cdouble *VSI,
+                                    bool PPIsOnly=false, bool Subtract=true,
+                                    bool RetainSingularTerms=true,
+                                    bool CorrectionOnly=false);
 
 // internal ("private") class data
 
