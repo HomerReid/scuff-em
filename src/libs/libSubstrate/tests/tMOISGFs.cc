@@ -18,7 +18,7 @@
  */
 
 /*
- * tVSI -- test of potential functions needed for single-interface substrates
+ * tMOISGFs -- test of scalar GFs for metal-on-insulator geometries
  */
 #include <stdio.h>
 #include <math.h>
@@ -109,72 +109,36 @@ int main(int argc, char *argv[])
   HMatrix *XMatrix = XDSFile ? new HMatrix(XDSFile) 
                              : new HMatrix(1,6,XDS);
   int NX=XMatrix->NR;
-  int NumPotentials = (PPIsOnly ? 2 : 5);
+  int NumSGFs = (PPIsOnly ? 2 : 5);
 
-  if (NX==1)
+  FILE *f=fopen("/tmp/tVSI.out","w");
+  for(int nx=0; nx<NX; nx++)
    { 
-     double Rhox   = XMatrix->GetEntryD(0,0) - XMatrix->GetEntryD(0,3);
-     double Rhoy   = XMatrix->GetEntryD(0,1) - XMatrix->GetEntryD(0,4);
+     double Rhox   = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
+     double Rhoy   = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
      double Rho    = sqrt(Rhox*Rhox + Rhoy*Rhoy);
-     double z      = XMatrix->GetEntryD(0,2) - XMatrix->GetEntryD(0,5);
+     double z      = XMatrix->GetEntryD(nx,2) - XMatrix->GetEntryD(nx,5);
 
      bool Subtract;
      cdouble VFull[5], VSubt[5];
 
      Subtract=false;
-     int NFull = S->GetSingleInterfacePotentials(Omega, Rho, z, VFull, PPIsOnly,
-                                                 Subtract, !OmitSingularTerms);
+     int NFull = S->GetScalarGFs_MOI(Omega, Rho, z, VFull, PPIsOnly,
+                                     Subtract, !OmitSingularTerms);
      printf("Full (%5i calls): %s    %s\n",NFull,CD2S(VFull[0]),CD2S(VFull[1]));
 
      Subtract=true;
-     int NSubt = S->GetSingleInterfacePotentials(Omega, Rho, z, VSubt, PPIsOnly,
-                                                 Subtract, !OmitSingularTerms);
+     int NSubt = S->GetScalarGFs_MOI(Omega, Rho, z, VSubt, PPIsOnly,
+                                     Subtract, !OmitSingularTerms);
      printf("Subt (%5i calls): %s    %s\n",NSubt,CD2S(VSubt[0]),CD2S(VSubt[1]));
 
-     Compare(VFull, VSubt, NumPotentials, "Full", "Subt");
-     exit(1);
-   }
+     if (NX==1) 
+      Compare(VFull, VSubt, NumSGFs, "Full", "Subt");
 
-}
-
-#if 0
-  FILE *f=fopen("tVSI.out","w");
-  for(int nx=0; nx<NX; nx++)
-   { double Rhox   = XMatrix->GetEntryD(nx,0) - XMatrix->GetEntryD(nx,3);
-     double Rhoy   = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
-     double Rho    = sqrt(Rhox*Rhox + Rhoy*Rhoy);
-     double zDelta = XMatrix->GetEntryD(nx,2) - XMatrix->GetEntryD(nx,5);
-
-     cdouble VTVector[5];
-     bool PPIOnly=false;
-     GetVTwiddle(q, u0, u, Rho, zDelta, Eps, h, VTVector, PPIOnly);
-     fprintf(f,"%e %e ",Rho,zDelta);
-     fprintVecCR(f,VTVector,5);
-
-     if (NX==1) // test derivatives by finite-differencing
-      { 
-        cdouble dPhiHR[2], dPhiBF1[2], dPhiBF2[2];
-        dPhiHR[0] = VTVector[_VSI_DRPHI];
-        dPhiHR[1] = VTVector[_VSI_DZPHI];
-
-        cdouble VTP[5], VTM[5];
-        PPIOnly=true;
-
-        double dRho = 1.0e-4*fabs(Rho);
-        if (dRho==0.0) dRho=1.0e-4;
-        GetVTwiddle(q, u0, u, Rho+dRho, zDelta, Eps, h, VTP, PPIOnly);
-        GetVTwiddle(q, u0, u, Rho-dRho, zDelta, Eps, h, VTM, PPIOnly);
-        dPhiBF1[0] = (VTP[_VSI_PHI] - VTVector[_VSI_PHI])/dRho;
-        dPhiBF2[0] = (VTP[_VSI_PHI] - VTM[_VSI_PHI])/(2.0*dRho);
-
-        double dz  = 1.0e-4*fabs(zDelta);
-        if (dz==0.0) dz=1.0e-4;
-        GetVTwiddle(q, u0, u, Rho, zDelta+dz, Eps, h, VTP, PPIOnly);
-        GetVTwiddle(q, u0, u, Rho, zDelta-dz, Eps, h, VTM, PPIOnly);
-        dPhiBF1[1] = (VTP[_VSI_PHI] - VTVector[_VSI_PHI])/dz;
-        dPhiBF2[1] = (VTP[_VSI_PHI] - VTM[_VSI_PHI])/(2.0*dz);
-        Compare(dPhiHR, dPhiBF1, dPhiBF2, 2, "HR", "BF1", "BF2");
-      }
+     fprintf(f,"%e %e %i %i ",Rho,z,NFull,NSubt);
+     fprintVec(f,VFull,NumSGFs);
+     fprintVecCR(f,VSubt,NumSGFs);
    }
   fclose(f);
-#endif
+
+}

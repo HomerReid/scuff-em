@@ -167,26 +167,29 @@ int TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
   TDW->nCalls++;
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /*- yInnermost is the y variable that is integrated out         */
+  /*- analytically for twice-integrable kernels; it is not        */
+  /*- referenced by this routine for twice-integrable kernels, but*/
+  /*- is used to form the integrand for once-integrable kernels.  */
   /*--------------------------------------------------------------*/
   int NumRegions, nOffset;
-  double y, Jacobian;
+  double yInnermost, Jacobian;
   if (WhichCase==TD_COMMONTRIANGLE)
    { NumRegions=3;
      nOffset=1;
-     y = (TwiceIntegrable ? 0.0 : yVector[0]);
+     yInnermost = (TwiceIntegrable ? 0.0 : yVector[0]);
      Jacobian=1.0;
    }
   else if (WhichCase==TD_COMMONEDGE)
    { NumRegions=6;
      nOffset=2;
-     y = yVector[1];
+     yInnermost = (TwiceIntegrable ? 0.0 : yVector[1]);
      Jacobian=yVector[0];
    }
   else // (WhichCase==TD_COMMONVERTEX)
    { NumRegions=2;
      nOffset=3;
-     y = yVector[2];
+     yInnermost = (TwiceIntegrable ? 0.0 : yVector[2]);
      Jacobian=yVector[1];
    };
 
@@ -244,7 +247,7 @@ int TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
      else // once integrable
       for(int n=nMin; n<=nMax; n++)
        for(int d=0; d<NumRegions; d++)
-        Sum[npk] += (P[np][d][n][0] + y*P[np][d][n][1]) * K[d][n+nOffset];
+        Sum[npk] += (P[np][d][n][0] + yInnermost*P[np][d][n][1]) * K[d][n+nOffset];
 
      Sum[npk] *= Jacobian/(4.0*M_PI);
 

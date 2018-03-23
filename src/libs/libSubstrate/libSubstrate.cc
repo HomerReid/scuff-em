@@ -211,10 +211,10 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   OmegaCache = -1.0;
 
   qMaxEval  = 2000;
-  qMaxEvalA = 2000;
-  qMaxEvalB = 2000;
-  qAbsTol   = 1.0e-4;
-  qRelTol   = 1.0e-2;
+  qMaxEvalA = 0;
+  qMaxEvalB = 0;
+  qAbsTol   = 1.0e-8;
+  qRelTol   = 1.0e-4;
   PPIOrder  = 9;
   PhiEOrder = 9;
   LogLevel  = LIBSUBSTRATE_TERSE;
@@ -239,6 +239,9 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   if ( (s=getenv("SCUFF_SUBSTRATE_BYQFILES")) && s[0]=='1') 
    WritebyqFiles=true;
    
+  if (qMaxEvalA==0) qMaxEvalA=qMaxEval;
+  if (qMaxEvalB==0) qMaxEvalB=qMaxEval;
+
   I1D=0;
   I1DOmega=-1.0;
   I1DRhoMin=HUGE_VAL;

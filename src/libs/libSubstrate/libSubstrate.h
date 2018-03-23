@@ -90,15 +90,15 @@ enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT};
 #define NUMGFRAK    22
 
 /********************************************************************/
-/* components of the vector of potentials computed for the single-  */
+/* components of the vector of scalar green's functions             */
 /* interface case                                                   */
 /********************************************************************/
-#define _VSI_APAR  0
-#define _VSI_PHI   1
-#define _VSI_APERP 2
-#define _VSI_DRPHI 3
-#define _VSI_DZPHI 4
-#define NUMVSI     5
+#define _SGF_APAR   0
+#define _SGF_PHI    1
+#define _SGF_AZ     2
+#define _SGF_DRPHI  3
+#define _SGF_DZPHI  4
+#define NUMSGFS_MOI 5
 
 /********************************************************************/
 /* labels for entries of extended potential and source vectors      */
@@ -292,19 +292,18 @@ public:
                        cdouble ScriptG[36]);
 
    /*--------------------------------------------------------------*/
-   /* routines for full-wave DFT for substrates with a single      */
-   /* dielectric interface (half-space or slab with ground plane)  */
+   /* specialized routines for geometries involving metal directly */
+   /* atop an infinite or grounded dielectric slab                 */
    /*--------------------------------------------------------------*/
-   int GetSingleInterfacePotentials(cdouble Omega, HMatrix *XMatrix,
-                                    HMatrix *VSIMatrix, bool PPIsOnly=false,
-                                    bool Subtract=true, bool RetainSingularTerms=true,
-                                    bool CorrectionOnly=false);
+   int GetScalarGFs_MOI(cdouble Omega, HMatrix *XMatrix,
+                        HMatrix *VMatrix, bool PPIsOnly=false,
+                        bool Subtract=true, bool RetainSingularTerms=true,
+                        bool CorrectionOnly=false);
 
-   int GetSingleInterfacePotentials(cdouble Omega, double Rho,
-                                    double zDest, cdouble *VSI,
-                                    bool PPIsOnly=false, bool Subtract=true,
-                                    bool RetainSingularTerms=true,
-                                    bool CorrectionOnly=false);
+   int GetScalarGFs_MOI(cdouble Omega, double Rho, double zDest, cdouble *V,
+                        bool PPIsOnly=false, bool Subtract=true,
+                        bool RetainSingularTerms=true,
+                        bool CorrectionOnly=false);
 
 // internal ("private") class data
 

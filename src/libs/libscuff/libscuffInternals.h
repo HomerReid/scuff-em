@@ -206,7 +206,8 @@ void GetGCMatrixElements(RWGGeometry *G,
                          GetGCMEArgStruct *Args,
                          int nea, int neb,
                          cdouble Gab[2][NUMGCMES],
-                         cdouble Cab[2][NUMGCMES]);
+                         cdouble ikCab[2][NUMGCMES],
+                         cdouble *GPhiTerm=0);
 
 void InitGetGCMEArgs(GetGCMEArgStruct *Args);
 

@@ -102,6 +102,8 @@ cdouble MosigMichalski(int K, double *xValues, cdouble *uValues,
                        cdouble *Workspace=0, cdouble *OmegaValues=0, 
                        char tuv='u')
 {
+  if (K==0) return uValues[0*Stride + Offset];
+
   bool OwnsWorkspace = (Workspace==0);
   if (OwnsWorkspace)
    Workspace = new cdouble[K*K];
@@ -126,7 +128,7 @@ cdouble MosigMichalski(int K, double *xValues, cdouble *uValues,
 
    };
   cdouble RetVal = SMatrix.GetEntry(K-1,0);
-  if (OwnsWorkspace) delete Workspace;
+  if (OwnsWorkspace) delete[] Workspace;
   return RetVal;
 }
 
@@ -235,7 +237,7 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
   /* if xNu==-1, evaluate the tail (i.e. \int_{q0}^\infty ) by   */
   /* simple adaptive quadrature                                  */
   /***************************************************************/
-  if (xNu==-1)
+  if (xNu==-1 || Rho==0.0)
    { 
      SIData.q0          = q0;
      SIData.uTransform  = true;

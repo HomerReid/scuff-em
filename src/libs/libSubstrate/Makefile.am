@@ -8,7 +8,7 @@ libSubstrate_la_SOURCES = 	\
  FullWave.cc                	\
  gFrak.cc                       \
  GTwiddle.cc                    \
- SingleInterface.cc		\
+ MOI.cc            		\
  SommerfeldIntegrator.cc        \
  Static.cc
 

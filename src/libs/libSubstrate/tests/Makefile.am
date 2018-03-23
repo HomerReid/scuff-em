@@ -12,7 +12,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
 check_PROGRAMS = tGTwiddle \
  tFullWaveSubstrate        \
  tVTwiddle                 \
- tVSI     
+ tMOISGFs 
  
 TESTS = tGTwiddle tFullWaveSubstrate
 
@@ -25,8 +25,8 @@ TESTLIBS = ../libSubstrate.la      \
 ../../libSpherical/libSpherical.la \
 ../../libhrutil/libhrutil.la
 
-tVSI_SOURCES = tVSI.cc
-tVSI_LDADD = $(TESTLIBS)
+tMOISGFs_SOURCES = tMOISGFs.cc
+tMOISGFs_LDADD = $(TESTLIBS)
 
 tVTwiddle_SOURCES = tVTwiddle.cc
 tVTwiddle_LDADD = $(TESTLIBS)

@@ -317,7 +317,8 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
 void AddFIBBIContributions(double *FIBBIs, cdouble k,
                            bool NeedGC, bool NeedForce,
                            cdouble Gab[NUMGCMES],
-                           cdouble ikCab[NUMGCMES])
+                           cdouble ikCab[NUMGCMES],
+                           cdouble *GPhiTerm=0)
 {
   cdouble ik=II*k, ik2=ik*ik, ik3=ik2*ik, ik4=ik3*ik;
   cdouble OOK2=1.0/(k*k);
@@ -340,15 +341,19 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
                      +C[2]*FIBBIs[ FIBBI_PEFIE1_R1 ]
                      +C[3]*FIBBIs[ FIBBI_PEFIE1_R2 ];
 
-     Gab[GCME_GC] -= OOK2* ( C[0]*FIBBIs[ FIBBI_PEFIE2_RM1]
-                            +C[1]*FIBBIs[ FIBBI_PEFIE2_R0 ]
-                            +C[2]*FIBBIs[ FIBBI_PEFIE2_R1 ]
-                            +C[3]*FIBBIs[ FIBBI_PEFIE2_R2 ]);
+     cdouble PEFIE2 = OOK2* ( C[0]*FIBBIs[ FIBBI_PEFIE2_RM1]
+                             +C[1]*FIBBIs[ FIBBI_PEFIE2_R0 ]
+                             +C[2]*FIBBIs[ FIBBI_PEFIE2_R1 ]
+                             +C[3]*FIBBIs[ FIBBI_PEFIE2_R2 ] 
+                            );
+     Gab[GCME_GC] -= PEFIE2;
+     if (GPhiTerm)
+      *GPhiTerm -= PEFIE2;
 
-   ikCab[GCME_GC] +=  D[0]*FIBBIs[ FIBBI_PMFIE_RM3 ]
-                     +D[1]*FIBBIs[ FIBBI_PMFIE_RM1 ]
-                     +D[2]*FIBBIs[ FIBBI_PMFIE_R0  ]
-                     +D[3]*FIBBIs[ FIBBI_PMFIE_R1  ];
+     ikCab[GCME_GC] +=  D[0]*FIBBIs[ FIBBI_PMFIE_RM3 ]
+                       +D[1]*FIBBIs[ FIBBI_PMFIE_RM1 ]
+                       +D[2]*FIBBIs[ FIBBI_PMFIE_R0  ]
+                       +D[3]*FIBBIs[ FIBBI_PMFIE_R1  ];
    };
 
   if (NeedForce)
@@ -488,7 +493,7 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
        }
       else 
        { TDArgs->WhichCase=ncv;
-         TDArgs->NumPKs = (ncv==3) ? 8 : 12;
+         TDArgs->NumPKs = ( (ncv==3) ? 8 : 12 );
          TDArgs->V1=Va[0];
          TDArgs->V2=Va[1];
          TDArgs->V3=Va[2];
@@ -559,7 +564,8 @@ void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
 void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
                          int nea, int neb,
                          cdouble Gab[2][NUMGCMES],
-                         cdouble ikCab[2][NUMGCMES])
+                         cdouble ikCab[2][NUMGCMES],
+                         cdouble *GPhiTerm)
 {
   /***************************************************************/
   /***************************************************************/
@@ -635,6 +641,8 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
         PEFIE2             = RawMEs[nrme+1];
           Gab[nr][GCME_GC] = PEFIE1 - PEFIE2;
         ikCab[nr][GCME_GC] = RawMEs[nrme+2];
+        if (GPhiTerm)
+         GPhiTerm[nr] = -1.0*PEFIE2;
         nrme+=3;
       };
 
@@ -661,7 +669,7 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
       };
 
      if (DeSingularize)
-      AddFIBBIContributions(FIBBIs, k, NeedGC, NeedForce, Gab[nr], ikCab[nr]);
+      AddFIBBIContributions(FIBBIs, k, NeedGC, NeedForce, Gab[nr], ikCab[nr], (GPhiTerm ? GPhiTerm+nr : 0) );
 
    }; // for(int nr=0, nrme=0; nr<NumRegions; nr++)
 
