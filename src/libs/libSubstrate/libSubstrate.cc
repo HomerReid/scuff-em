@@ -242,15 +242,7 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   if (qMaxEvalA==0) qMaxEvalA=qMaxEval;
   if (qMaxEvalB==0) qMaxEvalB=qMaxEval;
 
-  I1D=0;
-  I1DOmega=-1.0;
-  I1DRhoMin=HUGE_VAL;
-  I1DRhoMax=0;
-
-  I3D=0;
-  I3DOmega=-1.0;
-  I3DRhoMin=I3DZDMin=I3DZSMin=HUGE_VAL;
-  I3DRhoMax=I3DZDMax=I3DZSMax=-HUGE_VAL;
+  ScalarGFInterpolator=0;
 
   ForceMethod=AUTO;
   ForceFreeSpace=StaticLimit=false;
@@ -269,8 +261,7 @@ LayeredSubstrate::~LayeredSubstrate()
   free(EpsLayer);
   free(MuLayer);
   free(zInterface);
-  if (I1D)
-   delete I1D;
+  DestroyScalarGFInterpolator();
 }
 
 /***************************************************************/

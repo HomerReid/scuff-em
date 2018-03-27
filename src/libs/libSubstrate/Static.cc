@@ -380,6 +380,7 @@ void LayeredSubstrate::GetDeltaPhiE(double XD[3], double XS[3],
   /***************************************************************/
   double qIntegral[3];
   bool GotqIntegral=false;
+#if 0
   if (     I1D
         && I1DOmega==0.0
         && EqualFloat(ZD, ZS) && EqualFloat(ZD, I1DZ)
@@ -388,6 +389,7 @@ void LayeredSubstrate::GetDeltaPhiE(double XD[3], double XS[3],
    {
      GotqIntegral = I1D->Evaluate(RhoMag, qIntegral);
    };
+#endif
  
   /***************************************************************/
   /*- evaluate q integral to get contributions of surface        */

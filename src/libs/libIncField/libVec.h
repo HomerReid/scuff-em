@@ -33,7 +33,7 @@
   is all the data in the class. In order to use the class with other
   codes expecting raw T[3] arrays, we provide a constructor of the
   class from T*, so a T* can be passed to a function expecting a
-  dVec. In addition, we provide an operator T*, which can be used to
+  dVector. In addition, we provide an operator T*, which can be used to
   pass an object of type Vec<T> to a function expecting a T* array.
   It is the user's responsibility to ensure that any usage as T* only
   refers to T[3] arrays!
@@ -42,7 +42,7 @@
   some template metaprogramming tricks are used to allow specialization
   of the functions.
 
-  Two specializations are provided as typedefs: dVec for Vec<double>
+  Two specializations are provided as typedefs: dVector for Vec<double>
   and zVec for Vec<std::complex<double> >. 
  */
 
@@ -137,7 +137,9 @@ private:
   inline norm_type norm2_(  true_type ) const { return std::norm(v[0])+std::norm(v[1])+std::norm(v[2]); }
 };
 
-typedef Vec<double> dVec;
+// 20180325 renaming the following to avoid name collision with libhrutil
+//typedef Vec<double> dVec; 
+typedef Vec<double> dVector; 
 typedef Vec<std::complex<double> > zVec;
 
 // cross product with complex conjugation of first argument

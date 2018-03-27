@@ -1,0 +1,100 @@
+\documentclass{article}
+%====================================================================%
+\input{HRCommands}
+
+\renewcommand{\vbsigma}{\boldsymbol{\sigma}}
+\newcommand{\vbtau}{\boldsymbol{\tau}}
+\graphicspath{{figures/}}
+\begin{document}
+
+Let $f(\vb x)$ be a scalar function of a $D$-dimensional
+real variable $\vb x$. I 
+
+\paragraph{Notation} In what follows, $\vb x=(x_1,\cdots,x\subt{D})$
+is a $D$-dimensional real-valued vector and $\vb p=(p_1,\cdots,p\subt{D})$
+is a $D$-tuple of integers. For monomials I use the notation
+%====================================================================%
+$$ \vb x^{\vb p} \equiv x_1^{p_1} x_2^{p_2} \cdots x\subt{D}^{p\subt{D}}. $$
+%====================================================================%
+
+\paragraph{$D$-dimensional interpolation grid}
+Define a cartesian-product interpolation grid
+with extents
+$$X\sups{min}_d < x_d < X\sups{max}_d, \qquad d=1,2,\cdots,D.$$
+Let $N_d$ be an integer and put
+$$\Delta_d \equiv \frac{X\sups{max}_d - X\sups{min}_d}{N_d}$$
+so the grid points in dimension $d$ are
+$\{x_0,x_1,\cdots,x\subt{$N\subt{d}$}\}$ with
+%====================================================================%
+\renewcommand{\arraystretch}{1.5}
+$$\begin{array}{|c|c|}\hline
+  n_d & x_d                        \\\hline
+  0   & X\sups{min}_d              \\\hline
+  1   & X\sups{min}_d + \Delta_d   \\\hline 
+  2   & X\sups{min}_d + 2\Delta_d  \\\hline
+  \vdots & \vdots                  \\\hline
+  N_d-1  & X\sups{min}_d + (N_d-1)\Delta_d  \\\hline
+  N_d    & X\sups{max}_d \\\hline
+  \end{array}
+$$
+\renewcommand{\arraystretch}{1.0}
+$$\vb N=(N_1,\cdots,N\subt{D})$$
+
+\paragraph{Indexing of grid points and cells}
+Grid points are labeled by a $D$-tuple of integers:
+$$\text{grid points:} \quad \vb n=(n_1,\cdots,n\subt{D}),
+  \qquad 0 \le n_d \le N\subt{d}
+$$
+I identify each grid \text{cell} with its lower-left grid point.
+$$\text{grid cells :} \quad \vb n=(n_1,\cdots,n\subt{D}),
+  \qquad 0 \le n_d < N\subt{d}
+$$
+
+\paragraph{Polynomial interpolants}
+Within the interior of each grid cell, I approximate $f$ by a polynomial
+of degree $3$ in each of the variables:
+%====================================================================%
+$$ \text{in cell $\vb n$: \quad }
+   f(\vb x) \approx P^{\vb n}(\vb x)
+   \equiv \sum_{\vb p} C^{\vb n}_{\vb p} \vb x^{\vb p}
+$$
+%====================================================================%
+where the sum is
+%====================================================================%
+$$ \sum_{\vb p} = \sum_{p\subt{D}=0}^3 \cdots \sum_{p_2=0}^3 \sum_{p_1=0}^3.$$
+%====================================================================%
+
+$$ f(\vb x) = \sum_{\vb p} C_{\vb p}\pf{\vb x}{\boldsymbol\Delta}^{\vb p} $$
+$$ \left|
+   \boldsymbol{\partial}^{\vbsigma}
+   \right|_{\vb x = \vb x_{\vb n+\boldsymbol{\tau}}}
+   f(\vb x)
+   =\pf{2}{\boldsymbol{\Delta}}^{\vbsigma}\sum_{\vb p}
+    C_{\vb p}^{\vb n}(\pm 1)
+$$
+The grid vertices at the corners of cell $\vb n$ may be
+described as the set $\{\vb n + \vbtau\}$ where $\vbtau$
+runs over $D$-tuples of integers with entries $0,1$.
+Similarly, the set of all
+mixed partial derivatives of degree at most 1 in any
+variable may be written 
+$$ 
+ \Big\{
+   \partial_{x_1}^{\sigma_1} \cdots \partial_{x\subt{D}}^{\sigma\subt{D}}
+  f(x)
+ \Big\}
+  \equiv 
+ \Big \{ \boldsymbol{\partial}^{\vbsigma} f(x) \Big \}
+$$
+where $\vbsigma$ runs over $D$-tuples of integers with entries 0,1.
+
+%\paragraph{Determination of $\vb C_{\vb n}$ coefficients}
+
+The number of coefficients per grid cell is $N\sups{coeff}\equiv 4\supt{D}$.
+I determine these by matching the value and all partial
+derivatives (of degree at most 1 in each variable) of $P^{\vb n}(\vb x)$
+to those of $f(\vb x)$ at each of the grid points bordering cell $\vb{n}$.
+This gives $2^D$ matching conditions for each of the $2^D$ grid points,
+or $4^D$ total equations for the $4^D$ coefficients in cell $\vb n$.
+
+\end{document}

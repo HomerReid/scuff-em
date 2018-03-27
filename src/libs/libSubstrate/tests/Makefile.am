@@ -12,7 +12,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
 check_PROGRAMS = tGTwiddle \
  tFullWaveSubstrate        \
  tVTwiddle                 \
- tMOISGFs 
+ tMOISGFs                  \
+ tInterpolation
  
 TESTS = tGTwiddle tFullWaveSubstrate
 
@@ -27,6 +28,9 @@ TESTLIBS = ../libSubstrate.la      \
 
 tMOISGFs_SOURCES = tMOISGFs.cc
 tMOISGFs_LDADD = $(TESTLIBS)
+
+tInterpolation_SOURCES = tInterpolation.cc
+tInterpolation_LDADD = $(TESTLIBS)
 
 tVTwiddle_SOURCES = tVTwiddle.cc
 tVTwiddle_LDADD = $(TESTLIBS)

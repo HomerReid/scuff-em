@@ -200,8 +200,8 @@ int NumCommonVertices(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb)
 /***************************************************************/
 int AssessBFPair(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, double *rRel)
 { 
-  RWGEdge *Ea = Sa->Edges[nea];
-  RWGEdge *Eb = Sb->Edges[neb];
+  RWGEdge *Ea = Sa->GetEdgeByIndex(nea);
+  RWGEdge *Eb = Sb->GetEdgeByIndex(neb);
 
   if (rRel)
    { *rRel = (   VecDistance(Ea->Centroid, Eb->Centroid)
@@ -217,15 +217,17 @@ int AssessBFPair(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, double *rRel)
   iVa[1] = Ea->iV1;
   iVa[2] = Ea->iV2;
   iVa[3] = Ea->iQM;
+  int NVA = (Ea->iQM==-1 ? 3 : 4);
 
   iVb[0] = Eb->iQP;
   iVb[1] = Eb->iV1;
   iVb[2] = Eb->iV2;
   iVb[3] = Eb->iQM;
+  int NVB = (Eb->iQM==-1 ? 3 : 4);
 
   int ncv=0;
-  for(int nva=0; nva<4; nva++)
-   for(int nvb=0; nvb<4; nvb++)
+  for(int nva=0; nva<NVA; nva++)
+   for(int nvb=0; nvb<NVB; nvb++)
     if ( iVa[nva]==iVb[nvb] ) ncv++;
   return ncv;
   

@@ -52,8 +52,6 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
-void AddSubstrateSSI(GetSSIArgStruct *Args);
-
 /***************************************************************/
 /* Given two surfaces, identify whether they bound zero, one,  */
 /* or two common regions. If there are any common regions,     */
@@ -566,12 +564,6 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
    AddSurfaceZetaContributionToBEMMatrix(Args);
 
   /***************************************************************/
-  /* 20171016 contributions of layered material substrate        */
-  /***************************************************************/
-  if ( G->Substrate!=0 )
-   AddSubstrateSSI(Args);
-
-  /***************************************************************/
   /* if the caller specified the matrix as symmetric, then so far*/
   /* we have only computed the upper triangle, so now we need to */
   /* fill in the lower triangle. The exception is if the matrix  */
@@ -595,6 +587,7 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void AddSubstrateSSI(GetSSIArgStruct *Args)
 {
   RWGGeometry *G = Args->G;
@@ -668,6 +661,7 @@ void AddSubstrateSSI(GetSSIArgStruct *Args)
        ErrExit("%s:%i: internal error");
     };
 }
+#endif
 
 /***************************************************************/
 /* initialize an argument structure for                        */

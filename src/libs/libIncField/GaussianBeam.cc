@@ -102,7 +102,7 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   // and exactly solves Maxwell's equations everywhere in space
   double z0 = k*W0*W0/2;
   double kz0 = k*z0;
-  dVec Xrel = dVec(X) - dVec(X0);
+  dVector Xrel = dVector(X) - dVector(X0);
 
   // the field has NO cylindrical symmetry! this means that for
   // complex polarization vectors, we have to do a separate calculation
@@ -110,7 +110,7 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
 
   // first, we do everything that is not direction dependent, i.e.
   // where we only need the z-coordinate and the radial distance rho
-  dVec zHat = KProp; zHat.normalize();
+  dVector zHat = KProp; zHat.normalize();
   double z, rho;
 
   // this is from libVec.h
@@ -162,8 +162,8 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   double rnorm = norm(zvE0.real());
   if (rnorm>1e-13) {
     // calculate fields in local coordinate system
-    dVec xHat = zvE0.real() / rnorm;
-    dVec yHat = cross(zHat,xHat);
+    dVector xHat = zvE0.real() / rnorm;
+    dVector yHat = cross(zHat,xHat);
     double  x  = dot(xHat,Xrel);
     double  y  = dot(yHat,Xrel);
     
@@ -182,8 +182,8 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   double inorm = norm(zvE0.imag());
   if (inorm>1e-13) {
     // calculate fields in local coordinate system
-    dVec xHat = zvE0.imag() / inorm;
-    dVec yHat = cross(zHat,xHat);
+    dVector xHat = zvE0.imag() / inorm;
+    dVector yHat = cross(zHat,xHat);
     double  x  = dot(xHat,Xrel);
     double  y  = dot(yHat,Xrel);
     

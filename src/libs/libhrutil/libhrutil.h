@@ -29,8 +29,11 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+
 #include <complex>
 #include <cmath>
+#include <vector>
+using namespace std;
 
 /***************************************************************/
 /* various random definitions  *********************************/
@@ -52,7 +55,22 @@
 #endif
 
 //typedef _Complex double cdouble;
-typedef std::complex<double> cdouble;
+#ifndef cdouble
+  typedef complex<double> cdouble;
+#endif
+#ifndef iVec
+  typedef vector<int> iVec;
+#endif
+#ifndef dVec
+  typedef vector<double> dVec;
+#endif
+#ifndef sVec
+  typedef vector<char *> sVec;
+#endif
+#ifndef strVec
+  typedef vector<string> strVec;
+#endif
+
 
 /***************************************************************/
 /* Timing functions  *******************************************/
@@ -68,8 +86,8 @@ char *RemoveDirectories(char *s);
 char *RemoveExtension(char *s);
 char *GetFileExtension(char *s);
 char *GetFileBase(char *s);
-int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators);
-int Tokenize(char *s, char **Tokens, int MaxTokens);
+int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators=" \t\n");
+sVec Tokenize(char *s, const char *Separators=" \t\n");
 int StrCaseCmp(const char *s1, const char *s2);
 
 FILE *fopenPath(const char *Path, const char *FileName, const char *Mode, char **WhichDir=0);

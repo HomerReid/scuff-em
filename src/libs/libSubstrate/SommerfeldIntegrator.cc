@@ -303,7 +303,8 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
                MaxEvalB, AbsTol, RelTol,
                ERROR_PAIRED, (double *)uk, (double *)Error);
      if (SIData.LogFile) fprintf(SIData.LogFile,"\n\n");
-     Log(" series term %i (%g,%g): %i calls (%s)",k,qMin,qMax,SIData.NumPoints,CD2S(uk[0]));
+     if (Verbose)
+      Log(" series term %i (%g,%g): %i calls (%s)",k,qMin,qMax,SIData.NumPoints,CD2S(uk[0]));
 
      // execute the k-th order nested Mosig-Michalski recursion
      // to compute the approximate series sum, S

@@ -216,7 +216,7 @@ class RWGSurface
 
    double *Vertices;               /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
    RWGPanel **Panels;              /* array of pointers to panels         */
-   RWGEdge **Edges;                /* array of pointers to edges          */
+   RWGEdge **Edges;                /* array of pointers to interior edges */
    RWGEdge **ExteriorEdges;        /* array of pointers to exterior edges */
    int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
    double RMax[3], RMin[3];        /* bounding box corners */
@@ -293,6 +293,8 @@ class RWGSurface
    void ReadComsolFile(FILE *MeshFile, char *FileName);
    void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
    void UpdateBoundingBox();
+
+   RWGEdge *GetEdgeByIndex(int ne);
  
  };
 

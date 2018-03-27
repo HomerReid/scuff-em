@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <vector>
+
+#include <libhmat.h> // only needed for GetInterpolationError
 
 #define LMDI_LOGLEVEL_NONE    0
 #define LMDI_LOGLEVEL_TERSE   1
@@ -514,6 +517,120 @@ class Interp4D
  };
 
 /***************************************************************/
+/* 3/2018: InterpND is a single general-purpose interpolator   */
+/*         that supports arbitrary dimensions and should       */
+/*         replace all the above classes.                      */
+/***************************************************************/
+#ifndef iVec
+  typedef std::vector<int>    iVec;
+#endif
+#ifndef dVec
+  typedef std::vector<double> dVec;
+#endif
+bool Increment(iVec &n, iVec &N);
+double Monomial(dVec xVec, iVec pVec);
+#define LOOP_OVER_IVECS(np, nVec, NVec)     \
+   iVec nVec(NVec.size());                  \
+   int np=0;                                \
+   for(bool Done=false; !Done; np++, Done=Increment(nVec,NVec))
+#define MAXDIM 4
+
+typedef void (*PhiVDFunc)(double *X, void *UserData, double *PhiVD);
+
+class InterpND
+ { 
+   public:
+
+    /*--------------------------------------------------------------*/
+    /*- user-supplied function, uniform grid                        */
+    /*--------------------------------------------------------------*/
+    InterpND(dVec XMin, dVec XMax, iVec NVec, int NF,
+             PhiVDFunc Phi=0, void *UserData=0);
+
+    /*--------------------------------------------------------------*/
+    /*--------------------------------------------------------------*/
+    /*- class destructor -------------------------------------------*/
+    /*--------------------------------------------------------------*/
+    ~InterpND();
+
+    /*--------------------------------------------------------------*/
+    /*- class method that does the interpolation to return an      -*/
+    /*- approximate value for the function at the given eval point -*/
+    /*--------------------------------------------------------------*/
+    void Evaluate(double *X, double *Phi);
+    void EvaluateVD(double *X, double *PhiVD);
+    void EvaluateVDD(double *X, double *PhiVD);
+
+    double PlotInterpolationError(PhiVDFunc UserFunc,
+                                  void *UserData,
+                                  char *OutFileName,
+                                  bool CentersOnly=false);
+
+    /*--------------------------------------------------------------*/
+    /*- return true if point lies in the interior or on the boundary*/
+    /*- of the interpolation grid; false otherwise.                 */
+    /*- on return, pn (if non-null) has the indices of the grid cell*/
+    /*- and pxBar (if non-null) has the normalized point coordinates*/
+    /*- within that cell (0<=pXbar[i]<=1).                          */
+    /*--------------------------------------------------------------*/
+    //bool PointInGrid(double *X, int *pn=0, double *pxBar=0);
+
+    /*--------------------------------------------------------------*/
+    /*- class method that writes all internal data to a binary file */
+    /*- that may be subsequently used to reconstruct the class     -*/
+    /*--------------------------------------------------------------*/
+    //void WriteToFile(const char *FileName);
+
+    /*----------------------------------------------------------------*/
+    /*- private  class methods ---------------------------------------*/
+    /*----------------------------------------------------------------*/
+//private:
+
+    // convert back and forth between the index of a grid
+    // point (0...NumPoints-1) and its integer coordinates
+    iVec GetPoint(size_t nPoint);
+    size_t GetPointIndex(iVec nVec);
+
+    // convert back and forth between the index of a grid
+    // cell (0...NumCell-1) and the integer coordinates
+    // of its lower-left corner
+    iVec GetCell(size_t nVec);
+    size_t GetCellIndex(iVec nVec);
+
+    // convert grid-point indices to cartesian coordinates
+    dVec n2x(iVec nVec);
+
+    // utility methods for handling internal storage tables
+    size_t GetCTableOffset(int nCell, int nFun);
+    size_t GetCTableOffset(iVec nVec, int nFun);
+    size_t GetPhiVDTableOffset(int nPoint, int nFun);
+    size_t GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun);
+
+    // constructor helper method
+    void Initialize(PhiVDFunc UserFunc, void *UserData);
+
+    /*----------------------------------------------------------------*/
+    /*- internal class data that should be private but i don't bother */
+    /*----------------------------------------------------------------*/
+    int D;                   // number of dimensions
+    iVec NVec;               // # grid points in each dimension
+    int NF;                  // number of functions
+    dVec XMin, DX;           // grid points (uniform spacing)
+    double *xPoints[MAXDIM]; // grid points (non-uniform spacing)
+
+    iVec CellStride;         // strides for computing grid-cell index
+    iVec PointStride;        // strides for computing grid-point index
+    int NVD;                 // # function values, derivatives per grid point
+    int NCoeff;              // # coefficients per grid cell
+
+    double *CTable;          // polynomial coefficients
+ };
+
+double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
+                             dVec XVec, dVec dXVec,
+                             double *MeanRelError=0, double *MeanAbsError=0);
+
+/***************************************************************/
 /* non-member function for binary searching                    */
 /***************************************************************/
 void BinSearch(double X, double *XPoints, int N);
@@ -526,4 +643,4 @@ bool FindInterval(double X, double *XPoints, int N, double XMin, double DX,
 /***************************************************************/
 void freadEC(void *p, size_t size, size_t nmemb, FILE *f, const char *FileName); 
 
-#endif
+#endif // #ifndef LIBMDINTERP_H

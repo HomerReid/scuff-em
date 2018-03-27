@@ -4,7 +4,6 @@ pkginclude_HEADERS = libSubstrate.h
 libSubstrate_la_SOURCES = 	\
  libSubstrate.h			\
  libSubstrate.cc		\
- Interpolation.cc		\
  FullWave.cc                	\
  gFrak.cc                       \
  GTwiddle.cc                    \

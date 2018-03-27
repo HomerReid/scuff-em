@@ -49,6 +49,12 @@ extern "C" {
 HVector::HVector(int pN, int pRealComplex, void *data)
 { InitHVector(pN, pRealComplex, data); }
 
+HVector::HVector(int pN, double *data)
+{ InitHVector(pN, LHM_REAL, (void *)data); }
+
+HVector::HVector(int pN, cdouble *data)
+{ InitHVector(pN, LHM_COMPLEX, (void *)data); }
+
 /* copy constructor  */
 HVector::HVector(HVector *V)
  { 

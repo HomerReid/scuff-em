@@ -745,4 +745,19 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
 
 } 
 
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+RWGEdge *RWGSurface::GetEdgeByIndex(int ne)
+{ if (ne>=0)
+   { if (ne>=NumEdges) 
+      ErrExit("%s:%i: internal error(%i,%i,%i)",__FILE__,__LINE__,Index,NumEdges,ne);
+     return Edges[ne];
+   }
+  ne = -(ne+1);
+  if (ne>=NumExteriorEdges)
+   ErrExit("%s:%i: internal error(%i,%i,%i)",__FILE__,__LINE__,Index,NumExteriorEdges,ne);
+  return ExteriorEdges[ne];
+}
+
 } // namespace scuff

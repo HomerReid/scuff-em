@@ -181,40 +181,15 @@ char* strtok_r_PublicDomain(
     return ret;
 }
 
-
-/* given "Now is the time for all", return 6, with Tokens[0]="Now",  */
-/* Tokens[1]="is", etc. Only slots Tokens[0] ... Tokens[MaxTokens-1] */
-/* are referenced.                                                   */
-/* Note that s is modified on return.                                */
-int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators)
-{ 
-  int NumTokens;
-  char *Token, *saveptr=0;
-
+// MS uses "strtok_s" but this is not supported by MinGW apparently,
+// so just punt and use the non re-entrant version
+// #define strtok_r(s,d,p) strtok(s,d)
+// update 20150802 no, this seems to cause core dumps on
+// window. instead use the public-domain strtok implementation
+// included above.
 #if defined(_WIN32)
-  // MS uses "strtok_s" but this is not supported by MinGW apparently,
-  // so just punt and use the non re-entrant version
-  // #define strtok_r(s,d,p) strtok(s,d)
-  // update 20150802 no, this seems to cause core dumps on
-  // window. instead use the public-domain strtok implementation
-  // included above.
   #define strtok_r(s,d,p) strtok_r_PublicDomain(s,d,p)
 #endif
-// (cram all extra tokens into the last token)
-  for(NumTokens=0; NumTokens<MaxTokens-1; NumTokens++)
-   { Token=strtok_r(NumTokens==0 ? s : 0, Separators, &saveptr);
-     if (!Token)
-       return NumTokens;
-     Tokens[NumTokens]=Token;
-   };
-
-  while ( *saveptr && strchr(Separators, *saveptr) )
-   saveptr++;
-  if (*saveptr)
-   Tokens[NumTokens++]=saveptr;
-
-  return NumTokens;
-}
 
 // portable wrapper around StrCaseCmp
 int StrCaseCmp(const char *s1, const char *s2)
@@ -226,13 +201,29 @@ int StrCaseCmp(const char *s1, const char *s2)
 #endif
 }
 
+/* given "Now is the time for all", return Tokens[0]="Now", */
+/* Tokens[1]="is", etc.                                     */
+/* Note that s is modified on return.                       */
+sVec Tokenize(char *s, const char *Separators)
+{ 
+  sVec Tokens;
+  char *saveptr=0, *Token=strtok_r(s, Separators, &saveptr);
+  while (Token)
+   { Tokens.push_back(Token);
+     Token=strtok_r(0, Separators, &saveptr);
+   }
+  return Tokens;
+}
 
-/***************************************************************/
-/* this is an alternative entry point to Tokenize in which we  */
-/* specify a default list of separators                        */
-/***************************************************************/
-int Tokenize(char *s, char **Tokens, int MaxTokens)
-{ return Tokenize(s, Tokens, MaxTokens, " \t\n"); }
+// old calling convention retained for backward compatibility
+int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators)
+{ sVec TokenVec=Tokenize(s,Separators);
+  for(int nt=0; nt<TokenVec.size(); nt++)
+   { Tokens[nt]=TokenVec[nt];
+     if (nt==MaxTokens-1) break;
+   }
+  return TokenVec.size();
+}
 
 /***************************************************************/
 /* Error-checked vsnprintf *************************************/

@@ -215,8 +215,10 @@ bool ProperlyOrdered(RWGSurface *SA, int neA, RWGSurface *SB, int neB)
   if ( (SA==SB) && (neA == neB) )
    return true;
 
-  double *X0A= SA->Edges[neA]->Centroid;
-  double *X0B= SB->Edges[neB]->Centroid;
+  RWGEdge *Ea = SA->GetEdgeByIndex(neA);
+  RWGEdge *Eb = SB->GetEdgeByIndex(neB);
+  double *X0A = Ea->Centroid; 
+  double *X0B = Eb->Centroid;
   
   if ( !EqualFloat(X0A[2], X0B[2]) )
    return (X0A[2] < X0B[2]);
@@ -244,16 +246,16 @@ void GetFIBBICacheKey(RWGSurface *SA, int neA,
                       float *K)
 {
   double  *VA = SA->Vertices;
-  RWGEdge *EA = SA->Edges[neA];
+  RWGEdge *EA = SA->GetEdgeByIndex(neA);
   double *QPA = VA + 3*(EA->iQP);
-  double *QMA = VA + 3*(EA->iQM);
+  double *QMA = (EA->iQM==-1 ? QPA : VA + 3*(EA->iQM));
   double *V1A = VA + 3*(EA->iV1);
   double *V2A = VA + 3*(EA->iV2);
 
   double  *VB = SB->Vertices;
-  RWGEdge *EB = SB->Edges[neB];
+  RWGEdge *EB = SB->GetEdgeByIndex(neB);
   double *QPB = VB + 3*(EB->iQP);
-  double *QMB = VB + 3*(EB->iQM);
+  double *QMB = (EB->iQM==-1 ? QPB : VB + 3*(EB->iQM));
   double *V1B = VB + 3*(EB->iV1);
   double *V2B = VB + 3*(EB->iV2);
 

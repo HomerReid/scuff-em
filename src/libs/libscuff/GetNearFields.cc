@@ -776,7 +776,10 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int np, const int iQ,
    /*--------------------------------------------------------------*/
    /*- put in the RWG basis function prefactors -------------------*/
    /*--------------------------------------------------------------*/
-   double aPrefac = S->Edges[P->EI[iQ]]->Length / (2.0*P->Area);
+   double *V1     = S->Vertices + 3*P->VI[(iQ+1)%3];
+   double *V2     = S->Vertices + 3*P->VI[(iQ+2)%3];
+   double Length  = VecDistance(V1,V2);
+   double aPrefac = Length / (2.0*P->Area);
    double pPrefac = 2.0*aPrefac;
    (*p)*=pPrefac;
    for(int Mu=0; Mu<3; Mu++)
@@ -801,10 +804,12 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  cdouble ddp[3][3], cdouble dcurla[3][3],
                                  bool *IncludeTerm=0)
 {
-  RWGEdge *E = S->Edges[ne];
+  RWGEdge *E = S->GetEdgeByIndex(ne);
 
   GetReducedPotentials_Nearby(S, E->iPPanel, E->PIndex, X0, k,
                               p, a, dp, da, ddp, dcurla, IncludeTerm);
+
+  if (E->iMPanel==-1) return;
 
   cdouble pM, aM[3], dpM[3], daM[3][3], ddpM[3][3], dcurlaM[3][3];
   GetReducedPotentials_Nearby(S, E->iMPanel, E->MIndex, X0, k,
@@ -1023,8 +1028,10 @@ void GetReducedFarFields(RWGSurface *S, const int ne,
                          const double X0[3], const cdouble k,
                          cdouble e[3], cdouble h[3])
 {
-  RWGEdge *E = S->Edges[ne];
+  RWGEdge *E = S->GetEdgeByIndex(ne);
   GetReducedFarFields(S, E->iPPanel, E->PIndex, X0, k, e, h);
+
+  if (E->iMPanel==-1) return;
 
   cdouble eM[3], hM[3];
   GetReducedFarFields(S, E->iMPanel, E->MIndex, X0, k, eM, hM);

@@ -211,7 +211,7 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
         if (ne<0 || ne>=S->NumEdges)
          continue; // this can happen for exterior edges
 
-        RWGEdge *E = S->Edges[ne];
+        RWGEdge *E = S->GetEdgeByIndex(ne);
         Sign = ( np == E->iMPanel ? -1.0 : 1.0 );
 
         int dnce = Data->NumContributingEdges;
@@ -267,7 +267,7 @@ void GetBFCubature(RWGGeometry *G, int ns, int ne,
                    double *Result)
 {
 
-  RWGEdge *E = G->Surfaces[ns]->Edges[ne];
+  RWGEdge *E = G->Surfaces[ns]->GetEdgeByIndex(ne);
 
   GetPanelCubature(G, ns, E->iPPanel, Integrand, UserData, 
                    IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
@@ -517,7 +517,7 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
         if (ne<0 || ne>=S1->NumEdges)
          continue; // this can happen for exterior edges
 
-        RWGEdge *E = S1->Edges[ne];
+        RWGEdge *E = S1->GetEdgeByIndex(ne);
         Sign = ( np1 == E->iMPanel ? -1.0 : 1.0 );
 
         int dnce = Data->NumContributingEdges1;
@@ -554,7 +554,7 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
         if (ne<0 || ne>=S2->NumEdges)
          continue; // this can happen for exterior edges
 
-        RWGEdge *E = S2->Edges[ne];
+        RWGEdge *E = S2->GetEdgeByIndex(ne);
         Sign = ( np2 == E->iMPanel ? -1.0 : 1.0 );
 
         int dnce = Data->NumContributingEdges2;
@@ -613,8 +613,8 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
   double *ResultMP = new double[IDim];
   double *ResultMM = new double[IDim];
 
-  RWGEdge *E1 = G->Surfaces[ns1]->Edges[ne1];
-  RWGEdge *E2 = G->Surfaces[ns2]->Edges[ne2];
+  RWGEdge *E1 = G->Surfaces[ns1]->GetEdgeByIndex(ne1);
+  RWGEdge *E2 = G->Surfaces[ns2]->GetEdgeByIndex(ne2);
 
   int np1, np2;
 
@@ -718,7 +718,7 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   RWGSurface *S = G->Surfaces[ns];
-  RWGEdge *E    = S->Edges[ne];
+  RWGEdge *E    = S->GetEdgeByIndex(ne);
   double Length = E->Length;
   double *QP    = S->Vertices + 3*(E->iQP);
   double *V1    = S->Vertices + 3*(E->iV1);
@@ -803,7 +803,7 @@ void GetBFBFCubature2(RWGSurface *S, int ne,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGEdge *E    = S->Edges[ne];
+  RWGEdge *E    = S->GetEdgeByIndex(ne);
   double Length = E->Length;
   double *QP    = S->Vertices + 3*(E->iQP);
   double *V1    = S->Vertices + 3*(E->iV1);
@@ -827,7 +827,7 @@ void GetBFBFCubature2(RWGSurface *S, int ne,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGEdge *EP    = SP->Edges[neP];
+  RWGEdge *EP    = SP->GetEdgeByIndex(neP);
   double LengthP = EP->Length;
   double *QPP    = SP->Vertices + 3*(EP->iQP);
   double *V1P    = SP->Vertices + 3*(EP->iV1);
@@ -1073,13 +1073,13 @@ void GetBFBFCubatureTD(RWGSurface *SA, int neA,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGEdge    *EA  = SA->Edges[neA];
+  RWGEdge    *EA  = SA->GetEdgeByIndex(neA);
   double     *QPA = SA->Vertices + 3*(EA->iQP);
   double     *V1A = SA->Vertices + 3*(EA->iV1);
   double     *V2A = SA->Vertices + 3*(EA->iV2);
   double     *QMA = (EA->iQM==-1) ? 0 : SA->Vertices + 3*(EA->iQM);
 
-  RWGEdge    *EB=SB->Edges[neB];
+  RWGEdge    *EB  = SB->GetEdgeByIndex(neB);
   double     *QPB = SB->Vertices + 3*(EB->iQP);
   double     *V1B = SB->Vertices + 3*(EB->iV1);
   double     *V2B = SB->Vertices + 3*(EB->iV2);

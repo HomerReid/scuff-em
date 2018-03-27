@@ -60,8 +60,8 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
 
-  RWGEdge *Ea=Sa->Edges[nea];
-  RWGEdge *Eb=Sb->Edges[neb];
+  RWGEdge *Ea=Sa->GetEdgeByIndex(nea);
+  RWGEdge *Eb=Sb->GetEdgeByIndex(neb);
 
   /***************************************************************/
   /* Since this code doesn't work at DC anyway, we don't bother  */

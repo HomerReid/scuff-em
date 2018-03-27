@@ -243,6 +243,20 @@ int main(int argc, char *argv[])
      NumFreqs=FreqList->N;
    };
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  cdouble *PCVector = new cdouble[NumPorts];
+  for(int np=0; np<NumPorts; np++)
+   { KN->Zero();
+     memset(PCVector, 0, NumPorts*sizeof(cdouble));
+     PCVector[np]=1.0;
+     AddPortContributionsToRHS(G, Ports, NumPorts, PCVector, FREQ2OMEGA * FreqList->GetEntry(0), KN);
+     FILE *f=vfopen("/tmp/Port%i.Old","w",np);
+     for(int ne=0; ne<KN->N; ne++)
+      fprintf(f,"%5i   %+.12e   %+.12e\n",ne,real(KN->GetEntry(ne)),imag(KN->GetEntry(ne)));
+     fclose(f);
+    }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   /***************************************************************/
   /* sanity check input arguments ********************************/
   /***************************************************************/

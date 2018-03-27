@@ -72,8 +72,11 @@ class HVector
  { 
   public:  
 
-   /* constructors that initialize the vector with known parameters*/
+   /* constructor entry points to create vectors of known length */
+   /* and data type (optionally with user-specified payload)     */
    HVector(int N, int RealComplex = LHM_REAL, void *data = NULL);
+   HVector(int N, double *data);
+   HVector(int N, cdouble *data);
    void InitHVector(int N, int RealComplex = LHM_REAL, void *data = NULL);
 
    /* constructors that attempt to read vector in from a data file */

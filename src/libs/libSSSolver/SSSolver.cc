@@ -693,8 +693,9 @@ void SSSolver::AddSubstrateContributionsToBEMMatrixBlock(int nsa, int nsb, HMatr
          z=VA[2];
       };
   double RhoMin = sqrt(Rho2Min), RhoMax=sqrt(Rho2Max);
-  if (DeltazMax==0.0)
-   Substrate->InitStaticAccelerator1D(RhoMin, RhoMax,Sa->Panels[0]->Centroid[2]);
+
+//  if (DeltazMax==0.0)
+//   Substrate->InitStaticAccelerator1D(RhoMin, RhoMax,Sa->Panels[0]->Centroid[2]);
 
   /***************************************************************/
   /***************************************************************/

@@ -36,6 +36,7 @@
 #include "libSpherical.h"
 #include "libSubstrate.h"
 
+
 /******************************************************************/
 /* on entry                                                       */
 /*  G = G_ij in a coordinate system in which (x,y)=(Rho,0)        */
@@ -498,6 +499,7 @@ bool LayeredSubstrate::GetSubstrateDGF_Interp3D(cdouble Omega, double *XD, doubl
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 bool LayeredSubstrate::GetSubstrateDGF_Interp(cdouble Omega, HMatrix *XMatrix, HMatrix *GMatrix)
 { 
   if (!XMatrix || !GMatrix)
@@ -531,3 +533,4 @@ bool LayeredSubstrate::GetSubstrateDGF_Interp(cdouble Omega, HMatrix *XMatrix, H
   return true;
 
 }
+#endif

@@ -1070,7 +1070,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /* get the maximum and minimum values of the cartesian         */
   /* coordinates of R=x1-x2 as x1, x2 range over surfaces 1,2    */
   /***************************************************************/
-  double RMax[3], RMin[3];
+  double RMin[3], RMax[3];
   VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
   VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
 

@@ -134,6 +134,24 @@ enum DGFMethod {AUTO, SURFACE_CURRENT, STATIC_LIMIT};
 #define _DIVN 7
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define NEED_DRHO 1
+#define NEED_DZ   2
+typedef struct ScalarGFOptions
+ { bool PPIsOnly;
+   bool Subtract;
+   bool RetainSingularTerms;
+   bool CorrectionOnly;
+   bool UseInterpolator;
+   int NeedDerivatives;
+   int MaxTerms;   // in series for Silvester potential
+   double RelTol;  // for series summation
+   double AbsTol; 
+ } ScalarGFOptions;
+void InitScalarGFOptions(ScalarGFOptions *Options);
+
+/***************************************************************/
 /* data structure for layered material substrate               */
 /***************************************************************/
 class LayeredSubstrate
@@ -208,23 +226,10 @@ public:
    /*--------------------------------------------------------------*/
    void InitStaticAccelerator1D(double RhoMin, double RhoMax, double z);
 
-   void InitAccelerator1D(cdouble Omega, double RhoMin, double RhoMax, double z);
-
-   void InitAccelerator3D(cdouble Omega,
-                          double RhoMin, double RhoMax,
-                          double ZDMin, double ZDMax,
-                          double ZSMin, double ZSMax);
-
-   bool GetSubstrateDGF_Interp3D(cdouble Omega,
-                                 double *XD, double *XS,
-                                 cdouble Gij[6][6]);
-
-   bool GetSubstrateDGF_Interp1D(cdouble Omega,
-                                 double *XD, double *XS,
-                                 cdouble Gij[6][6]);
-
-   bool GetSubstrateDGF_Interp(cdouble Omega, HMatrix *XMatrix,
-                               HMatrix *GMatrix);
+   InterpND *InitScalarGFInterpolator(cdouble Omega, double RhoMin, double RhoMax,
+                                      double zMin, double zMax, bool PPIsOnly, bool Subtract,
+                                      bool RetainSingularTerms, double DeltaRho=0.0, double Deltaz=0.0);
+   void DestroyScalarGFInterpolator();
 
 // private:
 
@@ -295,15 +300,14 @@ public:
    /* specialized routines for geometries involving metal directly */
    /* atop an infinite or grounded dielectric slab                 */
    /*--------------------------------------------------------------*/
+   bool GetScalarGFs_Interp(cdouble Omega, double Rho, double zDest,
+                            cdouble *V, const ScalarGFOptions *Options);
+
    int GetScalarGFs_MOI(cdouble Omega, HMatrix *XMatrix,
-                        HMatrix *VMatrix, bool PPIsOnly=false,
-                        bool Subtract=true, bool RetainSingularTerms=true,
-                        bool CorrectionOnly=false);
+                        HMatrix *VMatrix, const ScalarGFOptions *Options=0);
 
    int GetScalarGFs_MOI(cdouble Omega, double Rho, double zDest, cdouble *V,
-                        bool PPIsOnly=false, bool Subtract=true,
-                        bool RetainSingularTerms=true,
-                        bool CorrectionOnly=false);
+                        const ScalarGFOptions *Options=0);
 
 // internal ("private") class data
 
@@ -327,16 +331,10 @@ public:
    int PhiEOrder;
    int WhichIntegral;
 
-   // internal storage buffers 
-   Interp1D *I1D;
-   double I1DRhoMin, I1DRhoMax, I1DZ;
-   cdouble I1DOmega;
-
-   Interp3D *I3D;
-   double I3DRhoMin, I3DRhoMax;
-   double I3DZDMin,  I3DZDMax;
-   double I3DZSMin,  I3DZSMax;
-   cdouble I3DOmega;
+   // interpolation tables
+   InterpND *ScalarGFInterpolator;
+   ScalarGFOptions SGFIOptions;
+   double zSGFI;
 
    // flags to help in debugging
    DGFMethod ForceMethod;
@@ -378,4 +376,7 @@ void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
                      double Rho, double zDest, double zSource,
                      double *pa, double *pc);
 
+/***************************************************************/
+/* MOI.cc ******************************************************/
+/***************************************************************/
 #endif // LIBSUBSTRATE_H

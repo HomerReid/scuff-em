@@ -657,7 +657,7 @@ void AddPortContributionsToRHS(RWGGeometry *G,
            SourceSurface=Port->MSurface;
            Weight=PortCurrent/(Port->MPerimeter);
            for(npe=0; npe<Port->NumMEdges; npe++)
-            { 
+            {
               SourcePanelIndex  = Port->MPanelIndices[npe];
               SourcePaneliQ     = Port->MPaneliQs[npe];
               SourceLength      = Port->MLengths[npe];

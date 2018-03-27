@@ -132,6 +132,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
   if (NeedSpatialDerivatives)
    { double *ZHatA = (DivbA > 0.0 ? Data->ZHatAP : Data->ZHatAM);
      double *ZHatB = (DivbB > 0.0 ? Data->ZHatBP : Data->ZHatBM);
+     if (ZHatA==0 || ZHatB==0) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
      memcpy(RPA, R, 3*sizeof(double));
      memcpy(RPB, R, 3*sizeof(double));
      for(int Mu=0; Mu<3; Mu++)
@@ -410,6 +411,9 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   int NumFIBBIs = NeedForce ? NUMFIBBIS : 12;
   memset(FIBBIs, 0, NumFIBBIs*sizeof(double));
 
+  RWGEdge *Ea = Sa->GetEdgeByIndex(nea);
+  RWGEdge *Eb = Sb->GetEdgeByIndex(neb);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -420,10 +424,10 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   Data->GetFIBBIs=true;
   Data->Args->NeedGC    = true;
   Data->Args->NeedForce = NeedForce;
-  Data->ZHatAP = Sa->Panels[ Sa->Edges[nea]->iPPanel ]->ZHat;
-  Data->ZHatAM = Sa->Panels[ Sa->Edges[nea]->iMPanel ]->ZHat;
-  Data->ZHatBP = Sb->Panels[ Sb->Edges[neb]->iPPanel ]->ZHat;
-  Data->ZHatBM = Sb->Panels[ Sb->Edges[neb]->iMPanel ]->ZHat;
+  Data->ZHatAP = Sa->Panels[ Ea->iPPanel ]->ZHat;
+  Data->ZHatAM = (Ea->iMPanel==-1) ? 0 : Sa->Panels[ Ea->iMPanel ]->ZHat;
+  Data->ZHatBP = Sb->Panels[ Eb->iPPanel ]->ZHat;
+  Data->ZHatBM = (Eb->iMPanel==-1) ? 0 : Sb->Panels[ Eb->iMPanel ]->ZHat;
 
   int ncv = AssessBFPair(Sa, nea, Sb, neb);
 
@@ -464,8 +468,6 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   TDArgs->AbsTol=0.0;
   TDArgs->RelTol=1.0e-4;
   TDArgs->MaxEval=TDMaxEval;
-  RWGEdge *Ea = Sa->Edges[nea];
-  RWGEdge *Eb = Sb->Edges[neb];
   double LL = Ea->Length * Eb->Length;
   for(int npa=0; npa<2; npa++)
    for(int npb=0; npb<2; npb++)
@@ -609,10 +611,12 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
   Data->Args          = Args;
   Data->GetFIBBIs     = false;
   Data->DeSingularize = DeSingularize;
-  Data->ZHatAP        = Sa->Panels[ Sa->Edges[nea]->iPPanel ]->ZHat;
-  Data->ZHatAM        = Sa->Panels[ Sa->Edges[nea]->iMPanel ]->ZHat;
-  Data->ZHatBP        = Sb->Panels[ Sb->Edges[neb]->iPPanel ]->ZHat;
-  Data->ZHatBM        = Sb->Panels[ Sb->Edges[neb]->iMPanel ]->ZHat;
+  RWGEdge *Ea         = Sa->GetEdgeByIndex(nea);
+  Data->ZHatAP        = Sa->Panels[ Ea->iPPanel ]->ZHat;
+  Data->ZHatAM        = (Ea->iMPanel==-1) ? 0 : Sa->Panels[ Ea->iMPanel ]->ZHat;
+  RWGEdge *Eb         = Sb->GetEdgeByIndex(neb);
+  Data->ZHatBP        = Sb->Panels[ Eb->iPPanel ]->ZHat;
+  Data->ZHatBM        = (Eb->iMPanel==-1) ? 0 : Sb->Panels[ Eb->iMPanel ]->ZHat;
   cdouble RawMEs[34]; 
   double Error[2*34];
   if (Order==0)
