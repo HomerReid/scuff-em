@@ -35,7 +35,7 @@
 #include <libscuff.h>
 #include <libIncField.h>
 
-#include "RWGPorts.h"
+#include "RFSolver.h"
 
 #define FREQ2OMEGA (2.0*M_PI/300.0)
 #define OMEGA2FREQ (1/(FREQ2OMEGA))
@@ -43,19 +43,7 @@
 
 using namespace scuff;
 
-// FIXME put me somewhere else
-#define NPFC 7
-#define _PF_PHI 3
-
-HMatrix *GetMOIFields(RWGGeometry *G, LayeredSubstrate *S, cdouble Omega, HMatrix *XMatrix,
-                      HVector *KN, RWGPortList *PortList, cdouble *PortCurrents,
-                      HMatrix **PFContributions=0);
-
-void GetMOIRPFMatrices(RWGGeometry *G, LayeredSubstrate *Substrate, RWGPortList *PortList,
-                       cdouble Omega, HMatrix *XMatrix,
-                       HMatrix **pBFRPFMatrix, HMatrix **pPortRPFMatrix);
-
-void ZToS(HMatrix *ZMatrix, HMatrix *SMatrix);
+namespace scuff {
 
 /***************************************************************/
 /***************************************************************/
@@ -82,64 +70,53 @@ void InitZSParmFile(char *FileBase, int NumPorts, char ZS)
 /***************************************************************/
 /***************************************************************/
 void ComputeSZParms(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                    HMatrix *M, HVector *KN, char *FileBase, bool SParms)
+                    HMatrix *M, char *FileBase, bool SParms)
 {
+  int NBF      = G->TotalBFs;
   int NumPorts = PortList->Ports.size();
-  static bool Init=true;
-  static HMatrix *XMatrix, *BFRPFMatrix=0, *PortRPFMatrix=0;
-  static HVector *BFPFVector, *PortPFVector;
-  if (Init)
-   { Init=false;
-
-     InitZSParmFile(FileBase, NumPorts, 'Z');
-     if(SParms) InitZSParmFile(FileBase, NumPorts, 'S');
-
-     XMatrix = new HMatrix(3, 2*NumPorts, LHM_REAL);
-     for(int nPort=0; nPort<PortList->Ports.size(); nPort++)
-      { RWGPort *Port = PortList->Ports[nPort];
-        XMatrix->SetEntriesD(":",2*nPort + _PLUS,  Port->RefPoint[_PLUS]);
-        XMatrix->SetEntriesD(":",2*nPort + _MINUS, Port->RefPoint[_MINUS]);
-      }
-
-     int NX = XMatrix->NC;
-     BFPFVector   = new HVector(NPFC*NX, LHM_COMPLEX);
-     PortPFVector = new HVector(NPFC*NX, LHM_COMPLEX);
-   }
-  cdouble *PortCurrents = new cdouble[NumPorts];
-  HMatrix *ZMatrix      = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
-  HMatrix *SMatrix      = SParms ? new HMatrix(NumPorts, NumPorts, LHM_COMPLEX) : 0;
-
-  Log("Precomputing reduced potential/field matrices for all port reference points");
-  GetMOIRPFMatrices(G, G->Substrate, PortList, Omega, XMatrix, &BFRPFMatrix, &PortRPFMatrix);
-
-  for(int nsPort=0; nsPort<NumPorts; nsPort++)
+  static int LastNBF=0, LastNumPorts=0;
+  static HVector *Rs=0;
+  static HMatrix *ZMatrix=0, *SMatrix=0, *PPMatrix=0;
+  if (LastNBF!=NBF || LastNumPorts!=NumPorts)
    { 
-     Log(" Computing row %i of the impedance matrix:",nsPort+1);
-     memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
-     PortCurrents[nsPort]=1.0;
-     KN->Zero();
-     AddPortContributionsToRHS(G, PortList, PortCurrents, Omega, KN);
-
-     Log("  solving the BEM system");
-     M->LUSolve(KN);
-
-     /* note: the entry in the Z-matrix is the complex conjugate */
-     /* of the measured port voltage, because the Z-matrix is    */
-     /* defined using the usual circuit theory convention in     */
-     /* which all quantities have time dependence exp(+iwt),     */
-     /* whereas scuff-EM uses the opposite sign convention.      */
-     Log("  computing port voltages");
-     BFRPFMatrix->Apply(KN, BFPFVector);
-     HVector PCVector(NumPorts, PortCurrents);
-     PortRPFMatrix->Apply(&PCVector, PortPFVector);
-     for(int ndPort=0; ndPort<NumPorts; ndPort++)
-      { int nxP = 2*ndPort+0, nxM = 2*ndPort+1;
-        cdouble VP = BFPFVector->GetEntry(NPFC*nxP + _PF_PHI) + PortPFVector->GetEntry(NPFC*nxP + _PF_PHI);
-        cdouble VM = BFPFVector->GetEntry(NPFC*nxM + _PF_PHI) + PortPFVector->GetEntry(NPFC*nxM + _PF_PHI);
-        ZMatrix->SetEntry(ndPort, nsPort, conj(VP-VM) );
+     if (LastNBF==0 && LastNumPorts==0) 
+      { InitZSParmFile(FileBase, NumPorts, 'Z');
+        if(SParms) InitZSParmFile(FileBase, NumPorts, 'S');
       }
-   } // for(int nsp=0; nsp<NumPorts; nsp++)
+     LastNBF=NBF;
+     LastNumPorts=NumPorts;
+     if (Rs) 
+      delete Rs; 
+     Rs = new HVector(NBF, LHM_COMPLEX);
+     if (ZMatrix) 
+      delete ZMatrix; 
+     ZMatrix=new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
+     if (SParms)
+      { if(SMatrix) 
+         delete SMatrix; 
+        SMatrix=new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
+      }
+     if (PPMatrix)
+      delete PPMatrix;
+     PPMatrix = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
+   }
 
+  Log("Computing port/BF interaction matrix...");
+  static HMatrix *PBFIMatrix=0;
+  PBFIMatrix=GetPortBFInteractionMatrix(G, PortList, Omega, PBFIMatrix, PPMatrix);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static HMatrix *ZMatrix2 = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  for(int nsPort=0; nsPort<NumPorts; nsPort++)
+   { memcpy(Rs->ZV, PBFIMatrix->GetColumnPointer(nsPort), NBF*sizeof(cdouble));
+     M->LUSolve(Rs);
+     for(int ndPort=0; ndPort<NumPorts; ndPort++)
+      { HVector Rd(NBF, (cdouble *) PBFIMatrix->GetColumnPointer(ndPort));
+        ZMatrix->SetEntry(ndPort, nsPort, -0.5*ZVAC*( Rd.DotU(Rs) - PPMatrix->GetEntry(ndPort, nsPort)));
+        ZMatrix2->SetEntry(ndPort, nsPort, -0.5*ZVAC*( Rd.Dot(Rs) ) );
+      }
+   }
   if (SParms) ZToS(ZMatrix, SMatrix);
 
   /*--------------------------------------------------------------*/
@@ -152,15 +129,23 @@ void ComputeSZParms(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
      fprintf(f,"%e ",real(Omega)*OMEGA2FREQ);
      for(int ndPort=0; ndPort<NumPorts; ndPort++)
       for(int nsPort=0; nsPort<NumPorts; nsPort++)
-       fprintf(f,"%e %e ",real(ZSMatrix->GetEntry(ndPort,nsPort)), 
+       fprintf(f,"%e %e ",real(ZSMatrix->GetEntry(ndPort,nsPort)),
                           imag(ZSMatrix->GetEntry(ndPort,nsPort)));
+     if (ZS=='Z')
+      { 
+        for(int ndPort=0; ndPort<NumPorts; ndPort++)
+         for(int nsPort=0; nsPort<NumPorts; nsPort++)
+          fprintf(f,"%e %e ",real(ZMatrix2->GetEntry(ndPort,nsPort)),
+                             imag(ZMatrix2->GetEntry(ndPort,nsPort)));
+
+        for(int ndPort=0; ndPort<NumPorts; ndPort++)
+         for(int nsPort=0; nsPort<NumPorts; nsPort++)
+          fprintf(f,"%e %e ",0.5*ZVAC*real(PPMatrix->GetEntry(ndPort,nsPort)),
+                             0.5*ZVAC*imag(PPMatrix->GetEntry(ndPort,nsPort)));
+      }
      fprintf(f,"\n");
      fclose(f);
    }
-
-  delete[] PortCurrents;
-  delete ZMatrix;
-  if (SMatrix) delete SMatrix;
 }
   
 /***************************************************************/
@@ -178,8 +163,8 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
   int NX = XMatrix->NC;
 
   HMatrix *PFContributions[2];
-  PFContributions[0] = new HMatrix(NPFC, NX);
-  PFContributions[1] = new HMatrix(NPFC, NX);
+  PFContributions[0] = new HMatrix(NPFC, NX, LHM_COMPLEX);
+  PFContributions[1] = new HMatrix(NPFC, NX, LHM_COMPLEX);
   HMatrix *PFMatrix = GetMOIFields(G, G->Substrate, Omega, XMatrix, KN, PortList, PortCurrents, PFContributions);
 
   /***************************************************************/
@@ -241,8 +226,8 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XTMatrix, const char ***pDataNames
   /***************************************************************/
   /***************************************************************/
   HMatrix *PFContributions[2];
-  PFContributions[0] = new HMatrix(NPFC, NX);
-  PFContributions[1] = new HMatrix(NPFC, NX);
+  PFContributions[0] = new HMatrix(NPFC, NX, LHM_COMPLEX);
+  PFContributions[1] = new HMatrix(NPFC, NX, LHM_COMPLEX);
   HMatrix *PFMatrix = GetMOIFields(G, G->Substrate, Omega, XMatrix, KN, PortList, PortCurrents, PFContributions);
 
   /***************************************************************/
@@ -257,7 +242,7 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XTMatrix, const char ***pDataNames
      double X[3];
      XMatrix->GetEntriesD("0:2", nx, X);
 
-     for(int npfc=0, nd=0; npfc<NPFC; npfc++)
+     for(int npfc=0; npfc<NPFC; npfc++)
       { DataMatrix->SetEntry(nx,0  + npfc, PFMatrix->GetEntryD(npfc, nx));
         DataMatrix->SetEntry(nx,7  + npfc, PFContributions[0]->GetEntryD(npfc, nx));
         DataMatrix->SetEntry(nx,14 + npfc, PFContributions[1]->GetEntryD(npfc, nx));
@@ -299,3 +284,5 @@ void ProcessFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega,
   snprintf(OutFileName,1000,"%s.%s",FileBase,GetFileBase(FVMesh));
   MakeMeshPlot(RFFieldsMDF, (void *)Data, FVMesh, PPOptions, OutFileName);
 }
+
+} // namespace scuff

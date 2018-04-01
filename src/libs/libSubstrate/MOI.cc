@@ -108,7 +108,7 @@ cdouble AddSGFTerm_MOI(const ScalarGFOptions *Options,
 /***************************************************************/
 int GetSGFCorrection_MOI(cdouble Omega, double Rho, double z,
                          cdouble Eps, double h, cdouble *V,
-                         const ScalarGFOptions *Options=0)
+                         const ScalarGFOptions *Options)
 {
   if (!Options) Options    = &DefaultSGFOptions;
   bool PPIsOnly            = Options->PPIsOnly;
@@ -602,7 +602,8 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
                                                      double zMin, double zMax,
                                                      bool PPIsOnly, bool Subtract,
                                                      bool RetainSingularTerms,
-                                                     double DeltaRho, double Deltaz)
+                                                     double DeltaRho, double Deltaz,
+                                                     bool Verbose)
 {
   if (ScalarGFInterpolator)
    { delete ScalarGFInterpolator;
@@ -653,7 +654,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
    Log("Initializing ScalarGF interpolator for Rho=[%g,%g](%i points)",RhoMin,RhoMax,NRz[0]);
   else
    Log("Initializing ScalarGF interpolator for Rho=[%g,%g](%i pts), z=[%g,%g](%i pts)",RhoMin,RhoMax,NRz[0],zMin,zMax,NRz[1]);
-  ScalarGFInterpolator = new InterpND(RzMin, RzMax, NRz, NF, PhiVDFunc_ScalarGFs, (void *)&Data);
+  ScalarGFInterpolator = new InterpND(RzMin, RzMax, NRz, NF, PhiVDFunc_ScalarGFs, (void *)&Data, Verbose);
   memcpy(&SGFIOptions, Options, sizeof(ScalarGFOptions));
   if (Dimension==1) zSGFI=zMin;
   return ScalarGFInterpolator;

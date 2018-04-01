@@ -31,17 +31,11 @@
 #include "libscuffInternals.h"
 #include "PanelCubature.h"
 
-#include "RWGPorts.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-//components of potential/field vector
-#define _PF_AX    0
-#define _PF_AY    1
-#define _PF_AZ    2
-#define _PF_PHI   3
-#define _PF_DXPHI 4
-#define _PF_DYPHI 5
-#define _PF_DZPHI 6
-#define NPFC      7
+#include "RFSolver.h"
 
 namespace scuff {
 void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
@@ -50,11 +44,6 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  cdouble dp[3], cdouble da[3][3],
                                  cdouble ddp[3][3], cdouble dcurla[3][3],
                                  bool *IncludeTerm=0);
-}
-
-int GetSGFCorrection_MOI(cdouble Omega, double Rho, double z,
-                         cdouble Eps, double h, cdouble *V,
-                         const ScalarGFOptions *Options);
 
 using namespace scuff;
 
@@ -93,7 +82,6 @@ void MOIPFIntegrand(double xS[3], double b[3], double Divb,
    MOIIntegrandData *Data = (MOIIntegrandData *)UserData;
    LayeredSubstrate *S    = Data->S;
    cdouble Omega          = Data->Omega;
-   cdouble Eps            = Data->Eps;
    bool Subtract          = Data->Subtract;
    double *xD             = Data->XDest;
 
@@ -130,6 +118,101 @@ void MOIPFIntegrand(double xS[3], double b[3], double Divb,
    Data->qPoints+=qPoints;
 }
 
+/*--------------------------------------------------------------*/
+/* this routine computes the *bare* (substrate-independent)     */
+/* contributions to the potential and fields, in order to add   */
+/* them back in after the corresponding terms have been         */
+/* subtracted from the Sommerfeld integral for the full         */
+/* substrate GF                                                 */
+/*--------------------------------------------------------------*/
+typedef struct RPIData
+ { cdouble k;
+   double *XDest;
+ } RPIData;
+
+void RPIntegrand(double XSource[3], double b[3], double Divb,
+                 void *UserData, double Weight, double *Integral)
+{
+  RPIData *Data = (RPIData *)UserData;
+  cdouble k     = Data->k;
+  double *XDest = Data->XDest;
+
+  double R[3]; VecSub(XDest, XSource, R);
+  double r2 = R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+  if (r2==0.0) return;
+  double r=sqrt(r2);
+  cdouble ikr=II*k*r;
+  cdouble G0 = Weight*exp(ikr)/(4.0*M_PI*r), dG0 = G0*(ikr-1.0)/r2;
+
+  cdouble *apdp = (cdouble *)Integral;
+  apdp[_PF_AX]    += G0       * b[0];
+  apdp[_PF_AY]    += G0       * b[1];
+  apdp[_PF_AX]    += G0       * b[2];
+  apdp[_PF_PHI]   += G0       * Divb;
+  apdp[_PF_DXPHI] += R[0]*dG0 * Divb;
+  apdp[_PF_DYPHI] += R[1]*dG0 * Divb;
+  apdp[_PF_DZPHI] += R[2]*dG0 * Divb;
+}
+  
+
+void GetReducedPotentials(RWGGeometry *G, int ns, int ne, cdouble k,
+                          double *XDest,
+                          cdouble *p, cdouble a[3], cdouble dp[3])
+{
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  static double rRelOuterThreshold=4.0;
+  static double rRelInnerThreshold=1.0;
+  static int LowOrder=7;
+  static int HighOrder=20;
+
+  static bool Init=true;
+  if (Init)
+   { Init=false;
+     char *s1=getenv("SCUFF_RREL_OUTER_THRESHOLD");
+     char *s2=getenv("SCUFF_RREL_INNER_THRESHOLD");
+     char *s3=getenv("SCUFF_LOWORDER");
+     char *s4=getenv("SCUFF_HIGHORDER");
+     if (s1) sscanf(s1,"%le",&rRelOuterThreshold);
+     if (s2) sscanf(s2,"%le",&rRelInnerThreshold);
+     if (s3) sscanf(s3,"%i",&LowOrder);
+     if (s4) sscanf(s4,"%i",&HighOrder);
+     if (s1||s2||s3||s4)
+      Log("({O,I}rRelThreshold | LowOrder | HighOrder)=(%e,%e,%i,%i)",
+          rRelOuterThreshold,rRelInnerThreshold,LowOrder,HighOrder);
+   }
+   
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGSurface *S = G->Surfaces[ns];
+  RWGEdge *E = S->GetEdgeByIndex(ne);
+  double rRel = VecDistance(XDest, E->Centroid) / E->Radius;
+  if (rRel>=rRelInnerThreshold)
+   { 
+     int Order = rRel >= rRelOuterThreshold ? LowOrder : HighOrder;
+     RPIData Data;
+     Data.k     = k;
+     Data.XDest = XDest;
+     cdouble apdp[7];
+     int zfdim=7, fdim=2*zfdim;
+     GetBFCubature2(G, ns, ne, RPIntegrand, (void *)&Data,
+                    fdim, Order, (double *)apdp);
+     *p=apdp[_PF_PHI];
+     for(int i=0; i<3; i++)
+      {  a[i] = apdp[_PF_AX+i];
+        dp[i] = apdp[_PF_DXPHI+i];
+      }
+   }
+  else
+   { cdouble da[3][3], ddp[3][3], dcurla[3][3];
+     GetReducedPotentials_Nearby(S, ne, XDest, k, p, a, dp,
+                                 da, ddp, dcurla);
+   }
+
+}
+
 /***************************************************************/
 /* Compute the MOI potential and fields due to a single basis  */
 /* function populated with unit strength.                      */
@@ -146,7 +229,7 @@ void MOIPFIntegrand(double xS[3], double b[3], double Divb,
 int Get1BFMOIFields(RWGGeometry *G, LayeredSubstrate *Substrate,
                     int ns, int ne, cdouble Omega, double *XDest,
                     cdouble *PFVector,
-                    int Order, bool Subtract, cdouble *SingularTerms=0)
+                    int Order, bool Subtract, cdouble *SingularTerms)
 {
   /***************************************************************/
   /* get substrate contributions                                 */
@@ -167,7 +250,7 @@ int Get1BFMOIFields(RWGGeometry *G, LayeredSubstrate *Substrate,
   if (Order==-1) Order = 9;
 
   int zfdim=NPFC, fdim=2*zfdim;
-  GetBFCubature2(G, ns, ne, MOIPFIntegrand, (void *)&MOIData, zfdim, Order, (double *)PFVector);
+  GetBFCubature2(G, ns, ne, MOIPFIntegrand, (void *)&MOIData, fdim, Order, (double *)PFVector);
 
   /***************************************************************/
   /* add contributions of most singular terms in GF              */
@@ -175,10 +258,8 @@ int Get1BFMOIFields(RWGGeometry *G, LayeredSubstrate *Substrate,
   if (SingularTerms) memset(SingularTerms, 0, NPFC*sizeof(cdouble));
   if ( Subtract && (XDest[2] > -1.0e-12) )
    { 
-     RWGSurface *S = G->Surfaces[ns];
      cdouble p=0.0, a[3]={0.0,0.0,0.0}, dp[3]={0.0,0.0,0.0};
-     cdouble da[3][3], ddp[3][3], dcurla[3][3];
-     GetReducedPotentials_Nearby(S, ne, XDest, Omega, &p, a, dp, da, ddp, dcurla);
+     GetReducedPotentials(G, ns, ne, Omega, XDest, &p, a, dp);
 
      cdouble STBuffer[NPFC];
      if (!SingularTerms) SingularTerms=STBuffer;
@@ -277,7 +358,7 @@ void MOIMEIntegrand(double xA[3], double bA[3], double DivbA,
 int GetMOIMatrixElement(RWGGeometry *G, LayeredSubstrate *Substrate,
                         int nsa, int nea, int nsb, int neb,
                         cdouble Omega, cdouble *ME,
-                        int Order, bool Subtract, cdouble *Terms=0)
+                        int Order, bool Subtract, cdouble *Terms)
 {
   /***************************************************************/
   /* if cubature order unspecified, autodetermine it based on    */
@@ -489,10 +570,12 @@ void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double z
     double *SurfaceXMin = G->Surfaces[ns]->RMin;
     for(int i=0; i<3; i++)
       { RMax[i] = fmax(RMax[i], PointXMax[i] - SurfaceXMin[i]);
-        if ( (SurfaceXMin[i]>0.0) != (PointXMax[i]>0.0) )
-         RMin[i] = 0.0;
+        if (SurfaceXMin[i]>PointXMax[i]) 
+         RMin[i] = fmin(RMin[i], fabs(SurfaceXMin[i]-PointXMax[i]));
+        else if (PointXMin[i]>SurfaceXMax[i])
+         RMin[i] = fmin(RMin[i], fabs(PointXMin[i]-SurfaceXMax[i]));
         else
-         RMin[i] = fmin(RMin[i], fabs(PointXMin[i] - SurfaceXMax[i]));
+         RMin[i] = 0.0;
       }
    }
   RhoMinMax[0] = sqrt(RMin[0]*RMin[0] + RMin[1]*RMin[1]);
@@ -556,9 +639,12 @@ void AssembleMOIMatrix(RWGGeometry *G, LayeredSubstrate *Substrate,
   bool PPIsOnly = true;
   bool Subtract = true;
   bool RetainSingularTerms = false;
+  double DeltaRho=0.0, DeltaZ=0.0;
+  bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
   Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
   Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
-                                      PPIsOnly, Subtract, RetainSingularTerms);
+                                      PPIsOnly, Subtract, RetainSingularTerms,
+                                      DeltaRho, DeltaZ, Verbose);
 
   /***************************************************************/
   /***************************************************************/
@@ -583,11 +669,13 @@ void AssembleMOIMatrix(RWGGeometry *G, LayeredSubstrate *Substrate,
   for(int nr=1; nr<M->NR; nr++)
    for(int nc=0; nc<nr; nc++)
     M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
-
-  Substrate->DestroyScalarGFInterpolator();
 }
 
 /***************************************************************/
+/* Get 'Reduced Potential/Field' (RPF) matrices tabulating the */
+/* contributions of individual basis functions to potentials   */
+/* and fields at individual points.                            */
+/*                                                             */
 /* XMatrix = 3xNX matrix of evaluation point coordinates       */
 /*                                                             */
 /* RPFMatrix = 4*NX x NBFP matrix                              */
@@ -620,29 +708,26 @@ void GetMOIRPFMatrices(RWGGeometry *G, LayeredSubstrate *Substrate, RWGPortList 
   int NEdges       = NBFEdges + NPortEdges;
   
   HMatrix *BFRPFMatrix = *pBFRPFMatrix;
-  if (BFRPFMatrix && (BFRPFMatrix->NR!=NPFCX || BFRPFMatrix->NC!=NBFEdges) )
+  if (BFRPFMatrix && (BFRPFMatrix->NR!=NPFCX || BFRPFMatrix->NC!=NBFEdges || BFRPFMatrix->RealComplex!=LHM_COMPLEX))
    { Warn("wrong-size BFRPFMatrix in GetMOIRPFMatrices");
      delete BFRPFMatrix;
      BFRPFMatrix=0;
    }
   if (BFRPFMatrix==0)
-   BFRPFMatrix = *pBFRPFMatrix = new HMatrix(NPFC*NX, NBFEdges, LHM_COMPLEX);
+   BFRPFMatrix = *pBFRPFMatrix = new HMatrix(NPFCX, NBFEdges, LHM_COMPLEX);
 
   HMatrix *PortRPFMatrix = *pPortRPFMatrix;
-  if (PortRPFMatrix && (PortRPFMatrix->NR!=NPFCX || PortRPFMatrix->NC!=NPorts) )
+  if (PortRPFMatrix && (PortRPFMatrix->NR!=NPFCX || PortRPFMatrix->NC!=NPorts || PortRPFMatrix->RealComplex!=LHM_COMPLEX) )
    { Warn("wrong-size PortRPFMatrix in GetMOIRPFMatrices");
      delete PortRPFMatrix;
      PortRPFMatrix=0;
    }
   if (PortRPFMatrix==0)
-   PortRPFMatrix = *pPortRPFMatrix = new HMatrix(NPFC*NX, NPorts, LHM_COMPLEX);
+   PortRPFMatrix = *pPortRPFMatrix = new HMatrix(NPFCX, NPorts, LHM_COMPLEX);
 
   HMatrix *PERPFMatrix=0;
   if (NPorts>0)
-   { if (PortRPFMatrix->NR!=NPFCX || PortRPFMatrix->NC!=NPorts)
-      ErrExit("wrong-size PortRPFMatrix in GetMOIRPFMatrices");
-     PERPFMatrix = new HMatrix(NPFCX, NPortEdges, LHM_COMPLEX);
-   }
+   PERPFMatrix = new HMatrix(NPFCX, NPortEdges, LHM_COMPLEX);
  
   int Order=9; 
 
@@ -654,8 +739,11 @@ void GetMOIRPFMatrices(RWGGeometry *G, LayeredSubstrate *Substrate, RWGPortList 
   bool PPIsOnly = false;
   bool Subtract = true;
   bool RetainSingularTerms = false;
+  double DeltaRho=0.0, DeltaZ=0.0;
+  bool Verbose = (G->LogLevel==SCUFF_VERBOSE2);
   Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
-                                      PPIsOnly, Subtract, RetainSingularTerms);
+                                      PPIsOnly, Subtract, RetainSingularTerms,
+                                      DeltaRho, DeltaZ, Verbose);
 
   /***************************************************************/
   /***************************************************************/
@@ -716,7 +804,7 @@ HMatrix *GetMOIFields(RWGGeometry *G, LayeredSubstrate *S, cdouble Omega,
                       HMatrix *XMatrix, HVector *KN, RWGPortList *PortList,
                       cdouble *PortCurrents, HMatrix **PFContributions)
 {
-  if (XMatrix->NR!=3) 
+  if (XMatrix->NR!=3)
    ErrExit("wrong-size (%ix%i) XMatrix in GetMOIFields",XMatrix->NR,XMatrix->NC);
   int NX = XMatrix->NC;
   int NumPorts = PortList->Ports.size();
@@ -725,9 +813,9 @@ HMatrix *GetMOIFields(RWGGeometry *G, LayeredSubstrate *S, cdouble Omega,
   if (PFContributions)
    { BFPFMatrix   = PFContributions[0];
      PortPFMatrix = PFContributions[1];
-     if ( BFPFMatrix->NR != NPFC || BFPFMatrix->NC != NX )
+     if ( BFPFMatrix->NR != NPFC || BFPFMatrix->NC != NX || BFPFMatrix->RealComplex != LHM_COMPLEX)
       ErrExit("wrong-size BFPFMatrix(%i,%i) in GetMOIFields",BFPFMatrix->NR,BFPFMatrix->NC);
-     if ( PortPFMatrix->NR != NPFC || PortPFMatrix->NC != NX )
+     if ( PortPFMatrix->NR != NPFC || PortPFMatrix->NC != NX || BFPFMatrix->RealComplex!=LHM_COMPLEX)
       ErrExit("wrong-size PortPFMatrix(%i,%i) in GetMOIFields",PortPFMatrix->NR,PortPFMatrix->NC);
    }
 
@@ -752,3 +840,108 @@ HMatrix *GetMOIFields(RWGGeometry *G, LayeredSubstrate *S, cdouble Omega,
   if (!PortPFMatrix) delete[] PortPFBuffer;
   return PFMatrix;
 }
+
+} // namespace scuff
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#if 0
+HMatrix *GetMOIFields(RWGGeometry *G, LayeredSubstrate *S, cdouble Omega,
+                      HMatrix *XMatrix, HVector *KN, RWGPortList *PortList,
+                      cdouble *PortCurrents, HMatrix *PFMatrix)
+{
+  int NX           = XMatrix->NC;
+
+  int NBFEdges     = KN ? G->TotalBFs : 0;
+
+  int NPorts       = PortList ? PortList->Ports.size() : 0;
+  int NPortEdges   = PortList ? PortList->PortEdges.size() : 0;
+  int NEdges       = NBFEdges + NPortEdges;
+  
+  int Order=9; 
+
+  /***************************************************************/
+  /* pre-allocate interpolator for subtrate green's functions    */
+  /***************************************************************/
+  double RhoMinMax[2], zMinMax[2];
+  GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
+  bool PPIsOnly = false;
+  bool Subtract = true;
+  bool RetainSingularTerms = false;
+  Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
+                                      PPIsOnly, Subtract, RetainSingularTerms);
+
+  if ( PFMatrix && (PFMatrix->NR!=NPFC || PFMatrix->NC!=NX) )
+   { Warn("wrong-size PFMatrix in GetMOIFields (reallocating)");
+     delete PFMatrix;
+     PFMatrix=0;
+   }
+  if (!PFMatrix)
+   PFMatrix=new HMatrix(NPFC, NX, LHM_COMPLEX);
+  PFMatrix->Zero();
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NXNE = NX*NEdges;
+#ifndef USE_OPENMP
+  Log("Computing MOI fields at %i points",NX);
+#else
+  int NumThreads=GetNumThreads();
+  HMatrix **PFByThread=0;
+  bool AllocateThreadBuffers=true;
+  if (AllocateThreadBuffers)
+   { PFByThread = new HMatrix *[NumThreads];
+     PFByThread[0] = PFMatrix;
+     for(int nt=1; nt<NumThreads; nt++)
+      PFByThread=new HMatrix(NPFC, NX, LHM_COMPLEX);
+   }
+  Log("Computing MOI fields at %i points (%i threads)",NX,NumThreads);
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+  for(int nxne=0; nxne<NXNE; nxne++)
+   {
+     int nx    = nxne / NEdges;
+     int nEdge = nxne % NEdges;
+
+     LogPercent(nxne, NXNE);
+
+     int ns, ne;
+     cdouble Weight;
+     if (KN && nEdge < NBFEdges)
+      { G->ResolveEdge(nEdge, &ns, &ne);
+        Weight=KN->GetEntry(nEdge);
+      }
+     else
+      { int nPE = nEdge - (KN==0 ? 0 : NBFEdges);
+        RWGPortEdge *PE = PortList->PortEdges[nPE];
+        ns = PE->ns;
+        ne = PE->ne;
+        int nPort = PE->nPort;
+        double Sign = (PE->Pol==_PLUS) ? 1.0 : -1.0;
+        double Perimeter = PortList->Ports[nPort]->Perimeter[
+        Weight = -1.0*
+      }
+    
+     double *XDest = (double *)XMatrix->GetColumnPointer(nx);
+     Get1BFMOIFields(G, Substrate, ns, ne, Omega, XDest, RPFVector + NPFC*nx, Order, Subtract);
+   }
+  
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (PERPFMatrix)
+   { PortRPFMatrix->Zero();
+     for(int nPE=0; nPE<NPortEdges; nPE++)
+      { RWGPortEdge *PE = PortList->PortEdges[nPE];
+        int nPort       = PE->nPort;
+        double Sign     = (PE->Pol ==_PLUS ? +1.0 : -1.0);
+        for(int npfcx=0; npfcx<NPFCX; npfcx++)
+         PortRPFMatrix->AddEntry(npfcx,nPort,
+                                 -1.0*Sign*PERPFMatrix->GetEntry(npfcx,nPE));
+      }
+     delete PERPFMatrix;
+   }
+}
+#endif

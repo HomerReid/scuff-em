@@ -90,7 +90,7 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   double k    = sqrt(EpsR*MuR)*real(Omega); // wavenumber of medium 
   double ZR   = sqrt(MuR/EpsR);             // relative wave impedance of medium
 
-  zVec zvE0     = E0;     // complex field-strength vector
+  zVector zvE0     = E0;     // complex field-strength vector
                           // containing information on the 
                           // field strength and polarization 
 
@@ -157,7 +157,7 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
 
   // now calculate the actual coordinates for having either zvE0.real() or zvE0.imag() as the x axis
   // local coordinate system given by ^z = kProp, ^x ~ Re(E0) or Im(E0), ^y ~ ^z x ^x  
-  zVec E, H;
+  zVector E, H;
 
   double rnorm = norm(zvE0.real());
   if (rnorm>1e-13) {
@@ -175,8 +175,8 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
     cdouble Hz =     fmgbRsq * y * zc - i2fk * y;
 
     // go back to the laboratory frame
-    E += cdouble(rnorm) * (Ex * zVec(xHat) + Ey * zVec(yHat) + Ez * zVec(zHat));
-    H += cdouble(rnorm) * (Hx * zVec(xHat) + Hy * zVec(yHat) + Hz * zVec(zHat));
+    E += cdouble(rnorm) * (Ex * zVector(xHat) + Ey * zVector(yHat) + Ez * zVector(zHat));
+    H += cdouble(rnorm) * (Hx * zVector(xHat) + Hy * zVector(yHat) + Hz * zVector(zHat));
   } 
   
   double inorm = norm(zvE0.imag());
@@ -195,8 +195,8 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
     cdouble Hz =     fmgbRsq * y * zc - i2fk * y;
     
     // go back to the laboratory frame
-    E += IU * inorm * (Ex * zVec(xHat) + Ey * zVec(yHat) + Ez * zVec(zHat));
-    H += IU * inorm * (Hx * zVec(xHat) + Hy * zVec(yHat) + Hz * zVec(zHat));
+    E += IU * inorm * (Ex * zVector(xHat) + Ey * zVector(yHat) + Ez * zVector(zHat));
+    H += IU * inorm * (Hx * zVector(xHat) + Hy * zVector(yHat) + Hz * zVector(zHat));
   }
 
   // the field as calculated above is not normalized, so we get the field strength at the origin
@@ -228,6 +228,6 @@ double GaussianBeam::TotalBeamFlux() {
   double Eorig = 3./(2*kz0*kz0*kz0) * (exp(kz0)*kz0*(kz0-1) + sinh(kz0));
   double flux  = 9*M_PI / (32*kz0*kz0*kz0*k*k);
   flux *= (-1 - 2*kz0 * (kz0-1) + (1+2*kz0*(2*kz0-1))*cosh(2*kz0) + 2*kz0*(2*kz0-1)*sinh(2*kz0));
-  zVec zvE0     = E0;
+  zVector zvE0     = E0;
   return flux * norm2(zvE0) / (Eorig*Eorig*ZVAC*ZR);
 }

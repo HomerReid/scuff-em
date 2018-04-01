@@ -136,8 +136,6 @@ int main(int argc, char *argv[])
 //
      {"WriteLogFile",   PA_BOOL,    0, 1,       (void *)&WriteLogFile, 0,           "write new log file"},
 //
-     {"ContribOnly",    PA_STRING,  1, 1,       (void *)&ContribOnly,  0,           "select port voltage contributors"},
-//
 //
      {0,0,0,0,0,0,0}
    };
@@ -146,6 +144,8 @@ int main(int argc, char *argv[])
    OSUsage(argv[0],OSArray,"--geometry option is mandatory");
   if (!FileBase)
    FileBase=strdup(GetFileBase(GeoFile));
+
+  if (ContribOnly) SetContribOnly(ContribOnly);
 
   /***************************************************************/
   /* create the log file *****************************************/
@@ -156,12 +156,6 @@ int main(int argc, char *argv[])
   Log("%s ",argv[0]);
   for(narg=1; narg<argc; narg++) 
    LogC("%s ",argv[narg]);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (ContribOnly)
-   SetContribOnly(ContribOnly);
 
   /***************************************************************/
   /* create the geometry                                         */
@@ -340,8 +334,8 @@ int main(int argc, char *argv[])
   if (Moments)
    { PM=new HMatrix(G->NumSurfaces, 6, LHM_COMPLEX);
      MomentFile=vfopen("%s.moments","w",GetFileBase(G->GeoFileName));
-     PSD=new HMatrix(G->TotalPanels, 12, LHM_COMPLEX);
-   };
+     PSD=new HMatrix(G->TotalPanels, 13, LHM_COMPLEX);
+   }
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -412,12 +406,33 @@ int main(int argc, char *argv[])
                                     real(Omega),G->TotalPanels,G->Surfaces[ns]->Label,
                                     CD2S(PM->GetEntry(ns,0)), CD2S(PM->GetEntry(ns,1)), CD2S(PM->GetEntry(ns,2)),
                                     CD2S(PM->GetEntry(ns,3)), CD2S(PM->GetEntry(ns,4)), CD2S(PM->GetEntry(ns,5)));
-               G->PlotSurfaceCurrents(KN, Omega, "%s_Before.pp",GetFileBase(G->GeoFileName));
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
+               G->PlotSurfaceCurrents(PSD, Omega, "%s_Before(WO).pp",GetFileBase(G->GeoFileName));
+
+               SetDefaultCD2SFormat("{%+.2e,%+.2e}");
+               cdouble Charge=0.0, DPM[3]={0.0, 0.0, 0.0};
+               for(np=0; np<PSD->NR; np++)
+                { cdouble Q = PSD->GetEntry(np,3) * PSD->GetEntry(np,4);
+                  Charge += Q;
+                  DPM[0] += PSD->GetEntry(np,0) * Q;
+                  DPM[1] += PSD->GetEntry(np,1) * Q;
+                  DPM[2] += PSD->GetEntry(np,2) * Q;
+                }
+               printf("{Q,P} before (WO) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
+
                AddPortContributionsToPSD(G, Ports, NumPorts, PortCurrents, Omega, PSD);
-               sprintf(PSDFileName,"%s.%g.Before.PSD",GetFileBase(G->GeoFileName),Freq);
-               PSD->ExportToText(PSDFileName,"--separate");
+               G->PlotSurfaceCurrents(PSD, Omega, "%s_Before(W).pp",GetFileBase(G->GeoFileName));
+
+               Charge=0.0; DPM[0]=DPM[1]=DPM[2]=0.0;
+               for(np=0; np<PSD->NR; np++)
+                { cdouble Q = PSD->GetEntry(np,3) * PSD->GetEntry(np,4);
+                  Charge += Q;
+                  DPM[0] += PSD->GetEntry(np,0) * Q;
+                  DPM[1] += PSD->GetEntry(np,1) * Q;
+                  DPM[2] += PSD->GetEntry(np,2) * Q;
+                }
+               printf("{Q,P} before (W) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
              };
                 
             /*--------------------------------------------------------------*/
@@ -437,12 +452,33 @@ int main(int argc, char *argv[])
                                     real(Omega),G->TotalPanels,G->Surfaces[ns]->Label,
                                     CD2S(PM->GetEntry(ns,0)), CD2S(PM->GetEntry(ns,1)), CD2S(PM->GetEntry(ns,2)),
                                     CD2S(PM->GetEntry(ns,3)), CD2S(PM->GetEntry(ns,4)), CD2S(PM->GetEntry(ns,5)));
-               G->PlotSurfaceCurrents(KN, Omega, "%s_After.pp",GetFileBase(G->GeoFileName));
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
+               G->PlotSurfaceCurrents(PSD, Omega, "%s_AfterWO.pp",GetFileBase(G->GeoFileName));
+
+               SetDefaultCD2SFormat("{%+.2e,%+.2e}");
+               cdouble Charge=0.0, DPM[3]={0.0, 0.0, 0.0};
+               for(np=0; np<PSD->NR; np++)
+                { cdouble Q = PSD->GetEntry(np,3) * PSD->GetEntry(np,4);
+                  Charge += Q;
+                  DPM[0] += PSD->GetEntry(np,0) * Q;
+                  DPM[1] += PSD->GetEntry(np,1) * Q;
+                  DPM[2] += PSD->GetEntry(np,2) * Q;
+                }
+               printf("{Q,P} after (WO) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
+
                AddPortContributionsToPSD(G, Ports, NumPorts, PortCurrents, Omega, PSD);
-               sprintf(PSDFileName,"%s.%g.After.PSD",GetFileBase(G->GeoFileName),Freq);
-               PSD->ExportToText(PSDFileName,"--separate");
+               G->PlotSurfaceCurrents(PSD, Omega, "%s_AfterW.pp",GetFileBase(G->GeoFileName));
+
+               Charge=DPM[0]=DPM[1]=DPM[2]=0.0;
+               for(np=0; np<PSD->NR; np++)
+                { cdouble Q = PSD->GetEntry(np,3) * PSD->GetEntry(np,4);
+                  Charge += Q;
+                  DPM[0] += PSD->GetEntry(np,0) * Q;
+                  DPM[1] += PSD->GetEntry(np,1) * Q;
+                  DPM[2] += PSD->GetEntry(np,2) * Q;
+                }
+               printf("{Q,P} after (W) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
              };
 
             Log("  computing port voltages");

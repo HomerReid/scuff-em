@@ -143,7 +143,7 @@ size_t InterpND::GetCTableOffset(iVec nVec, int nFun)
 /* function and uniform grids                                   */
 /****************************************************************/
 InterpND::InterpND(dVec _XMin, dVec XMax, iVec _NVec, int _NF,
-                   PhiVDFunc UserFunc, void *UserData)
+                   PhiVDFunc UserFunc, void *UserData, bool Verbose)
  : NVec(_NVec), NF(_NF), XMin(_XMin), DX(XMax)
 {   
   memset(xPoints, 0, MAXDIM*sizeof(double *));
@@ -154,7 +154,7 @@ InterpND::InterpND(dVec _XMin, dVec XMax, iVec _NVec, int _NF,
      DX[d] = (XMax[d] - XMin[d]) / ((double)(NVec[d]));
    };
 
-  Initialize(UserFunc, UserData);
+  Initialize(UserFunc, UserData, Verbose);
 }
 
 /****************************************************************/
@@ -169,7 +169,7 @@ InterpND::~InterpND()
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
-void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData)
+void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 {
    /*--------------------------------------------------------------*/
    /*- compute some statistics ------------------------------------*/
@@ -201,12 +201,14 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData)
    /*- call user's function to populate table of function values   */
    /*- and derivatives at grid points                              */
    /*--------------------------------------------------------------*/
-#ifdef USE_OPENMP
    int NumThreads = GetNumThreads();
+   Log("Evaluating interpolation function at %i points (%i threads)",NPoint,NumThreads);
+#ifdef USE_OPENMP
 #pragma omp parallel for num_threads(NumThreads)
 #endif
    for(size_t nPoint=0; nPoint<NPoint; nPoint++)
     {
+      if (Verbose) LogPercent(nPoint,NPoint);
       size_t Offset = GetPhiVDTableOffset(nPoint,0);
       dVec xVec = n2x(GetPoint(nPoint));
       UserFunc(&(xVec[0]), UserData, PhiVDTable + Offset);
@@ -253,7 +255,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData)
      { 
        // vector of scaling factors to accomodate grid-cell dimensions
        dVec D2Vec(D); // DeltaOver2 vector
-       for(int d=0, n=nVec[d]; d<D; n=nVec[++d])
+       for(int d=0, n=nVec[d]; d<D; d++, n=(d==D ? 0 : nVec[d]))
         D2Vec[d] = 0.5*( xPoints[d] ? (xPoints[d][n+1]-xPoints[d][n])
                                     : DX[d]
                        );

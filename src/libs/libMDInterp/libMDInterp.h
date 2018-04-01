@@ -545,7 +545,7 @@ class InterpND
     /*- user-supplied function, uniform grid                        */
     /*--------------------------------------------------------------*/
     InterpND(dVec XMin, dVec XMax, iVec NVec, int NF,
-             PhiVDFunc Phi=0, void *UserData=0);
+             PhiVDFunc Phi=0, void *UserData=0, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
     /*--------------------------------------------------------------*/
@@ -607,7 +607,7 @@ class InterpND
     size_t GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun);
 
     // constructor helper method
-    void Initialize(PhiVDFunc UserFunc, void *UserData);
+    void Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose=false);
 
     /*----------------------------------------------------------------*/
     /*- internal class data that should be private but i don't bother */

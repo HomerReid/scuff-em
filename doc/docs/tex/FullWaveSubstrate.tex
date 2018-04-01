@@ -1112,6 +1112,53 @@ by a panel-panel integral involving the spectral-domain GF:
 %####################################################################%
 %####################################################################%
 \newpage
+\section{Impedance matrix}
+
+$$ \vb J_p(\vb x) =
+   \sum_{a\in\mc{P}_p}
+   \bigg\{ \Big[ 
+     -\sum_{\alpha\beta} \vb b_\alpha(\vb x) M_{\alpha\beta} R_{\beta a}
+           \Big]
+           +\vb b_a(\vb x)
+   \bigg\}w_a,
+ \quad 
+   \vb E_q(\vb x) =
+   \sum_{b\in\mc{P}_q}
+   \bigg\{ \Big[ 
+     -\sum_{\gamma\delta} \mb E_\gamma(\vb x) M_{\gamma\delta} R_{\delta b}
+           \Big]
+           +\mb E_b(\vb x)
+   \bigg\}w_b
+ \qquad 
+$$
+%====================================================================%
+\begin{align*}
+ Z_{pq} 
+ &\equiv \frac{1}{2I_p I_q}\int \vb J_p(\vb x) \vb E_q(\vb x)\,d\vb x
+\\
+ &= T_1 + T_2 + T_3 + T_4 
+\\
+ T_1 &\equiv \sum_{\alpha\beta\gamma\delta}
+  R_{\delta q}
+  M_{\alpha\beta}
+ \underbrace{\Inp{\vb b_\alpha}{\vb E_\gamma}}_{M_{\alpha\gamma}^{-1}}
+  M_{\gamma\delta}
+  R_{\beta p}
+\\
+&= \frac{1}{2} \vb R_q \vb M \vb R_p
+\\
+ T_2 &\equiv -\sum_{\alpha\beta}
+ \underbrace{\Inp{\vb b_\alpha}{\vb E_b}}_{R_{\alpha q}}
+  M_{\alpha\beta}
+  R_{\beta p}
+ &= -\frac{1}{2}\vb R_q \vb M \vb R_p
+\end{align*}
+%====================================================================%
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\newpage
 \section{Unit-test framework}
 
 The {\sc libsubstrate} standalone library comes with

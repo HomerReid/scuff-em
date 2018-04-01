@@ -1,4 +1,4 @@
- /* Copyright (C) 2005-2011 M. T. Homer Reid
+/* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
  *
@@ -36,107 +36,70 @@ namespace scuff {
 
 #define MAXSTR 1000
 
+#define COMPLETE_VARARGS(Format, Buffer)  \
+  va_list ap;                             \
+  char Buffer[MAXSTR];                    \
+  va_start(ap,Format);                    \
+  vsnprintfEC(Buffer,MAXSTR,Format,ap);   \
+  va_end(ap);                             \
+
 /************************************************************/
 /* subroutines for emitting GMSH postprocessing code        */
 /************************************************************/
+
 /* vector point (otherwise known as 'arrow') */
-void WriteVP(double *X, double *V, FILE *f)
+void WriteVP(double *X, double Vx, double Vy, double Vz, FILE *f, double Scale=1.0)
 {
-  fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",X[0],X[1],X[2],V[0],V[1],V[2]);
+  fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",X[0],X[1],X[2],Scale*Vx,Scale*Vy,Scale*Vz);
 }
 
+void WriteVP(double *X, double *V, FILE *f, double Scale=1.0)
+{ WriteVP(X, V[0], V[1], V[2], f, Scale);
+}
+
+void WriteVP(RWGSurface *S, int np, double Vx, double Vy, double Vz, FILE *f, double Scale=1.0)
+{ WriteVP(S->Panels[np]->Centroid, Vx, Vy, Vz, f, Scale); }
+
+void WriteVP(RWGSurface *S, int np, double *V, FILE *f, double Scale=1.0)
+{ WriteVP(S->Panels[np]->Centroid, V[0], V[1], V[2], f, Scale); }
+
 /* scalar triangle */
+void WriteST(double **VV, double Vals[3], FILE *f)
+{
+  fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+             VV[0][0], VV[0][1], VV[0][2],
+             VV[1][0], VV[1][1], VV[1][2],
+             VV[2][0], VV[2][1], VV[2][2], 
+             Vals[0],Vals[1],Vals[2]);
+}
+
 void WriteST(double **VV, double Val, FILE *f)
-{
-  fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-             VV[0][0], VV[0][1], VV[0][2],
-             VV[1][0], VV[1][1], VV[1][2],
-             VV[2][0], VV[2][1], VV[2][2], 
-             Val,Val,Val);
+{ double Vals[3];
+  Vals[0]=Vals[1]=Vals[2]=Val;
+  WriteST(VV, Vals, f);
 }
 
-/* scalar triangle */
-void WriteST2(double **VV, double Val[3], FILE *f)
-{
-  fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-             VV[0][0], VV[0][1], VV[0][2],
-             VV[1][0], VV[1][1], VV[1][2],
-             VV[2][0], VV[2][1], VV[2][2], 
-             Val[0],Val[1],Val[2]);
+void WriteST(RWGSurface *S, int np, double Vals[3], FILE *f)
+{ double *VV[3];
+  VV[0] = S->Vertices + 3*S->Panels[np]->VI[0];
+  VV[1] = S->Vertices + 3*S->Panels[np]->VI[1];
+  VV[2] = S->Vertices + 3*S->Panels[np]->VI[2];
+  WriteST(VV, Vals, f);
 }
 
+void WriteST(RWGSurface *S, int np, double Val, FILE *f)
+{ double Vals[3];
+  Vals[0]=Vals[1]=Vals[2]=Val;
+  WriteST(S, np, Vals, f);
+}
+  
 /***************************************************************/
-/* WritePPMesh routine. Writes geometry to a .pp file suitable */
-/* for opening as a GMSH postprocessing file.                  */
-/* Note calling convention and file handling are different     */
-/* from those of WriteGPMesh.                                  */
-/* If PlotNormals is nonzero, we also plot the normal to each  */
-/* panel.                                                      */
 /***************************************************************/
-void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNormals)
-{ 
-  FILE *f;
-  RWGSurface *S;
-  RWGPanel *P;
-  char buffer[MAXSTR], *p;
-  double *PV[3], Val;
-  int ns, np;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  strncpy(buffer,FileName,996);
-  p=strrchr(buffer,'.');
-  if ( !p || strcmp(p,".pp") )
-   strcat(buffer,".pp");
-
-  f=fopen(buffer,"a");
-  if (!f) 
-   { fprintf(stderr,"warning: could not open file %s \n",FileName);
-     return;
-   };
-
-  /***************************************************************/
-  /* plot all panels on all objects  *****************************/
-  /***************************************************************/
-  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
-   { 
-    fprintf(f,"View \"%s(%s)\" {\n",S->Label,Tag);
-    for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
-     { 
-       PV[0]=S->Vertices + 3*P->VI[0];
-       PV[1]=S->Vertices + 3*P->VI[1];
-       PV[2]=S->Vertices + 3*P->VI[2];
-       Val=(double)(ns+1);
-       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                  PV[0][0], PV[0][1], PV[0][2],
-                  PV[1][0], PV[1][1], PV[1][2],
-                  PV[2][0], PV[2][1], PV[2][2],
-                  Val,Val,Val);
-     };
-    fprintf(f,"};\n");
-    fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=1;\n");
-    fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
-   };
-
-  /***************************************************************/
-  /* additionally plot panel normals if that was also requested **/
-  /***************************************************************/
-  if (PlotNormals)
-   { 
-     fprintf(f,"View \"%s.Normals\" {\n",Tag);
-     for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
-      for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
-       { 
-          Val=fmax(VecNorm(P->Centroid), 2.0*P->Area);
-          fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
-                     P->Centroid[0], P->Centroid[1], P->Centroid[2], 
-                     Val*P->ZHat[0], Val*P->ZHat[1], Val*P->ZHat[2]);
-       };
-     fprintf(f,"};\n");
-   }; /* if (PlotNormals) */
-
-  fclose(f);
+/***************************************************************/
+void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, bool PlotNormals)
+{  
+  for(int ns=0; ns<NumSurfaces; ns++)
+   Surfaces[ns]->WritePPMesh(FileName, Tag, PlotNormals);
 }
 
 /***************************************************************/
@@ -292,70 +255,57 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
 }
 
 /***************************************************************/
-/* WritePPMesh routine for RWGSurfaces.                         */
+/* WritePPMesh routine. Writes geometry to a .pp file suitable */
+/* for opening as a GMSH postprocessing file.                  */
+/* Note calling convention and file handling are different     */
+/* from those of WriteGPMesh.                                  */
+/* If PlotNormals is nonzero, we also plot the normal to each  */
+/* panel.                                                      */
 /***************************************************************/
-void RWGSurface::WritePPMesh(const char *FileName, const char *Tag, int PlotNormals)
+void RWGSurface::WritePPMesh(const char *FileName, const char *Tag, bool PlotNormals)
 { 
-  FILE *f;
-  RWGPanel *P;
-  char buffer[MAXSTR], *p;
-  double *PV[3], Val;
-  int np;
-
   /***************************************************************/
   /* attempt to open .pp file ************************************/
   /***************************************************************/
-  strncpy(buffer,FileName,996);
-  p=strrchr(buffer,'.');
+  char buffer[MAXSTR];
+  strncpy(buffer,FileName,MAXSTR-4);
+  char *p=strrchr(buffer,'.');
   if ( !p || strcmp(p,".pp") )
    strcat(buffer,".pp");
 
-  f=fopen(buffer,"a");
+  FILE *f=fopen(buffer,"a");
   if (!f) 
    { fprintf(stderr,"warning: could not open file %s \n",FileName);
      return;
    };
 
-  fprintf(f,"View \"%s\" {\n",Tag);
-  
+  char ViewName[MAXSTR];
+  if (Tag)
+   snprintf(ViewName,MAXSTR,"%s(%s)",Label,Tag);
+  else 
+   snprintf(ViewName,MAXSTR,"%s",Label);
+
   /***************************************************************/
   /* plot all panels on the object   *****************************/
   /***************************************************************/
-  for(np=0, P=Panels[0]; np<NumPanels; P=Panels[++np])
-   { 
-     PV[0]=Vertices + 3*P->VI[0];
-     PV[1]=Vertices + 3*P->VI[1];
-     PV[2]=Vertices + 3*P->VI[2];
-
-     Val=(double)(Index+1);
-
-     fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                PV[0][0], PV[0][1], PV[0][2],
-                PV[1][0], PV[1][1], PV[1][2],
-                PV[2][0], PV[2][1], PV[2][2],
-                Val,Val,Val);
-     };
-
-   
-  fprintf(f,"};\n");
+  fprintf(f,"View \"%s\" {\n",ViewName);
+  for(int np=0; np<NumPanels; np++)
+   WriteST(this, np, (double)(Index+1), f);
   fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=1;\n");
   fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
 
   /***************************************************************/
-  /* additionally plot panel normals if that was also requested **/
+  /* additionally plot panel normals if requested                */
   /***************************************************************/
   if (PlotNormals)
-   { 
-     fprintf(f,"View \"%s.Normals\" {\n",Tag);
-     for(np=0, P=Panels[0]; np<NumPanels; P=Panels[++np])
-      { 
-        Val=fmax(VecNorm(P->Centroid), 2.0*P->Area);
-        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
-                   P->Centroid[0], P->Centroid[1], P->Centroid[2], 
-                   Val*P->ZHat[0], Val*P->ZHat[1], Val*P->ZHat[2]);
-      };
+   { fprintf(f,"View \"%s.Normals\" {\n",ViewName);
+     for(int np=0; np<NumPanels; np++)
+      { RWGPanel *P=Panels[np];
+        double Scale=fmax(VecNorm(P->Centroid), 2.0*P->Area);
+        WriteVP(this, np, P->ZHat, f, Scale);
+      }
      fprintf(f,"};\n");
-   }; /* if (PlotNormals) */
+   }
 
   fclose(f);
 }
@@ -634,31 +584,43 @@ double GetTriangleArea(double *V1, double *V2, double *V3)
 /* density* \rho_e = Q_e/A_e of the quantity Q associated with */
 /* the edge.                                                   */
 /***************************************************************/
-void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
-                                   const char *FileName,
+double GetScalarValue(void *Values, int PlotType, int nv)
+{ double *dValues=(double *)Values;
+  cdouble *zValues=(cdouble *)Values;
+  switch(PlotType)
+   { case 0: return dValues[nv];
+     case 1: return abs(zValues[nv]);
+     case 2: return real(zValues[nv]);
+     case 3: 
+     default: return imag(zValues[nv]);
+   }
+  return 0.0;
+}
+
+/*******************************************************************/
+/* PlotType==0 --> Values is an array of doubles                   */
+/* PlotType==1 --> Values is an array of cdoubles, plot magnitude  */
+/* PlotType==2 --> Values is an array of cdoubles, plot real part  */
+/* PlotType==3 --> Values is an array of cdoubles, plot imag part  */
+/*******************************************************************/
+void RWGSurface::PlotScalarDensity(int PlotType, void *Values,
+                                   bool ByEdge,
+                                   const char *UserFileName,
                                    const char *Tag, ...)
 { 
-
-  va_list ap;
-  char TagString[MAXSTR];
-  va_start(ap,Tag);
-  vsnprintfEC(TagString,MAXSTR,Tag,ap);
-  va_end(ap);
-
-  /***************************************************************/
-  /* attempt to open .pp file ************************************/
-  /***************************************************************/
-  char buffer[MAXSTR], *p;
-  strncpy(buffer,FileName,996);
-  p=strrchr(buffer,'.');
+  char FileName[MAXSTR];
+  strncpy(FileName,UserFileName,MAXSTR-4);
+  char *p=strrchr(FileName,'.');
   if ( !p || strcmp(p,".pp") )
-   strcat(buffer,".pp");
+   strcat(FileName,".pp");
 
-  FILE *f=fopen(buffer,"a");
+  FILE *f=fopen(FileName,"a");
   if (!f) 
    { fprintf(stderr,"warning: could not open file %s \n",FileName);
      return;
    };
+  
+  COMPLETE_VARARGS(Tag, TagStr);
 
   /***************************************************************/
   /* For each panel vertex, average the contributions of all     */
@@ -681,13 +643,14 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         double TotalArea = Panels[E->iPPanel]->Area;
         if (E->iMPanel!=-1) TotalArea+=Panels[E->iMPanel]->Area;
    
-        ValuePerVertex[iV1] += Values[ne] / TotalArea;
-        ValuePerVertex[iV2] += Values[ne] / TotalArea;
+        double Val = GetScalarValue(Values, PlotType, ne);
+        ValuePerVertex[iV1] += Val / TotalArea;
+        ValuePerVertex[iV2] += Val / TotalArea;
         AreaPerVertex[iV1]   = 1.0;
         AreaPerVertex[iV2]   = 1.0;
 	NumPerVertex[iV1]   += 1;
         NumPerVertex[iV2]   += 1;
-      };
+      }
    }
   else
    { 
@@ -697,19 +660,20 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         int iV1    = P->VI[0];
         int iV2    = P->VI[1];
         int iV3    = P->VI[2];
-        ValuePerVertex[iV1] += Values[np] / P->Area;
-        ValuePerVertex[iV2] += Values[np] / P->Area;
-        ValuePerVertex[iV3] += Values[np] / P->Area;
+        double Val = GetScalarValue(Values, PlotType, np);
+        ValuePerVertex[iV1] += Val / P->Area;
+        ValuePerVertex[iV2] += Val / P->Area;
+        ValuePerVertex[iV3] += Val / P->Area;
         AreaPerVertex[iV1]  = 1.0;
         AreaPerVertex[iV2]  = 1.0;
         AreaPerVertex[iV3]  = 1.0;
         NumPerVertex[iV1]  = 3;
         NumPerVertex[iV2]  = 3;
         NumPerVertex[iV3]  = 3;
-      };
-   };
+      }
+   }
    
-  fprintf(f,"View \"%s\" {\n",TagString);
+  fprintf(f,"View \"%s\" {\n",TagStr);
   for(int np=0; np<NumPanels; np++)
    { 
      RWGPanel *P = Panels[np];
@@ -717,18 +681,13 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
      int iV2 = P->VI[1];
      int iV3 = P->VI[2];
 
-     double *PV[3];
-     PV[0]=Vertices + 3*iV1;
-     PV[1]=Vertices + 3*iV2;
-     PV[2]=Vertices + 3*iV3;
-
      double VVals[3];
      VVals[0] = ValuePerVertex[iV1] / (AreaPerVertex[iV1]*NumPerVertex[iV1]);
      VVals[1] = ValuePerVertex[iV2] / (AreaPerVertex[iV2]*NumPerVertex[iV2]);
      VVals[2] = ValuePerVertex[iV3] / (AreaPerVertex[iV3]*NumPerVertex[iV3]);
 
-     WriteST2(PV, VVals, f);
-   };
+     WriteST(this, np, VVals, f);
+   }
   fprintf(f,"};\n");
 
   delete[] ValuePerVertex;
@@ -736,6 +695,43 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
   delete[] NumPerVertex;
 
   fclose(f);
+}
+
+void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
+                                   const char *FileName,
+                                   const char *Tag, ...)
+{ COMPLETE_VARARGS(Tag, TagStr);
+  PlotScalarDensity( 0, (void *)Values, ByEdge, FileName, TagStr);
+}
+
+void RWGSurface::PlotScalarDensity(cdouble *Values, int PlotType,
+                                   bool ByEdge,
+                                   const char *FileName,
+                                   const char *Tag, ...)
+{ COMPLETE_VARARGS(Tag, TagStr);
+  PlotScalarDensity( PlotType, (void *)Values, ByEdge, FileName, TagStr);
+}
+
+void GetVectorValue(void *Values[3], int PlotType, int nv, double V[3])
+{ for(int Mu=0; Mu<3; Mu++)
+   V[Mu] = GetScalarValue(Values[Mu], PlotType, nv);
+}
+
+void RWGSurface::PlotVectorDensity(void *Values[3], int PlotType,
+                                   const char *FileName,
+                                   const char *Tag, ...)
+{ 
+  FILE *f=fopen(FileName,"a");
+  if (!f) { Warn("could not open file %s",f); return; }
+
+  COMPLETE_VARARGS(Tag, TagStr);
+  fprintf(f,"View \"%s\" {\n",TagStr);
+  for(int np=0; np<NumPanels; np++)
+   { double Val[3];
+     GetVectorValue(Values, PlotType, np, Val);
+     WriteVP(this, np, Val, f);
+   }
+  fprintf(f,"};\n");
 }
 
 /***************************************************************/
@@ -755,282 +751,93 @@ bool IsStraddlerPanel(RWGGeometry *G, int ns, int np)
 }
 
 /***************************************************************/
-/* Emit GMSH postprocessing code for visualizing the current   */
-/* distribution described by a single vector of surface-current*/
-/* expansion coefficients.                                     */
-/* This routine is not thread-safe!                            */
+/* Emit GMSH postprocessing code for visualizing induced       */
+/* charges and currents                                        */
 /***************************************************************/
-void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
-                                      HVector *KN, cdouble Omega,
-                                      double *kBloch,
-                                      const char *format, ...)
+void RWGGeometry::PlotSurfaceCurrents(HMatrix *PSDMatrix,
+                                      cdouble Omega, double *kBloch,
+                                      const char *FileNameFormat, ...)
 { 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  va_list ap;
-  char FileName[MAXSTR];
-  va_start(ap,format);
-  vsnprintfEC(FileName,MAXSTR,format,ap);
-  va_end(ap);
+  COMPLETE_VARARGS(FileNameFormat, FileName);
   FILE *f=fopen(FileName,"a");
-  if (!f) return;
+  if (!f) { Warn("could not open file %s",FileName); return; }
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  static HMatrix *PSD=0;
-  if (PSD==0)
-   PSD=GetPanelSourceDensities(Omega, kBloch, KN, 0);
-  else
-   PSD=GetPanelSourceDensities(Omega, kBloch, KN, PSD);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  RWGSurface *WhichSurface=NULL;
-  if (SurfaceLabel)
-   WhichSurface=GetSurfaceByLabel(SurfaceLabel);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  char Tag[100];
-  if (SurfaceLabel)
-   snprintf(Tag,100,"{%s, Omega=%s",SurfaceLabel,z2s(Omega));
-  else
-   snprintf(Tag,100,"{Omega=%s",z2s(Omega));
+  char Tag[MAXSTR];
+  snprintf(Tag,MAXSTR,"{Omega=%s",z2s(Omega));
   if (LDim > 0 && kBloch==0 )
    ErrExit("%s:%i: missing kBloch for PBC geometry",__FILE__,__LINE__);
-  if (LDim>=1) vstrncat(Tag,100,",kx=_%g",kBloch[0]);
-  if (LDim>=2) vstrncat(Tag,100,",ky=_%g",kBloch[1]);
-  vstrncat(Tag,100,"}");
+  if (LDim>=1) vstrncat(Tag,MAXSTR,",kx=_%g",kBloch[0]);
+  if (LDim>=2) vstrncat(Tag,MAXSTR,",ky=_%g",kBloch[1]);
+  vstrncat(Tag,MAXSTR,"}");
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  fprintf(f,"View \"Electric charge %s\" {\n",Tag);
-  for(int ns=0; ns<NumSurfaces; ns++)
-   { 
-     RWGSurface *S     = Surfaces[ns];
-     if (WhichSurface && S!=WhichSurface)
-      continue;
+  const char *QNames[5]={"Electric charge", "Electric current", "Magnetic charge", "Magnetic current", "Poynting flux"};
+  const char *ReImStr[2]={"re","im"};
+  for(int nv=0; nv<5; nv++)
+   for(int ReIm=0; ReIm<2; ReIm++)
+    for(int ns=0; ns<NumSurfaces; ns++)
+     { 
+       RWGSurface *S = Surfaces[ns];
+       int Offset    = PanelIndexOffset[ns];
+       if (S->IsPEC && nv>=2) continue;
 
-     RWGPanel **Panels = S->Panels;
-     int NumPanels     = S->NumPanels;
-     double *Vertices  = S->Vertices;
-     int Offset = PanelIndexOffset[ns];
-     for(int np=0; np<NumPanels; np++)
-      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
-        RWGPanel *P=Panels[np];
-        double *PV[3];
-        PV[0]=Vertices + 3*P->VI[0];
-        PV[1]=Vertices + 3*P->VI[1];
-        PV[2]=Vertices + 3*P->VI[2];
+       if (ns==0) fprintf(f,"View \"%s(%s) %s\" {\n",ReImStr[ReIm],QNames[nv],Tag);
 
-        cdouble Sigma[3]={0.0, 0.0, 0.0};
-#if 0
-        Sigma[0]=Sigma[1]=Sigma[2]=PSD->GetEntry( Offset + np, 4);
-#else
-        int NAvg[3]={0, 0, 0};
-        for(int npp=0; npp<NumPanels; npp++)
-         for(int iv=0; iv<3; iv++)
-          for(int ivp=0; ivp<3; ivp++)
-           if ( Panels[np]->VI[iv] == Panels[npp]->VI[ivp] )
-            { NAvg[iv]++;
-              Sigma[iv]+=PSD->GetEntry(Offset + np, 4);
-            };
-        for(int i=0; i<3; i++)
-         if (NAvg[i]>0) Sigma[i]/=((double)NAvg[i]);
-#endif
-        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   PV[0][0], PV[0][1], PV[0][2],
-                   PV[1][0], PV[1][1], PV[1][2],
-                   PV[2][0], PV[2][1], PV[2][2],
-                   real(Sigma[0]),real(Sigma[1]),real(Sigma[2]));
-      };
-   }; 
-  fprintf(f,"};\n");
+       for(int np=0; np<S->NumPanels; np++)
+        { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
 
-  /***************************************************************/
-  /* plot electric current densities at centroids of all panels  */
-  /***************************************************************/
-  fprintf(f,"View \"Electric current %s\" {\n",Tag);
-  for(int ns=0; ns<NumSurfaces; ns++)
-   { 
-     RWGSurface *S=Surfaces[ns];
-     int Offset = PanelIndexOffset[ns];
-     if (WhichSurface && S!=WhichSurface) 
-      continue;
+          if (nv==0 || nv==2 || nv==4) // electric or magnetic charge
+           { cdouble Val=PSDMatrix->GetEntry(Offset+np,(nv==0) ? 4 : (nv==2) ? 8 : 12);
+             WriteST(S, np, ReIm ? imag(Val) : real(Val), f);
+           }
+          else // // electric or magnetic current
+           { cdouble Vx=PSDMatrix->GetEntry(Offset+np,(nv==1) ? 5 : 9);
+             cdouble Vy=PSDMatrix->GetEntry(Offset+np,(nv==1) ? 6 : 10);
+             cdouble Vz=PSDMatrix->GetEntry(Offset+np,(nv==1) ? 7 : 11);
+             if (ReIm==0)
+              WriteVP(S, np, real(Vx), real(Vy), real(Vz), f);
+             else
+              WriteVP(S, np, imag(Vx), imag(Vy), imag(Vz), f);
+           }
+        } // for(int np=0; np<S->NumPanels; np++)
 
-     for(int np=0; np<S->NumPanels; np++)
-      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
-        RWGPanel *P=S->Panels[np];
-        cdouble Kx = PSD->GetEntry(Offset + np, 5);
-        cdouble Ky = PSD->GetEntry(Offset + np, 6);
-        cdouble Kz = PSD->GetEntry(Offset + np, 7);
-        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
-                   P->Centroid[0],P->Centroid[1],P->Centroid[2],
-                   real(Kx), real(Ky), real(Kz));
-      };
-   };
-  fprintf(f,"};\n");
-
-  /***************************************************************/
-  /* we only need magnetic charge/current displays iff any       */
-  /* object is non-PEC                                           */
-  /***************************************************************/
-  bool NeedMagnetic=false;
-  for(int ns=0; !NeedMagnetic && ns<NumSurfaces; ns++)
-   { 
-     RWGSurface *S=Surfaces[ns];
-     if (WhichSurface && S!=WhichSurface)
-      continue;
-     if ( S->IsPEC )
-      continue;
-     NeedMagnetic=true;
-   };
-
-  if (!NeedMagnetic)
-   { fclose(f); 
-     return;
-   };
-
-  /***************************************************************/
-  /* plot magnetic charge densities at centroids of all panels   */
-  /***************************************************************/
-  fprintf(f,"View \"Magnetic charge %s\" {\n",Tag);
-  for(int ns=0; ns<NumSurfaces; ns++)
-   { 
-     RWGSurface *S=Surfaces[ns];
-     int Offset = PanelIndexOffset[ns];
-     if (WhichSurface && S!=WhichSurface)
-      continue;
-
-     for(int np=0; np<S->NumPanels; np++)
-      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
-        RWGPanel *P=S->Panels[np];
-        double *PV[3];
-        PV[0]=S->Vertices + 3*P->VI[0];
-        PV[1]=S->Vertices + 3*P->VI[1];
-        PV[2]=S->Vertices + 3*P->VI[2];
-        cdouble Eta=PSD->GetEntry( Offset + np, 8);
-        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   PV[0][0], PV[0][1], PV[0][2],
-                   PV[1][0], PV[1][1], PV[1][2],
-                   PV[2][0], PV[2][1], PV[2][2],
-                   real(Eta),real(Eta),real(Eta));
-      };
-   }; 
-  fprintf(f,"};\n");
-
-  /***************************************************************/
-  /* plot magnetic current densities at centroids of all panels  */
-  /***************************************************************/
-  fprintf(f,"View \"Magnetic current %s\" {\n",Tag);
-  for(int ns=0; ns<NumSurfaces; ns++)
-   { 
-     RWGSurface *S=Surfaces[ns];
-     int Offset = PanelIndexOffset[ns];
-     if (WhichSurface && S!=WhichSurface) 
-      continue;
-
-     for(int np=0; np<S->NumPanels; np++)
-      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
-        RWGPanel *P=S->Panels[np];
-        cdouble Nx = PSD->GetEntry(Offset + np,  9);
-        cdouble Ny = PSD->GetEntry(Offset + np, 10);
-        cdouble Nz = PSD->GetEntry(Offset + np, 11);
-        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
-                   P->Centroid[0],P->Centroid[1],P->Centroid[2],
-                   real(Nx), real(Ny), real(Nz));
-      };
-   };
-  fprintf(f,"};\n");
-
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  fprintf(f,"View \"Poynting flux%s\" {\n",Tag);
-  for(int ns=0; ns<NumSurfaces; ns++)
-   {
-     RWGSurface *S=Surfaces[ns];
-     int Offset = PanelIndexOffset[ns];
-     if (WhichSurface && S!=WhichSurface)
-      continue;
-
-     for(int np=0; np<S->NumPanels; np++)
-      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
-        RWGPanel *P=S->Panels[np];
-        double *PV[3];
-        PV[0]=S->Vertices + 3*P->VI[0];
-        PV[1]=S->Vertices + 3*P->VI[1];
-        PV[2]=S->Vertices + 3*P->VI[2];
-        double IDNPF=PSD->GetEntryD( Offset + np, 12);
-        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   PV[0][0], PV[0][1], PV[0][2],
-                   PV[1][0], PV[1][1], PV[1][2],
-                   PV[2][0], PV[2][1], PV[2][2],
-                   IDNPF,IDNPF,IDNPF);
-      };
-   }; 
-  fprintf(f,"};\n");
-
-
+       if (ns==(NumSurfaces-1)) fprintf(f,"};\n");
+     } // 
   fclose(f);
-
 }
 
-/***************************************************************/
-/* an alternative entry point to PlotSurfaceCurrents in which  */
-/* the caller doesn't specify a surface label; in this case    */
-/* currents on all surfaces are plotted.                       */
-/***************************************************************/
+void RWGGeometry::PlotSurfaceCurrents(HMatrix *PSDMatrix,
+                                      cdouble Omega,
+                                      const char *FileNameFormat,
+                                      ...)
+{ 
+  COMPLETE_VARARGS(FileNameFormat, FileName);
+  PlotSurfaceCurrents(PSDMatrix, Omega, 0, FileName);
+}
+
 void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
                                       double *kBloch,
-                                      const char *format, ...)
+                                      const char *FileNameFormat, ...)
 { 
-  va_list ap;
-  char FileName[MAXSTR];
-  va_start(ap,format);
-  vsnprintfEC(FileName,MAXSTR,format,ap);
-  va_end(ap);
-  
-  char *s=getenv("SCUFF_ITEMIZE_CURRENTS");
-  if (s && s[0]=='1')
-   for(int ns=0; ns<NumSurfaces; ns++)
-    PlotSurfaceCurrents(Surfaces[ns]->Label, KN, Omega, kBloch, FileName);
-  else 
-   PlotSurfaceCurrents(0, KN, Omega, kBloch, FileName);
-}
-
-/***************************************************************/
-/* alternative entry points with kBloch==NULL                  */
-/***************************************************************/
-void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
-                                      HVector *KN, cdouble Omega,
-                                      const char *format, ...)
-{ 
-  va_list ap;
-  char FileName[MAXSTR];
-  va_start(ap,format);
-  vsnprintfEC(FileName,MAXSTR,format,ap);
-  va_end(ap);
-
-  PlotSurfaceCurrents(SurfaceLabel, KN, Omega, 0, FileName);
+  COMPLETE_VARARGS(FileNameFormat, FileName);
+  HMatrix *PSD=GetPanelSourceDensities(Omega, kBloch, KN, 0);
+  PlotSurfaceCurrents(PSD, Omega, kBloch, FileName);
+  delete PSD;
 }
 
 void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
-                                      const char *format, ...)
+                                      const char *FileNameFormat, ...)
 { 
-  va_list ap;
-  char FileName[MAXSTR];
-  va_start(ap,format);
-  vsnprintfEC(FileName,MAXSTR,format,ap);
-  va_end(ap);
-
-  PlotSurfaceCurrents(0, KN, Omega, 0, FileName);
+  COMPLETE_VARARGS(FileNameFormat, FileName);
+  PlotSurfaceCurrents(KN, Omega, FileName);
 }
 
 /***************************************************************/

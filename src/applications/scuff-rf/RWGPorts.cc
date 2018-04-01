@@ -700,7 +700,7 @@ void AddPortContributionsToPSD(RWGGeometry *G,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (PSD==0 || PSD->NR!=G->TotalPanels || PSD->NC!=12 || PSD->RealComplex!=LHM_COMPLEX)
+  if (PSD==0 || PSD->NR!=G->TotalPanels || PSD->NC!=13 || PSD->RealComplex!=LHM_COMPLEX)
    { if (PSD) 
       Warn("invalid PSD matrix passed to AddPortContributionsToPSD (skipping)");
      return;

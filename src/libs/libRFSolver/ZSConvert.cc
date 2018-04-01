@@ -30,7 +30,8 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 
-using namespace scuff;
+namespace scuff {
+
 
 /***************************************************************/
 /* a function that converts the Z-matrix of a multiport network*/
@@ -101,3 +102,5 @@ void SToZ(HMatrix *SMatrix, HMatrix *ZMatrix, double ZCharacteristic)
 
 void SToZ(HMatrix *SMatrix, HMatrix *ZMatrix)
 { SToZ(SMatrix, ZMatrix, 50.0); }
+
+} // namespace scuff

@@ -190,15 +190,12 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (    PSD==0 
-       || PSD->NR!=TotalPanels 
-       || PSD->NC!=PSD_MATRIX_COLUMNS
-       || PSD->RealComplex!=LHM_COMPLEX
-     )
-   { if (PSD) 
-      Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
-     PSD=new HMatrix(TotalPanels, PSD_MATRIX_COLUMNS, LHM_COMPLEX);
-   };
+  if ( PSD && (PSD->NR!=TotalPanels || PSD->NC!=PSD_MATRIX_COLUMNS) ) 
+   { Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
+     delete PSD;
+     PSD=0;  
+   }
+  if (!PSD) PSD=new HMatrix(TotalPanels, PSD_MATRIX_COLUMNS, LHM_COMPLEX);
   PSD->Zero();
 
   /***************************************************************/

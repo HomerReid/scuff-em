@@ -43,7 +43,7 @@
   of the functions.
 
   Two specializations are provided as typedefs: dVector for Vec<double>
-  and zVec for Vec<std::complex<double> >. 
+  and zVectortor for Vec<std::complex<double> >. 
  */
 
 #ifndef LIBVEC_H
@@ -140,7 +140,7 @@ private:
 // 20180325 renaming the following to avoid name collision with libhrutil
 //typedef Vec<double> dVec; 
 typedef Vec<double> dVector; 
-typedef Vec<std::complex<double> > zVec;
+typedef Vec<std::complex<double> > zVector;
 
 // cross product with complex conjugation of first argument
 template<typename T> inline Vec<T> const crossC(Vec<T> const& lhs, Vec<T> const& rhs) { return cross(conj(lhs),rhs); }

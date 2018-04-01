@@ -34,8 +34,8 @@
 #include <libhmat.h>
 #include <libscuff.h>
 #include <libIncField.h>
-
-#include "RWGPorts.h"
+#include <libSubstrate.h>
+#include <RFSolver.h>
 
 #define FREQ2OMEGA (2.0*M_PI/300.0)
 #define OMEGA2FREQ (1/(FREQ2OMEGA))
@@ -51,16 +51,6 @@ using namespace scuff;
 /***************************************************************/
 /* output modules in OutputModules.cc **************************/
 /***************************************************************/
-void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
-                   RWGPortList *PortList, cdouble *PortCurrents,
-                   char *EPFile, char *FileBase);
-
-void ProcessFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega,
-                   RWGPortList *PortList, cdouble *PortCurrents,
-                   char *FVMesh, char *FileBase);
-
-void ComputeSZParms(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                    HMatrix *M, HVector *KN, char *FileBase, bool SParms);
 namespace scuff{
 void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  const double X0[3],  const cdouble k,
@@ -68,6 +58,58 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  cdouble dp[3], cdouble da[3][3],
                                  cdouble ddp[3][3], cdouble dcurla[3][3],
                                  bool *IncludeTerm=0);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *GetFieldPSDMatrix(RWGGeometry *G, RWGPortList *PortList,
+                           cdouble Omega, HVector *KN, cdouble *PortCurrents, HMatrix *FieldPSDMatrix)
+{
+  HMatrix *XMatrix = new HMatrix(3, G->TotalPanels);
+  int NX = G->TotalPanels;
+  for(int ns=0, nx=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++, nx++)
+    XMatrix->SetEntriesD(":",nx,G->Surfaces[ns]->Panels[np]->Centroid);
+
+  HMatrix *BFRPFMatrix=0, *PortRPFMatrix=0;
+  GetMOIRPFMatrices(G, G->Substrate, PortList, Omega, XMatrix,
+                    &BFRPFMatrix, &PortRPFMatrix);
+  
+  HMatrix *BFPFMatrix = new HMatrix(NPFC, NX, LHM_COMPLEX);
+  HVector BFPFVector(NPFC*NX, BFPFMatrix->ZM);
+  BFRPFMatrix->Apply(KN, &BFPFVector);
+
+  HMatrix *PortPFMatrix = new HMatrix(NPFC, NX, LHM_COMPLEX);
+  HVector PortPFVector(NPFC*NX, PortPFMatrix->ZM);
+  HVector PCVector(PortList->Ports.size(), PortCurrents);
+  PortRPFMatrix->Apply(&PCVector, &PortPFVector);
+
+  if (FieldPSDMatrix && (FieldPSDMatrix->NR!=NX || FieldPSDMatrix->NC!=13) )
+   { if (FieldPSDMatrix) delete FieldPSDMatrix;
+     FieldPSDMatrix=0;
+   }
+  if (!FieldPSDMatrix)
+   FieldPSDMatrix=new HMatrix(NX, 13, LHM_COMPLEX);
+  FieldPSDMatrix->Zero();
+
+  for(int nx=0; nx<NX; nx++)
+   { FieldPSDMatrix->SetEntry(nx,4,BFPFMatrix->GetEntry(_PF_PHI,nx));
+     FieldPSDMatrix->SetEntry(nx,5,BFPFMatrix->GetEntry(_PF_AX,nx));
+     FieldPSDMatrix->SetEntry(nx,6,BFPFMatrix->GetEntry(_PF_AY,nx));
+     FieldPSDMatrix->SetEntry(nx,7,BFPFMatrix->GetEntry(_PF_AZ,nx));
+     FieldPSDMatrix->SetEntry(nx,8,PortPFMatrix->GetEntry(_PF_PHI,nx));
+     FieldPSDMatrix->SetEntry(nx,9,PortPFMatrix->GetEntry(_PF_AX,nx));
+     FieldPSDMatrix->SetEntry(nx,10,PortPFMatrix->GetEntry(_PF_AY,nx));
+     FieldPSDMatrix->SetEntry(nx,11,PortPFMatrix->GetEntry(_PF_AZ,nx));
+   }
+
+  delete BFRPFMatrix;
+  delete BFPFMatrix;
+  delete PortRPFMatrix;
+  delete PortPFMatrix;
+  delete XMatrix;
+  return FieldPSDMatrix;
 }
 
 /***************************************************************/
@@ -84,6 +126,10 @@ int main(int argc, char *argv[])
   char *GeoFile=0;
   char *PortFile=0;
   bool PlotPorts=false;
+//
+  char *SubstrateFile=0;
+  char *EpsStr = 0;
+  double h     = 0.0;
 //
   char *FreqFile=0;
   double Freqs[MAXFREQ];    int nFreqs;
@@ -107,6 +153,10 @@ int main(int argc, char *argv[])
 //
      {"portfile",       PA_STRING,  1, 1,       (void *)&PortFile,   0,             "port file"},
      {"PlotPorts",      PA_BOOL,    0, 1,       (void *)&PlotPorts,  0,             "generate port visualization file"},
+//
+     {"SubstrateFile",  PA_STRING,  1, 1,       (void *)&SubstrateFile,   0,        "substrate definition file"},
+     {"Eps",            PA_STRING,  1, 1,       (void *)&EpsStr,     0,             "substrate permittivity"},
+     {"h",              PA_DOUBLE,  1, 1,       (void *)&h,          0,             "substrate thickness"},
 //
      {"freqfile",       PA_STRING,  1, 1,       (void *)&FreqFile,   0,             "list of frequencies"},
      {"frequency",      PA_DOUBLE,  1, MAXFREQ, (void *)Freqs,       &nFreqs,       "frequency (GHz)"},
@@ -148,6 +198,21 @@ int main(int argc, char *argv[])
   HVector *KN=G->AllocateRHSVector();
 
   /***************************************************************/
+  /* process substrate-related options                           */
+  /***************************************************************/
+  if (SubstrateFile)
+   G->Substrate = new LayeredSubstrate(SubstrateFile);
+  else if (EpsStr!=0)
+   { 
+     char SubstrateDefinition[1000];
+     if (h==0.0) // no ground plane
+      snprintf(SubstrateDefinition,1000,"0.0 CONST_EPS_%s\n",EpsStr);
+     else
+      snprintf(SubstrateDefinition,1000,"0.0 CONST_EPS_%s\n%e GROUNDPLANE\n",EpsStr,-h);
+     G->Substrate=CreateLayeredSubstrate(SubstrateDefinition);
+   }
+
+  /***************************************************************/
   /* parse the port list and plot if requested *******************/
   /***************************************************************/
   RWGPortList *PortList=ParsePortFile(G, PortFile);
@@ -159,20 +224,6 @@ int main(int argc, char *argv[])
      fprintf(stderr,"Thank you for your support.\n");
      exit(0);
    }
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-for(int npe=0; npe<PortList->PortEdges.size(); npe++)
-{
-RWGPortEdge *PE=PortList->PortEdges[npe];
-RWGSurface *S=G->Surfaces[PE->ns];
-double X[3]={0.1,0.2,0.0};
-cdouble p[0]; cdouble a[3];
-cdouble dp[3]; cdouble da[3][3];
-cdouble ddp[3][3]; cdouble dcurla[3][3];
-GetReducedPotentials_Nearby(S, PE->ne, X, 1.0, p, a, dp, da, ddp, dcurla);
-printf("pe=%i: p=%e,%e foryaf.\n",npe,real(p[0]),imag(p[0]));
-}
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* parse frequency specifications to create the FreqList vector*/
@@ -210,8 +261,8 @@ printf("pe=%i: p=%e,%e foryaf.\n",npe,real(p[0]),imag(p[0]));
    OSUsage(argv[0],OSArray,"--ZParameters and/or --SParameters must be specified if a frequency specification is present");
   if (PCFile!=0 && (ZParms!=0 || SParms!=0) )
    OSUsage(argv[0],OSArray,"--ZParameters and --SParameters may not be used with --PortCurrentFile");
-  if (PCFile!=0 && nEPFiles==0 && nFVMeshes==0)
-   OSUsage(argv[0],OSArray,"--EPFile or --FVMesh must be specified if --PortCurrentFile is specified");
+  //if (PCFile!=0 && nEPFiles==0 && nFVMeshes==0)
+   //OSUsage(argv[0],OSArray,"--EPFile or --FVMesh must be specified if --PortCurrentFile is specified");
   if (PCFile==0 && (nEPFiles!=0 || nFVMeshes!=0) )
    OSUsage(argv[0],OSArray,"--EPFile and --FVMesh require --PortCurrentFile");
 
@@ -227,15 +278,15 @@ printf("pe=%i: p=%e,%e foryaf.\n",npe,real(p[0]),imag(p[0]));
      /*--------------------------------------------------------------*/
      cdouble Omega=FREQ2OMEGA * Freq;
      Log("Assembling BEM matrix at f=%g GHz...",Freq);
-     G->AssembleBEMMatrix(Omega, M);
-     Log("Factorizing...",Freq);
+     AssembleMOIMatrix(G, G->Substrate, Omega, M);
+     Log("Factorizing...");
      M->LUFactorize();
 
      /*--------------------------------------------------------------*/
      /* switch off to output modules to handle various calculations -*/
      /*--------------------------------------------------------------*/
      if (ZParms || SParms)
-      ComputeSZParms(G, PortList, Omega, M, KN, FileBase, SParms);
+      ComputeSZParms(G, PortList, Omega, M, FileBase, SParms);
 
      /*--------------------------------------------------------------*/
      /*- if the user gave us driving port currents and asked for the */
@@ -252,11 +303,102 @@ printf("pe=%i: p=%e,%e foryaf.\n",npe,real(p[0]),imag(p[0]));
         /* handle post-processing field computations                    */
         /*--------------------------------------------------------------*/
         PCMatrix->GetEntries(nf,"1:end",PortCurrents);
-        KN->Zero();
         Log("  assembling RHS vector");
-        AddPortContributionsToRHS(G, PortList, PortCurrents, Omega, KN);
+        GetPortContributionToRHS(G, PortList, PortCurrents, Omega, KN);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static HMatrix *PSDMatrix=0;
+PSDMatrix=G->GetPanelSourceDensities(Omega, KN, PSDMatrix);
+G->PlotSurfaceCurrents(PSDMatrix, Omega, "/tmp/BeforeWO.pp");
+
+SetDefaultCD2SFormat("{%+.2e,%+.2e}");
+cdouble Charge=0.0, DPM[3]={0.0, 0.0, 0.0};
+for(int np=0; np<PSDMatrix->NR; np++)
+ { cdouble Q = PSDMatrix->GetEntry(np,3) * PSDMatrix->GetEntry(np,4);
+   Charge += Q;
+   DPM[0] += PSDMatrix->GetEntry(np,0) * Q;
+   DPM[1] += PSDMatrix->GetEntry(np,1) * Q;
+   DPM[2] += PSDMatrix->GetEntry(np,2) * Q;
+ }
+printf("{Q,P} before (WO) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
+
+AddPortContributionsToPSD(G, PortList, PortCurrents, Omega, PSDMatrix);
+G->PlotSurfaceCurrents(PSDMatrix, Omega, "/tmp/BeforeW.pp");
+
+Charge=DPM[0]=DPM[1]=DPM[2]=0.0;
+for(int np=0; np<PSDMatrix->NR; np++)
+ { cdouble Q = PSDMatrix->GetEntry(np,3) * PSDMatrix->GetEntry(np,4);
+   Charge += Q;
+   DPM[0] += PSDMatrix->GetEntry(np,0) * Q;
+   DPM[1] += PSDMatrix->GetEntry(np,1) * Q;
+   DPM[2] += PSDMatrix->GetEntry(np,2) * Q;
+ }
+printf("{Q,P} before (W) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
         Log("  solving the BEM system");
         M->LUSolve(KN);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+PSDMatrix=G->GetPanelSourceDensities(Omega, KN, PSDMatrix);
+G->PlotSurfaceCurrents(PSDMatrix, Omega, "/tmp/AfterWO.pp");
+
+Charge=DPM[0]=DPM[1]=DPM[2]=0.0;
+for(int np=0; np<PSDMatrix->NR; np++)
+ { cdouble Q = PSDMatrix->GetEntry(np,3) * PSDMatrix->GetEntry(np,4);
+   Charge += Q;
+   DPM[0] += PSDMatrix->GetEntry(np,0) * Q;
+   DPM[1] += PSDMatrix->GetEntry(np,1) * Q;
+   DPM[2] += PSDMatrix->GetEntry(np,2) * Q;
+ }
+printf("{Q,P} after (WO) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
+
+AddPortContributionsToPSD(G, PortList, PortCurrents, Omega, PSDMatrix);
+G->PlotSurfaceCurrents(PSDMatrix, Omega, "/tmp/AfterW.pp");
+
+Charge=DPM[0]=DPM[1]=DPM[2]=0.0;
+for(int np=0; np<PSDMatrix->NR; np++)
+ { cdouble Q = PSDMatrix->GetEntry(np,3) * PSDMatrix->GetEntry(np,4);
+   Charge += Q;
+   DPM[0] += PSDMatrix->GetEntry(np,0) * Q;
+   DPM[1] += PSDMatrix->GetEntry(np,1) * Q;
+   DPM[2] += PSDMatrix->GetEntry(np,2) * Q;
+ }
+printf("{Q,P} after (W) = %s %s %s %s\n",CD2S(Charge),CD2S(DPM[0]),CD2S(DPM[1]),CD2S(DPM[2]));
+
+static HMatrix *FieldPSDMatrix=0;
+FieldPSDMatrix=GetFieldPSDMatrix(G, PortList, Omega, KN, PortCurrents, FieldPSDMatrix);
+G->PlotSurfaceCurrents(FieldPSDMatrix, Omega, "/tmp/BFFields.pp");
+cdouble iwAdJ[2]={0.0,0.0}, SigmaPhi[2]={0.0,0.0};
+cdouble IW=II*Omega;
+for(int np=0; np<FieldPSDMatrix->NC; np++)
+ { double Area       = PSDMatrix->GetEntryD(np,3);
+   cdouble Sigma     = PSDMatrix->GetEntry(np, 4);
+   cdouble K[3];       PSDMatrix->GetEntries(np,"5:7",K);
+   cdouble PhiBF     = FieldPSDMatrix->GetEntry(np, 4);
+   cdouble ABF[3];     FieldPSDMatrix->GetEntries(np,"5:7",ABF);
+   cdouble PhiPort   = FieldPSDMatrix->GetEntry(np, 8);
+   cdouble APort[3];   FieldPSDMatrix->GetEntries(np,"9:11",APort);
+   iwAdJ[0]    += Area*IW*(K[0]*ABF[0] + K[1]*ABF[1] + K[2]*ABF[2]);
+   iwAdJ[1]    += Area*IW*(K[0]*APort[0] + K[1]*APort[1] + K[2]*APort[2]);
+   SigmaPhi[0] += Area*Sigma*PhiBF;
+   SigmaPhi[1] += Area*Sigma*PhiPort;
+ }
+FILE *f=fopen("/tmp/EJ.out","a");
+fprintf(f,"%e ",real(Omega));
+fprintf(f,"%e %e ",real(iwAdJ[0]),imag(iwAdJ[0]));
+fprintf(f,"%e %e ",real(iwAdJ[1]),imag(iwAdJ[1]));
+fprintf(f,"%e %e ",real(SigmaPhi[0]),imag(SigmaPhi[0]));
+fprintf(f,"%e %e ",real(SigmaPhi[1]),imag(SigmaPhi[1]));
+fprintf(f,"\n");
+fclose(f);
+for(int np=0; np<FieldPSDMatrix->NR; np++)
+ { FieldPSDMatrix->SetEntry(np, 4, FieldPSDMatrix->GetEntry(np,8));
+   FieldPSDMatrix->SetEntry(np, 5, FieldPSDMatrix->GetEntry(np,9));
+   FieldPSDMatrix->SetEntry(np, 6, FieldPSDMatrix->GetEntry(np,10));
+   FieldPSDMatrix->SetEntry(np, 7, FieldPSDMatrix->GetEntry(np,11));
+ }
+G->PlotSurfaceCurrents(FieldPSDMatrix, Omega, "/tmp/PortFields.pp");
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
          
         for(int n=0; n<nEPFiles; n++)
          ProcessEPFile(G, KN, Omega, PortList, PortCurrents, EPFiles[n], FileBase);

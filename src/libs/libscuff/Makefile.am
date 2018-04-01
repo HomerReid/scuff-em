@@ -53,17 +53,18 @@ libscuff_la_SOURCES = \
  libscuffInternals.h
 
 # combine all of the auxiliary libraries into a single library 
-libscuff_la_LIBADD = 		\
- ../libhrutil/libhrutil.la	\
- ../libhmat/libhmat.la		\
- ../libSGJC/libSGJC.la		\
- ../libIncField/libIncField.la  \
- ../libMDInterp/libMDInterp.la  \
- ../libMatProp/libMatProp.la	\
- ../libTriInt/libTriInt.la 	\
+libscuff_la_LIBADD = 		 \
+ ../libhrutil/libhrutil.la	 \
+ ../libhmat/libhmat.la		 \
+ ../libSGJC/libSGJC.la		 \
+ ../libIncField/libIncField.la   \
+ ../libMDInterp/libMDInterp.la   \
+ ../libMatProp/libMatProp.la	 \
+ ../libTriInt/libTriInt.la 	 \
  ../libSpherical/libSpherical.la \
  ../libSubstrate/libSubstrate.la \
- ../libSSSolver/libSSSolver.la 
+ ../libRFSolver/libRFSolver.la   \
+ ../libSSSolver/libSSSolver.la
 
 # set the shared-library version number (DIFFERENT from human version #)
 libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@
@@ -79,4 +80,5 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libTriInt    \
               -I$(top_srcdir)/src/libs/libSubstrate \
               -I$(top_srcdir)/src/libs/libSSSolver  \
+              -I$(top_srcdir)/src/libs/libRFSolver  \
               -I$(top_builddir) # for config.h 

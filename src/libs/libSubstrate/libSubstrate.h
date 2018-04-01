@@ -167,7 +167,7 @@ public:
    // SUBSTRATE...ENDSUBSTRATE section in an open .scuffgeo file
    LayeredSubstrate(FILE *f, int *pLineNum);
 
-   // actual body of constructor
+   // body of constructor for the above two cases
    // if ErrMsg is nonzero on return, something failed
    void Initialize(FILE *f, const char *FileName, int *pLineNum=0);
 
@@ -228,7 +228,9 @@ public:
 
    InterpND *InitScalarGFInterpolator(cdouble Omega, double RhoMin, double RhoMax,
                                       double zMin, double zMax, bool PPIsOnly, bool Subtract,
-                                      bool RetainSingularTerms, double DeltaRho=0.0, double Deltaz=0.0);
+                                      bool RetainSingularTerms, 
+                                      double DeltaRho=0.0, double Deltaz=0.0,
+                                      bool Verbose=false);
    void DestroyScalarGFInterpolator();
 
 // private:
@@ -379,4 +381,8 @@ void GetacSommerfeld(LayeredSubstrate *S, cdouble Omega,
 /***************************************************************/
 /* MOI.cc ******************************************************/
 /***************************************************************/
+int GetSGFCorrection_MOI(cdouble Omega, double Rho, double z,
+                         cdouble Eps, double h, cdouble *V,
+                         const ScalarGFOptions *Options=0);
+
 #endif // LIBSUBSTRATE_H

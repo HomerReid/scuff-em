@@ -198,10 +198,19 @@ class RWGSurface
    /* visualization */
    // void Visualize(double *KVec, double Kappa, char *format, ...);
    void WriteGPMesh(const char *format, ...);
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
+   void WritePPMesh(const char *FileName, const char *Tag, bool PlotNormals=false);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
+   void PlotScalarDensity(int PlotType, void *Values,
+                          bool ByEdge, const char *UserFileName,
+                          const char *Tag, ...);
    void PlotScalarDensity(double *Values, bool ByEdge, const char *FileName, const char *Tag, ...);
+   void PlotScalarDensity(cdouble *Values, int PlotType,
+                          bool ByEdge, const char *FileName,
+                          const char *Tag, ...);
+   void PlotVectorDensity(void *Values[3], int PlotType,
+                          const char *FileName,
+                          const char *Tag, ...);
 
 //  private:
 
@@ -403,13 +412,13 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    /*- visualization routines -------------------------------------*/
    /*--------------------------------------------------------------*/
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
+   void WritePPMesh(const char *FileName, const char *Tag, bool PlotNormals=false);
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
-   void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
-   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
-   void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, double *kBloch, const char *format, ...);
-   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, double *kBloch, const char *format, ...);
+   void PlotSurfaceCurrents(HMatrix *PSDMatrix, cdouble Omega, double *kBloch, const char *FileNameFormat, ...);
+   void PlotSurfaceCurrents(HMatrix *PSDMatrix, cdouble Omega, const char *FileNameFormat,  ...);
+   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, double *kBloch, const char *FileNameFormat, ...);
+   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *FileNameFormat, ...);
 
    /*--------------------------------------------------------------*/
    /*- misc routines for modifying geometric parameters, etc. -----*/

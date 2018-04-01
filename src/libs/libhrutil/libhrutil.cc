@@ -606,6 +606,15 @@ int GetNumThreads()
 #endif
 }
 
+int GetThreadNum()
+{
+#if defined(USE_OPENMP)
+  return omp_get_thread_num();
+#else
+  return 0;
+#endif
+}
+
 /***************************************************************/
 /* return 1 if we are running on a core i7 machine (because in */
 /* case we will want to set the number of threads used by the  */

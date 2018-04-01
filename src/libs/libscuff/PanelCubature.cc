@@ -916,8 +916,6 @@ void GetBFBFCubature2(RWGGeometry *G,
      return;                  
    }
 
-  int NumPts;
-  double *TCR=GetTCR(Order,&NumPts);
   GetBFBFCubature2(G->Surfaces[ns], ne, G->Surfaces[nsP], neP,
                    Integrand, UserData, IDim, Order, Integral,
                    PanelOnlyA, PanelOnlyB);
