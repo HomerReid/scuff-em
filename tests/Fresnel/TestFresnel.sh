@@ -19,7 +19,7 @@ fi
 ###################################################################
 # set up arguments for SCUFF-EM run and subsequent result checking
 ###################################################################
-CODE=${SCUFFBIN}/scuff-transmission
+CODE=scuff-transmission
 ARGS=""
 ARGS="${ARGS} --geometry    E10HalfSpace_40.scuffgeo"
 ARGS="${ARGS} --Omega       0.1"
@@ -29,7 +29,6 @@ ARGS="${ARGS} --ThetaMax    85"
 ARGS="${ARGS} --ThetaPoints 19"
 ARGS="${ARGS} --ZAbove      1.0"
 
-CHECKER=${SCUFFDATA}/scuff-em/tests/CheckSCUFFData
 CHECKLIST=Fresnel.Checklist
 DATAFILE=E10HalfSpace_40.transmission
 DATAREF=${DATAFILE}.reference
@@ -45,21 +44,32 @@ then
   TIMECMD="`which time` -v -o ${TIMEFILE}"
 fi
 
+# if the location of CheckSCUFFData wasn't specified,
+# assume it lives one level up in the directory hierarchy
+if [ "x${CHECKSCUFFDATA}" == "x" ]
+then
+  export CHECKSCUFFDATA=../CheckSCUFFData
+fi
+
 ##################################################
 # try to set the number of CPU cores as high as possible
+# (if it is not already set)
 ##################################################
-CORES=`getconf _NPROCESSORS_ONLN`
-if [ "x${CORES}" != "x" ]
-then
-  export OMP_NUM_THREADS=${CORES}
-  export GOMP_CPU_AFFINITY=0-$((CORES-1))
-  echo "Using ${CORES} CPU cores (${GOMP_CPU_AFFINITY})"
+if [ "x${OMP_NUM_THREADS}" == "x" ]
+then 
+  CORES=`getconf _NPROCESSORS_ONLN`
+  if [ "x${CORES}" != "x" ]
+  then
+    export OMP_NUM_THREADS=${CORES}
+    export GOMP_CPU_AFFINITY=0-$((CORES-1))
+    echo "Using ${CORES} CPU cores (${GOMP_CPU_AFFINITY})"
+  fi
 fi
 
 ##################################################
 # run the code
 ##################################################
-${TIMECMD} ${TIMEARGS} ${CODE} ${ARGS}
+${TIMECMD} ${CODE} ${ARGS}
 
 ##################################################
 # if we were invoked with --reference, just store
@@ -76,7 +86,7 @@ fi
 ##################################################
 # check results
 ##################################################
-${CHECKER} --data ${DATAFILE} --reference ${DATAREF} --checklist ${CHECKLIST}
+${CHECKSCUFFDATA} --data ${DATAFILE} --reference ${DATAREF} --checklist ${CHECKLIST}
 Status=$?
 
 ##################################################
