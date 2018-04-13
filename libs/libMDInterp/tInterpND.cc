@@ -72,8 +72,6 @@ int main(int argc, char *argv[])
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
-  //if (GeoFile==0)
-  // OSUsage(argv[0],OSArray,"--geometry option is mandatory");
 
   // default grid
   int D=2;
@@ -82,6 +80,10 @@ int main(int argc, char *argv[])
   XMin[0] =  0.0;  XMax[0] = 2.0;  NVec[0] = 5;
   XMin[1] = -1.0;  XMax[1] = 3.0;  NVec[1] = 3;
 
+  // if XXNFile is specified, it should have the format
+  //  x1Min x1Max N1
+  //  x2Min x2Max N2
+  //  ...
   if (XXNFile)
    { HMatrix *M=new HMatrix(XXNFile);
      D=M->NR;
@@ -95,20 +97,22 @@ int main(int argc, char *argv[])
       };
    };
 
-  dVec DX(D);
-  FILE *f=fopen("/tmp/InterpError.out","w");
   double *MeanRelError = new double[D*NFUN];
   double *MeanAbsError = new double[D*NFUN];
+  FILE *f=fopen("/tmp/InterpError.out","w");
   for(double dx=1.0; dx>=1.0e-3; dx*=0.5)
    for(double dy=1.0; dy>=1.0e-3; dy*=0.5)
-    { DX[0]=dx;
+    { dVec DX(D);
+      DX[0]=dx;
       DX[1]=dy;
       HMatrix PhiVEMatrix(NFUN,2);
       double Err = GetInterpolationError(Phi, (void *)&D, NFUN, XMin, DX,
                                          MeanRelError, MeanAbsError);
+      
       fprintf(f,"%e %e %e ",dx,dy,Err);
       for(int nfd=0; nfd<D*NFUN; nfd++)
        fprintf(f,"%e %e ",MeanRelError[nfd], MeanAbsError[nfd]);
+      
       fprintf(f,"\n");
     }
   fclose(f);
@@ -127,7 +131,7 @@ int main(int argc, char *argv[])
       } while(!p);
      add_history(p);
      write_history(0);
-     int D=Interp.D;
+     D=Interp.D;
      dVec xVec(D);
      for(int d=0; d<D; d++)
       xVec[d] = XMin[d] + drand48()*(XMax[d]-XMin[d]);
@@ -148,10 +152,12 @@ int main(int argc, char *argv[])
      //printf("Grid cell %i ",Interp->GetCellIndex(
 
      int NVD = Interp.NVD;
-     double PhiVDExact[NFUN*NVD], PhiExact[NFUN], PhiHR[NFUN];
+     double PhiExact[NFUN], PhiHR[NFUN];
+     double *PhiVDExact = new double[NFUN*NVD]; 
      Phi(&(xVec[0]), (void *)&D, PhiVDExact);
      for(int nf=0; nf<NFUN; nf++)
       PhiExact[nf]=PhiVDExact[nf*NVD];
+     delete [] PhiVDExact;
      
      Interp.Evaluate(&(xVec[0]),PhiHR);
      Compare(PhiExact, PhiHR, NFUN, "Exact", "Interp");

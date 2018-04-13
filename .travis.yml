@@ -11,4 +11,5 @@ before_script:
 script:
   - ./autogen.sh --enable-shared --with-python
   - make
+  - make check
   - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'
