@@ -9,8 +9,8 @@ fields."
 %module(docstring=DOCSTRING) scuff
 %{
 #include "libscuff.h"
-#include "StaticSolver.h"
 #include "RFSolver.h"
+#include "StaticSolver.h"
 using namespace scuff;
 %}
 
