@@ -77,7 +77,7 @@ typedef struct SNEQData
    /*- information on the geometry and geometrical transforms     -*/
    /*--------------------------------------------------------------*/
    RWGGeometry *G;
-   GTComplex **GTCList;
+   GTCList GTCs;
    int NumTransformations;
    char *WriteCache;
 

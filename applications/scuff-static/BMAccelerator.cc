@@ -158,13 +158,13 @@ HMatrix *GetEquivalentPairMatrix(RWGGeometry *G, HMatrix *M=0)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-BMAccelerator *CreateBMAccelerator(StaticSolver *SS,
-                                   GTComplex **GTCList, int NT,
+BMAccelerator *CreateBMAccelerator(StaticSolver *SS, GTCList GTCs,
                                    bool UsePairEquivalence)
 {
   RWGGeometry *G     = SS->G;
   int NS             = G->NumSurfaces;
   int NADB           = NS*(NS-1)/2; // number of above-diagonal blocks
+  int NT             = GTCs.size();
 
   BMAccelerator *BMA = (BMAccelerator *)mallocEC(sizeof *BMA);
   BMA->TBlocks       = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
@@ -205,12 +205,12 @@ BMAccelerator *CreateBMAccelerator(StaticSolver *SS,
    { 
      BMA->PairMatrices = (HMatrix **)mallocEC(NT*sizeof(HMatrix *));
      for(int nt=0; nt<NT; nt++)
-      { Log("Looking for equivalent surface pairs (transform %s)...",GTCList[nt]->Tag);
-        G->Transform(GTCList[nt]);
+      { Log("Looking for equivalent surface pairs (transform %s)...",GTCs[nt]->Tag);
+        G->Transform(GTCs[nt]);
         BMA->PairMatrices[nt]=GetEquivalentPairMatrix(G);
         G->UnTransform();
-      };
-   };
+      }
+   }
 
   return BMA;
 }

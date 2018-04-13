@@ -351,20 +351,12 @@ void GTransformation::UnApplyRotation(const double X[3], double XP[3]) const {
 /* on entry we have already verified that Tokens[0]==TRANS so that  */
 /* does not need to be checked.                                     */
 /********************************************************************/
-char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
+GTComplex *ParseTRANSLine(sVec Tokens, char **ErrMsg)
 {
-  if ( NumTokens==1 )
-   return strdupEC("empty TRANS specification");
-
   /***************************************************************/
   /* initialize a bare GTComplex *********************************/
   /***************************************************************/
-  GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
-  GTC->Tag=strdupEC(Tokens[1]);
-  GTC->NumSurfacesAffected=0;
-  GTC->SurfaceLabel=0;
-  GTC->GT=0;
-
+  GTComplex *GTC = CreateGTComplex(Tokens[1]);
   GTransformation *CurrentGT=0;
 
   /***************************************************************/
@@ -372,53 +364,45 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
   /* each section is treated as though it were on a separate     */
   /* line of a TRANSFORMATION...ENDTRANSFORMATION section.       */
   /***************************************************************/
-  int nt=2; // start parsing the rest of the line at token #2
-  int TokensConsumed;
-  int nsa;
-  char *ErrMsg;
-  while( nt<NumTokens )
+  unsigned NumTokens=Tokens.size(), nt=2; // start parsing the rest of the line at token #2
+  while( nt < NumTokens )
    { 
      if ( !StrCaseCmp(Tokens[nt], "OBJECT") || !StrCaseCmp(Tokens[nt], "SURFACE") )
       { 
         if ( nt+1 == NumTokens )
-         return strdupEC("syntax error");
+         { *ErrMsg = vstrdup("empty %s statement",Tokens[nt]);
+           return 0;
+         }
 
-        nsa=GTC->NumSurfacesAffected;
-        GTC->SurfaceLabel=(char **)realloc(GTC->SurfaceLabel, (nsa+1)*sizeof(char *));
-        GTC->SurfaceLabel[nsa]=strdupEC(Tokens[nt+1]);
-        GTC->GT=(GTransformation *)realloc(GTC->GT, (nsa+1)*sizeof(GTransformation));
-        GTC->GT[nsa]=GTransformation();
-        GTC->NumSurfacesAffected=nsa+1;
-        CurrentGT=GTC->GT+nsa;
-
+        CurrentGT = new GTransformation();
+        GTC->GTs.push_back(CurrentGT);
+        GTC->SurfaceLabels.push_back(strdupEC(Tokens[nt+1]));
         nt+=2;
       }
      else if (    !StrCaseCmp(Tokens[nt], "DISP") || !StrCaseCmp(Tokens[nt], "DISPLACED")
                || !StrCaseCmp(Tokens[nt], "ROT")  || !StrCaseCmp(Tokens[nt], "ROTATED")
              )
       { 
+        // allow transformations with no specified surface
         if ( CurrentGT==0 )
-         return vstrdup("no OBJECT or SURFACE specified for %s",Tokens[nt]);
+         { CurrentGT = new GTransformation();
+           GTC->GTs.push_back(CurrentGT);
+           GTC->SurfaceLabels.push_back(0);
+         }
 
-	CurrentGT->Parse(Tokens+nt, NumTokens-nt,
-			 &ErrMsg, &TokensConsumed);
-
-        if (ErrMsg)
-         return ErrMsg;
-
+        int TokensConsumed;
+	CurrentGT->Parse( &(Tokens[0])+nt, NumTokens-nt, ErrMsg, &TokensConsumed);
+        if (*ErrMsg) return 0;
         nt += TokensConsumed;
       }
      else
-      return vstrdup("unknown keyword %s %i",Tokens[nt],nt);
-   };
+      { *ErrMsg = vstrdup("unknown keyword %s %i",Tokens[nt],nt);
+        return 0;
+      }
+   }
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  *pGTC=GTC;
-  return 0;
-
-  
+  *ErrMsg=0;
+  return GTC;
 }
 
 /********************************************************************/
@@ -428,19 +412,14 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
 /* assumed to point to the line following TRANSFORMATION ...)       */
 /* if successful, 0 is returned and *pGTC points on return to a     */
 /* newly allocated GTComplex for the specified transformation.      */
-/* if unsuccessful, an error message is returned.                   */
+/* if unsuccessful, 0 is returned and *ErrMsg is set.               */
 /********************************************************************/
-char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **pGTC)
+GTComplex *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, char **ErrMsg)
 {
   /***************************************************************/
   /* initialize a bare GTComplex *********************************/
   /***************************************************************/
-  GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
-  GTC->Tag=strdupEC(Tag);
-  GTC->NumSurfacesAffected=0;
-  GTC->SurfaceLabel=0;
-  GTC->GT=0;
-
+  GTComplex *GTC = CreateGTComplex(Tag);
   GTransformation *CurrentGT=0;
 
   /***************************************************************/
@@ -448,14 +427,12 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   /* section.                                                    */
   /***************************************************************/
   char Line[MAXSTR];
-  int NumTokens, TokensConsumed;
-  char *Tokens[MAXTOK];
-  char *ErrMsg;
   while(fgets(Line, MAXSTR, f))
    { 
      // read line, break it up into tokens, skip blank lines and comments
      (*pLineNum)++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     sVec Tokens=Tokenize(Line);
+     int NumTokens=Tokens.size();
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
@@ -467,153 +444,130 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         /*-- OBJECT MyObject or SURFACE MySurface -----------------------*/
         /*--------------------------------------------------------------*/
         if (NumTokens!=2) 
-         return strdupEC("OBJECT/SURFACE keyword requires one argument");
+         { *ErrMsg=strdupEC("OBJECT/SURFACE keyword requires one argument");
+            return 0;
+         }
 
-        // increment the list of objects that will be affected by this
-        // complex of transformations; save the label of the affected  
-        // object and initialize the corresponding GTransformation to the
-        // identity transformation
-        int nsa=GTC->NumSurfacesAffected;
-        GTC->SurfaceLabel=(char **)realloc(GTC->SurfaceLabel, (nsa+1)*sizeof(char *));
-        GTC->SurfaceLabel[nsa]=strdupEC(Tokens[1]);
-        GTC->GT=(GTransformation *)realloc(GTC->GT, (nsa+1)*sizeof(GTransformation));
-        GTC->GT[nsa]=GTransformation();
-        GTC->NumSurfacesAffected=nsa+1;
-        
-        // subsequent DISPLACEMENTs / ROTATIONs will augment this GTransformation
-        CurrentGT=GTC->GT+nsa;
+        // save the label of the affected surface and initialize the corresponding 
+        // GTransformation to the identity (subsequent DISPLACEMENTs / ROTATIONs will
+        // augment this GTransformation)
+        CurrentGT = new GTransformation();
+        GTC->GTs.push_back(CurrentGT);
+        GTC->SurfaceLabels.push_back(strdupEC(Tokens[1]));
       }
      else if ( !StrCaseCmp(Tokens[0],"ENDTRANSFORMATION") )
-      { 
-        /*--------------------------------------------------------------*/
-        /*-- ENDTRANSFORMATION  ----------------------------------------*/
-        /*--------------------------------------------------------------*/
-        *pGTC=GTC;
-        return 0;
+      { *ErrMsg=0;
+        return GTC;
       }
      else 
       { /*--------------------------------------------------------------*/
         /*-- try to process the line as DISPLACED ... or ROTATED ... ---*/
         /*--------------------------------------------------------------*/
-        if (CurrentGT==0)
-         return vstrdup("no OBJECT/SURFACE specified for %s",Tokens[0]);
+        // allow transformations with no specified surface
+        if ( CurrentGT==0 )
+         { CurrentGT = new GTransformation();
+           GTC->GTs.push_back(CurrentGT);
+           GTC->SurfaceLabels.push_back(0);
+         }
 
-	CurrentGT->Parse(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
-        if (ErrMsg)
-         return ErrMsg;
+        int TokensConsumed;
+	CurrentGT->Parse( &(Tokens[0]), NumTokens, ErrMsg, &TokensConsumed);
+        if (*ErrMsg) return 0;
         if (TokensConsumed!=NumTokens)
-         return strdupEC("junk at end of line");
-      };
+         { *ErrMsg = strdupEC("junk at end of line");
+           return 0;
+         }
+      }
 
-   }; // while(fgets(Line, MAXSTR, f))
+   } // while(fgets(Line, MAXSTR, f))
 
   // if we made it here, the file ended before the TRANSFORMATION
-  // section was properly terminated 
-  return strdupEC("unexpected end of file");
-
+  // section was properly terminated
+  *ErrMsg = strdupEC("unexpected end of file");
+  return 0;
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-GTComplex *CreateDefaultGTComplex()
+GTComplex *CreateGTComplex(const char *Tag)
 {
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
-  GTC->Tag=strdupEC("DEFAULT");
-  GTC->NumSurfacesAffected=0;
-  GTC->SurfaceLabel=0;
-  GTC->GT=0;
+  GTC->Tag=strdupEC(Tag ? Tag : "DEFAULT");
   return GTC;
 }
 
 /***************************************************************/
 /* this routine reads a scuff-EM transformation (.trans) file  */
-/* and returns an array of GTComplex structures.               */
+/* and returns a list of GTComplex structures. If FileName==0, */
+/* the list contains a single GTComplex (identity transform).  */
 /***************************************************************/
-GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
+GTCList ReadTransFile(const char *FileName)
 {
+  GTCList GTCs;
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   if (FileName==0)
    { 
-     *NumGTComplices=1;
-     GTComplex **GTCList = (GTComplex **)mallocEC(sizeof(GTCList[0]));
-     GTCList[0] = CreateDefaultGTComplex();
-     Log("Using a single (empty) geometrical transformation with label %s.",GTCList[0]->Tag);
-     return GTCList;
-   };
+     GTCs.push_back( CreateGTComplex() );
+     Log("Using a single (empty) geometrical transformation with label %s.",GTCs[0]->Tag);
+     return GTCs;
+   }
 
   FILE *f=fopen(FileName,"r");
   if (f==0)
    ErrExit("could not open file %s",FileName);
 
-  GTComplex *GTC, **GTCArray=0;
-  int NumGTCs=0;
-
-  char Line[MAXSTR];
-  int NumTokens;
-  char *Tokens[MAXTOK];
-  char *ErrMsg=0;
   int LineNum=0;
+  char Line[MAXSTR];
   while(fgets(Line, MAXSTR, f))
    { 
      // read line, break it up into tokens, skip blank lines and comments
      LineNum++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     sVec Tokens=Tokenize(Line);
+     int NumTokens = Tokens.size();
      if ( NumTokens==0 || Tokens[0][0]=='#' )
-      continue; 
+      continue;
 
      // separately handle the two possible ways to specify complices:
      //  (a) TRANSFORMATION ... ENDTRANSFORMATION sections
      //  (b) single-line transformations (TRANS ... )
+     char *ErrMsg=0;
+     GTComplex *GTC=0;
      if ( !StrCaseCmp(Tokens[0], "TRANSFORMATION") )
-      { if (NumTokens!=2) 
-         ErrExit("%s:%i: syntax error (no name specified for transformation",FileName,LineNum);
-        ErrMsg=ParseTRANSFORMATIONSection(Tokens[1], f, &LineNum, &GTC);
-      }
+      GTC=ParseTRANSFORMATIONSection(Tokens[1], f, &LineNum, &ErrMsg);
      else if ( !StrCaseCmp(Tokens[0], "TRANS") )
-      { 
-        ErrMsg=ParseTRANSLine(Tokens, NumTokens, &GTC);
-      }
+      GTC=ParseTRANSLine(Tokens, &ErrMsg);
      else
-      { 
-        ErrMsg=vstrdup("unknown token %s",Tokens[0]);
-      };
+      ErrMsg=vstrdup("unknown token %s",Tokens[0]);
 
      if (ErrMsg)
       ErrExit("%s:%i: %s",FileName,LineNum,ErrMsg);
 
-     // if that was successful, add the new GTComplex to our 
-     // array of GTComplex structures
-     GTCArray=(GTComplex **)realloc(GTCArray, (NumGTCs+1)*sizeof(GTCArray[0]));
-     GTCArray[NumGTCs]=GTC;
-     NumGTCs++;
-
-   }; // while(fgets(Line, MAXSTR, f))
+     // if that was successful, add the new GTComplex to the list
+     GTCs.push_back(GTC);
+   } // while(fgets(Line, MAXSTR, f))
 
   fclose(f);
-  *NumGTComplices=NumGTCs; 
-  Log("Read %i geometrical transformations from file %s.",NumGTCs,FileName); 
-  return GTCArray;
-
+  Log("Read %i geometrical transformations from file %s.",GTCs.size(),FileName); 
+  return GTCs;
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void DestroyGTCList(GTComplex **GTCList, int Length)
+void DestroyGTCList(GTCList GTCs)
 {
-  for(int nt=0; nt<Length; nt++)
-   { GTComplex *GTC=GTCList[nt];
+  for(unsigned nt=0; nt<GTCs.size(); nt++)
+   { GTComplex *GTC=GTCs[nt];
      free(GTC->Tag);
-     for(int ns=0; ns<GTC->NumSurfacesAffected; ns++)
-      { free(GTC->SurfaceLabel[ns]);
-        free(GTC->GT);
-      };
-     free(GTC);
-   };
-  free(GTCList);
+     for(unsigned ns=0; ns<GTC->GTs.size(); ns++)
+      { if (GTC->SurfaceLabels[ns]) free(GTC->SurfaceLabels[ns]);
+        delete GTC->GTs[ns];
+      }
+   }
 }
 
 } // namespace scuff

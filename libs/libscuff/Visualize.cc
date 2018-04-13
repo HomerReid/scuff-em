@@ -867,7 +867,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 /***************************************************************/
 #define ABSURD 1.0e100
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  char *MeshFileName, const char *OptionsString,
+                  RWGSurface *S, const char *OptionsString,
                   char *OutFileBase, HVector *Integral,
                   bool UseCentroids)
 {
@@ -875,7 +875,7 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
   /* try to open output file *************************************/
   /***************************************************************/
   if (OutFileBase==0) 
-   OutFileBase=GetFileBase(MeshFileName);
+   OutFileBase=GetFileBase(S->MeshFileName);
   char OutFileName[100];
   snprintf(OutFileName, 100, "%s.pp",OutFileBase);
   FILE *f=fopen(OutFileName,"w");
@@ -890,7 +890,6 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
   /***************************************************************/
   /* read in mesh and put vertex coordinates into XMatrix        */
   /***************************************************************/
-  RWGSurface *S=new RWGSurface(MeshFileName);
   HMatrix *XMatrix=0;
 
   if (UseCentroids)
@@ -971,6 +970,15 @@ void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
   fclose(f);
   delete XMatrix;
   delete DataMatrix;
+}
+
+void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
+                  char *MeshFileName, const char *OptionsString,
+                  char *OutFileBase, HVector *Integral,
+                  bool UseCentroids)
+{
+  RWGSurface *S=new RWGSurface(MeshFileName);
+  MakeMeshPlot(MDFunc, MDFData, S, OptionsString, OutFileBase, Integral, UseCentroids);
   delete S;
 }
 

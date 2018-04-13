@@ -374,7 +374,7 @@ void GetCasimirIntegrand(void *pSC3D, cdouble Omega,
   int NT=SC3D->NumTransformations;
   for(int ntnq=0, nt=0; nt<NT; nt++)
    { 
-     char *Tag=SC3D->GTCList[nt]->Tag;
+     char *Tag=SC3D->GTCs[nt]->Tag;
 
      if (ByXiKFile)
       { fprintf(ByXiKFile,"%s %6e ",Tag,Xi);
@@ -421,7 +421,7 @@ void GetCasimirIntegrand(void *pSC3D, cdouble Omega,
      /* apply the geometrical transform                                */
      /******************************************************************/
      Log("Applying transform %s...",Tag);
-     G->Transform( SC3D->GTCList[nt] );
+     G->Transform( SC3D->GTCs[nt] );
      for(int ns=0; ns<G->NumSurfaces; ns++)
       if (G->SurfaceMoved[ns]) SurfaceNeverMoved[ns]=false;
 

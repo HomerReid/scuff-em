@@ -233,8 +233,8 @@ void WriteFVMesh(SSData *SSD, RWGSurface *S, FILE *f, char *FuncString)
 /***************************************************************/
 void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile, char *FuncList)
 { 
-  int NumFVMeshTransforms;
-  GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
+  GTCList GTCs=ReadTransFile(TransFile);
+  int NT = GTCs.size();
   
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/
@@ -243,11 +243,11 @@ void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile, char *FuncList)
 
   char *GeoFileBase=SSD->FileBase; 
   char *FVMFileBase=GetFileBase(FVMesh);
-  for(int nt=0; nt<NumFVMeshTransforms; nt++)
+  for(int nt=0; nt<NT; nt++)
    {
-     char *Tag = FVMeshGTCList[nt]->Tag;
+     char *Tag = GTCs[nt]->Tag;
      char PPFileName[100];
-     if (NumFVMeshTransforms>1)
+     if (NT>1)
       { 
         snprintf(PPFileName,100,"%s.%s.%s.pp",GeoFileBase,FVMFileBase,Tag);
         Log("Creating flux plot for surface %s, transform %s...",FVMesh,Tag);
@@ -255,22 +255,22 @@ void VisualizeFields(SSData *SSD, char *FVMesh, char *TransFile, char *FuncList)
      else
       {  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,FVMFileBase);
          Log("Creating flux plot for surface %s...",FVMesh);
-      };
+      }
      FILE *f=fopen(PPFileName,"a");
      if (!f) 
       { Warn("could not open field visualization file %s",PPFileName);
        continue;
-      };
+      }
 
-     S->Transform(FVMeshGTCList[nt]->GT);
+     if (GTCs[nt]->GTs.size()>0) S->Transform(GTCs[nt]->GTs[0]);
      WriteFVMesh(SSD, S, f, FuncList);
      S->UnTransform();
 
      fclose(f);
-   };
+   }
 
   delete S;
-  DestroyGTCList(FVMeshGTCList,NumFVMeshTransforms);
+  DestroyGTCList(GTCs);
 
 }
 

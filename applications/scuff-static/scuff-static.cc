@@ -225,9 +225,9 @@ int main(int argc, char *argv[])
   /*- this case the list of GTComplices is initialized to contain */
   /*- a single empty GTComplex and the check automatically passes.*/
   /****************************************************************/
-  int NT;
-  GTComplex **GTCList=ReadTransFile(TransFile, &NT);
-  char *ErrMsg=G->CheckGTCList(GTCList, NT);
+  GTCList GTCs=ReadTransFile(TransFile);
+  int NT = GTCs.size();
+  char *ErrMsg=G->CheckGTCList(GTCs);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
   //BMAccelerator *BMA = (NT==1) ? 0 : CreateBMAccelerator(SS);
   // TODO figure out interaction between transfiles and equivalent pairs
   if (NT>1) DisableEquivalentPairs=true; 
-  BMAccelerator *BMA = CreateBMAccelerator(SS, GTCList, NT, !DisableEquivalentPairs);
+  BMAccelerator *BMA = CreateBMAccelerator(SS, GTCs, !DisableEquivalentPairs);
 
   /*******************************************************************/
   /* loop over transformations.                                      */
@@ -250,10 +250,10 @@ int main(int argc, char *argv[])
   for(int nt=0; nt<NT; nt++)
   { 
      if (TransFile)
-      { G->Transform(GTCList[nt]);
-        SS->TransformLabel=strdup(GTCList[nt]->Tag);
-        Log("Working at transformation %s...",GTCList[nt]->Tag);
-      };
+      { G->Transform(GTCs[nt]);
+        SS->TransformLabel=strdup(GTCs[nt]->Tag);
+        Log("Working at transformation %s...",GTCs[nt]->Tag);
+      }
 
      /*******************************************************************/
      /*******************************************************************/

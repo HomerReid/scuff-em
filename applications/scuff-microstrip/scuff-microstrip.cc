@@ -195,8 +195,10 @@ int main(int argc, char *argv[])
 //
   char *PCFile=0;
 //
-  char *EPFiles[MAXEPF];    int nEPFiles;
-  char *FVMeshes[MAXFVM];   int nFVMeshes;
+  char *EPFiles[MAXEPF];          int nEPFiles;
+  char *FVMeshes[MAXFVM];         int nFVMeshes;
+  char *FVMeshTransFiles[MAXFVM]; int nFVMeshTransFiles;
+  memset(FVMeshTransFiles, 0, MAXFVM*sizeof(char *));
 //
   bool ZParms=false;
   bool SParms=false;
@@ -228,8 +230,9 @@ int main(int argc, char *argv[])
      {"SParameters",    PA_BOOL,    0, 1,       (void *)&SParms,     0,             "output S parameters"},
      {"Z0",             PA_DOUBLE,  1, 1,       (void *)&ZCharacteristic,0,         "characteristic impedance (in ohms) for Z-to-S conversion"},
 //
-     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
-     {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
+     {"EPFile",          PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
+     {"FVMesh",          PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
+     {"FVMeshTransFile", PA_STRING,  1, MAXFVM,  (void *)FVMeshTransFiles, &nFVMeshTransFiles, ""},
 //
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "base name for output files"},
 //
@@ -389,7 +392,8 @@ int main(int argc, char *argv[])
          ProcessEPFile(G, PortList, Omega, EPFiles[n], KN, PortCurrents, FileBase);
 
         for(int n=0; n<nFVMeshes; n++)
-         ProcessFVMesh(G, PortList, Omega, FVMeshes[n], KN, PortCurrents, FileBase);
+         ProcessFVMesh(G, PortList, Omega, FVMeshes[n], FVMeshTransFiles[n],
+                       KN, PortCurrents, FileBase);
 
       } // if (nEPFiles!=0 || nFVMeshes!=0)
    }; // for (nf=0..)

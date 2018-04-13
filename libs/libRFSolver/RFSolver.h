@@ -154,9 +154,8 @@ void ProcessEPFile(RWGGeometry *G, RWGPortList *PortList,
                    HVector *KN, cdouble *PortCurrents, char *FileBase);
 
 void ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList,
-                   cdouble Omega, char *FVMesh,
-                   HVector *KN, cdouble *PortCurrents,
-                   char *FileBase);
+                   cdouble Omega, char *FVMesh, char *FVMeshTransFile,
+                   HVector *KN, cdouble *PortCurrents, char *FileBase);
 
 void AddMinusIdVTermsToZMatrix(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
                                HMatrix *KMatrix, HMatrix *ZMatrix);

@@ -99,12 +99,13 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- this case the list of GTComplices is initialized to contain */
   /*- a single empty GTComplex and the check automatically passes.*/
   /*--------------------------------------------------------------*/
-  SNEQD->GTCList=ReadTransFile(TransFile, &(SNEQD->NumTransformations));
-  char *ErrMsg=G->CheckGTCList(SNEQD->GTCList, SNEQD->NumTransformations);
+  SNEQD->GTCs=ReadTransFile(TransFile);
+  SNEQD->NumTransformations = SNEQD->GTCs.size();
+  char *ErrMsg=G->CheckGTCList(SNEQD->GTCs);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
-  if (SNEQD->NumTransformations==1 && !strcmp(SNEQD->GTCList[0]->Tag,"DEFAULT"))
-   sprintf(SNEQD->GTCList[0]->Tag,"0.0");
+  if (SNEQD->NumTransformations==1 && !strcmp(SNEQD->GTCs[0]->Tag,"DEFAULT"))
+   sprintf(SNEQD->GTCs[0]->Tag,"0.0");
 
   /*--------------------------------------------------------------*/
   /*- figure out which PFT methods were requested and write       */

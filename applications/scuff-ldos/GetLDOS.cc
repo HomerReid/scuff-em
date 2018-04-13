@@ -58,7 +58,7 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
   else
    snprintf(FileName,MAXSTR,"%s.%s.%s",FileBase,EPFileBase,Extension);
 
-  bool HaveGTCList = (Data->GTCList!=0);
+  bool HaveGTCList = (Data->GTCs.size()!=0);
   if ( Data->WrotePreamble[FileType][WhichMatrix] == false )
    { Data->WrotePreamble[FileType][WhichMatrix] = true;
      WriteFilePreamble(FileName, FileType, LDim, HaveGTCList, TwoPointDGF);
@@ -80,7 +80,7 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
       fprintf(f,"%e %e %e ", X[3],X[4],X[5]);
      fprintf(f,"%e %e ",real(Omega),imag(Omega));
      if (HaveGTCList)
-      fprintf(f,"%s ",Data->GTCList[WhichTransform]->Tag);
+      fprintf(f,"%s ",Data->GTCs[WhichTransform]->Tag);
      if (FileType==FILETYPE_BYK && LDim>0 && kBloch!=0)
       for(int nd=0; nd<LDim; nd++)
        fprintf(f,"%e ",kBloch[nd]);
@@ -131,7 +131,6 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   double RelTol        = Data->RelTol;
   double AbsTol        = Data->AbsTol;
   int MaxEvals         = Data->MaxEvals;
-  GTComplex **GTCList  = Data->GTCList;
   int NumTransforms    = Data->NumTransforms;
 
   HMatrix *LBasis      = G->LBasis;
@@ -164,7 +163,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
       GetGroundPlaneDGFs(XMatrices[nm], Omega, kBloch,
                          LBasis, GMatrices[nm]);
    }
-  else if (GTCList==0)
+  else if (NumTransforms==1)
    { 
      if (LDim==0)
       G->AssembleBEMMatrix(Omega, M);
@@ -202,8 +201,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
    
      // loop over transformations
      for(int nt=0; nt<NumTransforms; nt++)
-      { G->Transform(GTCList[nt]);
-        Log("Working at transformation %s...",GTCList[nt]->Tag);
+      { G->Transform(Data->GTCs[nt]);
+        Log("Working at transformation %s...",Data->GTCs[nt]->Tag);
 
         // assemble off-diagonal blocks
         for(int ns=0, nb=0; ns<G->NumSurfaces; ns++)

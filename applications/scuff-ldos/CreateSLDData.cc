@@ -113,15 +113,12 @@ SLDData *CreateSLDData(char *GeoFile, char *TransFile,
   /***************************************************************/
   /* read in geometrical transformation file if any **************/
   /***************************************************************/
-  Data->GTCList=0;
-  Data->NumTransforms = 1;
-  if (TransFile)
-   { Data->GTCList=ReadTransFile(TransFile, &(Data->NumTransforms));
-     char *ErrMsg=G->CheckGTCList(Data->GTCList, Data->NumTransforms);
-     if (ErrMsg)
-      ErrExit("file %s: %s",TransFile,ErrMsg);
-   };
-  bool HaveGTCList = (Data->GTCList!=0);
+  Data->GTCs=ReadTransFile(TransFile);
+  Data->NumTransforms = Data->GTCs.size();
+  char *ErrMsg=G->CheckGTCList(Data->GTCs);
+  if (ErrMsg)
+   ErrExit("file %s: %s",TransFile,ErrMsg);
+  bool HaveGTCList = (TransFile!=0);
 
   Data->TBlocks=Data->UBlocks=0;
   if (HaveGTCList)

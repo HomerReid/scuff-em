@@ -330,7 +330,7 @@ int main(int argc, char *argv[])
      FILE *OutFile=fopen(SC3D->OutFileName,"a");
      int ntnq=0;
      for(int nt=0; nt<SC3D->NumTransformations; nt++)
-      { fprintf(OutFile,"%s ",SC3D->GTCList[nt]->Tag);
+      { fprintf(OutFile,"%s ",SC3D->GTCs[nt]->Tag);
         for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
          fprintf(OutFile,"%e %e ",EFT[ntnq],Error[ntnq]);
         fprintf(OutFile,"\n");

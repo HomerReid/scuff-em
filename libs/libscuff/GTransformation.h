@@ -29,11 +29,11 @@
 
 namespace scuff {
 
-/***************************************************************/
-/* a GTransformation maps a point with cartesian coordinates   */
-/* X[0..2] into a new point with coordinates XP[0..2] such that*/
-/*  XP = M*X + DX                                              */
-/***************************************************************/
+/*****************************************************************/
+/* a GTransformation consists of a 3x3 matrix M and a 3-vector   */
+/* DX; it maps a point with cartesian coordinates X[0..2] into   */
+/* a new point with coordinates XP[0..2] such that XP = M*X + DX */
+/*****************************************************************/
 class GTransformation {
 public:
      GTransformation();
@@ -99,27 +99,29 @@ public:
      double M[3][3]; // rotation matrix
 };
 
+typedef std::vector<GTransformation *> GTList;
+
 /***************************************************************/
 /* a GTComplex is collection of GTransformations, each of      */
-/* which is carried out on a different object in a geometry.   */
+/* which is carried out on a specific surface in a geometry.   */
 /***************************************************************/
 typedef struct GTComplex
  {
-   char *Tag;                  // a label for this entire complex 
-   int NumSurfacesAffected;    // number of surfaces transformed by this complex
-   char **SurfaceLabel;        // SurfaceLabel[i] is the label of the ith transformed surface
-   GTransformation *GT;        // GT[i] is the transformation applied to the ith surface
-
+   char *Tag;          // a label for this entire complex
+   GTList GTs;         // GTs[i] is the transformation applied to the ith surface
+   sVec SurfaceLabels; // SurfaceLabel[i] is the label of the ith transformed surface
  } GTComplex;
 
 // create a GTComplex that doesn't do anything
-GTComplex *CreateDefaultGTComplex();
+GTComplex *CreateGTComplex(const char *Tag=0);
 
-// this routine reads a scuff-EM transformation (.trans) file
+typedef std::vector<GTComplex*> GTCList;
+
+// this routine reads a SCUFF-EM transformation (.trans) file
 // and returns an array of GTComplex structures.
-GTComplex **ReadTransFile(char *FileName, int *NumGTComplices);
+GTCList ReadTransFile(const char *FileName);
 
-void DestroyGTCList(GTComplex **GTCList, int Length);
+void DestroyGTCList(GTCList GTCs);
 
 } // namespace scuff
 

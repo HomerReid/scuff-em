@@ -931,26 +931,28 @@ RWGSurface *RWGGeometry::GetSurfaceByLabel(const char *Label, int *pns)
 /***************************************************************/
 void RWGGeometry::Transform(GTComplex *GTC)
 { 
-  int nsa, WhichSurface;
-  RWGSurface *S;
-
   // assume that no objects will be modified by this operation
   memset(SurfaceMoved, 0, NumSurfaces*sizeof(int));
 
   // loop over the individual transformations in the complex
-  for(nsa=0; nsa<GTC->NumSurfacesAffected; nsa++)
+  for(unsigned ns=0; ns<GTC->GTs.size(); ns++)
    { 
      // find the surface corresponding to the label for this transformation
-     S=GetSurfaceByLabel(GTC->SurfaceLabel[nsa], &WhichSurface);
+     RWGSurface *S = 0;
+     char *Label = GTC->SurfaceLabels[ns];
+     if (!Label)
+      Warn("no OBJECT/SURFACE label specified for GTransformation %s (ignoring)",GTC->Tag);
+     else 
+     { S=GetSurfaceByLabel(Label);
+       if (!S) Warn("GTransformation %s refers to unknown object/surface %s (ignoring)",GTC->Tag,Label);
+     }
 
-     // apply the transformation to that object
-     if (S) 
-      { S->Transform(GTC->GT + nsa);
-        SurfaceMoved[WhichSurface]=1;
-      };
-        
-   };
-
+     // apply the transformation to that surface
+     if (S)
+      { S->Transform(GTC->GTs[ns]);
+        SurfaceMoved[S->Index]=1;
+      }
+   }
 }
 
 /***************************************************************/
@@ -970,15 +972,16 @@ void RWGGeometry::UnTransform()
 /* geometry.                                                   */
 /* Returns 0 if the check passed, or an error message if not.  */
 /***************************************************************/
-char *RWGGeometry::CheckGTCList(GTComplex **GTCList, int NumGTCs)
+char *RWGGeometry::CheckGTCList(GTCList GTCs)
 {
-  int ngtc, nsa;
-  
-  for(ngtc=0; ngtc<NumGTCs; ngtc++)
-   for (nsa=0; nsa<GTCList[ngtc]->NumSurfacesAffected; nsa++)
-    if (!GetSurfaceByLabel(GTCList[ngtc]->SurfaceLabel[nsa]))
-     return vstrdup("transformation requested for unknown surface %s",
-                     GTCList[ngtc]->SurfaceLabel[nsa]);
+  for(unsigned nt=0; nt<GTCs.size(); nt++)
+   for (unsigned ns=0; ns<GTCs[nt]->GTs.size(); ns++)
+    { char *Label = GTCs[nt]->SurfaceLabels[ns];
+      if (!Label) 
+       return vstrdup("no OBJECT/SURFACE specified for GTransformation %s",GTCs[nt]->Tag);
+      if (!GetSurfaceByLabel(Label))
+       return vstrdup("unknown OBJECT/SURFACE %s specified for GTransformation %s",Label,GTCs[nt]->Tag);
+    }
 
   return 0;
 }

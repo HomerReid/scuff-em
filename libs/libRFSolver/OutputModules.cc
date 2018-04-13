@@ -203,8 +203,8 @@ const char *PPOptions=
  "View.Visible = 0;\n";
 
 void ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                   char *FVMesh,  HVector *KN, cdouble *PortCurrents,
-                   char *FileBase)
+                   char *FVMesh, char *TransFile,
+                   HVector *KN, cdouble *PortCurrents, char *FileBase)
 {
   RFMeshData MyData, *Data = &MyData;
   Data->G            = G;
@@ -213,10 +213,23 @@ void ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
   Data->PortList     = PortList;
   Data->PortCurrents = PortCurrents;
 
-  char OutFileName[1000];
-  snprintf(OutFileName,1000,"%s.%s",FileBase,GetFileBase(FVMesh));
-/* return the NPxNP impedance matrix of the geometry (NP=number*/
-  MakeMeshPlot(RFFieldsMDF, (void *)Data, FVMesh, PPOptions, OutFileName);
+  RWGSurface *S = new RWGSurface(FVMesh);
+
+  GTCList GTCs=ReadTransFile(TransFile);
+  int NumTransforms = GTCs.size();
+  for(int nt=0; nt<NumTransforms; nt++)
+   { 
+     char PPFileName[1000];
+     if (TransFile)
+      snprintf(PPFileName,1000,"%s.%s.%s",FileBase,GTCs[nt]->Tag,GetFileBase(FVMesh));
+     else
+      snprintf(PPFileName,1000,"%s.%s",FileBase,GetFileBase(FVMesh));
+
+     if (GTCs[nt]->GTs.size()>0) S->Transform(GTCs[nt]->GTs[0]);
+     MakeMeshPlot(RFFieldsMDF, (void *)Data, S, PPOptions, PPFileName);
+     S->UnTransform();
+   }
+  delete S;
 }
 
 /***************************************************************/

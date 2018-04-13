@@ -204,8 +204,8 @@ void WriteFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
 void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
                      char *OutFileBase, char *FVMesh, char *TransFile)
 { 
-  int NumFVMeshTransforms;
-  GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
+  GTCList GTCs=ReadTransFile(TransFile);
+  int NT = GTCs.size();
   
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/
@@ -214,11 +214,11 @@ void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
 
   char *GeoFileBase=OutFileBase;
   char *FVMFileBase=GetFileBase(FVMesh);
-  for(int nt=0; nt<NumFVMeshTransforms; nt++)
+  for(int nt=0; nt<NT; nt++)
    {
-     char *Tag = FVMeshGTCList[nt]->Tag;
+     char *Tag = GTCs[nt]->Tag;
      char PPFileName[100];
-     if (NumFVMeshTransforms>1)
+     if (NT>1)
       { 
         snprintf(PPFileName,100,"%s.%s.%s.pp",GeoFileBase,FVMFileBase,Tag);
         Log("Creating flux plot for surface %s, transform %s...",FVMesh,Tag);
@@ -226,23 +226,22 @@ void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
      else
       {  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,FVMFileBase);
          Log("Creating flux plot for surface %s...",FVMesh);
-      };
+      }
      FILE *f=fopen(PPFileName,"a");
      if (!f) 
       { Warn("could not open field visualization file %s",PPFileName);
        continue;
-      };
+      }
 
-     FluxMesh->Transform(FVMeshGTCList[nt]->GT);
+     if (GTCs[nt]->GTs.size()>0) FluxMesh->Transform(GTCs[nt]->GTs[0]);
      WriteFVMesh(G, KN, Omega, kBloch, FluxMesh, f);
      FluxMesh->UnTransform();
 
      fclose(f);
-   };
+   }
 
   delete FluxMesh;
-  DestroyGTCList(FVMeshGTCList,NumFVMeshTransforms);
-
+  DestroyGTCList(GTCs);
 }
 
 /***************************************************************/
@@ -348,7 +347,7 @@ void WriteSphericalMoments(RWGGeometry *G, HVector *KN,
   /***************************************************************/
   f=fopen(SphericalMomentFile,"a");
   fprintf(f,"\n\n# Spherical multipole moments at Omega=%s: \n",CD2S(Omega));
-  int NumLMs = (LMax+1)*(LMax+1);
+  //int NumLMs = (LMax+1)*(LMax+1);
 
   for(int L=1, nlm=1; L<=LMax; L++)
    for(int M=-L; M<=L; M++, nlm++)

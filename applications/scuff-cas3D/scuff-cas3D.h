@@ -79,7 +79,7 @@ typedef struct SC3Data
    double GammaMatrix[27];
 
    // data on geometrical transformations
-   GTComplex **GTCList;
+   GTCList GTCs;
    int NumTransformations;
 
    // items relevant for extended (periodic) geometries

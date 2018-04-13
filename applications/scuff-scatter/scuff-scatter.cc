@@ -302,9 +302,9 @@ int main(int argc, char *argv[])
   /*- this case the list of GTComplices is initialized to contain */
   /*- a single empty GTComplex and the check automatically passes.*/
   /*--------------------------------------------------------------*/
-  int NumTransformations=0;
-  GTComplex **GTCList=ReadTransFile(TransFile, &NumTransformations);
-  char *ErrMsg=G->CheckGTCList(GTCList, NumTransformations);
+  GTCList GTCs=ReadTransFile(TransFile);
+  int NumTransformations=GTCs.size();
+  char *ErrMsg=G->CheckGTCList(GTCs);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
@@ -425,8 +425,8 @@ int main(int argc, char *argv[])
       {
         char TransformStr[100]="";
         if (TransFile)
-         { G->Transform(GTCList[nt]);
-           SSD->TransformLabel=GTCList[nt]->Tag;
+         { G->Transform(GTCs[nt]);
+           SSD->TransformLabel=GTCs[nt]->Tag;
            Log("Working at transformation %s...",SSD->TransformLabel);
            snprintf(TransformStr,100,"_%s",SSD->TransformLabel);
          };

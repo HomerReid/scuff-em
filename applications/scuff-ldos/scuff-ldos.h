@@ -55,7 +55,7 @@ typedef struct SLDData
 
    // fields relevant for geometrical transformations
    HMatrix **TBlocks, **UBlocks;
-   GTComplex **GTCList;
+   GTCList GTCs;
    int NumTransforms;
 
    // fields relevant for periodic geometries

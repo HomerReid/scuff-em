@@ -316,12 +316,12 @@ HMatrix *GetSCRMatrix(char *DSIMesh, double DSIRadius, int DSIPoints,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  GTransformation *GTList[2];
-  GTList[0]=GT1;
-  GTList[1]=GT2;
+  GTransformation *GTs[2];
+  GTs[0]=GT1;
+  GTs[1]=GT2;
   for(int nGT=0; nGT<2; nGT++)
    { 
-     GTransformation *GT = GTList[nGT];
+     GTransformation *GT = GTs[nGT];
      if (GT==0) continue;
      
      for(int nr=0; nr<SCRMatrix->NR; nr++)

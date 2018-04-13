@@ -451,7 +451,7 @@ class RWGGeometry
    /* geometrical transformations */
    void Transform(GTComplex *GTC);
    void UnTransform();
-   char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
+   char *CheckGTCList(GTCList GTCs);
 
    /*--------------------------------------------------------------------*/
    /*- class methods intended for internal use only, i.e. which          */
@@ -647,10 +647,14 @@ void CheckLattice(HMatrix *LBasis);
 typedef HMatrix * (*MeshDataFunc)(void *UserData, HMatrix *XMatrix,
                                   const char ***DataNames);
 void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  char *MeshFileName, const char *OptionsString=0,
+                  RWGSurface *S, const char *OptionsString=0,
                   char *OutFileName=0, HVector *Integral=0,
                   bool UseCentroids=false);
                   
+void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
+                  char *MeshFileName, const char *OptionsString=0,
+                  char *OutFileName=0, HVector *Integral=0,
+                  bool UseCentroids=false);
 
 } // namespace scuff
 

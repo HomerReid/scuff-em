@@ -150,8 +150,8 @@ void StaticSolver::VisualizeFields(HVector *Sigma,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int NumFVMeshTransforms;
-  GTComplex **FVMeshGTCList=ReadTransFile(TransFile, &NumFVMeshTransforms);
+  GTCList GTCs=ReadTransFile(TransFile);
+  int NT=GTCs.size();
 
   if (!OutFileBase)
    OutFileBase=strdup(GetFileBase(G->GeoFileName));
@@ -166,13 +166,13 @@ void StaticSolver::VisualizeFields(HVector *Sigma,
    snprintf(PPFileBase,MAXSTR,"%s.%s.%s",OutFileBase,ExcitationLabel,FVMFileBase);
   else
    snprintf(PPFileBase,MAXSTR,"%s.%s",OutFileBase,FVMFileBase);
-  for(int nt=0; nt<NumFVMeshTransforms; nt++)
+  for(int nt=0; nt<NT; nt++)
    {
-     GTComplex *GTC=FVMeshGTCList[nt];
-     GTransformation *GT=GTC->GT;
+     GTComplex *GTC=GTCs[nt];
+     GTransformation *GT=GTC->GTs.size() > 0 ? GTC->GTs[0] : 0;
      char *Tag = GTC->Tag;
      char PPFileName[MAXSTR];
-     if (NumFVMeshTransforms>1)
+     if (NT>1)
       { 
         snprintf(PPFileName,MAXSTR,"%s.%s.pp",PPFileBase,Tag);
         Log("Creating flux plot for surface %s, transform %s...",FVMeshFile,Tag);
@@ -195,7 +195,7 @@ void StaticSolver::VisualizeFields(HVector *Sigma,
    };
 
   delete S;
-  DestroyGTCList(FVMeshGTCList,NumFVMeshTransforms);
+  DestroyGTCList(GTCs);
 
 }
 

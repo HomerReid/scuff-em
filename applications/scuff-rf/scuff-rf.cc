@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   FILE *MomentFile=0;
-  char PSDFileName[1000];
+  //char PSDFileName[1000];
   HMatrix *PM=0, *PSD=0;
   if (Moments)
    { PM=new HMatrix(G->NumSurfaces, 6, LHM_COMPLEX);

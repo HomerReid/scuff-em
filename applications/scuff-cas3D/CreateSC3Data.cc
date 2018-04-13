@@ -68,8 +68,9 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*- this case the list of GTComplices is initialized to contain */
   /*- a single empty GTComplex and the check automatically passes.*/
   /*--------------------------------------------------------------*/
-  SC3D->GTCList=ReadTransFile(TransFile, &(SC3D->NumTransformations));
-  char *ErrMsg=G->CheckGTCList(SC3D->GTCList, SC3D->NumTransformations);
+  SC3D->GTCs=ReadTransFile(TransFile);
+  SC3D->NumTransformations = SC3D->GTCs.size();
+  char *ErrMsg=G->CheckGTCList(SC3D->GTCs);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 

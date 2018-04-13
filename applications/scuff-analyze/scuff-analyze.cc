@@ -505,9 +505,9 @@ int main(int argc, char *argv[])
      if (!G) 
       ErrExit("--transfile option may only be used with --geometry");
 
-     int ngtc, NGTC;
-     GTComplex **GTCList=ReadTransFile(TransFile, &NGTC);
-     char *ErrMsg=G->CheckGTCList(GTCList, NGTC);
+     GTCList GTCs=ReadTransFile(TransFile);
+     int NGTC=GTCs.size();
+     char *ErrMsg=G->CheckGTCList(GTCs);
      if (ErrMsg)
       ErrExit("file %s: %s",TransFile,ErrMsg);
 
@@ -515,12 +515,12 @@ int main(int argc, char *argv[])
      snprintf(PPFileName,MAXSTR,"%s.transformed.pp",GetFileBase(G->GeoFileName));
      unlink(PPFileName);
 
-     for(ngtc=0; ngtc<NGTC; ngtc++) 
+     for(int ngtc=0; ngtc<NGTC; ngtc++) 
       {
-        G->Transform(GTCList[ngtc]);
-        G->WritePPMesh(PPFileName, GTCList[ngtc]->Tag);
+        G->Transform(GTCs[ngtc]);
+        G->WritePPMesh(PPFileName, GTCs[ngtc]->Tag);
         G->UnTransform();
-      };
+      }
 
      printf("Visualizations for %i transforms written to %s.\n",NGTC,PPFileName);
  

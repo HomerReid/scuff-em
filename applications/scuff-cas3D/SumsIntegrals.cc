@@ -119,7 +119,7 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   int NumValues;
   int LineNum=0;
   char Line[1000];
-  char *Tag = SC3D->GTCList[0]->Tag;
+  char *Tag = SC3D->GTCs[0]->Tag;
   bool FoundFirst=false;
   int NQ = SC3D->NumQuantities;
   while( !FoundFirst && fgets(Line,1000,f) )
@@ -148,7 +148,7 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   for(int nt=1; nt<SC3D->NumTransformations; nt++)
    { 
      LineNum++;
-     Tag = SC3D->GTCList[nt]->Tag;
+     Tag = SC3D->GTCs[nt]->Tag;
 
      if (    !fgets(Line,1000,f)  
           || !LineMatches(Line,Tag,Keys,NumKeys,Values,&NumValues) 
@@ -435,7 +435,7 @@ void GetCasimirBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   FILE *f=fopen(SC3D->ByXiFileName,"a");
   for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
-   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+   { fprintf(f,"%s %.6e ",SC3D->GTCs[nt]->Tag,Xi);
      for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
       fprintf(f,"%.8e %.8e ",EFT[ntnq],Error[ntnq]);
      fprintf(f,"\n");
@@ -470,7 +470,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   FILE *f=fopen(SC3D->ByXiFileName,"a");
   double *Error = Periodic ? SC3D->BZIArgs->BZIError : 0;
   for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
-   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+   { fprintf(f,"%s %.6e ",SC3D->GTCs[nt]->Tag,Xi);
      for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
       { fprintf(f,"%.8e ",EFT[ntnq]);
         if (Periodic)
@@ -615,7 +615,7 @@ void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
   RWGGeometry *G = SC3D->G;
   for(int nt=0; nt<SC3D->NumTransformations; nt++)
    { 
-     G->Transform( SC3D->GTCList[nt] );
+     G->Transform( SC3D->GTCs[nt] );
 
      for(int ns=0; ns<G->NumSurfaces; ns++)
       for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++)

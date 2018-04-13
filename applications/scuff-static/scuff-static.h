@@ -46,7 +46,7 @@ typedef struct BMAccelerator
    HMatrix **PairMatrices;
  } BMAccelerator;
 BMAccelerator *CreateBMAccelerator(StaticSolver *SS,
-                                   GTComplex **GTCList, int NT,
+                                   GTCList GTCs,
                                    bool UsePairEquivalence);
 void ReassembleBEMMatrix(StaticSolver *SS, HMatrix **pM,
                          BMAccelerator *BMA=0, int nt=0);
