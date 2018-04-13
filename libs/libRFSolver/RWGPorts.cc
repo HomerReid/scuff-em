@@ -1,0 +1,703 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/* 
+ * RWGPorts.cc -- libRWG module for handling of 'ports' in 
+ *             -- RF/microwave structures
+ *                                         
+ * homer reid  -- 9/2011                                        
+ *                                         
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+
+#include <libhrutil.h>
+#include <libhmat.h>
+#include <libscuff.h>
+#include <libscuffInternals.h>
+#include <libSGJC.h>
+
+#include <vector>
+using namespace std;
+
+#include "RFSolver.h"
+
+using namespace scuff;
+
+#define II cdouble(0.0,1.0)
+static const double Signs[2]={1.0,-1.0};
+static const char *PolStr[2]={"POSITIVE", "NEGATIVE"};
+
+namespace scuff {
+
+void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double zMinMax[2]);
+
+/***************************************************************/
+/* compute the normal to the triangle defined by three points  */
+/***************************************************************/
+void GetNormal(double *V1, double *V2, double *V3, double *Z)
+{ 
+  double A[3], B[3];
+  VecSub(V2, V1, A);
+  VecSub(V3, V2, B);
+  VecCross(A, B, Z);
+} 
+
+/***************************************************************/
+/* return the cosine of the angle between two 3-vectors ********/
+/***************************************************************/
+double CosAngle(double *L1, double *L2)
+{
+  double L1L1 = L1[0]*L1[0] + L1[1]*L1[1] + L1[2]*L1[2];
+  double L2L2 = L2[0]*L2[0] + L2[1]*L2[1] + L2[2]*L2[2];
+  double L1L2 = L1[0]*L2[0] + L1[1]*L2[1] + L1[2]*L2[2];
+  return L1L2 / sqrt(L1L1*L2L2);
+}
+
+/***************************************************************/
+/* return 1 if X lies on the line segment connecting V1 and V2 */
+/*  (more specifically: if the shortest distance from X to the */
+/*   line segment is <1e-6 * the length of the line segment)   */
+/***************************************************************/
+bool PointOnLineSegment(double *X, double *V1, double *V2)
+{
+  double A[3], B[3];
+
+  VecSub( X, V1, A);
+  VecSub(V2, V1, B);
+  double A2  =   A[0]*A[0] + A[1]*A[1] + A[2]*A[2];
+  double B2  =   B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
+
+  if ( A2<1.0e-12*B2 || fabs(A2-B2)<1.0e-12*B2 )
+   return true;
+  if ( A2 > B2 )
+   return false;
+
+  // the cosine of the angle between A and B is AdB/sqrt(A2*B2)
+  // define the point to lie on the segment if the shortest
+  // distance from the point to the segment is < 1e-6*length of segment
+  // sqrt(A2) * sin(angle) < 1e-6*sqrt(B2)
+  // A2 * (1-AdB^2/A2B2) < 1e-12*B2
+  // (A2*B2 - AdB^2)  < 1e-12*B2*B2
+
+  double AdB =   A[0]*B[0] + A[1]*B[1] + A[2]*B[2];
+  if (AdB<0.0) 
+   return false;
+  if ( (A2*B2-AdB*AdB) > 1.0e-12*B2*B2 ) 
+   return false;
+
+  return true;
+ 
+}
+
+/***************************************************************/
+/* return true if the point X lies within the polygon defined  */
+/* by vertices V. (If V has only two vertices, i.e. it is a    */
+/* line segment, this amounts to testing whether X lies on     */
+/* that line segment.)                                         */
+/*                                                             */
+/* X[0..2] = X,Y,Z coordinates of evaluation point             */
+/*                                                             */
+/* V[0..2] = X,Y,Z coordinates of polygon vertex 1             */
+/* V[3..5] = X,Y,Z coordinates of polygon vertex 2             */
+/* etc.                                                        */
+/*                                                             */
+/* V must have (at least) 3*NumVertices entries.               */
+/*                                                             */
+/* All vertices should be coplanar; this is not checked.       */
+/*                                                             */
+/* If X coincides with one of the vertices, then the return    */
+/* value is true.                                              */
+/***************************************************************/
+bool PointInPolygon(double *X, dVec VVector)
+{ 
+  int NumVertices = VVector.size() / 3;
+  double *V = &(VVector[0]);
+  if (NumVertices==0) 
+   return false; 
+  else if (NumVertices==1)
+   return VecEqualFloat(X,V);
+  else if (NumVertices==2)
+   return PointOnLineSegment(X, V+0, V+3);
+
+  /*--------------------------------------------------------------*/
+  /* 3 or more vertices; check that the normals to the triangles  */
+  /* formed by X and all sequential pairs of vertices are parallel*/
+  /*--------------------------------------------------------------*/
+  double FirstZ[3], ThisZ[3], AD;
+  GetNormal(V+0, V+3, X, FirstZ);
+  for(int nv=1; nv<NumVertices; nv++)
+   { GetNormal(V + 3*nv, V+3*((nv+1)%NumVertices), X, ThisZ);
+     AD=fabs(1.0-CosAngle(ThisZ,FirstZ)); // 'angle deviation'
+     if (AD>1.0e-12)
+      return false;
+   };
+  return true; 
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+iVec FindEdgesInPolygon(RWGSurface *S, dVec PolygonVertices)
+{
+  iVec NewEdges;
+  for(int ne=0; ne<S->NumExteriorEdges; ne++)
+   { 
+     RWGEdge *E = S->ExteriorEdges[ne];
+     double *V1 = S->Vertices + 3*E->iV1;
+     double *V2 = S->Vertices + 3*E->iV2;
+
+     if ( PointInPolygon(V1, PolygonVertices) && PointInPolygon(V2, PolygonVertices) )
+      NewEdges.push_back(ne);
+   }
+  return NewEdges;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AutoSelectRefPoints(RWGGeometry *G, RWGPort *Port)
+{ 
+  double MinDistance=1.0e100;
+  for(unsigned ieP=0; ieP<Port->PortEdges[_PLUS].size(); ieP++)
+   for(unsigned ieM=0; ieM<Port->PortEdges[_MINUS].size(); ieM++)
+    { RWGPortEdge *PPE = Port->PortEdges[_PLUS][ieP];
+      RWGPortEdge *MPE = Port->PortEdges[_MINUS][ieM];
+      RWGEdge *EP      = G->Surfaces[PPE->ns]->GetEdgeByIndex(PPE->ne);
+      RWGEdge *EM      = G->Surfaces[MPE->ns]->GetEdgeByIndex(MPE->ne);
+      double Distance  = VecDistance(EP->Centroid, EM->Centroid);
+      if (Distance<MinDistance)
+       { MinDistance=Distance;
+         memcpy(Port->RefPoint[_PLUS],EP->Centroid,3*sizeof(double));
+         memcpy(Port->RefPoint[_MINUS],EM->Centroid,3*sizeof(double));
+       }
+    }
+} 
+
+/***************************************************************/
+// general-purpose error checking for keywords in port file    */
+/***************************************************************/
+int CheckKeywordSyntax(const char *PortFileName, int LineNum, RWGPort *CurrentPort,
+                       const char *Keyword, int NumTokens=0, int ReqNumTokens=0)
+{
+  int Pol = ( toupper(Keyword[0])=='P' ? _PLUS : toupper(Keyword[0])=='M' ? _MINUS : -1);
+  if (Pol==-1) ErrExit("%s:%i: unknown keyword %s",PortFileName,LineNum,Keyword);
+  if (!CurrentPort) ErrExit("%s:%i: %s outside of PORT...ENDPORT",PortFileName,LineNum,Keyword);
+  if ( NumTokens!=ReqNumTokens ) ErrExit("%s:%i: syntax error",PortFileName,LineNum);
+  return Pol;
+}
+
+void UpdateRMinMax(double RMin[3], double RMax[3], double *V)
+{ for(int i=0; i<3; i++)
+   { RMin[i] = fmin(RMin[i],V[i]);
+     RMax[i] = fmax(RMax[i],V[i]);
+   }
+}
+
+/***************************************************************/
+/* port file syntax example                                    */
+/*  PORT                                                       */
+/*   POBJECT   FirstObjectLabel                                */
+/*   MOBJECT   SecondObjectLabel                               */
+/*   PSURFACE  FirstSurfaceLabel                               */
+/*   MSURFACE  SecondSurfaceLabel                              */
+/*   PEDGES    pe1 pe2 ... peN                                 */
+/*   MEDGES    me1 me2 ... meN                                 */
+/*   PPOLYGON  A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                  */
+/*   MPOLYGON  A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                  */
+/*   PREFPOINT x1 x2 x3 <optional>                             */
+/*   MREFPOINT x1 x2 x3 <optional>                             */
+/*  ENDPORT                                                    */
+/***************************************************************/
+RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
+{
+  /***************************************************************/
+  /* try to open the file ****************************************/
+  /***************************************************************/
+  FILE *f=fopen(PortFileName,"r");
+  if (f==0)
+   ErrExit("could not open file %s",PortFileName);
+  
+  RWGPortList *PortList = new RWGPortList;
+
+  /***************************************************************/
+  /* read through the file and parse lines one-at-a-time *********/
+  /***************************************************************/
+  RWGPort *CurrentPort=0;
+  RWGSurface *CurrentSurface[2]={0,0};
+  char Line[1000];
+  int LineNum=0;
+  while( fgets(Line, 1000, f) )
+   { 
+     /*--------------------------------------------------------------*/
+     /*- skip blank lines and tokens --------------------------------*/
+     /*--------------------------------------------------------------*/
+     LineNum++;
+     sVec Tokens=Tokenize(Line);
+     int NumTokens=Tokens.size();
+     if ( NumTokens==0 || Tokens[0][0]=='#')
+      continue;
+
+     /*--------------------------------------------------------------*/
+     /*- parse lines                                                -*/
+     /*--------------------------------------------------------------*/
+     if ( !StrCaseCmp(Tokens[0],"PORT") )
+      { 
+        if (CurrentPort!=0) ErrExit("%s:%i: syntax error (missing ENDPORT?)",PortFileName,LineNum);
+        CurrentPort = new RWGPort;
+        CurrentPort->RefPoint[_PLUS][0]=CurrentPort->RefPoint[_MINUS][0]=HUGE_VAL; // to indicate unspecified
+        CurrentPort->Perimeter[_PLUS]=CurrentPort->Perimeter[_MINUS]=0.0;
+      }
+     /*--------------------------------------------------------------*/  
+     else if ( !StrCaseCmp(Tokens[0],"ENDPORT") )
+      { 
+        PortList->Ports.push_back(CurrentPort);
+        CurrentPort=0;
+        CurrentSurface[0]=CurrentSurface[1]=0;
+      }
+     /*--------------------------------------------------------------*/  
+     else if ( !StrCaseCmp(Tokens[0]+1,"OBJECT") || !StrCaseCmp(Tokens[0]+1,"SURFACE") )
+      { 
+        int Pol=CheckKeywordSyntax(PortFileName, LineNum, CurrentPort, Tokens[0], NumTokens, 1);
+        CurrentSurface[Pol]=G->GetSurfaceByLabel(Tokens[1]);
+        if( !CurrentSurface[Pol] )
+         ErrExit("%s:%i: no object/surface %s in geometry %s",PortFileName,LineNum,Tokens[1],G->GeoFileName);
+      }
+     /*--------------------------------------------------------------*/  
+     else if ( !StrCaseCmp(Tokens[0]+1,"EDGES") )
+      { 
+        int Pol=CheckKeywordSyntax(PortFileName, LineNum, CurrentPort, Tokens[0]);
+        RWGSurface *S=CurrentSurface[Pol];
+        if (!S) 
+         ErrExit("%s:%i: %s without preceding %cOBJECT/%cSURFACE",PortFileName,LineNum,Tokens[0],PolStr[Pol][0]);
+        for(int nt=1; nt<NumTokens; nt++)
+         { int ne;
+           sscanf(Tokens[nt],"%i",&ne);
+           if (ne<0 || ne>=S->NumExteriorEdges)
+            ErrExit("%s:%i: surface %s has no exterior edge %i",PortFileName,LineNum,S->Label,ne);
+           RWGPortEdge *PE = new RWGPortEdge(S->Index, -1-ne, PortList->Ports.size(), Pol);
+           CurrentPort->PortEdges[Pol].push_back(PE);
+           PortList->PortEdges.push_back(PE);
+         }
+      }
+     /*--------------------------------------------------------------*/  
+     else if ( !StrCaseCmp(Tokens[0]+1,"POLYGON") )
+      { 
+        int Pol=CheckKeywordSyntax(PortFileName, LineNum, CurrentPort, Tokens[0]);
+        if ( NumTokens<7 || (NumTokens%3 != 1) ) 
+         ErrExit("%s:%i: number of arguments to %s must be a multiple of 3 and >=7",PortFileName,LineNum,Tokens[0]);
+        dVec PolygonVertices(NumTokens-1);
+        for(int nt=1; nt<NumTokens; nt++) sscanf(Tokens[nt],"%le",&(PolygonVertices[nt-1]));
+        for(int ns=0; ns<G->NumSurfaces; ns++)
+         { iVec neList = FindEdgesInPolygon(G->Surfaces[ns], PolygonVertices);
+           for(unsigned nne=0; nne<neList.size(); nne++)
+            { RWGPortEdge *PE = new RWGPortEdge(ns, -1-neList[nne], PortList->Ports.size(), Pol);
+              CurrentPort->PortEdges[Pol].push_back(PE);
+              PortList->PortEdges.push_back(PE);
+            }
+         }
+      }
+     else if ( !StrCaseCmp(Tokens[0]+1,"REFPOINT") )
+      { 
+        int Pol=CheckKeywordSyntax(PortFileName, LineNum, CurrentPort, Tokens[0], NumTokens, 4);
+        for(int n=0; n<3; n++)
+         sscanf(Tokens[1+n],"%le",CurrentPort->RefPoint[Pol] + n);
+      }
+     else
+      ErrExit("%s:%i: unknown keyword %s",PortFileName,LineNum,Tokens[0]);
+
+   } // while( fgets(buffer, 1000, f) )
+  fclose(f);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  for(unsigned np=0; np<PortList->Ports.size(); np++)
+   { RWGPort *Port = PortList->Ports[np];
+     if( Port->RefPoint[0][0]==HUGE_VAL || Port->RefPoint[1][0]==HUGE_VAL )
+      AutoSelectRefPoints(G, Port);
+   }
+
+  /***************************************************************/
+  /* compute bounding box and perimeters  ************************/
+  /***************************************************************/
+  double *RMin = PortList->RMinMax + 0;
+  double *RMax = PortList->RMinMax + 3;
+  RMin[0]=RMin[1]=RMin[2] = +1.23e+45;
+  RMax[0]=RMax[1]=RMax[2] = -1.23e+45;
+  for(unsigned npe=0; npe<PortList->PortEdges.size(); npe++)
+   { RWGPortEdge *PE = PortList->PortEdges[npe];
+     RWGSurface *S   = G->Surfaces[PE->ns];
+     RWGEdge *E      = S->GetEdgeByIndex(PE->ne);
+     PortList->Ports[PE->nPort]->Perimeter[PE->Pol] += E->Length;
+     UpdateRMinMax(RMin, RMax, S->Vertices + 3*E->iQP);
+     UpdateRMinMax(RMin, RMax, S->Vertices + 3*E->iV1);
+     UpdateRMinMax(RMin, RMax, S->Vertices + 3*E->iV2);
+   }
+
+  /***************************************************************/
+  /* write summary of port list to log file **********************/
+  /***************************************************************/
+  for(unsigned np=0; np<PortList->Ports.size(); np++)
+   for(int Pol=0; Pol<2; Pol++)
+    { RWGPort *Port = PortList->Ports[np];
+      int NPE = Port->PortEdges[Pol].size();
+      double Perimeter=Port->Perimeter[Pol];
+      double *X = Port->RefPoint[Pol];
+      Log("Port %2i (%s): perimeter %e, X0={%g,%g,%g}, %i edges=[",np,PolStr[Pol],Perimeter,X[0],X[1],X[2],NPE);
+      for(int npe=0; npe<NPE; npe++)
+       { RWGPortEdge *PE = Port->PortEdges[Pol][npe];
+         LogC("%s(%i)%c",G->Surfaces[PE->ns]->Label,-(1+PE->ne),(npe==NPE-1) ? ']' : ' ');
+       }
+    }
+
+  return PortList;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void PlotPortsInGMSH(RWGGeometry *G, RWGPortList *PortList, const char *format, ...)
+{
+  /***************************************************************/
+  /* open the file ***********************************************/
+  /***************************************************************/
+  va_list ap;
+  char FileName[1000];
+  va_start(ap,format);
+  vsnprintfEC(FileName,997,format,ap);
+  va_end(ap);
+
+  FILE *f=fopen(FileName,"w");
+  if (!f)
+   { Warn("could not open file %s (skipping port plot)",FileName);
+     return;
+   };
+
+  int NumPorts = (int)PortList->Ports.size();
+  fprintf(f,"View.LineWidth = 5;\n");
+  fprintf(f,"View.LineType  = 1;\n");
+  fprintf(f,"View.CustomMax = %i;\n",+(NumPorts+1));
+  fprintf(f,"View.CustomMin = %i;\n",-(NumPorts+1));
+  fprintf(f,"View.RangeType = 2;\n");
+  fprintf(f,"View.ShowScale = 0;\n");
+
+  /***************************************************************/
+  /* loop over all ports on all surfaces *************************/
+  /***************************************************************/
+  for(unsigned nPort=0; nPort<PortList->Ports.size(); nPort++)
+   for(int Pol=0; Pol<2; Pol++)
+    { 
+      fprintf(f,"View \"Port %i %s terminal\" {\n",nPort+1, PolStr[Pol]);
+
+      RWGPort *Port     = PortList->Ports[nPort];
+      double *RefPoint  = Port->RefPoint[Pol];
+      int Value         = (Pol ? 1 : -1 ) * (nPort+1);
+
+      /*--------------------------------------------------------------*/
+      /*- scalar points for ref points                               -*/
+      /*--------------------------------------------------------------*/
+      fprintf(f,"SP(%e,%e,%e) {%i};\n", RefPoint[0],RefPoint[1],RefPoint[2],Value);
+
+      /*--------------------------------------------------------------*/ 
+      /*- scalar lines for port edges                                 */
+      /*--------------------------------------------------------------*/
+      for(unsigned nPE=0; nPE<Port->PortEdges[Pol].size(); nPE++)
+       { RWGPortEdge *PE = Port->PortEdges[Pol][nPE];
+         RWGSurface *S   = G->Surfaces[PE->ns];
+         RWGEdge *E      = S->GetEdgeByIndex(PE->ne);
+         double *V1      = S->Vertices + 3*E->iV1;
+         double *V2      = S->Vertices + 3*E->iV2;
+         fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
+                    V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],Value,Value);
+       }
+      fprintf(f,"};\n");
+   }
+  fclose(f);
+
+}
+
+/***************************************************************/
+/* PortBFInteractionMatrix[nbf, np]                            */
+/*  = interaction of basis function #nbf with port #np         */
+/*                                                             */
+/*         ( overlap of basis function #nbf with     )         */
+/*  = -1 x ( the electric field produced by port #np )         */
+/*         ( driven by a unit-strength current       )         */
+/*                                                             */
+/* so column #np of this matrix can be used as the RHS vector  */
+/* in a BEM scattering calculation to get the response of the  */
+/* the system to a unit-strength current at port #np. (Thus,   */
+/* the columns of this matrix are the vectors called           */
+/* \mathbf{r}_p (p=1,\cdots,NumPorts) in the memo).            */
+/***************************************************************/
+HMatrix *GetPortBFInteractionMatrix(RWGGeometry *G, RWGPortList *PortList,
+                                    cdouble Omega, HMatrix *PBFIMatrix,
+                                    HMatrix *PPIMatrix)
+{ 
+  int NBF      = G->TotalEdges;
+  int NumPorts = PortList->Ports.size();
+  if ( PBFIMatrix && (PBFIMatrix->NR != NBF || PBFIMatrix->NC!=NumPorts) )
+   { Warn("wrong-size PBFIMatrix in GetPortBFInteractionMatrix (reallocating)");
+     delete PBFIMatrix;
+     PBFIMatrix=0;
+   }
+  if (PBFIMatrix==0)
+   PBFIMatrix = new HMatrix(NBF, NumPorts, LHM_COMPLEX);
+
+  if ( PPIMatrix && (PPIMatrix->NR!=NumPorts || PPIMatrix->NC!=NumPorts) )
+   ErrExit("wrong-size PPIMatrix in GetPortBFInteractionMatrix");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HMatrix XMatrix(3,2,PortList->RMinMax);
+  double RhoMinMax[2], zMinMax[2];
+  GetRzMinMax(G, &XMatrix, RhoMinMax, zMinMax);
+  Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
+  bool PPIsOnly=true;
+  bool Subtract=true;
+  bool RetainSingularTerms=false;
+  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
+                                         PPIsOnly, Subtract, RetainSingularTerms);
+
+
+  int Order=9;
+  char *s=getenv("SCUFF_PORTRHS_ORDER");
+  if (s && 1==sscanf(s,"%i",&Order))
+   Log("Setting panel-cubature order=%i for RF port RHS entries",Order);
+
+  int NumPortEdges = PortList->PortEdges.size();
+  int NBFPE        = NBF + (PPIMatrix ? NumPortEdges : 0);
+  int NumPairs     = NumPortEdges * NBFPE;
+  
+  int NumThreads             = GetNumThreads();
+  bool AllocateThreadBuffers = (NumThreads>1) ? true : false;
+  s=getenv("SCUFF_THREAD_BUFFERS");
+  if (s && s[0]=='0') AllocateThreadBuffers=false;
+
+  HMatrix **PBFPIByThread = 0;
+  if (AllocateThreadBuffers)
+   { PBFPIByThread = new HMatrix *[NumThreads];
+     for(int nt=0; nt<NumThreads; nt++)
+      PBFPIByThread[nt] = new HMatrix(NBFPE, NumPorts, LHM_COMPLEX);
+   }
+
+  Log("Adding port contributions to RHS (%i threads)",NumThreads);
+  Tic();
+#ifdef USE_OPENMP
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+  for(int nPair=0; nPair<NumPairs; nPair++)
+   { 
+     LogPercent(nPair, NumPairs);
+
+     int nPortEdge       = nPair/NBFPE;
+     int nBFPE           = nPair%NBFPE;
+
+     RWGPortEdge *PE     = PortList->PortEdges[nPortEdge];
+     int nPort           = PE->nPort;
+     int nsLeft          = PE->ns;
+     int neLeft          = PE->ne;
+     double Weight       = Signs[PE->Pol] / PortList->Ports[nPort]->Perimeter[PE->Pol];
+
+     int nsRight, neRight, nPortPrime=-1;
+     if (nBFPE < NBF)
+      { if (!G->ResolveEdge(nBFPE, &nsRight, &neRight, 0))
+         ErrExit("%s:%i: internal error(%i,%i,%i)\n",nBFPE,nsRight,neRight);
+      }
+     else
+      { RWGPortEdge *PEP  = PortList->PortEdges[nBFPE - NBF];
+        nPortPrime        = PEP->nPort;
+        nsRight           = PEP->ns;
+        neRight           = PEP->ne;
+        Weight           *= Signs[PEP->Pol] / PortList->Ports[nPortPrime]->Perimeter[PEP->Pol];
+      }
+
+     cdouble ME;
+     GetMOIMatrixElement(G, nsLeft, neLeft, nsRight, neRight, Omega, &ME, Order);
+
+     if (AllocateThreadBuffers)
+      PBFPIByThread[GetThreadNum()]->AddEntry(nBFPE, nPort, Weight*ME);
+     else if (nBFPE < NBF)
+      {
+#ifdef USE_OPENMP
+#pragma omp critical
+#endif
+        PBFIMatrix->AddEntry(nBFPE, nPort, Weight*ME);
+      }
+     else // (nBFPE > NBF)
+      {
+#ifdef USE_OPENMP
+#pragma omp critical
+#endif
+        PPIMatrix->AddEntry(nPortPrime, nPort, Weight*ME);
+      }
+   } // for(int nPEBF=0...
+  double Time=Toc();
+  Log("...RHS port contributions done in %e s",Time);
+
+  if (AllocateThreadBuffers)
+   { PBFIMatrix->Zero();
+     if (PPIMatrix) PPIMatrix->Zero();
+     for(int nt=0; nt<NumThreads; nt++)
+      { for(int SourcePort=0; SourcePort<NumPorts; SourcePort++)
+         { for(int nbf=0; nbf<NBF; nbf++)
+            PBFIMatrix->AddEntry(nbf, SourcePort, PBFPIByThread[nt]->GetEntry(nbf,SourcePort));
+           for(int npe=0; npe<(NBFPE-NBF); npe++)
+            { int DestPort= PortList->PortEdges[npe]->nPort;
+               PPIMatrix->AddEntry(DestPort, SourcePort, PBFPIByThread[nt]->GetEntry(NBF+npe,SourcePort));
+            }
+         }
+        delete PBFPIByThread[nt];
+      }
+     delete[] PBFPIByThread;
+   }
+     
+  return PBFIMatrix;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetPortContributionToRHS(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
+                              cdouble *PortCurrents, HVector *KN)
+{
+  int NBF      = G->TotalBFs;
+  int NumPorts = PortList->Ports.size();
+
+  static HMatrix *PBFIMatrix = 0;
+  static cdouble OmegaSave = 0;
+  static int LastNBF=0, LastNumPorts=0;
+  if (Omega!=OmegaSave || NBF!=LastNBF || NumPorts!=LastNumPorts)
+   { 
+     OmegaSave=OmegaSave;
+     LastNBF=NBF;
+     LastNumPorts=NumPorts;
+     PBFIMatrix=GetPortBFInteractionMatrix(G, PortList, Omega, PBFIMatrix);
+   }
+
+  KN->Zero();
+  for(int np=0; np<NumPorts; np++)
+   for(int nbf=0; nbf<NBF; nbf++)
+    KN->AddEntry(nbf, PortCurrents[np]*PBFIMatrix->GetEntry(nbf,np));
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void EvalSourceDistribution(RWGGeometry *G, RWGPortList *PortList, const double X[3],
+                            HVector *KNVector, cdouble *PortCurrents,
+                            cdouble KN[6], cdouble iwSigmaTau[2])
+{
+  // get BF contribution
+  int ns, np;
+  G->EvalSourceDistribution(X, KNVector, KN, iwSigmaTau, &ns, &np);
+
+  if (ns==-1) return; // X does not lie on a meshed surface
+
+  // add port contribution, if any, by looking at the three edges of the
+  // panel containing X and checking if any of them belong to a port
+  if (PortCurrents==0) return;
+  RWGSurface *S    = G->Surfaces[ns];
+  RWGPanel *P      = S->Panels[np];
+  int NumPortEdges = PortList->PortEdges.size();
+  for(int nei=0; nei<3; nei++)
+   {
+     int ne = P->EI[nei];
+     if (ne>=0) continue; // not an exterior edge
+
+     int npe;
+     RWGPortEdge *PE=0;
+     for(npe=0; npe<NumPortEdges; npe++)
+      { PE = PortList->PortEdges[npe];
+        if ( (PE->ns == ns) && (PE->ne == ne ) )
+         break;
+      }
+     if (npe==NumPortEdges) continue; // exterior edge, but not part of a port
+
+     int nPort      = PE->nPort;
+     int Pol        = PE->Pol;
+     double Sign    = (PE->Pol == _PLUS) ? 1.0 : -1.0;
+     double L       = PortList->Ports[nPort]->Perimeter[Pol];
+     cdouble Weight = -1.0*Sign*PortCurrents[nPort] / L;
+     if(Weight==0.0) continue;
+
+     RWGEdge *E       = S->GetEdgeByIndex(ne);
+     double *Q        = S->Vertices + 3*E->iQP;
+     double DivbAlpha = E->Length / P->Area;
+     double bAlpha[3];
+     VecSub(X, Q, bAlpha);
+     VecScale(bAlpha, 0.5*DivbAlpha);
+     KN[0]         += Weight*bAlpha[0];
+     KN[1]         += Weight*bAlpha[1];
+     KN[2]         += Weight*bAlpha[2];
+     iwSigmaTau[0] += Weight*DivbAlpha;
+   }
+}
+
+/***************************************************************/
+/* contribution of port currents to panel source densities     */
+/***************************************************************/
+void AddPortContributionsToPSD(RWGGeometry *G, RWGPortList *PortList,
+                               cdouble Omega, cdouble *PortCurrents, HMatrix *PSD)
+{ 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (PSD==0 || PSD->NR!=G->TotalPanels || PSD->NC!=13 || PSD->RealComplex!=LHM_COMPLEX)
+   { if (PSD) 
+      Warn("invalid PSD matrix passed to AddPortContributionsToPSD (skipping)");
+     return;
+   }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  for(unsigned nPE=0; nPE<PortList->PortEdges.size(); nPE++)
+   { 
+     RWGPortEdge *PE = PortList->PortEdges[nPE];
+     cdouble Weight  = PortCurrents[PE->nPort] / (PortList->Ports[PE->nPort]->Perimeter[PE->Pol]);
+     if (Weight==0.0) continue;
+     RWGSurface *S   = G->Surfaces[PE->ns];
+     RWGEdge *E      = S->GetEdgeByIndex(PE->ne);
+     double Length   = E->Length; 
+     double *QP      = S->Vertices + 3*(E->iQP);
+     int PanelIndex  = G->PanelIndexOffset[S->Index] + E->iPPanel;
+     RWGPanel *Panel = S->Panels[E->iPPanel];
+
+     // prefactor is *negative* for positive port edges 
+     cdouble PreFac  = -1.0*Signs[PE->Pol]*Weight*Length/(2.0*Panel->Area);
+     double XmQ[3];
+     VecSub(Panel->Centroid, QP, XmQ);
+     PSD->AddEntry( PanelIndex,  4, 2.0*PreFac/(II*Omega));  // rho
+     PSD->AddEntry( PanelIndex,  5, PreFac*XmQ[0] );  // K_x
+     PSD->AddEntry( PanelIndex,  6, PreFac*XmQ[1] );  // K_y
+     PSD->AddEntry( PanelIndex,  7, PreFac*XmQ[2] );  // K_z
+
+   } // for(int nPE=0...)
+}
+
+} // namespace scuff

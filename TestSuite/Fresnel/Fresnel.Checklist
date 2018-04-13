@@ -1,8 +1,0 @@
-RELTOL 1.0e-2
-
-KEY  Omega 1
-KEY  Theta 2
-DATA tTE   7
-DATA tTM   9
-DATA rTE   11
-DATA rTM   13

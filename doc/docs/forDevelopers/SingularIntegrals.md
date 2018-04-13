@@ -533,7 +533,7 @@ MATH_LIBS=-lopenblas -lgomp -lgfortran -lpthread
 ##################################################
 # shouldn't need to modify the rest
 ##################################################
-CPPFLAGS+=-I$(SCUFF_SRC)/src/libs/libscuff 
+CPPFLAGS+=-I$(SCUFF_SRC)/libs/libscuff 
 CPPFLAGS+=-I$(SCUFF_INSTALL)/include/scuff-em
 
 LIBDIR=$(SCUFF_INSTALL)/lib

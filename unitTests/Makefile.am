@@ -16,17 +16,17 @@ EXTRA_DIST = 					\
  SiSlab_40.scuffgeo               		\
  SphereSlabArray.scuffgeo
 
-LIBSCUFF = $(top_builddir)/src/libs/libscuff/libscuff.la
+LIBSCUFF = $(top_builddir)/libs/libscuff/libscuff.la
 AM_CPPFLAGS = -DSCUFF \
-              -I$(top_srcdir)/src/libs/libscuff      \
-              -I$(top_srcdir)/src/libs/libIncField   \
-              -I$(top_srcdir)/src/libs/libMatProp    \
-              -I$(top_srcdir)/src/libs/libMDInterp    \
-              -I$(top_srcdir)/src/libs/libhmat       \
-              -I$(top_srcdir)/src/libs/libSGJC       \
-              -I$(top_srcdir)/src/libs/libSubstrate  \
-              -I$(top_srcdir)/src/libs/libTriInt     \
-              -I$(top_srcdir)/src/libs/libhrutil
+              -I$(top_srcdir)/libs/libscuff      \
+              -I$(top_srcdir)/libs/libIncField   \
+              -I$(top_srcdir)/libs/libMatProp    \
+              -I$(top_srcdir)/libs/libMDInterp    \
+              -I$(top_srcdir)/libs/libhmat       \
+              -I$(top_srcdir)/libs/libSGJC       \
+              -I$(top_srcdir)/libs/libSubstrate  \
+              -I$(top_srcdir)/libs/libTriInt     \
+              -I$(top_srcdir)/libs/libhrutil
 
 noinst_PROGRAMS = 		\
  unit-test-BEMMatrix     	\

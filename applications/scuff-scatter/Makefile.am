@@ -1,18 +1,11 @@
-bin_PROGRAMS = 		\
- scuff-test-overlap	\
- scuff-test-Ewald
+bin_PROGRAMS = scuff-scatter
 
-scuff_test_overlap_SOURCES =	\
- readlineReplacement.h          \
- scuff-test-overlap.cc
+scuff_scatter_SOURCES = 	\
+ scuff-scatter.cc 		\
+ OutputModules.cc 		\
+ scuff-scatter.h
 
-scuff_test_Ewald_SOURCES =	\
- readlineReplacement.h          \
- scuff-test-Ewald.cc
-
-scuff_test_overlap_LDADD     = $(top_builddir)/libs/libscuff/libscuff.la
-
-scuff_test_Ewald_LDADD     = $(top_builddir)/libs/libscuff/libscuff.la
+scuff_scatter_LDADD = $(top_builddir)/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/libs/libscuff      \

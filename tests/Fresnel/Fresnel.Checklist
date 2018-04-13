@@ -1,0 +1,15 @@
+ABSTOL 1.0e-6
+RELTOL 1.0e-2
+
+KEY  Omega 1
+KEY  Theta 2
+
+DATA tFluxTE   3
+DATA rFluxTE   4
+DATA tFluxTM   5
+DATA rFluxTM   6
+
+DATA tTE       7
+DATA tTM       9
+DATA rTE       11
+DATA rTM       13

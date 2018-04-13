@@ -1,18 +1,9 @@
-bin_PROGRAMS = 		\
- scuff-test-overlap	\
- scuff-test-Ewald
+bin_PROGRAMS = scuff-plotEpsMu
 
-scuff_test_overlap_SOURCES =	\
- readlineReplacement.h          \
- scuff-test-overlap.cc
+scuff_plotEpsMu_SOURCES = 	\
+ scuff-plotEpsMu.cc
 
-scuff_test_Ewald_SOURCES =	\
- readlineReplacement.h          \
- scuff-test-Ewald.cc
-
-scuff_test_overlap_LDADD     = $(top_builddir)/libs/libscuff/libscuff.la
-
-scuff_test_Ewald_LDADD     = $(top_builddir)/libs/libscuff/libscuff.la
+scuff_plotEpsMu_LDADD = $(top_builddir)/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/libs/libscuff      \
