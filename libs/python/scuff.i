@@ -9,7 +9,8 @@ fields."
 %module(docstring=DOCSTRING) scuff
 %{
 #include "libscuff.h"
-#include "SSSolver.h"
+#include "StaticSolver.h"
+#include "RFSolver.h"
 using namespace scuff;
 %}
 
@@ -24,8 +25,8 @@ using namespace scuff;
 %newobject scuff::RWGGeometry::AllocateBEMMatrix;
 %newobject scuff::RWGGeometry::AllocateDMDVMatrix;
 %newobject scuff::RWGGeometry::AllocateRHSVector;
-%newobject scuff::SSSolver::AllocateBEMMatrix;
-%newobject scuff::SSSolver::AllocateRHSVector;
+%newobject scuff::StaticSolver::AllocateBEMMatrix;
+%newobject scuff::StaticSolver::AllocateRHSVector;
 %typemap(newfree) GTransformation * "free($1);"
 %newobject scuff::CreateGTransformation;
 
@@ -58,4 +59,5 @@ using namespace scuff;
 %include "libIncField.h"
 %include "GTransformation.h"
 %include "libscuff.h"
-%include "SSSolver.h"
+%include "StaticSolver.h"
+%include "RFSolver.h"
