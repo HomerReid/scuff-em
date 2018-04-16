@@ -36,7 +36,7 @@
 using namespace std;
 
 /***************************************************************/
-/* various random definitions  *********************************/
+/* various random constants    *********************************/
 /***************************************************************/
 #define PLUSMINUS 177   // ascii plus-minus symbol
 
@@ -54,6 +54,9 @@ using namespace std;
 #define ISNAN(x) ((x) != (x))
 #endif
 
+/***************************************************************/
+/* shorthand type definitions **********************************/
+/***************************************************************/
 //typedef _Complex double cdouble;
 #ifndef cdouble
   typedef complex<double> cdouble;
@@ -73,7 +76,6 @@ using namespace std;
 #ifndef strVec
   typedef vector<string> strVec;
 #endif
-
 
 /***************************************************************/
 /* Timing functions  *******************************************/
@@ -233,6 +235,7 @@ void fprintVec(FILE *f, double *v, int Length=3, const char *format="%+.8e");
 void fprintVecCR(FILE *f, double *v, int Length=3, const char *format="%+.8e");
 void fprintVec(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e");
 void fprintVecCR(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e"); 
+
 /***************************************************************/
 /* Other functions  ********************************************/
 /***************************************************************/
@@ -242,12 +245,19 @@ char *strdupEC(const char *s);
 void *memdup(void *v, size_t size);
 void KeyPause();
 
+bool CheckEnv(const char *Name, const char *fmt, void *Destination, bool LogSuccess=true);
+bool CheckEnv(const char *Name, double *Destination, bool LogSuccess=true);
+bool CheckEnv(const char *Name, int *Destination, bool LogSuccess=true);
+bool CheckEnv(const char *Name, char *Destination, bool LogSuccess=true);
+bool CheckEnv(const char *Name, bool LogSuccess=true);
+
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage, char *FileName);
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage); 
 FILE *CreateUniqueFile(const char *Base);
 
 void SetCodeMarker(const char *Marker);
 void InstallHRSignalHandler();
+
 
 /***************************************************************/
 /* command-line argument processing ****************************/

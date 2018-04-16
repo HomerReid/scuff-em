@@ -210,7 +210,9 @@ HMatrix *RFFluxMDF(void *UserData, HMatrix *XMatrix,
   /* call the usual scuff-EM routine to get the contribution of  */
   /* the main structure to the fields                            */
   /***************************************************************/
-  HMatrix *FMatrix=G->GetFields(0,KN,Omega,XMatrix);
+  HMatrix *XTMatrix = XMatrix->Copy();
+  XTMatrix->Transpose();
+  HMatrix *FMatrix=G->GetFields(0,KN,Omega,XTMatrix);
 
   /***************************************************************/
   /* now go through the list of evaluation points and add the    */

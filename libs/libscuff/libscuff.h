@@ -152,6 +152,15 @@ double kdtri_meandepth(kdtri t);
 double kdtri_meanleaf(kdtri t);
 
 /***************************************************************/
+/* prototype for caller-supplied routine used to generate      */
+/* visualization plots of surface quantities.                  */
+/* MDFunc inputs a list of NX coordinates (in the form of the  */
+/* NX x 3 matrix XMatrix) and returns a new NX x ND HMatrix    */
+/* whose columns are the ND data quantities.                   */
+/***************************************************************/
+typedef HMatrix *(*MeshDataFunc)(void *UserData, HMatrix *XMatrix, const char ***DataNames);
+
+/***************************************************************/
 /* RWGSurface is a class describing a single contiguous surface*/
 /* lying at the interface between two regions. The surface may */
 /* be closed or open.                                          */
@@ -201,16 +210,23 @@ class RWGSurface
    void WritePPMesh(const char *FileName, const char *Tag, bool PlotNormals=false);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
-   void PlotScalarDensity(int PlotType, void *Values, int AveragingMethod, const char *FileName,
-                          const char *ViewNameFormat, ...);
-   void PlotScalarDensity(double *Values, int AveragingMethod, const char *FileName,
-                          const char *ViewNameFormat, ...);
-   void PlotScalarDensity(int PlotType, cdouble *Values, int AveragingMethod, const char *FileName,
-                          const char *ViewNameFormat, ...);
-   void PlotVectorDensity(int PlotType, void *Values[3], const char *FileName,
-                          const char *ViewNameFormat, ...);
-   void PlotVectorDensity(double *Values[3], const char *FileName,
-                          const char *ViewNameFormat, ...);
+   double PlotScalarDensity(int PlotType, void *Values, int AveragingMethod,
+                            const char *FileName, const char *ViewNameFormat, ...);
+   double PlotScalarDensity(double *Values, int AveragingMethod, const char *FileName,
+                            const char *ViewNameFormat, ...);
+   double PlotScalarDensity(int PlotType, cdouble *Values, int AveragingMethod, 
+                            const char *FileName, const char *ViewNameFormat, ...);
+   double PlotScalarDensity(int PlotType, HMatrix *M, int WhichColumn,
+                            int AveragingMethod, const char *FileName, const char *ViewNameFormat, ...);
+   double PlotVectorDensity(int PlotType, void *Values[3], const char *FileName,
+                            const char *ViewNameFormat, ...);
+   double PlotVectorDensity(double *Values[3], const char *FileName,
+                            const char *ViewNameFormat, ...);
+   double PlotVectorDensity(int PlotType, HMatrix *M, int WhichColumn,
+                            const char *FileName, const char *ViewNameFormat, ...);
+   HVector *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData=0,
+                         const char *OutFileBase=0, const char *PPOptions=0,
+                         bool UseCentroids=true);
 
 //  private:
 
@@ -635,27 +651,11 @@ void PreloadCache(const char *FileName);
 void StoreCache(const char *FileName);
 void CheckLattice(HMatrix *LBasis);
 
-/***************************************************************/
-/* this is a non-class method that is designed for more general*/
-/* purposes outside SCUFF-EM.                                  */
-/* MDFunc is a caller-supplied routine that inputs a list of   */
-/* NX coordinates (in the form of an NX x 3 HMatrix)           */
-/* and returns an NX x ND HMatrix whose columns are the values */
-/* of ND data quantities, plus optional names for those        */
-/* quantities.                                                 */
-/***************************************************************/
-typedef HMatrix * (*MeshDataFunc)(void *UserData, HMatrix *XMatrix,
-                                  const char ***DataNames);
-void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  RWGSurface *S, const char *OptionsString=0,
-                  char *OutFileName=0, HVector *Integral=0,
-                  bool UseCentroids=false);
+HMatrix *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
+                      const char *MeshFile, const char *TransFile=0,
+                      const char *OutFileBase=0, const char *PPOptions=0,
+                      bool UseCentroids=true);
                   
-void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  char *MeshFileName, const char *OptionsString=0,
-                  char *OutFileName=0, HVector *Integral=0,
-                  bool UseCentroids=false);
-
 } // namespace scuff
 
 #endif // #ifndef LIBSCUFF_H

@@ -450,7 +450,11 @@ int LayeredSubstrate::GetScalarGFs_MOI(cdouble Omega,
 
   /***************************************************************/
   /* if we subtracted the near-field term from the Fourier-space */
-  /* integrand, compute and add that term in real space          */
+  /* integrand, compute and add that term in real space.         */
+  /* Alternatively, if we *didn't* subtract in the Fourier       */
+  /* intergral, but we were asked to exclude the most singular   */
+  /* terms from the potentials, then we must evaluate and        */
+  /* subtract those.                                             */
   /***************************************************************/
   bool NeedCorrection = Subtract || (!Subtract && !RetainSingularTerms);
   if (NeedCorrection)
@@ -459,11 +463,12 @@ int LayeredSubstrate::GetScalarGFs_MOI(cdouble Omega,
       Rhoy     = XMatrix->GetEntryD(nx,1) - XMatrix->GetEntryD(nx,4);
       Rho      = sqrt(Rhox*Rhox + Rhoy*Rhoy);
       double z = XMatrix->GetEntryD(nx,2) - XMatrix->GetEntryD(nx,5);
-      if (z < -1.0e-10) continue; // don't do subtraction for eval points in dielectric
       cdouble VCorr[4*NUMSGFS_MOI];
       cdouble *V=(cdouble *)VMatrix->GetColumnPointer(nx);
       if (Subtract)
-       { GetSGFCorrection_MOI(Omega, Rho, z, Eps, h, VCorr, Options);
+       { if (z < -1.0e-10) 
+          ErrExit("%s:%i: internal error (singularity subtraction not implemented for points in dielectric)",__FILE__,__LINE__);
+         GetSGFCorrection_MOI(Omega, Rho, z, Eps, h, VCorr, Options);
          VecPlusEquals(V,1.0,VCorr,NumSGFVDs);
        }
       else if (!Subtract && !RetainSingularTerms)
@@ -480,6 +485,9 @@ int LayeredSubstrate::GetScalarGFs_MOI(cdouble Omega,
   return Data.NumCalls;
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 bool LayeredSubstrate::GetScalarGFs_Interp(cdouble Omega, double Rho, double z,
                                            cdouble *V, const ScalarGFOptions *Options)
 { 
@@ -512,6 +520,8 @@ bool LayeredSubstrate::GetScalarGFs_Interp(cdouble Omega, double Rho, double z,
   int NumSGFs      = (Options->PPIsOnly    ? 2 : NUMSGFS_MOI);
   int NumSGFsTable = (SGFIOptions.PPIsOnly ? 2 : NUMSGFS_MOI);
   if( NumSGFs > NumSGFsTable )
+   return false;
+  if( SGFIOptions.Subtract            != Options->Subtract)
    return false;
   if( SGFIOptions.RetainSingularTerms != Options->RetainSingularTerms )
    return false;
@@ -619,7 +629,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   dVec RzMin(Dimension), RzMax(Dimension);
   RzMin[0] = RhoMin;  RzMax[0] = RhoMax;
   if (Dimension>=2)
-   { RzMin[1] = zMin;  RzMax[1] = zMax; }
+   { RzMin[1] = fmin(zMin,zMax);  RzMax[1] = fmax(zMin,zMax); }
  
   char *s=getenv("SCUFF_SUBSTRATE_DELTARHO");
   if (s) sscanf(s,"%le", &DeltaRho);

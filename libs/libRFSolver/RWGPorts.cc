@@ -175,27 +175,6 @@ iVec FindEdgesInPolygon(RWGSurface *S, dVec PolygonVertices)
 }
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void AutoSelectRefPoints(RWGGeometry *G, RWGPort *Port)
-{ 
-  double MinDistance=1.0e100;
-  for(unsigned ieP=0; ieP<Port->PortEdges[_PLUS].size(); ieP++)
-   for(unsigned ieM=0; ieM<Port->PortEdges[_MINUS].size(); ieM++)
-    { RWGPortEdge *PPE = Port->PortEdges[_PLUS][ieP];
-      RWGPortEdge *MPE = Port->PortEdges[_MINUS][ieM];
-      RWGEdge *EP      = G->Surfaces[PPE->ns]->GetEdgeByIndex(PPE->ne);
-      RWGEdge *EM      = G->Surfaces[MPE->ns]->GetEdgeByIndex(MPE->ne);
-      double Distance  = VecDistance(EP->Centroid, EM->Centroid);
-      if (Distance<MinDistance)
-       { MinDistance=Distance;
-         memcpy(Port->RefPoint[_PLUS],EP->Centroid,3*sizeof(double));
-         memcpy(Port->RefPoint[_MINUS],EM->Centroid,3*sizeof(double));
-       }
-    }
-} 
-
-/***************************************************************/
 // general-purpose error checking for keywords in port file    */
 /***************************************************************/
 int CheckKeywordSyntax(const char *PortFileName, int LineNum, RWGPort *CurrentPort,
@@ -266,7 +245,6 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
       { 
         if (CurrentPort!=0) ErrExit("%s:%i: syntax error (missing ENDPORT?)",PortFileName,LineNum);
         CurrentPort = new RWGPort;
-        CurrentPort->RefPoint[_PLUS][0]=CurrentPort->RefPoint[_MINUS][0]=HUGE_VAL; // to indicate unspecified
         CurrentPort->Perimeter[_PLUS]=CurrentPort->Perimeter[_MINUS]=0.0;
       }
      /*--------------------------------------------------------------*/  
@@ -318,26 +296,11 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
             }
          }
       }
-     else if ( !StrCaseCmp(Tokens[0]+1,"REFPOINT") )
-      { 
-        int Pol=CheckKeywordSyntax(PortFileName, LineNum, CurrentPort, Tokens[0], NumTokens, 4);
-        for(int n=0; n<3; n++)
-         sscanf(Tokens[1+n],"%le",CurrentPort->RefPoint[Pol] + n);
-      }
      else
       ErrExit("%s:%i: unknown keyword %s",PortFileName,LineNum,Tokens[0]);
 
    } // while( fgets(buffer, 1000, f) )
   fclose(f);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  for(unsigned np=0; np<PortList->Ports.size(); np++)
-   { RWGPort *Port = PortList->Ports[np];
-     if( Port->RefPoint[0][0]==HUGE_VAL || Port->RefPoint[1][0]==HUGE_VAL )
-      AutoSelectRefPoints(G, Port);
-   }
 
   /***************************************************************/
   /* compute bounding box and perimeters  ************************/
@@ -360,12 +323,11 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
   /* write summary of port list to log file **********************/
   /***************************************************************/
   for(unsigned np=0; np<PortList->Ports.size(); np++)
-   for(int Pol=0; Pol<2; Pol++)
+   for(int Pol=_PLUS; Pol<=_MINUS; Pol++)
     { RWGPort *Port = PortList->Ports[np];
       int NPE = Port->PortEdges[Pol].size();
       double Perimeter=Port->Perimeter[Pol];
-      double *X = Port->RefPoint[Pol];
-      Log("Port %2i (%s): perimeter %e, X0={%g,%g,%g}, %i edges=[",np,PolStr[Pol],Perimeter,X[0],X[1],X[2],NPE);
+      Log("Port %2i (%s): perimeter %e, %i edges=[",np,PolStr[Pol],Perimeter,NPE);
       for(int npe=0; npe<NPE; npe++)
        { RWGPortEdge *PE = Port->PortEdges[Pol][npe];
          LogC("%s(%i)%c",G->Surfaces[PE->ns]->Label,-(1+PE->ne),(npe==NPE-1) ? ']' : ' ');
@@ -412,13 +374,7 @@ void PlotPortsInGMSH(RWGGeometry *G, RWGPortList *PortList, const char *format, 
       fprintf(f,"View \"Port %i %s terminal\" {\n",nPort+1, PolStr[Pol]);
 
       RWGPort *Port     = PortList->Ports[nPort];
-      double *RefPoint  = Port->RefPoint[Pol];
       int Value         = (Pol ? 1 : -1 ) * (nPort+1);
-
-      /*--------------------------------------------------------------*/
-      /*- scalar points for ref points                               -*/
-      /*--------------------------------------------------------------*/
-      fprintf(f,"SP(%e,%e,%e) {%i};\n", RefPoint[0],RefPoint[1],RefPoint[2],Value);
 
       /*--------------------------------------------------------------*/ 
       /*- scalar lines for port edges                                 */

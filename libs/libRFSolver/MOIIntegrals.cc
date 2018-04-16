@@ -241,6 +241,10 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
   Substrate->UpdateCachedEpsMu(Omega);
   cdouble Eps = Substrate->EpsLayer[1];
 
+  //FIXME
+  if (XDest[2] < -1.0e-10)
+   Subtract=false;
+
   MOIIntegrandData MOIData;
   MOIData.S              = Substrate;
   MOIData.Omega          = Omega;
@@ -250,7 +254,10 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
   MOIData.qPoints        = 0;
   MOIData.CubaturePoints = 0;
 
-  if (Order==-1) Order = 9;
+  if (Order==-1) 
+   { RWGEdge *E = G->Surfaces[ns]->GetEdgeByIndex(ne);
+     Order = ( VecDistance(XDest, E->Centroid) < 2.0*E->Radius ) ? 9 : 4;
+   }
   int zfdim=NPFC, fdim=2*zfdim;
 
   bool TrivialSubstrate = (Eps==1.0 && isinf(Substrate->zGP));
@@ -263,7 +270,6 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
   /* add contributions of most singular terms in GF              */
   /***************************************************************/
   if (SingularTerms) memset(SingularTerms, 0, NPFC*sizeof(cdouble));
-//#if ( Subtract && (XDest[2] > -1.0e-12) )
   if ( Subtract )
    { 
      cdouble p=0.0, a[3]={0.0,0.0,0.0}, dp[3]={0.0,0.0,0.0};
@@ -734,7 +740,7 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
   double RhoMinMax[2], zMinMax[2];
   GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
   bool PPIsOnly = false;
-  bool Subtract = true;
+  bool Subtract = (XMatrix->GetEntryD(2,0) >= 0.0);
   bool RetainSingularTerms = false;
   double DeltaRho=0.0, DeltaZ=0.0;
   bool Verbose = (G->LogLevel==SCUFF_VERBOSE2);
@@ -874,7 +880,7 @@ HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
   double RhoMinMax[2], zMinMax[2];
   GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
   bool PPIsOnly = false;
-  bool Subtract = true;
+  bool Subtract = (XMatrix->GetEntryD(2,0)>=0.0);
   bool RetainSingularTerms = false;
   G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
                                          PPIsOnly, Subtract, RetainSingularTerms);

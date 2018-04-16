@@ -394,6 +394,8 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 static int TDMaxEval=1000;
+static int ForceGCMEOrder=-1;
+bool ForceForce=true;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -406,7 +408,7 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
                       double *FIBBIs)
 {
 // FIXME
-  bool NeedForce=true;
+  bool NeedForce=ForceForce; //true;
 
   int NumFIBBIs = NeedForce ? NUMFIBBIS : 12;
   memset(FIBBIs, 0, NumFIBBIs*sizeof(double));
@@ -431,21 +433,23 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
 
   int ncv = AssessBFPair(Sa, nea, Sb, neb);
 
-  memset(FIBBIs, 0, NUMFIBBIS*sizeof(double));
-  if (ncv>=1)
+  if (NeedForce)
    { 
-     double Error[NUMFIBBIS];
-     GetBFBFCubatureTD(Sa, nea, Sb, neb,
-                       GCMEIntegrand, (void *)Data, NUMFIBBIS,
-                       FIBBIs, Error, TDMaxEval);
+     if (ncv>=1)
+      { 
+        double Error[NUMFIBBIS];
+        GetBFBFCubatureTD(Sa, nea, Sb, neb,
+                          GCMEIntegrand, (void *)Data, NUMFIBBIS,
+                          FIBBIs, Error, TDMaxEval);
+      }
+     else
+      { int Order=9;
+        GetBFBFCubature2(Sa, nea, Sb, neb,
+                         GCMEIntegrand, (void *)Data, NUMFIBBIS,
+                         Order, FIBBIs);
+      }
+     memset(FIBBIs, 0, 12*sizeof(double));
    }
-  else
-   { int Order=9;
-     GetBFBFCubature2(Sa, nea, Sb, neb,
-                      GCMEIntegrand, (void *)Data, NUMFIBBIS,
-                      Order, FIBBIs);
-   };
-  memset(FIBBIs, 0, 12*sizeof(double));
 
   /***************************************************************/
   /***************************************************************/
@@ -517,8 +521,8 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
          double Sign = (npa==npb) ? 1.0 : -1.0;
          for(int n=0; n<12; n++)
           FIBBIs[n] += Sign*4.0*M_PI*LL*real(PPContributions[n]);
-       };
-    };
+       }
+    }
 
 }
 
@@ -699,12 +703,9 @@ void InitGetGCMEArgs(GetGCMEArgStruct *Args)
 static int init=0;
 if (init==0)
  { init=1;
-   char *s=getenv("SCUFF_TDMAXEVAL");
-   if (s)
-    { sscanf(s,"%i",&TDMaxEval);
-      Log("Setting TDMaxEval=%i.");
-    };
- };
+   CheckEnv("SCUFF_TDMAXEVAL",&TDMaxEval);
+   if (CheckEnv("SCUFF_UNFORCE_FORCE")) ForceForce=false; 
+ }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }

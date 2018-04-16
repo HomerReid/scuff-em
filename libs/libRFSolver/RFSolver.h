@@ -72,7 +72,6 @@ typedef struct RWGPortEdge
 
 typedef struct RWGPort
  { vector<RWGPortEdge *> PortEdges[NUMPOLARITIES];
-   double RefPoint[NUMPOLARITIES][3];
    double Perimeter[NUMPOLARITIES];
  } RWGPort;
 
@@ -153,9 +152,9 @@ void ProcessEPFile(RWGGeometry *G, RWGPortList *PortList,
                    cdouble Omega, char *EPFile,
                    HVector *KN, cdouble *PortCurrents, char *FileBase);
 
-void ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList,
-                   cdouble Omega, char *FVMesh, char *FVMeshTransFile,
-                   HVector *KN, cdouble *PortCurrents, char *FileBase);
+HMatrix *ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega, 
+                       const char *FVMesh, const char *FVMeshTransFile,
+                       HVector *KN, cdouble *PortCurrents, char *FileBase);
 
 void AddMinusIdVTermsToZMatrix(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
                                HMatrix *KMatrix, HMatrix *ZMatrix);

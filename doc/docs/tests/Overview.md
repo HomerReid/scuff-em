@@ -1,17 +1,53 @@
 # Overview of the <span class="SC">scuff-em</span> Validation Test Suite
 
 The [[scuff-em]] distribution includes a number of validation tests
-that use the various dedicated
+that use both the
+[core library][CoreLibrary] and the
+various dedicated
 [application modules][Applications]
-to solve physics problems with known analytical solutions.
+to solve physics problems with known (usuallly analytical) solutions.
 
-In addition to demonstrating the core functionality of
-the application modules in simple cases,
-these to 
-these are used as unit tests to catch bugs and regressions
-in the [[scuff-em]] development process; you can
-also use them to verify the correct performance of your 
-[[scuff-em]] installation.
+One purpose of the test suite is to serve as battery of unit tests
+to catch bugs and regressions in the [[scuff-em]] development process.
+You can run the full unit-test suite in your local copy of the repository
+by saying `% make check` from the top of the source tree.
+The unit-tests are also incorporated into
+[Travis continuous-integration framework](https://travis-ci.org/)
+to run the test suite automatically whenever any new code is
+committed to the 
+[<span class=SC>scuff-em</span> Github repository](http://github.com/HomerReid/scuff-em);
+you can check the status of the test suite in the latest repository versions
+[here](https://travis-ci.org/HomerReid/scuff-em) or from the
+icon in the README section of the 
+[GitHub page](http://github.com/HomerReid/scuff-em).
+
+Beyond unit testing---which is really intended to catch minor things like
+inadvertent programming errors and missing files---the test suite is
+also useful for benchmarking and validating the performance of
+<span class=SC>scuff-em</span>
+on nontrivial physics and engineering problems.
+
+## Structure of the test suite
+
+The various individual tests live in subfolders of the `tests` subdirectory
+of the <span class=SC>scuff-em</span> source repository; after
+`make install` they are copied to the directory `$(prefix)/share/scuff-em/tests.`
+The tests come in various formats:
+    --C++ codes to be compiled and linked against `libscuff`
+    --python scripts to be run with the <span class=SC>scuff-em</span> python module, and
+    --shell scripts that invoke [`scuff-scatter`](../applications/scuff-scatter/scuff-scatter.md) or other
+     [<span class=SC>scuff-em</span> command-line applications](../applications)
+     and compare the resulting output files to reference files.
+
+### `CheckSCUFFData`
+
+Upon a successful <span class=SC>scuff-em</span> build and install,
+a binary utility code called `CheckSCUFFData` will be placed
+in `$(prefix)/share/scuff-em/tests`. This is a simple utility
+used by some tests to compare data files produced by 
+[<span class=SC>scuff-em</span> command-line applications](../applications)
+to reference data files. See the examples below for
+information on how this tool is used.
 
 ## Descriptions of the individual tests in the validation suite
 
@@ -31,48 +67,7 @@ of [[scuff-em]] results to known analytical solutions.
 
 ## Running the [[scuff-em]] tests
 
-The [[scuff-em]] distribution includes a command-line test harness
-application that you may use to run individual tests, or the entire
-test suite, to verify correct performance of your [[scuff-em]]
-installation.
-
-The test harness is named ``scuff-test-harness,`` and it lives
-in the `tests` subdirectory of the [[scuff-em]] repository.
-The `tests` folder also contains
-
-* a collection of text files with file extension `.scuffTest`,
-  each of which describes a single validation test in a format
-  understood by `scuff-test-harness`
-
-* various input files (geometry files, surface meshes, etc.) 
-  needed to run the tests
-
-* a collection of data files with file extension `.ref`,
-  which contain the correct results of the validation tests
-  and are used by `scuff-test-harness` to determine whether 
-  or not the test succeeded.
-
-### Running individual tests
-
-To run an individual validation test, use the `--test` option
-to `scuff-test-harness:`
-
-```
- % scuff-test-harness --test MieScattering
-```
-
-The argument passed to `--test` should be the base
-file name of one of the `.scuffTest` files.
-
-### Running the full test suite or a subset
-
-To run the entire suite of validation tests, use the `--allTests`
-option:
-
-```
- % scuff-test-harness --allTests
-```
-
 ## Checking the results of validation tests
  
-[Applications]:        ../reference/TopLevel.md#AvailableApplications
+[CoreLibrary]:         ../API/libscuff.md
+[Applications]:        ../reference/TopLevel.md#AvailableApplications../API

@@ -1,52 +1,52 @@
 \select@language {english}
 \contentsline {section}{\numberline {1}Geometries in {\sc libscuff\tmspace +\thinmuskip {.1667em}}}{3}
 \contentsline {section}{\numberline {2}Representation of Surface Currents in {\sc libscuff}}{7}
-\contentsline {section}{\numberline {3}Homogeneous Dyadic Green's Functions}{11}
-\contentsline {paragraph}{Shorthand}{12}
-\contentsline {section}{\numberline {4}Computation of the fields in {\sc libscuff\tmspace +\thinmuskip {.1667em}}geometries}{13}
-\contentsline {subsection}{\numberline {4.1}The simplest case}{13}
-\contentsline {subsection}{\numberline {4.2}The general case}{13}
-\contentsline {section}{\numberline {5}BEM Formulations in {\sc libscuff}}{15}
-\contentsline {subsection}{\numberline {5.1}Continuous forms of the integral equations solved by {\sc libscuff\tmspace +\thinmuskip {.1667em}}}{15}
-\contentsline {subsubsection}{\numberline {5.1.1}The equation imposed at points on PEC surfaces}{15}
-\contentsline {subsubsection}{\numberline {5.1.2}The equation imposed at points on dielectric object surfaces: PMCHWT formulation}{16}
-\contentsline {subsubsection}{\numberline {5.1.3}The equation imposed at points on dielectric object surfaces: N-M\"uller formulation}{17}
-\contentsline {paragraph}{Discretization}{19}
-\contentsline {subsubsection}{\numberline {5.1.4}Modifications for nonzero surface impedance}{19}
-\contentsline {section}{\numberline {6}Introduction of the $-Z_0$ Prefactor in the Magnetic Current Expansion}{21}
-\contentsline {section}{\numberline {7}The Equations Solved by {\sc libscuff}: Discrete Forms}{22}
-\contentsline {section}{\numberline {8}Structure of the BEM System}{25}
-\contentsline {subsection}{\numberline {8.1}Structure of the coefficient vector}{25}
-\contentsline {subsection}{\numberline {8.2}Structure of the RHS vector}{26}
-\contentsline {subsection}{\numberline {8.3}Structure of the BEM matrix}{27}
-\contentsline {section}{\numberline {9}Evaluation of 2D Integrals over RWG Basis Functions}{29}
-\contentsline {section}{\numberline {10}Evaluation of 4D Integrals over RWG Basis Functions}{30}
-\contentsline {subsection}{\numberline {10.1}Matrix elements between distant basis functions: spherical multipole method}{30}
-\contentsline {subsection}{\numberline {10.2}Matrix elements between nearby basis functions: panel-panel integration method}{31}
-\contentsline {section}{\numberline {11}Evaluation of Frequency-Independent Panel-Panel Integrals}{35}
-\contentsline {paragraph}{1. FIPPIs for $p=0$.}{37}
-\contentsline {paragraph}{2. FIPPIs for panels with common vertices.}{38}
-\contentsline {paragraph}{3. FIPPIs for panels with no common vertices.}{38}
-\contentsline {section}{\numberline {12}Derivatives of Matrix Elements}{40}
-\contentsline {subsection}{\numberline {12.1}Derivatives by Spherical-Multipole Method}{40}
-\contentsline {subsection}{\numberline {12.2}Derivatives by Panel-Panel Integral Method}{40}
-\contentsline {section}{\numberline {13}Other Panel Integrals}{43}
-\contentsline {subsection}{\numberline {13.1}Overlap Integral}{43}
-\contentsline {paragraph}{The case $\alpha \not =\beta $.}{43}
-\contentsline {paragraph}{The case $\alpha =\beta $.}{44}
-\contentsline {subsection}{\numberline {13.2}Crossed Overlap Integral}{44}
-\contentsline {section}{\numberline {14}Spherical Multipole Moments}{46}
-\contentsline {section}{\numberline {15}Evaluation of the fields at panel centroids}{48}
-\contentsline {section}{\numberline {16}BEM formulations for PBC bodies}{50}
-\contentsline {subsection}{\numberline {16.1}Scattered field of an infinite PEC surface}{50}
-\contentsline {subsection}{\numberline {16.2}Periodic Green's functions}{50}
-\contentsline {paragraph}{Transpositional symmetries of periodic Green's functions}{51}
-\contentsline {paragraph}{Translational symmetries of periodic Green's functions}{52}
-\contentsline {subsection}{\numberline {16.3}Discretized EFIE formulation}{52}
-\contentsline {subsection}{\numberline {16.4}Symmetries of the PBC BEM matrix}{53}
-\contentsline {section}{\numberline {17}PBC geometries in {\sc scuff-em}}{54}
-\contentsline {subsection}{\numberline {17.1}Overview}{54}
-\contentsline {subsection}{\numberline {17.2}Straddlers}{54}
-\contentsline {subsection}{\numberline {17.3}Evaluation of surface currents within the unit cell}{54}
-\contentsline {subsection}{\numberline {17.4}Relations between BEM matrix elements}{57}
-\contentsline {subsection}{\numberline {17.5}Assembly of BEM matrix blocks}{57}
+\contentsline {section}{\numberline {3}Homogeneous Dyadic Green's Functions}{13}
+\contentsline {paragraph}{Shorthand}{14}
+\contentsline {section}{\numberline {4}Computation of the fields in {\sc libscuff\tmspace +\thinmuskip {.1667em}}geometries}{15}
+\contentsline {subsection}{\numberline {4.1}The simplest case}{15}
+\contentsline {subsection}{\numberline {4.2}The general case}{15}
+\contentsline {section}{\numberline {5}BEM Formulations in {\sc libscuff}}{17}
+\contentsline {subsection}{\numberline {5.1}Continuous forms of the integral equations solved by {\sc libscuff\tmspace +\thinmuskip {.1667em}}}{17}
+\contentsline {subsubsection}{\numberline {5.1.1}The equation imposed at points on PEC surfaces}{17}
+\contentsline {subsubsection}{\numberline {5.1.2}The equation imposed at points on dielectric object surfaces: PMCHWT formulation}{18}
+\contentsline {subsubsection}{\numberline {5.1.3}The equation imposed at points on dielectric object surfaces: N-M\"uller formulation}{19}
+\contentsline {paragraph}{Discretization}{21}
+\contentsline {subsubsection}{\numberline {5.1.4}Modifications for nonzero surface impedance}{21}
+\contentsline {section}{\numberline {6}Introduction of the $-Z_0$ Prefactor in the Magnetic Current Expansion}{23}
+\contentsline {section}{\numberline {7}The Equations Solved by {\sc libscuff}: Discrete Forms}{24}
+\contentsline {section}{\numberline {8}Structure of the BEM System}{27}
+\contentsline {subsection}{\numberline {8.1}Structure of the coefficient vector}{27}
+\contentsline {subsection}{\numberline {8.2}Structure of the RHS vector}{28}
+\contentsline {subsection}{\numberline {8.3}Structure of the BEM matrix}{29}
+\contentsline {section}{\numberline {9}Evaluation of 2D Integrals over RWG Basis Functions}{31}
+\contentsline {section}{\numberline {10}Evaluation of 4D Integrals over RWG Basis Functions}{32}
+\contentsline {subsection}{\numberline {10.1}Matrix elements between distant basis functions: spherical multipole method}{32}
+\contentsline {subsection}{\numberline {10.2}Matrix elements between nearby basis functions: panel-panel integration method}{33}
+\contentsline {section}{\numberline {11}Evaluation of Frequency-Independent Panel-Panel Integrals}{37}
+\contentsline {paragraph}{1. FIPPIs for $p=0$.}{39}
+\contentsline {paragraph}{2. FIPPIs for panels with common vertices.}{40}
+\contentsline {paragraph}{3. FIPPIs for panels with no common vertices.}{40}
+\contentsline {section}{\numberline {12}Derivatives of Matrix Elements}{42}
+\contentsline {subsection}{\numberline {12.1}Derivatives by Spherical-Multipole Method}{42}
+\contentsline {subsection}{\numberline {12.2}Derivatives by Panel-Panel Integral Method}{42}
+\contentsline {section}{\numberline {13}Other Panel Integrals}{45}
+\contentsline {subsection}{\numberline {13.1}Overlap Integral}{45}
+\contentsline {paragraph}{The case $\alpha \not =\beta $.}{45}
+\contentsline {paragraph}{The case $\alpha =\beta $.}{46}
+\contentsline {subsection}{\numberline {13.2}Crossed Overlap Integral}{46}
+\contentsline {section}{\numberline {14}Spherical Multipole Moments}{48}
+\contentsline {section}{\numberline {15}Evaluation of the fields at panel centroids}{50}
+\contentsline {section}{\numberline {16}BEM formulations for PBC bodies}{52}
+\contentsline {subsection}{\numberline {16.1}Scattered field of an infinite PEC surface}{52}
+\contentsline {subsection}{\numberline {16.2}Periodic Green's functions}{52}
+\contentsline {paragraph}{Transpositional symmetries of periodic Green's functions}{53}
+\contentsline {paragraph}{Translational symmetries of periodic Green's functions}{54}
+\contentsline {subsection}{\numberline {16.3}Discretized EFIE formulation}{54}
+\contentsline {subsection}{\numberline {16.4}Symmetries of the PBC BEM matrix}{55}
+\contentsline {section}{\numberline {17}PBC geometries in {\sc scuff-em}}{56}
+\contentsline {subsection}{\numberline {17.1}Overview}{56}
+\contentsline {subsection}{\numberline {17.2}Straddlers}{56}
+\contentsline {subsection}{\numberline {17.3}Evaluation of surface currents within the unit cell}{56}
+\contentsline {subsection}{\numberline {17.4}Relations between BEM matrix elements}{59}
+\contentsline {subsection}{\numberline {17.5}Assembly of BEM matrix blocks}{59}

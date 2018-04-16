@@ -26,7 +26,8 @@ using namespace scuff;
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-  EnableAllCPUs();
+  InstallHRSignalHandler();
+  InitializeLog(argv[0]);
 
   /*--------------------------------------------------------------*/
   /*- process command-line options -------------------------------*/
@@ -93,10 +94,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- outer loop over frequencies --------------------------------*/
   /*--------------------------------------------------------------*/
-  int Type, l, m;
-  int TypeP, lP, mP;
   const char *TypeChar="ME";
-  int nr, nc;
   FILE *TextOutputFile=vfopen("%s.TMatrix","w",GetFileBase(GeoFileName));
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    {
@@ -114,9 +112,9 @@ int main(int argc, char *argv[])
      /*- of the T matrix; note nc is a running column index)        -*/
      /*--------------------------------------------------------------*/
      TMatrix->Zero();
-     for(nc=l=0; l<=lMax; l++)
-      for(m=-l; m<=l; m++)
-       for(Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nc++)
+     for(int nc=0, l=0; l<=lMax; l++)
+      for(int m=-l; m<=l; m++)
+       for(int Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nc++)
         { 
           if (l==0) 
            continue;
@@ -138,31 +136,28 @@ int main(int argc, char *argv[])
            for(nr=0; nr<NumMoments; nr++)
             TMatrix->SetEntry(nr, nc, AVector->GetEntry(nr));
 
-        }; // for (nc=l=0...)
+        } // for (nc=l=0...)
 
      /*--------------------------------------------------------------*/
      /*- write the full content of the T-matrix at this frequency to */
      /*- the text output file                                        */
      /*--------------------------------------------------------------*/
-     for(nr=l=0; l<=lMax; l++)
-      for(m=-l; m<=l; m++)
-       for(Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nr++)
-        for(nc=lP=0; lP<=lMax; lP++)
-         for(mP=-lP; mP<=lP; mP++)
-          for(TypeP=SW_MAGNETIC; TypeP<=SW_ELECTRIC; TypeP++, nc++)
+     for(int nr=0, l=0; l<=lMax; l++)
+      for(int m=-l; m<=l; m++)
+       for(int Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nr++)
+        for(int nc=0, lP=0; lP<=lMax; lP++)
+         for(int mP=-lP; mP<=lP; mP++)
+          for(int TypeP=SW_MAGNETIC; TypeP<=SW_ELECTRIC; TypeP++, nc++)
            { 
              if (l==0 || lP==0) continue;
 
- //            fprintf(TextOutputFile,"%s  %c(%3i, %3i)  %c(%3i, %3i)  %+15.8e %+15.8e\n",
-             fprintf(TextOutputFile,"%s %c %i %i %c %i %i  %+15.8e %+15.8e\n",
-                                     z2s(Omega),
-                                     TypeChar[Type],l,m,
-                                     TypeChar[TypeP],lP,mP,
+             fprintf(TextOutputFile,"%s %c %i %i %c %i %i  %+15.8e %+15.8e\n", z2s(Omega),
+                                     TypeChar[Type],l,m, TypeChar[TypeP],lP,mP,
                                      real(TMatrix->GetEntry(nr,nc)), 
                                      imag(TMatrix->GetEntry(nr,nc)));
-           };
+           }
 
-    }; // for( nOmega= ... )
+    } // for( nOmega= ... )
 
   fclose(TextOutputFile);
       

@@ -192,25 +192,37 @@ int main(int argc, char *argv[])
      double Rho    = sqrt(Rhox*Rhox + Rhoy*Rhoy);
      double z      = XMatrix->GetEntryD(nx,2) - XMatrix->GetEntryD(nx,5);
 
-     cdouble VFull[4*NUMSGFS_MOI], VSubt[4*NUMSGFS_MOI];
+     Options.Subtract = (z>=-1.0e-10);
 
-     Options.Subtract = false;
-     int NFull = S->GetScalarGFs_MOI(Omega, Rho, z, VFull, &Options);
-     printf("Full (%5i calls): %s    %s\n",NFull,CD2S(VFull[0]),CD2S(VFull[1]));
-
-     Options.Subtract=true;
-     int NSubt = S->GetScalarGFs_MOI(Omega, Rho, z, VSubt, &Options);
-     printf("Subt (%5i calls): %s    %s\n",NSubt,CD2S(VSubt[0]),CD2S(VSubt[1]));
+     cdouble VLSU[4*NUMSGFS_MOI];
+     Tic();
+     int N = S->GetScalarGFs_MOI(Omega, Rho, z, VLSU, &Options);
+     double Elapsed=Toc();
+     printf("LSU: (%5i calls, %e ms)\n",N,Elapsed);
+     fprintf(f,"%i %e ",N,Elapsed);
+     fprintVec(f,VLSU,NumSGFVDs);
 
      if (NX==1)
-      { Compare(VFull, VSubt, NumSGFVDs, "Full", "Subt");
+      { 
+        cdouble VFull[4*NUMSGFS_MOI];
+        memset(VFull, 0, 4*NUMSGFS_MOI*sizeof(cdouble));
+
+        if (Options.Subtract)
+         { Options.Subtract=false;
+           Tic();
+           int NFull = S->GetScalarGFs_MOI(Omega, Rho, z, VFull, &Options);
+           Elapsed=Toc();
+           printf("Full: (%5i calls, %e ms)\n",NFull,Elapsed);
+           fprintf(f,"%i %e ",NFull,Elapsed);
+           fprintVec(f,VFull,NumSGFVDs);
+         }
+
+        Compare(VFull, VLSU, NumSGFVDs, "Full", "Subtracted");
         if (Derivatives)
          TestDerivatives(S, Omega, Rho, z, &Options);
       }
 
-     fprintf(f,"%e %e %i %i ",Rho,z,NFull,NSubt);
-     fprintVec(f,VFull,NumSGFVDs);
-     fprintVecCR(f,VSubt,NumSGFVDs);
+     fprintf(f,"\n");
    }
   fclose(f);
 

@@ -392,8 +392,7 @@ int main(int argc, char *argv[])
          ProcessEPFile(G, PortList, Omega, EPFiles[n], KN, PortCurrents, FileBase);
 
         for(int n=0; n<nFVMeshes; n++)
-         ProcessFVMesh(G, PortList, Omega, FVMeshes[n], FVMeshTransFiles[n],
-                       KN, PortCurrents, FileBase);
+         ProcessFVMesh(G, PortList, Omega, FVMeshes[n], FVMeshTransFiles[n], KN, PortCurrents, FileBase);
 
       } // if (nEPFiles!=0 || nFVMeshes!=0)
    }; // for (nf=0..)

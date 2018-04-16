@@ -296,7 +296,7 @@ void FIBBICache::GetFIBBIData(RWGSurface *SA, int neA,
   if ( Found )
    { Hits++;
      return;
-   };
+   }
   
   /***************************************************************/
   /* if it was not found, compute a new FIBBI data record and add*/

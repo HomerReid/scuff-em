@@ -697,24 +697,6 @@ void GetCPUAffinity()
 #endif
 }
 
-void EnableAllCPUs()
-{
-#if defined(_WIN32)
-#elif 0 // nonportable
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(0,&cpuset);
-  CPU_SET(1,&cpuset);
-  CPU_SET(2,&cpuset);
-  CPU_SET(3,&cpuset);
-  CPU_SET(4,&cpuset);
-  CPU_SET(5,&cpuset);
-  CPU_SET(6,&cpuset);
-  CPU_SET(7,&cpuset);
-  sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
-#endif
-}
-
 /***************************************************************/
 /* wait for keypress *******************************************/
 /***************************************************************/
@@ -1085,3 +1067,25 @@ void ScaleVec(double *V1, double Alpha, int N)
  { for(int n=0; n<N; n++) V1[n]*=Alpha; }
 void ScaleVec(cdouble *V1, cdouble Alpha, int N)
  { for(int n=0; n<N; n++) V1[n]*=Alpha; }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool CheckEnv(const char *Name, const char *fmt, void *Destination, bool LogSuccess)
+{ char *Value=getenv(Name);
+  bool Status=(Value && 1==sscanf(Value,fmt,Destination));
+  if (Status && LogSuccess) Log("Set %s to %s",Name,Value);
+  return Status;
+}
+bool CheckEnv(const char *Name, double *Destination, bool LogSuccess)
+{ return CheckEnv(Name, "%le", (void *)Destination, LogSuccess); }
+bool CheckEnv(const char *Name, int *Destination, bool LogSuccess)
+{ return CheckEnv(Name, "%i", (void *)Destination, LogSuccess); }
+bool CheckEnv(const char *Name, char *Destination, bool LogSuccess)
+{ return CheckEnv(Name, "%s", (void *)Destination, LogSuccess); }
+bool CheckEnv(const char *Name, bool LogSuccess)
+{ char *s=getenv(Name);
+  bool Status = (s && s[0]=='1');
+  if (Status && LogSuccess) Log("Set %s = true",Name);
+  return Status;
+}

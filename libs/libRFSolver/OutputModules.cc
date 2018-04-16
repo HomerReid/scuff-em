@@ -60,10 +60,6 @@ void ProcessEPFile(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
   HMatrix *PFContributions[2]={0,0};
   char *s=getenv("SCUFF_MOIFIELDS2");
   if (s && s[0]=='1')
-   { PFContributions[0] = 0;
-     PFContributions[1] = 0;
-   }
-  else  
    { PFContributions[0] = new HMatrix(NPFC, NX, LHM_COMPLEX);
      PFContributions[1] = new HMatrix(NPFC, NX, LHM_COMPLEX);
    }
@@ -128,32 +124,137 @@ typedef struct RFMeshData
    cdouble *PortCurrents;
  } RFMeshData;
 
-HMatrix *RFFieldsMDF(void *UserData, HMatrix *XTMatrix, const char ***pDataNames)
-{
-  static const char *DataNames[]=
-   //{ "Ex", "Ey", "Ez", "|E|", "|H|", "Radial Poynting flux" };
-   { "re AxFull", "re Ay_Full", "re Az_Full", "re Phi_Full", "re dxPhi_Full", "re dyPhi_Full", "re dzPhi_Full",
-     "re AxBF", "re Ay_BF", "re Az_BF", "re Phi_BF", "re dxPhi_BF", "re dyPhi_BF", "re dzPhi_BF",
-     "re AxPort", "re Ay_Port", "re Az_Port", "re Phi_Port", "re dxPhi_Port", "re dyPhi_Port", "re dzPhi_Port",
-     "abs AxFull", "abs Ay_Full", "abs Az_Full", "abs Phi_Full", "abs dxPhi_Full", "abs dyPhi_Full", "abs dzPhi_Full",
-     "abs AxBF", "abs Ay_BF", "abs Az_BF", "abs Phi_BF", "abs dxPhi_BF", "abs dyPhi_BF", "abs dzPhi_BF",
-     "abs AxPort", "abs Ay_Port", "abs Az_Port", "abs Phi_Port", "abs dxPhi_Port", "abs dyPhi_Port", "abs dzPhi_Port"
+static const char *DataNamesWithPSDs[]=
+   { "#RS_KdotE",
+     "#IS_KdotE",
+     "#RS_KdotiwA",
+     "#IS_KdotiwA",
+     "#RS_SigmaPhi",
+     "#IS_SigmaPhi",
+     "#RV_re K      (total)", 0, 0,
+     "#IV_im K      (total)", 0, 0,
+     "#MV_|K|       (total)", 0, 0,
+     "#RS_re Sigma  (total)",
+     "#IS_im Sigma  (total)",
+     "#IS_|Sigma|   (total)",
+     "#RV_re E      (total)", 0, 0,
+     "#IV_im E      (total)", 0, 0,
+     "#MV_|E|       (total)", 0, 0,
+     "#RV_re iwA    (total)", 0, 0,
+     "#IV_im iwA    (total)", 0, 0,
+     "#MV_|iwA|     (total)", 0, 0,
+     "#RS_re Phi    (total)",
+     "#IS_im Phi    (total)",
+     "#IS_|Phi|     (total)",
+     "#RV_re -dPhi  (total)", 0, 0,
+     "#IV_im -dPhi  (total)", 0, 0,
+     "#MV_|dPhi|    (total)", 0, 0,
+//
+     "#RV_re K      (BF   )", 0, 0,
+     "#IV_im K      (BF   )", 0, 0,
+     "#MV_|K|       (BF   )", 0, 0,
+     "#RS_re Sigma  (BF   )",
+     "#IS_im Sigma  (BF   )",
+     "#IS_|Sigma|   (BF   )",
+     "#RV_re E      (BF   )", 0, 0,
+     "#IV_im E      (BF   )", 0, 0,
+     "#MV_|E|       (BF   )", 0, 0,
+     "#RV_re iwA    (BF   )", 0, 0,
+     "#IV_im iwA    (BF   )", 0, 0,
+     "#MV_|iwA|     (BF   )", 0, 0,
+     "#RS_re Phi    (BF   )",
+     "#IS_im Phi    (BF   )",
+     "#IS_|Phi|     (BF   )",
+     "#RV_re -dPhi  (BF   )", 0, 0,
+     "#IV_im -dPhi  (BF   )", 0, 0,
+     "#MV_|dPhi|    (BF   )", 0, 0,
+//
+     "#RV_re K      (Port )", 0, 0,
+     "#IV_im K      (Port )", 0, 0,
+     "#MV_|K|       (Port )", 0, 0,
+     "#RS_re Sigma  (Port )",
+     "#IS_im Sigma  (Port )",
+     "#IS_|Sigma|   (Port )",
+     "#RV_re E      (Port )", 0, 0,
+     "#IV_im E      (Port )", 0, 0,
+     "#MV_|E|       (Port )", 0, 0,
+     "#RV_re iwA    (Port )", 0, 0,
+     "#IV_im iwA    (Port )", 0, 0,
+     "#MV_|iwA|     (Port )", 0, 0,
+     "#RS_re Phi    (Port )",
+     "#IS_im Phi    (Port )",
+     "#IS_|Phi|     (Port )",
+     "#RV_re -dPhi  (Port )", 0, 0,
+     "#IV_im -dPhi  (Port )", 0, 0,
+     "#MV_|dPhi|    (Port )", 0, 0
    };
-  int NumData = (sizeof(DataNames) / sizeof(DataNames[0]));
-  *pDataNames = DataNames;
+#define NUMDATA_WITHPSDS (sizeof(DataNamesWithPSDs)/sizeof(DataNamesWithPSDs[0]))
 
+static const char *DataNamesWithoutPSDs[]=
+   { "#RV_re E      (total)", 0, 0,
+     "#IV_im E      (total)", 0, 0,
+     "#MV_|E|       (total)", 0, 0,
+     "#RV_re iwA    (total)", 0, 0,
+     "#IV_im iwA    (total)", 0, 0,
+     "#MV_|iwA|     (total)", 0, 0,
+     "#RS_re Phi    (total)",
+     "#IS_im Phi    (total)",
+     "#IS_|Phi|     (total)",
+     "#RV_re -dPhi  (total)", 0, 0,
+     "#IV_im -dPhi  (total)", 0, 0,
+     "#MV_|dPhi|    (total)", 0, 0,
+//
+     "#RV_re E      (BF   )", 0, 0,
+     "#IV_im E      (BF   )", 0, 0,
+     "#MV_|E|       (BF   )", 0, 0,
+     "#RV_re iwA    (BF   )", 0, 0,
+     "#IV_im iwA    (BF   )", 0, 0,
+     "#MV_|iwA|     (BF   )", 0, 0,
+     "#RS_re Phi    (BF   )",
+     "#IS_im Phi    (BF   )",
+     "#IS_|Phi|     (BF   )",
+     "#RV_re -dPhi  (BF   )", 0, 0,
+     "#IV_im -dPhi  (BF   )", 0, 0,
+     "#MV_|dPhi|    (BF   )", 0, 0,
+//
+     "#RV_re E      (Port )", 0, 0,
+     "#IV_im E      (Port )", 0, 0,
+     "#MV_|E|       (Port )", 0, 0,
+     "#RV_re iwA    (Port )", 0, 0,
+     "#IV_im iwA    (Port )", 0, 0,
+     "#MV_|iwA|     (Port )", 0, 0,
+     "#RS_re Phi    (Port )",
+     "#IS_im Phi    (Port )",
+     "#IS_|Phi|     (Port )",
+     "#RV_re -dPhi  (Port )", 0, 0,
+     "#IV_im -dPhi  (Port )", 0, 0,
+     "#MV_|dPhi|    (Port )", 0, 0
+   };
+#define NUMDATA_WITHOUTPSDS (sizeof(DataNamesWithoutPSDs)/sizeof(DataNamesWithoutPSDs[0]))
+  
+HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
+{
   RFMeshData *Data      = (RFMeshData *)UserData;
   RWGGeometry *G        = Data->G;
-  HVector *KN           = Data->KN;
+  HVector *KNVector     = Data->KN;
   cdouble Omega         = Data->Omega;
   RWGPortList *PortList = Data->PortList;
   cdouble *PortCurrents = Data->PortCurrents;
 
-  HMatrix *XMatrix = XTMatrix->Copy();
-  XMatrix->Transpose();
-
+  double zMax=XMatrix->GetEntryD(2,0), zMin=zMax;
   int NX = XMatrix->NC;
-  Log("Generating FVMesh data for %i points...",NX);
+  for(int nx=1; nx<NX; nx++)
+   { zMax = fmax(zMax, XMatrix->GetEntryD(2,nx) );
+     zMin = fmin(zMin, XMatrix->GetEntryD(2,nx) );
+   }
+  double zSubstrate = 0.0;
+  if (G->Substrate && (G->Substrate->NumInterfaces==1))
+   zSubstrate = G->Substrate->zInterface[0];
+  bool GetPSDs = ( EqualFloat(zMax, zMin) && EqualFloat(zMax, zSubstrate) );
+  int NumData = GetPSDs ? NUMDATA_WITHPSDS : NUMDATA_WITHOUTPSDS;
+  *pDataNames = GetPSDs ? DataNamesWithPSDs : DataNamesWithoutPSDs;
+
+  Log("Computing FVMesh data: %i quantities at %i points",NumData,NX);
 
   /***************************************************************/
   /***************************************************************/
@@ -161,28 +262,120 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XTMatrix, const char ***pDataNames
   HMatrix *PFContributions[2];
   PFContributions[0] = new HMatrix(NPFC, NX, LHM_COMPLEX);
   PFContributions[1] = new HMatrix(NPFC, NX, LHM_COMPLEX);
-  HMatrix *PFMatrix = GetMOIFields2(G, PortList, Omega, XMatrix, KN, PortCurrents, PFContributions);
+  HMatrix *PFMatrix = GetMOIFields2(G, PortList, Omega, XMatrix, KNVector, PortCurrents, PFContributions);
 
   /***************************************************************/
-  /* now go through the list of evaluation points and add the    */
-  /* contributions of driven ports to the fields at each point,  */
-  /* then fill in the appropriate colums of the DataMatrix.      */
+  /* Q[0,1,2][nd] = {total, BF contribution, Port contribution}  */
+  /*                to data quantity #nd                         */
   /***************************************************************/
-  HMatrix *DataMatrix=new HMatrix(NX, NumData, LHM_REAL);
+  HMatrix *DataMatrix=new HMatrix(NX, NumData, LHM_COMPLEX);
   DataMatrix->Zero();
+  cdouble iw=II*Omega;
+#define NUMTERMS 3
   for(int nx=0; nx<NX; nx++)
    { 
-     double X[3];
-     XMatrix->GetEntriesD("0:2", nx, X);
+     cdouble K[NUMTERMS][3], Sigma[3], E[NUMTERMS][3], iwA[NUMTERMS][3], Phi[3], mdPhi[NUMTERMS][3];
+     cdouble KdotE, KdotiwA, SigmaPhi;
 
-     for(int npfc=0; npfc<NPFC; npfc++)
-      { DataMatrix->SetEntry(nx,0  + npfc, PFMatrix->GetEntryD(npfc, nx));
-        DataMatrix->SetEntry(nx,7  + npfc, PFContributions[0]->GetEntryD(npfc, nx));
-        DataMatrix->SetEntry(nx,14 + npfc, PFContributions[1]->GetEntryD(npfc, nx));
-        DataMatrix->SetEntry(nx,21 + npfc, abs(PFMatrix->GetEntry(npfc, nx)));
-        DataMatrix->SetEntry(nx,28 + npfc, abs(PFContributions[0]->GetEntry(npfc, nx)));
-        DataMatrix->SetEntry(nx,35 + npfc, abs(PFContributions[1]->GetEntry(npfc, nx)));
+     for(int Term=1; Term<=2; Term++)
+      { iwA[Term][0]   =   iw*PFContributions[Term-1]->GetEntry(_PF_AX,nx);
+        iwA[Term][1]   =   iw*PFContributions[Term-1]->GetEntry(_PF_AY,nx);
+        iwA[Term][2]   =   iw*PFContributions[Term-1]->GetEntry(_PF_AZ,nx);
+        Phi[Term]      =      PFContributions[Term-1]->GetEntry(_PF_PHI,nx);
+        mdPhi[Term][0] = -1.0*PFContributions[Term-1]->GetEntry(_PF_DXPHI,nx);
+        mdPhi[Term][1] = -1.0*PFContributions[Term-1]->GetEntry(_PF_DYPHI,nx);
+        mdPhi[Term][2] = -1.0*PFContributions[Term-1]->GetEntry(_PF_DZPHI,nx);
+        E[Term][0]     = iwA[Term][0] + mdPhi[Term][0];
+        E[Term][1]     = iwA[Term][1] + mdPhi[Term][1];
+        E[Term][2]     = iwA[Term][2] + mdPhi[Term][2];
       }
+     VecAdd(E[1], E[2], E[0]);
+     VecAdd(iwA[1], iwA[2], iwA[0]);
+     Phi[0] = Phi[1] + Phi[2];
+     VecAdd(mdPhi[1], mdPhi[2], mdPhi[0]);
+
+     if (GetPSDs)
+      { 
+        double *X = (double *)XMatrix->GetColumnPointer(nx);
+        cdouble KN[6], iwSigmaTau[2];
+        EvalSourceDistribution(G, PortList, X, KNVector,     0, KN, iwSigmaTau);
+        K[1][0]  = KN[0];
+        K[1][1]  = KN[1];
+        K[1][2]  = KN[2];
+        Sigma[1] = iwSigmaTau[0] / iw;
+        EvalSourceDistribution(G, PortList, X, 0, PortCurrents, KN, iwSigmaTau);
+        K[2][0]  = KN[0];
+        K[2][1]  = KN[1];
+        K[2][2]  = KN[2];
+        Sigma[2] = iwSigmaTau[0] / iw;
+
+        VecAdd(K[1], K[2], K[0]);
+        Sigma[0] = Sigma[1] + Sigma[2];
+        
+        KdotE    = (K[0][0]*E[0][0] + K[0][1]*E[0][1] + K[0][2]*E[0][2]);
+        KdotiwA  = (K[0][0]*iwA[0][0] + K[0][1]*iwA[0][1] + K[0][2]*iwA[0][2]);
+        SigmaPhi =  Sigma[0] * Phi[0];
+      }
+     
+     for(int Term=0, nc=0; Term<NUMTERMS; Term++)
+       { if (GetPSDs)
+          { if (Term==0)
+{
+            DataMatrix->SetEntry(nx,nc++,KdotE);
+            DataMatrix->SetEntry(nx,nc++,KdotE);
+            DataMatrix->SetEntry(nx,nc++,KdotiwA);
+            DataMatrix->SetEntry(nx,nc++,KdotiwA);
+            DataMatrix->SetEntry(nx,nc++,SigmaPhi);
+            DataMatrix->SetEntry(nx,nc++,SigmaPhi);
+}
+
+            DataMatrix->SetEntry(nx,nc++,K[Term][0]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][1]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][2]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][0]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][1]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][2]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][0]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][1]);
+            DataMatrix->SetEntry(nx,nc++,K[Term][2]);
+            DataMatrix->SetEntry(nx,nc++,Sigma[Term]);
+            DataMatrix->SetEntry(nx,nc++,Sigma[Term]);
+            DataMatrix->SetEntry(nx,nc++,Sigma[Term]);
+          }
+         DataMatrix->SetEntry(nx,nc++,E[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][2]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][2]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,E[Term][2]);
+
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][2]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][2]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,iwA[Term][2]);
+
+         DataMatrix->SetEntry(nx,nc++,Phi[Term]);
+         DataMatrix->SetEntry(nx,nc++,Phi[Term]);
+         DataMatrix->SetEntry(nx,nc++,Phi[Term]);
+
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][2]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][2]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][0]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][1]);
+         DataMatrix->SetEntry(nx,nc++,mdPhi[Term][2]);
+       }
    }
 
   delete PFMatrix;
@@ -202,9 +395,9 @@ const char *PPOptions=
  "View.Light   = 0;\n"
  "View.Visible = 0;\n";
 
-void ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                   char *FVMesh, char *TransFile,
-                   HVector *KN, cdouble *PortCurrents, char *FileBase)
+HMatrix *ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
+                       const char *FVMesh, const char *TransFile,
+                       HVector *KN, cdouble *PortCurrents, char *FileBase)
 {
   RFMeshData MyData, *Data = &MyData;
   Data->G            = G;
@@ -213,23 +406,24 @@ void ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
   Data->PortList     = PortList;
   Data->PortCurrents = PortCurrents;
 
-  RWGSurface *S = new RWGSurface(FVMesh);
+  HMatrix *Integrals = MakeMeshPlot(RFFieldsMDF,(void *)Data, FVMesh, TransFile, FileBase, PPOptions);
 
-  GTCList GTCs=ReadTransFile(TransFile);
-  int NumTransforms = GTCs.size();
-  for(int nt=0; nt<NumTransforms; nt++)
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  char *s = getenv("SCUFF_WRITE_MESH_INTEGRALS");
+  if (s && s[0]=='1')
    { 
-     char PPFileName[1000];
-     if (TransFile)
-      snprintf(PPFileName,1000,"%s.%s.%s",FileBase,GTCs[nt]->Tag,GetFileBase(FVMesh));
-     else
-      snprintf(PPFileName,1000,"%s.%s",FileBase,GetFileBase(FVMesh));
-
-     if (GTCs[nt]->GTs.size()>0) S->Transform(GTCs[nt]->GTs[0]);
-     MakeMeshPlot(RFFieldsMDF, (void *)Data, S, PPOptions, PPFileName);
-     S->UnTransform();
+     bool WithPSDs = (Integrals->NR == NUMDATA_WITHPSDS);
+     const char **DataNames = WithPSDs ? DataNamesWithPSDs : DataNamesWithoutPSDs;
+     FILE *f=vfopen("/tmp/%s.%s.MeshIntegrals","a",FileBase,FVMesh);
+     for(int nt=0; nt<Integrals->NC; nt++)
+      { fprintf(f,"\n Data quantities at f=%g, transform %i:\n",real(OMEGA2FREQ*Omega),nt);
+        for(int nd=0; nd<Integrals->NR; nd++)
+         fprintf(f,"%+8e # %s\n",Integrals->GetEntryD(nd,nt),DataNames[nd]);
+      }
+     fclose(f);
    }
-  delete S;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  return Integrals;
 }
 
 /***************************************************************/

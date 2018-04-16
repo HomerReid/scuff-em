@@ -420,25 +420,25 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      for(int nt=0; nt<NumTokens; nt++)
       { MeshDirs[nt] = strdup(Tokens[nt]);
         Log("Added %s to mesh search path.",MeshDirs[nt]);
-      };
-   };
+      }
+   }
 
   if ( (s=getenv("SCUFF_LOGLEVEL")) )
    {      if ( !strcasecmp(s, "NONE"     ) ) LogLevel=SCUFF_NOLOGGING;
      else if ( !strcasecmp(s, "TERSE"    ) ) LogLevel=SCUFF_TERSELOGGING;
      else if ( !strcasecmp(s, "VERBOSE"  ) ) LogLevel=SCUFF_VERBOSELOGGING;
      else if ( !strcasecmp(s, "VERBOSE2" ) ) LogLevel=SCUFF_VERBOSE2;
-   };
+   }
 
   if ( (s=getenv("SCUFF_DISABLE_CACHE")) && (s[0]=='1') )
    { Log("Disabling caching of frequency-independent panel-panel integrals.");
      RWGGeometry::DisableCache=true;
-   };
+   }
 
   if ( (s= getenv("SCUFF_HALF_RWG")) && (s[0]=='1') )
    { Log("Assigning half-RWG basis functions to exterior edges.");
      RWGGeometry::UseHRWGFunctions=true;
-   };
+   }
 
   if ( (s=getenv("SCUFF_ABORT_ON_FPE")) && (s[0]=='1') )
    {

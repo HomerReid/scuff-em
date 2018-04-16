@@ -343,7 +343,7 @@ Figure \ref{RWGBasisFunctionFigure} illustrates some of the
 \lss data structures associated with a single RWG basis function
 embedded in a surface mesh.
 %####################################################################%
-\begin{figure}
+\begin{figure}[H]
 \begin{center}
 \resizebox{\textwidth}{!}{\includegraphics{RWGBasisFunction.pdf}}
 \caption{A single RWG basis function associated with an internal edge 
@@ -359,14 +359,65 @@ embedded in a surface mesh.
 
 It is also possible to assign basis functions to 
 \textit{exterior} edges of surface meshes, i.e.
-edges that lie on the boundary of open surfaces.
-In contrast to interior edges, exterior edges 
-are associated within only one panel, not two
-panels. {\sc scuff-em} adopts the convention
-that this panel is the positive panel $\mc P^+$
-for the edge, while there is no negative panel
-$\mc P^-$. For exterior edges, the \texttt{iMPanel}
-field of the \texttt{RWGEdge} structure 
-is set to \texttt{-1}.
+edges that lie on the boundaries of open surfaces.
+Because these basis functions are supported on just
+a single triangle instead of the usual two,
+I call them \textit{half-RWG} basis functions.
+{\sc scuff-em} adopts the following conventions
+regarding exterior edges and half-RWG basis functions.
 
+\begin{itemize}
+  \item Like interior edges, each exterior edge in an \texttt{RWGSurface} is
+        assigned an \texttt{RWGEdge} structure. These are stored in the
+        \texttt{ExteriorEdges} array in \texttt{RWGSurface}.
 
+  \item We identify the single panel associated to an exterior edge
+        as the positive panel $(\pan^+)$ for that edge; there is no 
+        negative panel.
+        The \texttt{RWGEdge} structure for an exterior edge has
+        \texttt{iQM=iMPanel=MIndex=-1} and \texttt{Index=-(nei+1)},
+        where \texttt{nei} is the index of the edge in the \texttt{ExteriorEdges}
+        array.
+        All other fields are set to valid values just as for interior edges.
+
+  \item The class method \texttt{RWGEdge *RWGSurface::GetEdgeByIndex(int Index)}
+        returns a pointer to the \texttt{RWGEdge} structure with index \texttt{Index},
+        where \texttt{Index} may be positive or negative.
+        This will be 
+        \begin{itemize}
+          \item an interior edge if \texttt{0<=Index<NumEdges}
+          \item an exterior edge if \texttt{-(NumExteriorEdges+1)<Index<=-1}
+          \item \texttt{NULL} otherwise.
+        \end{itemize}
+        (Note that \texttt{NumEdges} is something of a misnomer; it should
+         be called \texttt{NumInteriorEdges}.)
+ 
+  \item By default, the half-RWG basis functions associated with exterior edges
+        are excluded from the basis used by {\sc scuff-em} to describe surface 
+        currents, i.e. they make no contribution to the BEM matrix or
+        RHS vector or any post-processing quantities. To include half-RWG
+        functions in the basis,
+        set the static class method \texttt{RWGGeometry::UseHRWGFunctions=true}
+        or use the environment variable \texttt{SCUFF\_HALF\_RWG=1}.
+        I haven't explored this much, but perhaps it could be useful for
+        describing singularities near edges?
+
+  \item The primary application of half-RWG basis functions
+        in {\sc scuff-em} is the description of ``ports'' in RF structures
+        (implemented in \texttt{libRFSolver}).
+
+  \item In general, routines in \texttt{libscuff} that operate on
+        RWG basis functions (i.e. that input one or more \texttt{RWGEdge *}
+        structures or \texttt{\{int ns, int ne\}} index pairs) 
+        do the right thing when operating on half-RWG basis functions.
+        This streamlines the implementation of \texttt{libRFSolver}.
+        For example, matrix elements of the $\mb G,\mb C$ kernels 
+        between full and half RWG basis functions--which are needed to
+        assemble the RHS vector for RF problems with port-current excitations--may
+        be computed by the same routines that compute matrix elements 
+        between pairs of full RWG basis functions, which are needed to
+        assemble the system matrix. Thus, all the complications of singularity
+        handling and frequency-independent integral caching are handled
+        \textit{automatically}.
+        
+\end{itemize}

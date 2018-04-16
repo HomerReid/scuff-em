@@ -288,7 +288,13 @@ void TaylorDuffy(TaylorDuffyArgStruct *Args)
 
   double AbsTol    = Args->AbsTol;
   double RelTol    = Args->RelTol;
-  double MaxEval   = Args->MaxEval;
+  int MaxEval      = Args->MaxEval;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+CheckEnv("SCUFF_TAYLORDUFFY_ABSTOL",  &AbsTol);
+CheckEnv("SCUFF_TAYLORDUFFY_RELTOL",  &RelTol);
+CheckEnv("SCUFF_TAYLORDUFFY_MAXEVAL", &MaxEval);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* initialize TDW structure to pass data to integrand routines */

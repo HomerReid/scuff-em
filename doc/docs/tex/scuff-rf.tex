@@ -15,9 +15,10 @@
 %- Document header  -----------------------------------------
 %------------------------------------------------------------
 %------------------------------------------------------------
-\title {{\sc scuff-rf} Implementation Notes}
+\title {{\sc librfsolver} and {\sc scuff-rf}: Support for
+        RF device modeling in {\sc scuff-em}}
 \author {Homer Reid}
-\date {June 27, 2012}
+\date {April 16, 2018}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -27,7 +28,7 @@
 
 \begin{document}
 \pagestyle{myheadings}
-\markright{Homer Reid: {\sc scuff-rf} Implementation Notes}
+\markright{Homer Reid: The {\sc scuff-em} RF module}
 \maketitle
 
 \tableofcontents
@@ -37,24 +38,37 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Overview}
 
-{\sc scuff-rf} extends the functionality present in the
+The {\sc scuff-em} package includes a module for RF device modeling
+within the framework of integral-equation electromagnetism.
+The core functionality of the module is implemented 
+by the {\sc librfsolver} library packaged with the {\sc scuff-em}
+distribution, and may be accessed either \textbf{(a)} in API form 
+from C++ or python programs, or \textbf{(b)} from the command line
+via the {\sc scuff-rf} binary application code.
+
+The {\sc scuff-em} RF module extends the existing functionality of the
 {\sc scuff-em} core library in three main ways:
 
 \begin{enumerate}
   \item It introduces the notion of a \textit{port.} This is the region
         of your structure (be it an antenna, a coaxial cable, etc.)
-        that interfaces with the RF circuitry. Information on ports 
-        is stored internally within {\sc scuff-rf} in a data structure
-        named \texttt{RWGPort}.
-  \item It allows you to specify a fixed set of \textit{port currents}, 
-        rather than a fixed incident field configuration, to define the
-        RHS vector of the BEM scattering problem. (This basically
-        involves computing the field radiated by the RWG panels on
-        the driven ports.)
-  \item Once the scattering problem is solved, it provides functionality
-        to compute \textit{port voltages}. (This basically involves 
-        computing the line integral of the scattered electric field 
-        between two points on opposite sides of the port.)
+        that interfaces with RF circuitry.
+        Information on ports may be specified to {\sc scuff-em} via
+        \textbf{(a)} text-based input files (\texttt{.ports} files), or
+        \textbf{(b)} polygonal regions in GDSII files.
+        Information on ports is stored internally in the {\sc scuff-em}
+        RF module via data structures named \texttt{RWGPort} and 
+        \texttt{RWGPortEdge}.
+  \item It allows you to specify a fixed set of \textit{port currents},
+        rather than a fixed incident field configuration such as a plane wave,
+        as the excitation source for a {\sc scuff-em} scattering problem.
+        The incident field in the scattering problem is then the field radiated
+        by the currents forced into the ports.
+  \item As a new type of post-processing calculation, it provides functionality 
+        to compute the \textit{impedance parameters} of a multiport geometry.
+        (All of the varous other types of post-processing calculations offered by
+        core {\sc scuff-em}---including computation and visualization of fields,
+        induced moments, power, etc.---are available as well.)
 \end{enumerate}
 
 In this memo we will discuss the implementation of these features.
@@ -70,15 +84,11 @@ In this memo we will discuss the implementation of these features.
 \begin{figure}
 \begin{center}
 %\includegraphics{RWGPortFigure
-\caption{An \texttt{RWGPort}. The port current $I$ is 
-         forced into the positive port edge, while  
+\caption{An \texttt{RWGPort}. The port current $I$ is
+         forced into the positive port terminal, while
          an identical current is extracted from the negative
-         port edge. (Note that the two port edges do not need 
-         to be the same length, nor do they need to comprise  
-         the same number of panels.) The figure indicates
-         the positive and negative ``reference points,''
-         between which the line integral of the electric
-         field is computed when evaluating the port voltage.
+         port terminal. Each port terminal is comprised of one or
+         more exterior edges in a meshed geometry.
         }
 \label{RWGPortFigure}
 \end{center}
@@ -91,37 +101,53 @@ A key extension of the \lss core library provided by {\sc scuff-rf}
 is the idea of an \texttt{RWGPort}. This is a physical region of
 a structure that interfaces with RF circuitry.
 
-Figure \ref{PortFigure} depicts an \texttt{RWGPort}. 
-The port consists of two \textit{port edges}, 
-one arbitrarily chosen to be the ``positive'' edge and 
-the other the ``negative edge.'' Each port edge
-is comprised of a number of panel edges. 
-(Note that there is no need for the two port edges
-to have the same length, nor must they be comprised
-of the same number of panel edges.) 
-If the port current for this port is $I$, then 
-a total current $I$, equidistributed over the 
-length $W^+$, is forced into the positive edge 
-of the port, while a total current $I$ equidistributed
-over the length $W^-$. 
-
-Also shown in the figure are the positive and negative
-\textit{reference points} associated with the port. 
-These are the points between which the line integral
-of the $\vb E$ field is computed when computing the 
-port voltage (see \ref{PortVoltageSection}).
-
-These should lie respectively on the positive and 
-negative port edges, but may otherwise be chosen
-arbitrarily.
+Figure \ref{PortFigure} depicts an \texttt{RWGPort}.
+The port consists of a positive and a negative terminal.
+[The negative terminal may be omitted, in which case
+the role of negative terminal is played by the ground plane
+in the geometry (if present) or by an implicit negative terminal
+at spatial infinity.]
+Each port terminal is comprised of one or more exterior edges
+in an \texttt{RWGSurface} (i.e. an \texttt{OBJECT} or \texttt{SURFACE}
+in a \texttt{.scuffgeo} file).
+There is no need for the two port terminals to have the same length,
+nor must they be comprised of the same number of panel edges,
+nor must they lie on the same meshed surface.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 
-\section{Port currents: A new type of incident field}
-\label{PortCurrentSection}
+\section{RF device modeling in the integral-equation framework}
+\label{RFDeviceModeling}
+
+In RF device modeling, structures are excited by user-specified input currents
+forced into one or more ports of a structure, and the objective is to compute
+impedance parameters (or admittance parameters or $S$-parameters) for the 
+multiport network (possibly accompanied by other quantities such as 
+radiated-field profiles).
+
+On the other hand, in the usual surface-integral-equation (SIE)
+approach to electromagnetic scattering implemented by the {\sc scuff-em}
+core library, the excitation is provided by a user-specified
+incident electromagnetic field configuration (such as a plane wave
+or the field of a point dipole),
+and the objective is to compute quantities such as absorbed or scattered
+power.
+
+How do we squeeze the former problem into the latter framework?
+In essence, we take the incident field in the SIE scattering problem
+to be the field radiated by the currents forced into the ports
+of a structure, and we obtain impedance-matrix elements by calculating
+complex power dissipation in the structure.
+In this section I discuss how these steps are implemented
+in the {\sc scuff-em} RF module.
+(The problem of computing fields radiated by port-driven structures
+requires no new implementation beyond the existing {\sc scuff-em} 
+algorithms for computing fields radiated by excited structures.)
+
+\subsection{Port currents: A new type of incident field}
 
 %####################################################################%
 %####################################################################%
@@ -130,9 +156,11 @@ arbitrarily.
 \begin{center}
 %\includegraphics{PortCurrentIncidentField}}
 \caption{The incident field in the BEM scattering problem
-         is the field radiated by the half-RWG basis functions
-         associated with the edges \texttt{RWGPort}.
-         Each half-RWG basis function is populated with
+         is the field radiated by half-RWG basis functions
+         associated with the exterior edges comprising the
+         \texttt{RWGPort}.
+         The weight of each
+half-RWG basis function is populated with
          a strength proportional to the port current.
         }
 \label{PortCurrentFigure}
@@ -142,8 +170,12 @@ arbitrarily.
 %####################################################################%
 %####################################################################%
 
-In the BEM scattering problems solved by {\sc scuff-rf}, the incident
-field is the field radiated by the half-RWG basis functions associated 
+To model RF devices excited by currents forced into ports,
+the {\sc scuff-em} RF module solves an integral-equation scattering problem
+in which the incident field is the field radiated by the currents
+forced into the ports.
+half-RWG basis
+functions associated 
 with each port, with those basis functions populated by strengths
 proportional to the port current.
 
@@ -224,11 +256,69 @@ $$ \lambda(\vb x) = \frac{k_\alpha}{i\omega}, \qquad
 $$
 and hence the 
 
+\subsection{Evaluation of RHS vector}
+
+The elements of the RHS vector in a {\sc scuff-em} scattering problem
+are (the negatives of) the inner products of the incident fields
+with the RWG basis functions of the geometry.
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\subsection{Calculation of impedance matrix}
+
+For an $N\subt{P}$-port system, the
+$N\subt{P}\times N\subt{P}$ impedance matrix $\vb Z$ is defined by
+JStar E = (Jr-iJi)(Er+iEi) JrEr + JiEi + i(JrEi-JiEr)
+J E = (Jr+iJi)(Er+iEi) (JrEr - JiEi) + i(JrEi+JiEr)
+
+$$ \vb J_p(\vb x) =
+   \sum_{a\in\mc{P}_p}
+   \bigg\{ \Big[ 
+     -\sum_{\alpha\beta} \vb b_\alpha(\vb x) M_{\alpha\beta} R_{\beta a}
+           \Big]
+           +\vb b_a(\vb x)
+   \bigg\}w_a,
+ \quad 
+   \vb E_q(\vb x) =
+   \sum_{b\in\mc{P}_q}
+   \bigg\{ \Big[ 
+     -\sum_{\gamma\delta} \mb E_\gamma(\vb x) M_{\gamma\delta} R_{\delta b}
+           \Big]
+           +\mb E_b(\vb x)
+   \bigg\}w_b
+ \qquad 
+$$
+%====================================================================%
+\begin{align*}
+ Z_{pq} 
+ &\equiv \frac{1}{2I_p I_q}\int \vb J_p(\vb x) \vb E_q(\vb x)\,d\vb x
+\\
+ &= T_1 + T_2 + T_3 + T_4 
+\\
+ T_1 &\equiv \sum_{\alpha\beta\gamma\delta}
+  R_{\delta q}
+  M_{\alpha\beta}
+ \underbrace{\Inp{\vb b_\alpha}{\vb E_\gamma}}_{M_{\alpha\gamma}^{-1}}
+  M_{\gamma\delta}
+  R_{\beta p}
+\\
+&= \frac{1}{2} \vb R_q \vb M \vb R_p
+\\
+ T_2 &\equiv -\sum_{\alpha\beta}
+ \underbrace{\Inp{\vb b_\alpha}{\vb E_b}}_{R_{\alpha q}}
+  M_{\alpha\beta}
+  R_{\beta p}
+ &= -\frac{1}{2}\vb R_q \vb M \vb R_p
+\end{align*}
+%====================================================================%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Port voltages: A new type of post-processing computation}
+\appendix
+\subsection{Port voltages: Alternative computation of impedance matrix}
 %####################################################################%
 %####################################################################%
 %####################################################################%
@@ -274,7 +364,5 @@ averaged over the length of some panel edge $\vb L$, is
 &= \frac{1}{4\pi \epsilon_0 |\vb L|}\int_{\vb L} d\vb x \int_{\mc P} d\vb x^\prime 
    \frac{1}{|\vb x - \vb x^\prime|} 
 \end{align*}
-
-If 
 
 \end{document}

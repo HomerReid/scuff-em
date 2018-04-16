@@ -615,11 +615,14 @@ double GetScalarValue(void *Values, int PlotType, int nv)
 /* AveragingMethod = 2: Values is an array of length S->NumEdges;  */
 /*                      for each panel vertex plot the average     */
 /*                      value of all edges sharing that vertex.    */
+/*                                                                 */
+/* The return value is the surface integral of the quantity over   */
+/* the surface.                                                    */
 /*******************************************************************/
-void RWGSurface::PlotScalarDensity(int PlotType, void *Values,
-                                   int AveragingMethod,
-                                   const char *UserFileName,
-                                   const char *ViewNameFormat, ...)
+double RWGSurface::PlotScalarDensity(int PlotType, void *Values,
+                                     int AveragingMethod,
+                                     const char *UserFileName,
+                                     const char *ViewNameFormat, ...)
 { 
   char FileName[MAXSTR];
   strncpy(FileName,UserFileName,MAXSTR-4);
@@ -630,7 +633,7 @@ void RWGSurface::PlotScalarDensity(int PlotType, void *Values,
   FILE *f=fopen(FileName,"a");
   if (!f) 
    { fprintf(stderr,"warning: could not open file %s \n",FileName);
-     return;
+     return 0.0;
    };
   
   COMPLETE_VARARGS(ViewNameFormat, ViewName);
@@ -640,69 +643,86 @@ void RWGSurface::PlotScalarDensity(int PlotType, void *Values,
   /* edges (if ByEdge==true) or of all panels (if ByPanel==false)*/
   /* that share that vertex.                                     */
   /***************************************************************/
-  double *ValuePerVertex = 0;
+  double *ValuePerVertex = 0, *AreaPerVertex = 0;
      int *NumPerVertex   = 0;
 
   if (AveragingMethod!=0)
    { ValuePerVertex = new double [NumVertices];
-     NumPerVertex   = new int [NumVertices];
+     AreaPerVertex  = new double [NumVertices];
+     NumPerVertex   = new int    [NumVertices];
      memset(ValuePerVertex, 0, NumVertices*sizeof(double));
+     memset(AreaPerVertex,  0, NumVertices*sizeof(double));
      memset(NumPerVertex,   0, NumVertices*sizeof(int));
    }
-  if (AveragingMethod==2)
+  if (AveragingMethod==1)
+   for(int np=0; np<NumPanels; np++)
+    { RWGPanel *P = Panels[np];
+      double Area = P->Area;
+      double Val  = GetScalarValue(Values, PlotType, np);
+      for(int i=0; i<3; i++)
+       { ValuePerVertex[P->VI[i]] += Area*Val;
+         AreaPerVertex[P->VI[i]]  += Area;
+         NumPerVertex[P->VI[i]]    = 1;
+       }
+    }
+  else if (AveragingMethod==2)
    for(int ne=0; ne<NumEdges; ne++)
     { RWGEdge *E = Edges[ne];
-      double TotalArea = Panels[E->iPPanel]->Area;
-      if (E->iMPanel!=-1) TotalArea+=Panels[E->iMPanel]->Area;
-      double Val = GetScalarValue(Values, PlotType, ne) / TotalArea;
-      ValuePerVertex[E->iV1] += Val;
-      ValuePerVertex[E->iV2] += Val;
+      double Area = Panels[E->iPPanel]->Area;
+      if (E->iMPanel!=-1) Area+=Panels[E->iMPanel]->Area;
+      double Val = GetScalarValue(Values, PlotType, ne);
+      ValuePerVertex[E->iV1] += Area*Val;
+      ValuePerVertex[E->iV2] += Area*Val;
+      AreaPerVertex[E->iV1]  += Area;
+      AreaPerVertex[E->iV2]  += Area;
       NumPerVertex[E->iV1]   += 1;
       NumPerVertex[E->iV2]   += 1;
     }
-  else if (AveragingMethod==1)
-   for(int np=0; np<NumPanels; np++)
-    { RWGPanel *P = Panels[np];
-      double Val  = GetScalarValue(Values, PlotType, np) / P->Area;
-      for(int i=0; i<3; i++)
-       { ValuePerVertex[P->VI[i]] = Val;
-         NumPerVertex[P->VI[i]]   = 3;
-       }
-    }
    
+  double Integral=0.0;
   fprintf(f,"View \"%s\" {\n",ViewName);
   for(int np=0; np<NumPanels; np++)
    if (AveragingMethod==0)
-    WriteST(this, np, GetScalarValue(Values, PlotType, np), f);
+    { double Value=GetScalarValue(Values, PlotType, np);
+      WriteST(this, np, Value, f);
+      Integral += Value * Panels[np]->Area;
+    }
    else
     { int *VI = Panels[np]->VI;
       double VVals[3];
       for(int i=0; i<3; i++)
-       VVals[i] = ValuePerVertex[VI[i]] / NumPerVertex[VI[i]];
+       VVals[i] = ValuePerVertex[VI[i]] / (NumPerVertex[VI[i]]*AreaPerVertex[VI[i]]);
       WriteST(this, np, VVals, f);
+      Integral += Panels[np]->Area * (VVals[0]+VVals[1]+VVals[2])/3.0;
     }
   fprintf(f,"};\n");
-
-  if (AveragingMethod!=0)
-   { delete[] ValuePerVertex;
-     delete[] NumPerVertex;
-   }
-
   fclose(f);
+
+  if (ValuePerVertex) delete[] ValuePerVertex;
+  if (AreaPerVertex) delete[] AreaPerVertex;
+  if (NumPerVertex)   delete[] NumPerVertex;
+  return Integral;
 }
 
-void RWGSurface::PlotScalarDensity(double *Values, int AveragingMethod,
-                                   const char *FileName,
-                                   const char *ViewNameFormat, ...)
+// alternate entry points to PlotScalarDensity
+double RWGSurface::PlotScalarDensity(int PlotType, HMatrix *M, int WhichColumn,
+                                     int AveragingMethod, const char *FileName,
+                                     const char *ViewNameFormat, ...)
 { COMPLETE_VARARGS(ViewNameFormat, ViewName);
-  PlotScalarDensity(0, (void *)Values, AveragingMethod, FileName, ViewName);
+  void *Values = M->GetColumnPointer(WhichColumn);
+  return PlotScalarDensity(PlotType, Values, AveragingMethod, FileName, ViewName);
 }
 
-void RWGSurface::PlotScalarDensity(int PlotType, cdouble *Values, int AveragingMethod,
-                                   const char *FileName,
-                                   const char *ViewNameFormat, ...)
+double RWGSurface::PlotScalarDensity(double *Values, int AveragingMethod,
+                                     const char *FileName, const char *ViewNameFormat, ...)
 { COMPLETE_VARARGS(ViewNameFormat, ViewName);
-  PlotScalarDensity( PlotType, (void *)Values, AveragingMethod, FileName, ViewName);
+  return PlotScalarDensity(0, (void *)Values, AveragingMethod, FileName, ViewName);
+}
+
+double RWGSurface::PlotScalarDensity(int PlotType, cdouble *Values, int AveragingMethod,
+                                     const char *FileName, const char *ViewNameFormat, ...)
+{ COMPLETE_VARARGS(ViewNameFormat, ViewName);
+  return PlotScalarDensity(PlotType, (void *)Values, AveragingMethod, FileName, ViewName);
 }
 
 void GetVectorValue(void *Values[3], int PlotType, int nv, double V[3])
@@ -710,28 +730,29 @@ void GetVectorValue(void *Values[3], int PlotType, int nv, double V[3])
    V[Mu] = GetScalarValue(Values[Mu], PlotType, nv);
 }
 
-void RWGSurface::PlotVectorDensity(int PlotType, void *Values[3],
-                                   const char *FileName,
-                                   const char *ViewNameFormat, ...)
+double RWGSurface::PlotVectorDensity(int PlotType, void *Values[3], const char *FileName,
+                                     const char *ViewNameFormat, ...)
 { 
   COMPLETE_VARARGS(ViewNameFormat, ViewName);
   
   FILE *f=fopen(FileName,"a");
-  if (!f) { Warn("could not open file %s",f); return; }
+  if (!f) { Warn("could not open file %s",FileName); return 0.0; }
 
+  double Integral=0.0;
   fprintf(f,"View \"%s\" {\n",ViewName);
   for(int np=0; np<NumPanels; np++)
-   { double Val[3];
-     GetVectorValue(Values, PlotType, np, Val);
-     WriteVP(this, np, Val, f);
+   { double V[3];
+     GetVectorValue(Values, PlotType, np, V);
+     WriteVP(this, np, V, f);
+     Integral += Panels[np]->Area * VecDot(V, Panels[np]->ZHat);
    }
   fprintf(f,"};\n");
   fclose(f);
+  return Integral;
 }
 
-void RWGSurface::PlotVectorDensity(double *Values[3],
-                                   const char *FileName,
-                                   const char *ViewNameFormat, ...)
+double RWGSurface::PlotVectorDensity(double *Values[3], const char *FileName,
+                                     const char *ViewNameFormat, ...)
 {
   COMPLETE_VARARGS(ViewNameFormat, ViewName);
 
@@ -739,7 +760,26 @@ void RWGSurface::PlotVectorDensity(double *Values[3],
   vValues[0]=(void *)Values[0];
   vValues[1]=(void *)Values[1];
   vValues[2]=(void *)Values[2];
-  PlotVectorDensity(0, vValues, FileName, ViewName);
+  return PlotVectorDensity(0, vValues, FileName, ViewName);
+}
+
+double RWGSurface::PlotVectorDensity(int PlotType, HMatrix *M, int WhichColumn,
+                                     const char *FileName, const char *ViewNameFormat, ...)
+{ 
+  if (M->NR != NumPanels)
+   { Warn("PlotVectorDensity: wrong-length data (%i!=%i)",M->NR,NumPanels);
+     return 0.0;
+   }
+  if (WhichColumn+2 >= M->NC)
+   { Warn("PlotVectorDensity: too few columns (%i,%i)",WhichColumn,M->NC);
+     return 0.0;
+   }
+  void *Values[3];
+  Values[0] = M->GetColumnPointer(WhichColumn+0);
+  Values[1] = M->GetColumnPointer(WhichColumn+1);
+  Values[2] = M->GetColumnPointer(WhichColumn+2);
+  COMPLETE_VARARGS(ViewNameFormat, ViewName);
+  return PlotVectorDensity(PlotType, Values, FileName, ViewName);
 }
 
 /***************************************************************/
@@ -849,140 +889,161 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
 }
 
 /***************************************************************/
-/* this is a non-class method that is designed for more general*/
-/* purposes outside SCUFF-EM.                                  */
 /* MDFunc is a caller-supplied routine that inputs a list of   */
-/* NX coordinates (in the form of an NX x 3 HMatrix)           */
-/* and returns an NX x ND HMatrix whose columns are the values */
-/* of ND data quantities, plus optional names for those        */
-/* quantities.                                                 */
-/* if Integral is non-null, on return Integral[d] is an        */
-/* estimate of the integral of quantity #d over the mesh area. */
+/* coordinates for NX points (as a 3 x NX HMatrix) and returns */
+/* an NX x ND HMatrix whose columns are the values of ND data  */
+/* quantities at those points. (MDFunc may optionally return   */
+/* information on the names and nature of the data columns.)   */
+/*                                                             */
+/* PPOptions is an optional string containing GMSH post-       */
+/* processing commands to be written to the output file.       */
+/*                                                             */
+/* If UseCentroids==true, the function is evaluated at the     */
+/* panel centroids; otherwise at the vertices.                 */
+/*                                                             */
+/* The return value is a newly allocated HVector of length ND  */
+/* whose entries are the integrals of the data quantities      */
+/* over the area of the mesh.                                  */
+/*                                                             */
 /* If the value of a data quantity at any mesh vertex exceeds  */
 /* ABSURD in absolute value, that point is excluded and the    */
 /* average over the triangle is determined by the values at    */
 /* the remaining vertices.                                     */
-/* If UseCentroids==true, the function is evaluated at the     */
-/* panel centroids, not vertices.                              */
 /***************************************************************/
 #define ABSURD 1.0e100
-void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  RWGSurface *S, const char *OptionsString,
-                  char *OutFileBase, HVector *Integral,
-                  bool UseCentroids)
+HVector *RWGSurface::MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
+                                  const char *OutFileBase, const char *PPOptions,
+                                  bool UseCentroids)
 {
   /***************************************************************/
-  /* try to open output file *************************************/
+  /* try to open output file and write user's GMSH PP options    */
   /***************************************************************/
-  if (OutFileBase==0) 
-   OutFileBase=GetFileBase(S->MeshFileName);
-  char OutFileName[100];
-  snprintf(OutFileName, 100, "%s.pp",OutFileBase);
-  FILE *f=fopen(OutFileName,"w");
+  char PPFileName[100];
+  snprintf(PPFileName, 100, "%s.pp",(OutFileBase ? OutFileBase : GetFileBase(MeshFileName)));
+  FILE *f=fopen(PPFileName,"w");
   if (!f)
-   { Warn("could not create output file %s",OutFileName);
-     return;
-   };
-
-  if (OptionsString)
-   fprintf(f,"%s",OptionsString);
+   { Warn("could not create output file %s",PPFileName);
+     return 0;
+   }
+  if (PPOptions) fprintf(f,"%s",PPOptions);
+  fclose(f);
      
   /***************************************************************/
   /* read in mesh and put vertex coordinates into XMatrix        */
   /***************************************************************/
-  HMatrix *XMatrix=0;
-
-  if (UseCentroids)
-   { XMatrix =new HMatrix(S->NumPanels, 3);
-     for(int np=0; np<S->NumPanels; np++)
-      XMatrix->SetEntriesD(np, ":", S->Panels[np]->Centroid);
-   }
-  else
-   { XMatrix=new HMatrix(S->NumVertices, 3);
-     for(int nv=0; nv<S->NumVertices; nv++)
-      XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
-   };
+  int NX = UseCentroids ? NumPanels : NumVertices;
+  HMatrix XMatrix(3, NX, LHM_REAL);
+  for(int nx=0; nx<NX; nx++)
+   XMatrix.SetEntriesD(":", nx, UseCentroids ? Panels[nx]->Centroid : Vertices + 3*nx);
 
   /***************************************************************/
   /* call user's function to populate data matrix ****************/
   /***************************************************************/
   const char **DataNames=0;
-  HMatrix *DataMatrix=MDFunc(MDFData, XMatrix, &DataNames);
+  HMatrix *DataMatrix=MDFunc(UserData, &XMatrix, &DataNames);
+  if ( DataMatrix==0 || DataMatrix->NR!=NX )
+   { Warn("Mesh data function returned wrong-size DataMatrix");
+     delete DataMatrix;
+     return 0;
+   }
   int NumData = DataMatrix->NC;
+  bool RealData = (DataMatrix->RealComplex==LHM_REAL);
+  HVector *Integrals = new HVector(NumData, LHM_REAL);
 
-  if (Integral && (Integral->N!=NumData || Integral->RealComplex!=LHM_REAL) )
-   { Warn("%s:%i: incorrect Integral vector (%i,%i!=%i,0)",__FILE__,__LINE__,Integral->N,NumData,Integral->RealComplex);
-     Integral=0;
-   };
-  if (Integral)
-   Integral->Zero();
-  
   /***************************************************************/
-  /* write a separate "View" section to the .pp file for each    */
-  /* data field                                                  */
+  /* By default we assume all data quantities are real-valued    */
+  /* scalars.                                                    */
+  /* The user's data function can change this by prepending a    */
+  /* 4-character prefix to the DataName for a quantity:          */
+  /* #RS_ real part of scalar quantity (default)                 */
+  /* #IS_ imag part of scalar quantity                           */
+  /* #MS_ magnitude of scalar quantity                           */
+  /* #RV_ real part of vector quantity                           */
+  /* #IV_ imag part of vector quantity                           */
+  /* #MV_ magnitude of vector quantity                           */
   /***************************************************************/
   for(int nd=0; nd<NumData; nd++)
    {
-     if (DataNames && DataNames[nd])
-      fprintf(f,"View \"%s\"{",DataNames[nd]);
+     int PlotType = RealData ? 0 : 2;
+     bool VectorPlot = false;
+     char ndBuffer[10];
+     const char *DataName = (DataNames ? DataNames[nd] : 0);
+     if (DataName==0)
+      { DataName=ndBuffer;
+        snprintf(ndBuffer,10,"%i",nd);
+      }
+     else if (strlen(DataName)>4 && DataName[0]=='#' && DataName[3]=='_')
+      { if (toupper(DataName[1])=='M') PlotType=1;
+        if (toupper(DataName[1])=='I') PlotType=3;
+        if (toupper(DataName[2])=='V') VectorPlot=true;
+        DataName+=4;
+        if (RealData && PlotType!=0)
+         { Warn("Data name %s suggests complex data, but DataMatrix is real-valued",DataNames[nd]);
+           PlotType=0;
+         }
+        if(VectorPlot && (nd+3 > NumData))
+         { Warn("Not enough columns for vector data %s (skipping)",DataNames[nd]);
+           continue;
+         }
+        if(VectorPlot && UseCentroids==false)
+         { Warn("Vector-valued mesh plots require UseCentroids==true");
+           continue;
+         }
+      }
+
+     if (VectorPlot)
+      { double I = PlotVectorDensity(PlotType, DataMatrix, nd, PPFileName, DataName);
+        Integrals->SetEntry(nd,I);
+        nd+=2;
+      }
      else
-      fprintf(f,"View \"%i\"{",nd);
-     for(int np=0; np<S->NumPanels; np++)
-      { 
-        double *V[3];              // vertices
-        double Q[3]={0.0,0.0,0.0}; // quantities
-        double QAvg=0.0;     // average quantity, excluding absurd vertices
-        int nAvg=0;          // # vertices that contributed to average
-        for(int iv=0; iv<3; iv++)
-         { 
-           int nv = S->Panels[np]->VI[iv];
-           V[iv]  = S->Vertices + 3*nv;
-
-           if (UseCentroids) continue;
-
-           Q[iv]  = DataMatrix->GetEntryD(nv, nd);
-	   if ( fabs(Q[iv]) < ABSURD )
-	    { QAvg += Q[iv];
-	      nAvg += 1;
-	    };
-         };
-
-        if (UseCentroids)
-         {
-           Q[0]=Q[1]=Q[2]=QAvg=DataMatrix->GetEntryD(np,nd);
-         }
-        else
-         { if (nAvg>=2)
-            QAvg/=nAvg;
-           for(int iv=0; iv<3; iv++)
-            if ( fabs(Q[iv]) >= ABSURD )
-             Q[iv]=QAvg;
-         }
-        WriteST(V, Q, f);
-        if (Integral)
-         Integral->AddEntry(nd,QAvg * S->Panels[np]->Area);
-
-      }; // for(int np=0; np<S->NumPanels; np++)
-
-     fprintf(f,"};\n\n");
-
-   };  // for(int nd=0; nd<DataMatrix->NC; nd++)
-  fclose(f);
-  delete XMatrix;
+      { int AveragingMethod = (UseCentroids ? 1 : 2);
+        double I = PlotScalarDensity(PlotType, DataMatrix, nd, AveragingMethod, PPFileName, DataName);
+        Integrals->SetEntry(nd, I);
+      }
+   }
   delete DataMatrix;
+  return Integrals;
 }
 
-void MakeMeshPlot(MeshDataFunc MDFunc, void *MDFData,
-                  char *MeshFileName, const char *OptionsString,
-                  char *OutFileBase, HVector *Integral,
-                  bool UseCentroids)
+/***************************************************************/
+/* (nd,nt) entry of returned matrix                            */
+/*  = integral of quantity #nd for transform #nt               */
+/***************************************************************/
+HMatrix *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
+                      const char *MeshFile, const char *TransFile,
+                      const char *CallerFileBase, const char *PPOptions, bool UseCentroids)
 {
-  RWGSurface *S=new RWGSurface(MeshFileName);
-  MakeMeshPlot(MDFunc, MDFData, S, OptionsString, OutFileBase, Integral, UseCentroids);
+  char MeshFileCopy[100];
+  snprintf(MeshFileCopy,100,"%s",MeshFile);
+  
+  char PPFileBase[100];
+  if (CallerFileBase)
+   snprintf(PPFileBase,100,"%s.%s",CallerFileBase,GetFileBase(MeshFileCopy));  
+  else
+   snprintf(PPFileBase,100,"%s",GetFileBase(MeshFileCopy));
+  char FFBuffer[100], *FullFileBase = (TransFile ? FFBuffer : PPFileBase);
+
+  RWGSurface *S=new RWGSurface(MeshFile);
+  GTCList GTCs = ReadTransFile(TransFile);
+  int NT = GTCs.size();
+  HMatrix *Integrals=0;
+  for(int nt=0; nt<NT; nt++)
+   { if ( GTCs[nt]->GTs.size() > 0 )
+      S->Transform(GTCs[nt]->GTs[0]);
+     if (TransFile)
+      snprintf(FullFileBase,100,"%s.%s",PPFileBase,GTCs[nt]->Tag);
+     HVector *I=S->MakeMeshPlot(MDFunc, UserData, FullFileBase, PPOptions, UseCentroids);
+     int NumData=I->N;
+     if (!Integrals)
+      Integrals = new HMatrix(NumData, NT, LHM_REAL);
+     for(int nd=0; nd<NumData; nd++)
+      Integrals->SetEntry(nd,nt,I->GetEntry(nd));
+     delete I;
+     S->UnTransform();
+   }
   delete S;
+  return Integrals;
 }
 
 } // namespace scuff
-
-
-

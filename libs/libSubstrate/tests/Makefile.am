@@ -9,6 +9,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
               -I$(top_srcdir)/libs/libscuff     \
               -I$(top_builddir) # for config.h
 
+TESTLIBS = $(top_builddir)/libs/libscuff/libscuff.la
+
 #check_PROGRAMS = tGTwiddle \
 # tFullWaveSubstrate        \
 # tMOISGFs                  \
@@ -17,18 +19,11 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
 #TESTS = tGTwiddle tFullWaveSubstrate
 TESTS =
 
-TESTLIBS = ../libSubstrate.la      \
-../../libscuff/libscuff.la         \
-../../libMatProp/libMatProp.la     \
-../../libMDInterp/libMDInterp.la   \
-../../libhmat/libhmat.la           \
-../../libSGJC/libSGJC.la           \
-../../libSpherical/libSpherical.la \
-../../libhrutil/libhrutil.la
-#
-#tMOISGFs_SOURCES = tMOISGFs.cc
-#tMOISGFs_LDADD = $(TESTLIBS)
-#
+check_PROGRAMS = tMOISGFs
+
+tMOISGFs_SOURCES = tMOISGFs.cc
+tMOISGFs_LDADD = $(TESTLIBS)
+
 #tInterpolation_SOURCES = tInterpolation.cc
 #tInterpolation_LDADD = $(TESTLIBS)
 #

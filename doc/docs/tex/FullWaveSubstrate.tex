@@ -1111,59 +1111,55 @@ by a panel-panel integral involving the spectral-domain GF:
 %####################################################################%
 %####################################################################%
 \newpage
-\section{Impedance matrix}
+\section{Metal-on-Insulator geometries}
 
-For an $N\subt{P}$-port system, the
-$N\subt{P}\times N\subt{P}$ impedance matrix $\vb Z$ is defined by
-JStar E = (Jr-iJi)(Er+iEi) JrEr + JiEi + i(JrEi-JiEr)
-J E = (Jr+iJi)(Er+iEi) (JrEr - JiEi) + i(JrEi+JiEr)
-
-%====================================================================%
 \begin{align*}
- 
+ \vb E &= iw \vb A - \nabla \phi
+\\
+              &= iw\mu G_0\star \vb J 
+                 - \frac{1}{i\omega \epsilon}\nabla G_0\star \vbrho
 \end{align*}
-%====================================================================%
 
-$$ \vb J_p(\vb x) =
-   \sum_{a\in\mc{P}_p}
-   \bigg\{ \Big[ 
-     -\sum_{\alpha\beta} \vb b_\alpha(\vb x) M_{\alpha\beta} R_{\beta a}
-           \Big]
-           +\vb b_a(\vb x)
-   \bigg\}w_a,
- \quad 
-   \vb E_q(\vb x) =
-   \sum_{b\in\mc{P}_q}
-   \bigg\{ \Big[ 
-     -\sum_{\gamma\delta} \mb E_\gamma(\vb x) M_{\gamma\delta} R_{\delta b}
-           \Big]
-           +\mb E_b(\vb x)
-   \bigg\}w_b
- \qquad 
+\begin{align*}
+ \wt G\supt{$A$pp}
+ &= \frac{1}{2\pi} q J_0(q\rho)\zeta\supt{App}
+\\
+ \wt G\supt{$A$pz}
+ &= -\frac{1}{2\pi}(\epsilon_r-1) q^2 J_1(q\rho)\zeta\supt{Apz}
+\\
+ \wt G\supt{$\Phi$}
+ &= \frac{1}{2\pi} \rho J_0(q\rho)\zeta\supt{$\Phi$}
+\end{align*}
+
+\begin{align*}
+\zeta\supt{App}&=
+ \displaystyle{
+ \frac{1}{D\supt{TE}}\times
+  \begin{cases} e^{-u_0 z} \\ \frac{\sinh u(z+h)}{\sinh uh} \end{cases}
+              }
+\\
+\zeta\supt{Apz}&=
+ \displaystyle{
+ \frac{1}{D\supt{TE}D\supt{TM}}\times
+ \begin{cases} e^{-u_0 z} \\ \frac{\cosh u(z+h)}{\cosh uh} \end{cases}
+              }
+\\
+\zeta\supt{$\Phi$}&=
+ \frac{N}{D\supt{TE}D\supt{TM}}\times
+ \begin{cases} e^{-u_0 z} \\
+               \frac{\sinh u(z+h)}{\sinh uh}
+\end{cases}
+\end{align*}
+
+$$ \frac{N}{D\subt{TE}D\subt{TM}}\xrightarrow{u \to u_0}
+   \frac{1-e^{-2u_0 h}}{u_0(\epsilon+1)}
+   \sum_{n=0}^\infty \Big[-\eta e^{-2u_0 h}\Big]^n
 $$
-%====================================================================%
+
 \begin{align*}
- Z_{pq} 
- &\equiv \frac{1}{2I_p I_q}\int \vb J_p(\vb x) \vb E_q(\vb x)\,d\vb x
-\\
- &= T_1 + T_2 + T_3 + T_4 
-\\
- T_1 &\equiv \sum_{\alpha\beta\gamma\delta}
-  R_{\delta q}
-  M_{\alpha\beta}
- \underbrace{\Inp{\vb b_\alpha}{\vb E_\gamma}}_{M_{\alpha\gamma}^{-1}}
-  M_{\gamma\delta}
-  R_{\beta p}
-\\
-&= \frac{1}{2} \vb R_q \vb M \vb R_p
-\\
- T_2 &\equiv -\sum_{\alpha\beta}
- \underbrace{\Inp{\vb b_\alpha}{\vb E_b}}_{R_{\alpha q}}
-  M_{\alpha\beta}
-  R_{\beta p}
- &= -\frac{1}{2}\vb R_q \vb M \vb R_p
+  \wt{G^\phi} \xrightarrow{u \to u_0}
+  \frac{1}{4\pi}q J_0(q\rho}
 \end{align*}
-%====================================================================%
 
 %####################################################################%
 %####################################################################%
