@@ -732,8 +732,6 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
      PERPFMatrix  = new HMatrix(NPFCX, NPortEdges, LHM_COMPLEX);
    }
 
-  int Order=9; 
-
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */
   /***************************************************************/
@@ -781,6 +779,7 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
       }
     
      double *XDest = (double *)XMatrix->GetColumnPointer(nx);
+     int Order=-1;
      Get1BFMOIFields(G, ns, ne, Omega, XDest, RPFVector + NPFC*nx, Order, Subtract);
    }
   
@@ -969,7 +968,6 @@ HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
       }
      delete[] PFByThread;
    }
-
   return PFMatrix;
 }
 

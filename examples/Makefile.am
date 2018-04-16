@@ -1,5 +1,6 @@
 SUBDIRS =            	\
  DiffractionPatterns	\
+ CoplanarWaveguide  	\
  CorrugatedDisc     	\
  CubeTorus           	\
  GetTMatrix             \

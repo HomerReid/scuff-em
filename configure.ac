@@ -282,6 +282,7 @@ AC_CONFIG_FILES([
  applications/scuff-transmission/Makefile
  examples/Makefile
  examples/DiffractionPatterns/Makefile
+ examples/CoplanarWaveguide/Makefile
  examples/CorrugatedDisc/Makefile
  examples/CubeTorus/Makefile
  examples/ImplicitSubstrate/Makefile
