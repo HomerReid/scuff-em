@@ -133,7 +133,7 @@ void InitZSParmFile(char *FileBase, int NumPorts, char ZS)
 void WriteZSParms(char *FileBase, char ZS, cdouble Omega, HMatrix *ZSMatrix, HMatrix **ZTerms=0)
 {
   FILE *f=vfopen("%s.%cparms","a",FileBase,ZS);
-  fprintf(f,"%e ",real(Omega));
+  fprintf(f,"%e ",real(OMEGA2FREQ*Omega));
   for(int ndPort=0; ndPort<ZSMatrix->NR; ndPort++)
    for(int nsPort=0; nsPort<ZSMatrix->NC; nsPort++)
     fprintf(f,"%e %e ",real(ZSMatrix->GetEntry(ndPort,nsPort)), imag(ZSMatrix->GetEntry(ndPort,nsPort)));

@@ -15,7 +15,7 @@
 DefineConstant[  W =  1.0 ];
 DefineConstant[  L = 10.0 ];
 DefineConstant[  N =    2 ];
-DefineConstant[ FR =    3 ];
+DefineConstant[ FR =    1 ];
 
 // derived parameters
 NW = Ceil[N*W];
