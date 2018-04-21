@@ -1,11 +1,11 @@
 SUBDIRS =            	\
  DiffractionPatterns	\
- CoplanarWaveguide  	\
  CorrugatedDisc     	\
  CubeTorus           	\
  GetTMatrix             \
  HalfSpaceLDOS          \
  ImplicitSubstrate      \
+ MicrostripDevices  	\
  PaulTrap               \
  PlateWithHole          \
  PerforatedThinFilm     \

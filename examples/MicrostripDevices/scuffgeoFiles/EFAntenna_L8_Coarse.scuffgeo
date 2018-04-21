@@ -1,0 +1,3 @@
+OBJECT Antenna
+	MESHFILE EFAntenna_L8_Coarse.msh
+ENDOBJECT

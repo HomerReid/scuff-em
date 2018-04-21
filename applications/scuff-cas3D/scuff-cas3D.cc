@@ -18,7 +18,7 @@
  */
 
 /*
- * scuff-cas3D.cc  -- a standalone code within the scuff-EM suite for 
+ * scuff-cas3D.cc  -- a standalone code within the scuff-EM suite for
  *                 -- computing the Casimir energy, force, and/or
  *                 -- torque for a collection of interacting objects
  *
