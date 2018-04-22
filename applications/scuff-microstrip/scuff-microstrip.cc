@@ -49,7 +49,7 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void InitZSParmFile(char *FileBase, int NumPorts, char ZS)
+void InitZSParmFile(char *FileBase, int NumPorts, char ZS, int NT)
 { FILE *f=vfopen("%s.%cparms","w",FileBase,ZS);
   setbuf(f,0);
   char TimeString[200];
@@ -59,16 +59,20 @@ void InitZSParmFile(char *FileBase, int NumPorts, char ZS)
   fprintf(f,"# scuff-microstrip ran on %s (%s)\n",getenv("HOST"),TimeString);
   fprintf(f,"# columns:\n");
   fprintf(f,"# 1 frequency (GHz)\n");
-  for(int ndp=0, nc=2; ndp<NumPorts; ndp++)
+  int nc=2;
+  if (NT>1)
+   fprintf(f,"# %i transform tag\n",nc++);
+  for(int ndp=0; ndp<NumPorts; ndp++)
    for(int nsp=0; nsp<NumPorts; nsp++, nc+=2)
     fprintf(f,"#%i,%i real,imag %c_{%i%i}\n",nc,nc+1,ZS,ndp+1,nsp+1);
   fclose(f);
 }
 
-void WriteZSParms(char *FileBase, char ZS, double Freq, HMatrix *ZSMatrix, HMatrix **ZTerms=0)
+void WriteZSParms(char *FileBase, char *Tag, char ZS, double Freq, HMatrix *ZSMatrix, HMatrix **ZTerms=0)
 {
   FILE *f=vfopen("%s.%cparms","a",FileBase,ZS);
   fprintf(f,"%e ",Freq);
+  if (Tag) fprintf(f,"%s ",Tag);
   for(int ndPort=0; ndPort<ZSMatrix->NR; ndPort++)
    for(int nsPort=0; nsPort<ZSMatrix->NC; nsPort++)
     fprintf(f,"%e %e ",real(ZSMatrix->GetEntry(ndPort,nsPort)), imag(ZSMatrix->GetEntry(ndPort,nsPort)));
@@ -101,6 +105,8 @@ int main(int argc, char *argv[])
   char *EpsStr = 0;
   double h     = 0.0;
 //
+  char *TransFile=0;
+//
   char *FreqFile=0;
   double Freqs[MAXFREQ];    int nFreqs;
   double MinFreq;           int nMinFreq;
@@ -131,6 +137,8 @@ int main(int argc, char *argv[])
      {"SubstrateFile",  PA_STRING,  1, 1,       (void *)&SubstrateFile,   0,        "substrate definition file"},
      {"Eps",            PA_STRING,  1, 1,       (void *)&EpsStr,     0,             "substrate permittivity"},
      {"h",              PA_DOUBLE,  1, 1,       (void *)&h,          0,             "substrate thickness"},
+//
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,   0,            "list of geometry transforms"},
 //
      {"freqfile",       PA_STRING,  1, 1,       (void *)&FreqFile,   0,             "list of frequencies"},
      {"frequency",      PA_DOUBLE,  1, MAXFREQ, (void *)Freqs,       &nFreqs,       "frequency (GHz)"},
@@ -172,16 +180,16 @@ int main(int argc, char *argv[])
   int NumPorts = Solver->NumPorts;
   if (SubstrateFile)
    Solver->SetSubstrate(SubstrateFile);
-  else if (EpsStr!=0)
+  else if (EpsStr!=0 || h!=0.0)
    Solver->SetSubstrate(EpsStr, h);
 
   /***************************************************************/
-  /* parse the port list if requested               ***************/
+  /* plot the geometry if requested                ***************/
   /***************************************************************/
   if (PlotGeometry)
    { fprintf(stderr,"--PlotGeometry option was specified; plotting ports ONLY.\n");
      Solver->PlotGeometry();
-     fprintf(stderr,"RF ports plotted to file %s.ports.pp.\n",GetFileBase(G->GeoFileName));
+     fprintf(stderr,"RF ports plotted to file %s.pp.\n",GetFileBase(G->GeoFileName));
      fprintf(stderr,"Thank you for your support.\n");
      exit(0);
    }
@@ -226,9 +234,19 @@ int main(int argc, char *argv[])
   if (PCFile==0 && (nEPFiles!=0 || nFVMeshes!=0) )
    OSUsage(argv[0],OSArray,"--EPFile and --FVMesh require --PortCurrentFile");
 
-  HMatrix *ZSMatrix = 0; 
-  if (ZParms) InitZSParmFile(FileBase, NumPorts, 'Z');
-  if (SParms) InitZSParmFile(FileBase, NumPorts, 'S');
+  /***************************************************************/
+  /* process list of geometric transformations, if any           */
+  /***************************************************************/
+  GTCList GTCs = ReadTransFile(TransFile);
+  G->CheckGTCList(GTCs);
+  int NT = GTCs.size();
+  if (NT==1) Solver->DisableSystemBlockCache=true;
+
+  char OutFileBaseBuffer[100], *OutFileBase = (NT>1 ? OutFileBaseBuffer : FileBase);
+
+  HMatrix *ZSMatrix = 0;
+  if (ZParms) InitZSParmFile(FileBase, NumPorts, 'Z', NT);
+  if (SParms) InitZSParmFile(FileBase, NumPorts, 'S', NT);
 
   HMatrix *ZTermBuffer[3]={0,0,0}, **ZTerms=0;
   if (ZParms)
@@ -239,14 +257,26 @@ int main(int argc, char *argv[])
    }
 
   /***************************************************************/
-  /* loop over frequencies ***************************************/
+  /* loop over frequencies and geometric transforms              */
   /***************************************************************/
-  for (int nf=0; nf<FreqList->N; nf++)
+  int NF = FreqList->N;
+  int NTNF = NT*NF;
+  for (int ntnf = 0; ntnf<NTNF; ntnf++)
    { 
-     /*--------------------------------------------------------------*/
-     /* assemble and factorize the BEM matrix at this frequency      */
-     /*--------------------------------------------------------------*/
+     int nf = NTNF/NF;
+     int nt = NTNF%NF;
      double Freq = FreqList->GetEntryD(nf);
+
+     G->Transform(GTCs[nt]);
+     char *Tag = (NT>1) ? GTCs[nt]->Tag : 0;
+     if (Tag) 
+      Log("Working at f=%g GHz, transform %s",Freq,Tag);
+     else
+      Log("Working at f=%g GHz",Freq);
+
+     /*--------------------------------------------------------------*/
+     /* (re)assemble and factorize the BEM matrix                    */
+     /*--------------------------------------------------------------*/
      Solver->AssembleSystemMatrix(Freq);
 
      /*--------------------------------------------------------------*/
@@ -255,38 +285,43 @@ int main(int argc, char *argv[])
      if (ZParms || SParms)
       { ZSMatrix=Solver->GetZMatrix(ZSMatrix, ZTerms);
         if (ZParms) 
-         WriteZSParms(FileBase, 'Z', Freq, ZSMatrix, ZTerms);
+         WriteZSParms(FileBase, Tag, 'Z', Freq, ZSMatrix, ZTerms);
         if (SParms)
          { Z2S(ZSMatrix, 0, ZCharacteristic);
-           WriteZSParms(FileBase, 'S', Freq, ZSMatrix);
+           WriteZSParms(FileBase, Tag, 'S', Freq, ZSMatrix);
          }
       }
+ 
+      /*--------------------------------------------------------------*/
+      /*- if the user gave us driving port currents and asked for the */
+      /*- radiated fields at a list of points/and or on a user-       */
+      /*- specified flux-mesh surface, handle that                    */
+      /*--------------------------------------------------------------*/
+      if (nEPFiles!=0 || nFVMeshes!=0)
+       { 
+         Log(" Computing radiated fields..."); 
 
-     /*--------------------------------------------------------------*/
-     /*- if the user gave us driving port currents and asked for the */
-     /*- radiated fields at a list of points/and or on a user-       */
-     /*- specified flux-mesh surface, handle that                    */
-     /*--------------------------------------------------------------*/
-     if (nEPFiles!=0 || nFVMeshes!=0)
-      { 
-        Log(" Computing radiated fields..."); 
+         /*--------------------------------------------------------------*/
+         /* get the RHS vector corresponding to the user-specified port  */
+         /* currents at this frequency, then solve the BEM sytem and     */
+         /* handle post-processing field computations                    */
+         /*--------------------------------------------------------------*/
+         PCMatrix->GetEntries(nf,"1:end",PortCurrents);
+         Solver->Solve(PortCurrents);
 
-        /*--------------------------------------------------------------*/
-        /* get the RHS vector corresponding to the user-specified port  */
-        /* currents at this frequency, then solve the BEM sytem and     */
-        /* handle post-processing field computations                    */
-        /*--------------------------------------------------------------*/
-        PCMatrix->GetEntries(nf,"1:end",PortCurrents);
-        Solver->Solve(PortCurrents);
+         if (Tag) snprintf(OutFileBase,100,"%s.%s",OutFileBase,Tag);
 
-        for(int n=0; n<nEPFiles; n++)
-         Solver->ProcessEPFile(EPFiles[n], FileBase);
+         for(int n=0; n<nEPFiles; n++)
+          Solver->ProcessEPFile(EPFiles[n], OutFileBase);
 
-        for(int n=0; n<nFVMeshes; n++)
-         Solver->ProcessFVMesh(FVMeshes[n], FVMeshTransFiles[n], FileBase);
+         for(int n=0; n<nFVMeshes; n++)
+          Solver->ProcessFVMesh(FVMeshes[n], FVMeshTransFiles[n], OutFileBase);
 
-      } // if (nEPFiles!=0 || nFVMeshes!=0)
-   }  // for (nf=0..)
+       } // if (nEPFiles!=0 || nFVMeshes!=0)
 
-  printf("Thank you for your support.\n");
-}
+     G->UnTransform();
+
+    }  // for (ntnf=0..)
+ 
+   printf("Thank you for your support.\n");
+ }

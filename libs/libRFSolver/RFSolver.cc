@@ -57,6 +57,24 @@ RFSolver::RFSolver(const char *scuffgeoFileName, const char *portFileName)
   NumPorts = PortList->Ports.size();
   FileBase = strdup(GetFileBase(scuffgeoFileName));
 
+  InitSolver();
+
+}
+
+/***************************************************************/
+/* RF solver class constructor #2: construct from a .GDSII     */
+/* file                                                        */
+/***************************************************************/
+RFSolver::RFSolver(const char *GDSIIFileName)
+{ 
+  FileBase = strdup(GetFileBase(GDSIIFileName));
+  NumPorts = 0; // PortList->Ports.size();
+
+  InitSolver();
+}
+
+void RFSolver::InitSolver()
+{
   /*--------------------------------------------------------------------------*/
   /* initialize internal variables needed to perform RF calculations (which   */
   /* are allocated lazily)                                                    */
@@ -70,27 +88,10 @@ RFSolver::RFSolver(const char *scuffgeoFileName, const char *portFileName)
   PortCurrents = 0;
   KN           = 0;
 
-  RetainContributions = CONTRIBUTION_ALL;
-
-}
-
-/***************************************************************/
-/* RF solver class constructor #2: construct from a .GDSII     */
-/* file                                                        */
-/***************************************************************/
-RFSolver::RFSolver(const char *GDSIIFileName)
-{ 
-  FileBase = strdup(GetFileBase(GDSIIFileName));
-  NumPorts = 0; // PortList->Ports.size();
-
-  Omega        = -1.0;
-  M            = 0;
-  MClean       = 0;
-  PBFIMatrix   = 0;
-  PPIMatrix    = 0;
-  PBFIClean    = false;
-  PortCurrents = 0;
-  KN           = 0;
+  DisableSystemBlockCache = false;
+  OmegaCache = HUGE_VAL;
+  TBlocks = 0;
+  UBlocks = 0;
 
   RetainContributions = CONTRIBUTION_ALL;
 }
@@ -105,8 +106,20 @@ RFSolver::~RFSolver()
   if (FileBase)     free(FileBase);
   if (M)            delete M;
   if (PBFIMatrix)   delete PBFIMatrix;
-  if (PortCurrents) free(PortCurrents);
+  if (PortCurrents) delete PortCurrents;
   if (KN)           delete KN;
+
+  int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
+  if (TBlocks)
+   { for(int ns=0; ns<NS; ns++)
+      delete TBlocks[ns];
+     delete TBlocks;
+   }
+  if (UBlocks)
+   { for(int nu=0; nu<NU; nu++)
+      delete UBlocks[nu];
+     delete UBlocks;
+   }
 }
 
 /***************************************************************/
@@ -129,12 +142,62 @@ void RFSolver::SetSubstrate(const char *EpsStr, double h)
   G->Substrate=CreateLayeredSubstrate(SubstrateDefinition);
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RFSolver::UpdateSystemMatrix()
+{ 
+  // lazy allocation of accelerator
+  if (TBlocks==0)
+   { int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
+     TBlocks = new HMatrix *[NS];
+     UBlocks = new HMatrix *[NU];
+     for(int nsa=0; nsa<NS; nsa++)
+      { int NBFA = G->Surfaces[nsa]->NumBFs;
+        int Mate = G->Mate[nsa];
+        TBlocks[nsa] = (Mate!=-1) ? TBlocks[Mate] : new HMatrix(NBFA, NBFA, LHM_COMPLEX);
+        for(int nsb=nsa+1, nb=0; nsb<NS; nsb++, nb++)
+         { int NBFB = G->Surfaces[nsb]->NumBFs;
+           UBlocks[nb] = new HMatrix(NBFA, NBFB, LHM_COMPLEX);
+         }
+      }
+   }
+
+  // TBlocks recomputed only if frequency has changed
+  if (Omega!=OmegaCache)
+   for(int ns=0; ns<G->NumSurfaces; ns++)
+    if (G->Mate[ns]==-1)
+     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns]);
+
+  // UBlocks recomputed if frequency has changed or surfaces were moved
+  for(int nsa=0, nb=0; nsa<G->NumSurfaces; nsa++)
+   for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nb++)
+    if (Omega!=OmegaCache || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
+     AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nb]);
+
+  // stamp blocks into M matrix
+  for(int nsa=0, nb=0; nsa<G->NumSurfaces; nsa++)
+   { int OffsetA = G->BFIndexOffset[nsa];
+     M->InsertBlock(TBlocks[nsa], OffsetA, OffsetA);
+     for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nb++)
+      {  int OffsetB = G->BFIndexOffset[nsb];
+         M->InsertBlock(UBlocks[nb],OffsetA, OffsetB);
+         M->InsertBlockTranspose(UBlocks[nb],OffsetB, OffsetA);
+      }
+   }
+
+  OmegaCache=Omega;
+}
+
 void RFSolver::AssembleSystemMatrix(double Freq)
 { 
-  Omega = Freq * FREQ2OMEGA;
   if (M==0) M=G->AllocateBEMMatrix();
+  Omega = Freq * FREQ2OMEGA;
   Log("Assembling BEM matrix at f=%g GHz...",Freq);
-  AssembleMOIMatrix(G, Omega, M); 
+  if (DisableSystemBlockCache)
+   AssembleMOIMatrix(G, Omega, M);
+  else
+   UpdateSystemMatrix();
   Log("Factorizing...");
   M->LUFactorize();
   PBFIClean=false;
@@ -149,10 +212,10 @@ void RFSolver::Solve(cdouble *CallerPortCurrents)
   /*- lazy allocation of internal variables ----------------------*/
   /*--------------------------------------------------------------*/
   int NBF = G->TotalBFs;
-  if (PortCurrents==0) PortCurrents = (cdouble *)mallocEC(NumPorts*sizeof(cdouble));
   if (PBFIMatrix==0)   PBFIMatrix   = new HMatrix(NBF,      NumPorts, LHM_COMPLEX);
   if (PPIMatrix==0)    PPIMatrix    = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
   if (KN==0)           KN           = new HVector(NBF,                LHM_COMPLEX);
+  if (PortCurrents==0) PortCurrents = new cdouble[NumPorts];
   
   /*--------------------------------------------------------------*/
   /*- (re)compute port-BF interaction matrix as necessary --------*/
@@ -175,8 +238,7 @@ void RFSolver::Solve(cdouble *CallerPortCurrents)
 
 void RFSolver::Solve(cdouble PortCurrent, int WhichPort)
 {
-  if (PortCurrents==0)
-   PortCurrents = (cdouble *)mallocEC(NumPorts*sizeof(cdouble));
+  if (PortCurrents==0) PortCurrents = new cdouble[NumPorts];
   memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
   PortCurrents[WhichPort]=PortCurrent;
   Solve(0);

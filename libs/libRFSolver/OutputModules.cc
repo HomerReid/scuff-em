@@ -297,6 +297,7 @@ void RFSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
    { 
      // get fields at centroids of all port edges due to unit-strength current into SourcePort
      HVector KNSource(NBF, LHM_COMPLEX, KMatrix->GetColumnPointer(SourcePort));
+     if (!KN) KN=G->AllocateRHSVector();
      KN->Copy(&KNSource);
      memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
      PortCurrents[SourcePort]=1.0;

@@ -1,14 +1,15 @@
 site_name: SCUFF-EM documentation
 site_author: Homer Reid
-site_favicon: scuffEM.ico
 
 repo_url: https://github.com/homerreid/scuff-em/
 
-theme_dir: 'scuff-em-mkdocs-theme'
+theme:
+    name: readthedocs
+    custom_dir: scuff-em-mkdocs-theme
 
-python:
-   version: 2 # for unicode
-   setup_py_install: True
+#python:
+#   version: 2 # for unicode
+#   setup_py_install: True
 
 markdown_extensions:
     - wikilinks
@@ -19,7 +20,9 @@ markdown_extensions:
     - mdx_math:
         enable_dollar_delimiter: True
 
-extra_javascript: ['https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML','mathjaxhelper.js']
+extra_javascript:
+  - 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'
+  - mathjaxhelper.js
 
 pages:
 

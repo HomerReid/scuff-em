@@ -1,0 +1,8 @@
+OBJECT Antenna1
+	MESHFILE PointFedAntenna_Coarse.msh
+ENDOBJECT
+
+OBJECT Antenna2
+	MESHFILE PointFedAntenna_Coarse.msh
+	DISPLACED 0 -65.5 0.0
+ENDOBJECT

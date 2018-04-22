@@ -1,8 +1,8 @@
 <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href="{{ homepage_url }}"><span class="SmallCaps">scuff-em</span> documentation</a> &raquo;</li>
-    {% if current_page %}
-      {% for doc in current_page.ancestors %}
+    {% if page %}
+      {% for doc in page.ancestors %}
         {% if doc.link %}
           <li><a href="{{ doc.link|e }}">{{ doc.title }}</a> &raquo;</li>
         {% else %}
@@ -10,15 +10,18 @@
         {% endif %}
       {% endfor %}
     {% endif %}
-    {% if current_page %}<li>{{ current_page.title }}</li>{% endif %}
+    {% if page %}<li>{{ page.title }}</li>{% endif %}
     <li class="wy-breadcrumbs-aside">
-      {% if repo_url %}
-        {% if repo_name == 'GitHub' %}
-          <a href="{{ repo_url }}" class="icon icon-github"> Edit on GitHub</a>
-        {% elif repo_name == 'Bitbucket' %}
-          <a href="{{ repo_url }}" class="icon icon-bitbucket"> Edit on BitBucket</a>
-        {% endif %}
+      {%- block repo %}
+      {% if page and page.edit_url %}
+        <a href="{{ page.edit_url }}"
+        {%- if config.repo_name|lower == 'github' %}
+          class="icon icon-github"
+        {%- elif config.repo_name|lower == 'bitbucket' %}
+          class="icon icon-bitbucket"
+        {% endif %}> Edit on {{ config.repo_name }}</a>
       {% endif %}
+      {%- endblock %}
     </li>
   </ul>
   <hr/>

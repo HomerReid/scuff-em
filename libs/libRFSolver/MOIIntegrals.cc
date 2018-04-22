@@ -604,8 +604,8 @@ void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double z
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb, 
-                            cdouble Omega, HMatrix *M)
+void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
+                            cdouble Omega, HMatrix *Block, int OffsetA, int OffsetB)
 {
   int Order=-1;
   char *s=getenv("SCUFF_MOIME_ORDER");
@@ -613,10 +613,25 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
    Log("Setting panel-cubature order=%i for MOI matrix elements",Order);
 
   /***************************************************************/
+  /* pre-allocate interpolator for subtrate green's functions if */
+  /* it is not already there                                     */
+  /***************************************************************/
+  double RhoMinMax[2];
+  GetRhoMinMax(G, nsa, nsb, RhoMinMax);
+  bool PPIsOnly = true;
+  bool Subtract = true;
+  bool RetainSingularTerms = false;
+  double DeltaRho=0.0, DeltaZ=0.0;
+  bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
+  Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
+  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
+                                         PPIsOnly, Subtract, RetainSingularTerms,
+                                         DeltaRho, DeltaZ, Verbose);
+
+  /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   RWGSurface *Sa = G->Surfaces[nsa], *Sb=G->Surfaces[nsb];
-  int OffsetA = G->BFIndexOffset[nsa], OffsetB=G->BFIndexOffset[nsb];
   int NEA = Sa->NumEdges, NEB=Sb->NumEdges;
   int nPair=0, NPair = (nsa==nsb) ? NEA*(NEA+1)/2 : NEA*NEB;
 #ifndef USE_OPENMP
@@ -635,7 +650,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
 
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
-     M->SetEntry(OffsetA + nea, OffsetB + neb, ME);
+     Block->SetEntry(OffsetA + nea, OffsetB + neb, ME);
    }
 }
 
@@ -678,7 +693,7 @@ void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M)
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
-       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M);
+       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb]);
     }
 
   // fill in lower triangle
@@ -802,9 +817,9 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
       { RWGPortEdge *PE        = PortList->PortEdges[nPE];
         int nPort              = PE->nPort;
         int Pol                = PE->Pol;
-        double Sign            = (Pol ==_PLUS ? +1.0 : -1.0);
+        double PolSign         = (Pol ==_PLUS ? +1.0 : -1.0);
         double Perimeter       = PortList->Ports[nPort]->Perimeter[Pol];
-        double Weight          = -1.0*Sign / Perimeter;
+        double Weight          = PE->Sign*PolSign / Perimeter;
         cdouble *PortRPFVector = (cdouble *)PortRPFMatrix->GetColumnPointer(nPort);
         cdouble *PERPFVector   = (cdouble *)PERPFMatrix->GetColumnPointer(nPE);
         VecPlusEquals(PortRPFVector, Weight, PERPFVector, NPFCX);
@@ -917,11 +932,11 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
       { int nPE          = nEdge - NBFEdges;
         RWGPortEdge *PE  = PortList->PortEdges[nPE];
         int nPort        = PE->nPort;
-        double Sign      = (PE->Pol==_PLUS ? 1.0 : -1.0);
+        double PolSign   = (PE->Pol==_PLUS ? 1.0 : -1.0);
         double Perimeter = PortList->Ports[nPort]->Perimeter[PE->Pol];
         ns               = PE->ns;
         ne               = PE->ne;
-        Weight           = -1.0*Sign*PortCurrents[nPort] / Perimeter;
+        Weight           = PE->Sign*PolSign*PortCurrents[nPort] / Perimeter;
       }
      if (Weight==0.0) continue;
     

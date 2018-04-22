@@ -72,21 +72,25 @@ typedef struct RWGPortEdge
    int ns;       // RWGSurface on which port edge lies
    int ne;       // (encoded) index of exterior edge
    int nPort;    // RWGPort to which this edge belongs
-   int Pol;      // Polarity: \pm 1 for positive/negative port edge
+   int Pol;      // Polarity: \pm 1 if this edge belongs to the positive/negative terminal of port #nport
+   double Sign;  // \pm 1 if the port current flows in same/opposite direction of usual RWG current
 
-   RWGPortEdge(int _ns, int _ne, int _nPort, int _Pol): ns(_ns), ne(_ne), nPort(_nPort), Pol(_Pol) {}
+   RWGPortEdge(int _ns, int _ne, int _nPort, int _Pol, double _Sign):
+    ns(_ns), ne(_ne), nPort(_nPort), Pol(_Pol), Sign(_Sign) {}
 
  } RWGPortEdge;
 
+typedef vector<RWGPortEdge *> RWGPortEdgeList;
+
 typedef struct RWGPort
- { vector<RWGPortEdge *> PortEdges[NUMPOLARITIES];
+ { RWGPortEdgeList PortEdges[NUMPOLARITIES];
    double Perimeter[NUMPOLARITIES];
  } RWGPort;
 
 typedef struct RWGPortList
- { vector<RWGPort *>     Ports;
-   vector<RWGPortEdge *> PortEdges;
-   double                RMinMax[6]; // bounding box
+ { vector<RWGPort *> Ports;
+   RWGPortEdgeList   PortEdges;
+   double            RMinMax[6]; // bounding box
  } RWGPortList;
 
 /***************************************************************/
@@ -103,6 +107,7 @@ public:
     // constructors and geometry-definition routines
     RFSolver(const char *scuffgeoFileName, const char *portFileName);
     RFSolver(const char *GDSIIFileName);
+    void InitSolver();
 
     ~RFSolver();
 
@@ -137,6 +142,7 @@ public:
     void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
     void AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix);
     void AssemblePortBFInteractionMatrix();
+    void UpdateSystemMatrix();
 
     ////////////////////////////////////////////////////
     // internal data fields
@@ -148,7 +154,7 @@ public:
     int NumPorts;
     char *FileBase;
 
-    // internally cached data
+    // internally stored variables
     cdouble Omega;          // set by most recent call to AssembleSystemMatrix
     HMatrix *M;             // LU-factorized SIE matrix, set by AssembleSystemMatrix
     bool MClean;            // false if we need to recompute M at this frequency 
@@ -157,6 +163,12 @@ public:
     bool PBFIClean;         // false if PBFIMatrix/PPIMatrix need to be recomputed at this frequency
     cdouble *PortCurrents;  // set by most recent call to SolveSystem()
     HVector *KN;            // set by most recent call to SolveSystem()
+
+    // caching of system matrix blocks when geometrical transformations are present
+    bool DisableSystemBlockCache;
+    cdouble OmegaCache;
+    HMatrix **TBlocks; 
+    HMatrix **UBlocks;
 
     int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
 
@@ -182,7 +194,7 @@ int GetMOIMatrixElement(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
                         int Order=-1, bool Subtract=true, cdouble *Terms=0);
 
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
-                            cdouble Omega, HMatrix *M);
+                            cdouble Omega, HMatrix *Block, int OffsetA=0, int OffsetB=0);
 
 void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M);
 

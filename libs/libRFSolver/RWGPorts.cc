@@ -45,9 +45,9 @@ using namespace std;
 using namespace scuff;
 
 #define II cdouble(0.0,1.0)
-static const double Signs[2]={1.0,-1.0};
-static const char *PolStr[2]={"POSITIVE", "NEGATIVE"};
-
+static const double PolSigns[2]={1.0,-1.0};
+static const char *PolNames[2]={"POSITIVE", "NEGATIVE"};
+ 
 namespace scuff {
 
 void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double zMinMax[2]);
@@ -195,10 +195,70 @@ void UpdateRMinMax(double RMin[3], double RMax[3], double *V)
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
+{
+  RWGPortEdgeList PortEdges;
+
+  // find the vertex that lies closest to X
+  double MinDistance=HUGE_VAL;
+  int nsMin=-1, nvMin=-1;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
+    for(int iv=0; iv<3; iv++)
+     { int nv = G->Surfaces[ns]->Panels[np]->VI[iv];
+       double d=VecDistance(X, G->Surfaces[ns]->Vertices + 3*nv);
+       if (d<MinDistance)
+        { MinDistance=d;
+          nsMin=ns;
+          nvMin=nv;
+        }
+     }
+
+  if (nsMin==-1 || nvMin==-1)
+   return PortEdges;
+ 
+  RWGSurface *S=G->Surfaces[nsMin];
+  for(int np=0; np<S->NumPanels; np++)
+   for(int iv=0; iv<3; iv++)
+    if (S->Panels[np]->VI[iv] == nvMin)
+     { 
+       int ne = S->Panels[np]->EI[iv];
+       if (ne>=0)
+        { RWGEdge *NewEdge = (RWGEdge *)mallocEC(sizeof(RWGEdge));
+          NewEdge->iQP = S->Panels[np]->VI[iv];
+          NewEdge->iV1 = S->Panels[np]->VI[(iv+1)%3];
+          NewEdge->iV2 = S->Panels[np]->VI[(iv+2)%3];
+          NewEdge->iPPanel = np;
+          NewEdge->PIndex = iv;
+          NewEdge->iQM = NewEdge->iMPanel = NewEdge->MIndex = -1;
+          
+          double *QP = S->Vertices + 3*NewEdge->iQP;
+          double *V1 = S->Vertices + 3*NewEdge->iV1;
+          double *V2 = S->Vertices + 3*NewEdge->iV2;
+          NewEdge->Length = VecDistance(V1, V2);
+          NewEdge->Centroid[0] = 0.5*(V1[0]+V2[0]);
+          NewEdge->Centroid[1] = 0.5*(V1[1]+V2[1]);
+          NewEdge->Centroid[2] = 0.5*(V1[2]+V2[2]);
+          NewEdge->Radius = VecDistance(QP, NewEdge->Centroid);
+          ne = NewEdge->Index = -1 * (++(S->NumExteriorEdges));
+          S->ExteriorEdges=(RWGEdge **)reallocEC(S->ExteriorEdges, (S->NumExteriorEdges)*sizeof(RWGEdge *));
+          S->ExteriorEdges[S->NumExteriorEdges-1] = NewEdge;
+        }
+       PortEdges.push_back(new RWGPortEdge(nsMin, ne, 0, 0, +1.0));
+     }
+
+  return PortEdges;
+}
+
+/***************************************************************/
 /* port file syntax example                                    */
 /*  PORT                                                       */
 /*   PPOLYGON  A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                  */
 /*   MPOLYGON  A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                  */
+/*   PPOINT    X Y Z                                           */
+/*   MPOINT    X Y Z                                           */
 /*  ENDPORT                                                    */
 /***************************************************************/
 RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
@@ -216,6 +276,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
   /* read through the file and parse lines one-at-a-time *********/
   /***************************************************************/
   RWGPort *CurrentPort=0;
+  int CurrentPortIndex=0;
   char Line[1000];
   int LineNum=0;
   while( fgets(Line, 1000, f) )
@@ -243,6 +304,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
       { 
         PortList->Ports.push_back(CurrentPort);
         CurrentPort=0;
+        CurrentPortIndex++;
       }
      /*--------------------------------------------------------------*/
      else if ( !StrCaseCmp(Tokens[0]+1,"POLYGON") )
@@ -255,12 +317,30 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
         for(int ns=0; ns<G->NumSurfaces; ns++)
          { iVec neList = FindEdgesInPolygon(G->Surfaces[ns], PolygonVertices);
            for(unsigned nne=0; nne<neList.size(); nne++)
-            { RWGPortEdge *PE = new RWGPortEdge(ns, -1-neList[nne], PortList->Ports.size(), Pol);
+            { RWGPortEdge *PE = new RWGPortEdge(ns, -1-neList[nne], CurrentPortIndex, Pol, -1.0);
               CurrentPort->PortEdges[Pol].push_back(PE);
               PortList->PortEdges.push_back(PE);
             }
          }
       }
+     /*--------------------------------------------------------------*/
+     else if ( !StrCaseCmp(Tokens[0]+1,"POINT") )
+      {
+        int Pol=CheckKeywordSyntax(PortFileName, LineNum, CurrentPort, Tokens[0]);
+        if ( NumTokens!=4)
+         ErrExit("%s:%i: %s must have exactly 3 arguments",PortFileName,LineNum,Tokens[0]);
+        double X[3]; 
+        for(int nt=1; nt<NumTokens; nt++) sscanf(Tokens[nt],"%le",X+nt-1);
+        RWGPortEdgeList NewPEs=AddPointPort(G, X);
+        for(unsigned npe=0; npe<NewPEs.size(); npe++)
+         { RWGPortEdge *PE   = NewPEs[npe];
+           PE->nPort = CurrentPortIndex;
+           PE->Pol   = Pol;
+           CurrentPort->PortEdges[Pol].push_back(PE);
+           PortList->PortEdges.push_back(PE);
+         }
+      }
+     /*--------------------------------------------------------------*/
      else
       ErrExit("%s:%i: unknown keyword %s",PortFileName,LineNum,Tokens[0]);
 
@@ -292,7 +372,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
     { RWGPort *Port = PortList->Ports[np];
       int NPE = Port->PortEdges[Pol].size();
       double Perimeter=Port->Perimeter[Pol];
-      Log("Port %2i (%s): perimeter %e, %i edges=[",np,PolStr[Pol],Perimeter,NPE);
+      Log("Port %2i (%s): perimeter %e, %i edges%s",np,PolNames[Pol],Perimeter,NPE,NPE==0 ? "" : "=[");
       for(int npe=0; npe<NPE; npe++)
        { RWGPortEdge *PE = Port->PortEdges[Pol][npe];
          LogC("%s(%i)%c",G->Surfaces[PE->ns]->Label,-(1+PE->ne),(npe==NPE-1) ? ']' : ' ');
@@ -325,6 +405,7 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
    { Warn("could not open file %s (skipping geometry plot)",PPFileName);
      return;
    }
+  fclose(f);
 
   /***************************************************************/
   /* plot geometry ***********************************************/
@@ -334,6 +415,7 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
   /***************************************************************/
   /* plot ports **************************************************/
   /***************************************************************/
+  f=fopen(PPFileName,"a");
   fprintf(f,"View.LineWidth = 5;\n");
   fprintf(f,"View.LineType  = 1;\n");
   fprintf(f,"View.CustomMax = %i;\n",+(NumPorts+1));
@@ -341,15 +423,15 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
   fprintf(f,"View.RangeType = 2;\n");
   fprintf(f,"View.ShowScale = 0;\n");
   for(unsigned nPort=0; nPort<PortList->Ports.size(); nPort++)
-   for(int Pol=0; Pol<2; Pol++)
+   for(int Pol=_PLUS; Pol<=_MINUS; Pol++)
     { 
-      fprintf(f,"View \"Port %i %s terminal\" {\n",nPort+1, PolStr[Pol]);
+      fprintf(f,"View \"Port %i %s terminal\" {\n",nPort+1, PolNames[Pol]);
 
       RWGPort *Port     = PortList->Ports[nPort];
       int Value         = (Pol ? 1 : -1 ) * (nPort+1);
 
-      /*--------------------------------------------------------------*/ 
-      /*- scalar lines for port edges                                 */
+      /*--------------------------------------------------------------*/
+      /*- scalar lines and arrows for port edges                      */
       /*--------------------------------------------------------------*/
       for(unsigned nPE=0; nPE<Port->PortEdges[Pol].size(); nPE++)
        { RWGPortEdge *PE = Port->PortEdges[Pol][nPE];
@@ -359,8 +441,22 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
          double *V2      = S->Vertices + 3*E->iV2;
          fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
                     V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],Value,Value);
+
+         // arrow to indicate direction of current flow
+         double *X0   = E->Centroid;
+         double *ZHat = S->Panels[E->iPPanel]->ZHat;
+         double *P0   = S->Panels[E->iPPanel]->Centroid;
+         double V1mV2[3]; VecSub(V1, V2, V1mV2);
+         double Dir[3];   VecCross(ZHat, V1mV2, Dir);
+         double X0P[3];   VecScaleAdd(X0, 0.1, Dir, X0P);
+         bool DirPointsIntoPanel = (VecDistance(X0P,P0) < VecDistance(X0,P0));
+         bool DirShouldPointIntoPanel = (Pol==_MINUS);
+         if (PE->Sign==-1.0) DirShouldPointIntoPanel = !DirShouldPointIntoPanel;
+         if (DirPointsIntoPanel!=DirShouldPointIntoPanel) VecScale(Dir, -1.0);
+         fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",X0[0],X0[1],X0[2],Dir[0],Dir[1],Dir[2]);
        }
       fprintf(f,"};\n");
+      fprintf(f,"View.CenterGlyphs=1;\n");
    }
 
   /***************************************************************/
@@ -470,7 +566,7 @@ void RFSolver::AssemblePortBFInteractionMatrix()
      int nPort           = PE->nPort;
      int nsLeft          = PE->ns;
      int neLeft          = PE->ne;
-     double Weight       = Signs[PE->Pol] / PortList->Ports[nPort]->Perimeter[PE->Pol];
+     double Weight       = -1.0*PE->Sign*PolSigns[PE->Pol] / PortList->Ports[nPort]->Perimeter[PE->Pol];
 
      int nsRight, neRight, nPortPrime=-1;
      if (nBFPE < NBF)
@@ -482,7 +578,7 @@ void RFSolver::AssemblePortBFInteractionMatrix()
         nPortPrime        = PEP->nPort;
         nsRight           = PEP->ns;
         neRight           = PEP->ne;
-        Weight           *= Signs[PEP->Pol] / PortList->Ports[nPortPrime]->Perimeter[PEP->Pol];
+        Weight           *= -1.0*PEP->Sign*PolSigns[PEP->Pol] / PortList->Ports[nPortPrime]->Perimeter[PEP->Pol];
       }
 
      cdouble ME;
@@ -577,9 +673,8 @@ void RFSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
 
      int nPort      = PE->nPort;
      int Pol        = PE->Pol;
-     double Sign    = (PE->Pol == _PLUS) ? 1.0 : -1.0;
      double L       = PortList->Ports[nPort]->Perimeter[Pol];
-     cdouble Weight = -1.0*Sign*PortCurrents[nPort] / L;
+     cdouble Weight = PE->Sign*PolSigns[Pol]*PortCurrents[nPort] / L;
      if(Weight==0.0) continue;
 
      RWGEdge *E       = S->GetEdgeByIndex(ne);
@@ -624,9 +719,7 @@ HMatrix *RFSolver::GetPanelSourceDensities(HMatrix *PSDMatrix)
      double *QP      = S->Vertices + 3*(E->iQP);
      int PanelIndex  = G->PanelIndexOffset[S->Index] + E->iPPanel;
      RWGPanel *Panel = S->Panels[E->iPPanel];
-
-     // prefactor is *negative* for positive port edges 
-     cdouble PreFac  = -1.0*Signs[PE->Pol]*Weight*Length/(2.0*Panel->Area);
+     cdouble PreFac  = PE->Sign*PolSigns[PE->Pol]*Weight*Length/(2.0*Panel->Area);
      double XmQ[3];
      VecSub(Panel->Centroid, QP, XmQ);
      PSDMatrix->AddEntry( PanelIndex,  4, 2.0*PreFac/(II*Omega));  // rho

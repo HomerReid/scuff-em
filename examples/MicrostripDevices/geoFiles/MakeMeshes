@@ -1,0 +1,12 @@
+#!/bin/bash
+
+ARGS="-2 EdgeFedAntenna.geo"
+
+#gmsh ${ARGS} -setnumber NFeed 2 -setnumber LFeed 0 -o L0.msh; /bin/mv EFAntenna_L0.msh L0_Coarse.msh
+#gmsh ${ARGS} -setnumber NFeed 4 -setnumber LFeed 0 -o L0.msh; /bin/mv EFAntenna_L0.msh L0_Fine.msh
+#gmsh ${ARGS} -setnumber NFeed 2 -setnumber LFeed 8 -o L8.msh; /bin/mv EFAntenna_L8.msh L8_Coarse.msh
+#gmsh ${ARGS} -setnumber NFeed 4 -setnumber LFeed 8 -o L8.msh; /bin/mv EFAntenna_L8.msh L8_Fine.msh
+
+ARGS="-2 PointFedAntenna.geo"
+gmsh ${ARGS} -setnumber N 0.25 -o PointFedAntenna_Coarse.msh
+gmsh ${ARGS} -setnumber N 0.50 -o PointFedAntenna_Fine.msh
