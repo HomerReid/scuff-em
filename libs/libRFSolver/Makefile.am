@@ -2,6 +2,7 @@ noinst_LTLIBRARIES = libRFSolver.la
 pkginclude_HEADERS = RFSolver.h
 
 libRFSolver_la_SOURCES = \
+ RFSolver.cc      \
  RWGPorts.cc      \
  MOIIntegrals.cc  \
  OutputModules.cc

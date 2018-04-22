@@ -174,7 +174,7 @@ void HMatrix::ReadFromFile(const char *FileName, int FileType, const char *Optio
      if (AbortOnIOError) 
       ErrExit(ErrMsg);
      return;
-   };
+   }
 
   if (FileType == LHM_AUTO)
     FileType = LHM_AUTO_FileType(FileName);
@@ -192,7 +192,7 @@ void HMatrix::ReadFromFile(const char *FileName, int FileType, const char *Optio
      default:
        ErrExit("%s:%i: internal error",__FILE__,__LINE__);
        break;
-   };
+   }
 
   if (ErrMsg && AbortOnIOError)
    ErrExit(ErrMsg);

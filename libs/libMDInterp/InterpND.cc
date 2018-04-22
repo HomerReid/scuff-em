@@ -47,7 +47,7 @@ bool Increment(iVec &n, iVec &N)
    { if ( ++n[d] < N[d] )
       return false;
      n[d]=0;
-   };
+   }
   return true;
 }
 
@@ -71,7 +71,7 @@ iVec InterpND::GetPoint(size_t Index)
   for(int d=0; d<D; d++)
    { nVec[d] = Index % (NVec[d]+1);
      Index /= (NVec[d]+1);
-   };
+   }
   return nVec;
 }
 
@@ -87,7 +87,7 @@ iVec InterpND::GetCell(size_t Index)
   for(int d=0; d<D; d++)
    { nVec[d] = Index % NVec[d];
      Index /= NVec[d];
-   };
+   }
   return nVec;
 }
 
@@ -152,7 +152,7 @@ InterpND::InterpND(dVec _XMin, dVec XMax, iVec _NVec, int _NF,
    { if (NVec[d]<2)
       ErrExit("%s:%i: grid must have 2 or more points in all dimensions (N[%i]=%i)",__FILE__,__LINE__,d,NVec[d]);
      DX[d] = (XMax[d] - XMin[d]) / ((double)(NVec[d]));
-   };
+   }
 
   Initialize(UserFunc, UserData, Verbose);
 }
@@ -185,7 +185,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
       PointStride[d] = NPoint;
       NCell  *= NVec[d];
       NPoint *= NVec[d]+1;
-    };
+    }
 
    NVD    = (1<<D);     // # function vals, derivs per grid point
    NCoeff = NVD*NVD;    // # polynomial coefficients per grid cell
@@ -212,7 +212,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
       size_t Offset = GetPhiVDTableOffset(nPoint,0);
       dVec xVec = n2x(GetPoint(nPoint));
       UserFunc(&(xVec[0]), UserData, PhiVDTable + Offset);
-    };
+    }
 
    /*--------------------------------------------------------------*/
    /*- construct the NCoeff x NCoeff matrix that operates on a     */
@@ -226,6 +226,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    iVec Twos(D,2), Fours(D,4);
    // yPowers[0,1][p] = (\pm 1)^p
    double yPowers[2][4]={ {1.0,-1.0,1.0,-1.0}, {1.0, 1.0, 1.0, 1.0} };
+  {
    LOOP_OVER_IVECS(nTau, tauVec, Twos)
     { LOOP_OVER_IVECS(nVD, sigmaVec, Twos)
        { int nEq = nTau*NVD + nVD; // index of equation [0,4^D-1]
@@ -237,11 +238,12 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
                 Entry *= (p==0 ? 0.0 : p*yPowers[tau][p-1]);
                else
                 Entry *= yPowers[tau][p];
-             };
+             }
             M->SetEntry(nEq, nCoeff, Entry);
           }
        }
     }
+  }
    M->LUFactorize();
 
    /*--------------------------------------------------------------*/
@@ -267,11 +269,11 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
         { double *PhiVD = PhiVDTable + GetPhiVDTableOffset(nVec, tauVec, nf);
           LOOP_OVER_IVECS(nSigma, sigmaVec, Twos)
            RHS.SetEntry(nTau*NVD + nSigma, Monomial(D2Vec, sigmaVec)*PhiVD[nSigma]);
-        };
+        }
 
        // operate with inverse M matrix to yield C coefficients
        M->LUSolve(&RHS);
-     };
+     }
 
    free(PhiVDTable);
    delete M;
@@ -293,7 +295,7 @@ void InterpND::Evaluate(double *xVec, double *Phi)
      FindInterval(xVec[d], xPoints[d], NVec[d], XMin[d], DX[d], &n, &xBar);
      nVec[d]=n;
      xBarVec[d] = 2.0*(xBar-0.5);
-   };
+   }
   
   /****************************************************************/
   /* tabulate powers of the scaled/shifted coordinates            */
@@ -304,7 +306,7 @@ void InterpND::Evaluate(double *xVec, double *Phi)
      xPowers[d][1]=xBarVec[d];
      xPowers[d][2]=xPowers[d][1]*xBarVec[d];
      xPowers[d][3]=xPowers[d][2]*xBarVec[d];
-   };
+   }
 
   /****************************************************************/
   /* construct the NCOEFF-element vector of monomial values that  */
@@ -320,8 +322,8 @@ void InterpND::Evaluate(double *xVec, double *Phi)
      for(int nf=0; nf<NF; nf++)
       { double *C = CTable + GetCTableOffset(nVec, nf);
         Phi[nf] += C[nCoeff]*xFactor;
-      };
-   };
+      }
+   }
 }
 
 /****************************************************************/
@@ -335,7 +337,6 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc,
   FILE *f=fopen(OutFileName,"w");
   if (!f) return 0.0;
 
-  int NVD = 1 << D;
   double *PhiExact  = new double[NVD*NF];
   double *PhiInterp = new double[NF];
 

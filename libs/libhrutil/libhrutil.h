@@ -90,7 +90,7 @@ double Toc(unsigned long *BytesAllocated=0);
 char *RemoveDirectories(char *s);
 char *RemoveExtension(char *s);
 char *GetFileExtension(char *s);
-char *GetFileBase(char *s);
+char *GetFileBase(const char *s);
 int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators=" \t\n");
 sVec Tokenize(char *s, const char *Separators=" \t\n");
 int StrCaseCmp(const char *s1, const char *s2);

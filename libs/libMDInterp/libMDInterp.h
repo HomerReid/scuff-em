@@ -532,7 +532,7 @@ double Monomial(dVec xVec, iVec pVec);
 #define LOOP_OVER_IVECS(np, nVec, NVec)     \
    iVec nVec(NVec.size());                  \
    int np=0;                                \
-   for(bool Done=false; !Done; np++, Done=Increment(nVec,NVec))
+   for(bool np ## _Done=false; !np ## _Done; np++, np ## _Done=Increment(nVec,NVec))
 #define MAXDIM 4
 
 typedef void (*PhiVDFunc)(double *X, void *UserData, double *PhiVD);

@@ -719,11 +719,16 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
   int NX               = XMatrix->NC;
   int NPFCX            = NPFC*NX; // total number of potential/field components at all points
 
-  int NBFEdges         = G->TotalBFs;
-  HMatrix *BFRPFMatrix = *pBFRPFMatrix = CheckHMatrix(*pBFRPFMatrix, NPFCX, NBFEdges, LHM_COMPLEX);
+  int NBFEdges         = 0;
+  HMatrix *BFRPFMatrix = 0;
+  bool NeedBFRPFMatrix = (pBFRPFMatrix!=0); 
+  if (NeedBFRPFMatrix)
+   { NBFEdges = G->TotalBFs;
+     BFRPFMatrix = *pBFRPFMatrix = CheckHMatrix(*pBFRPFMatrix, NPFCX, NBFEdges, LHM_COMPLEX);
+   }
 
-  // "Port Edge RPF matrix" is a port-edge-resolved version of RFMatrix[1]
-  // that is collapsed after the loop to obtain RFMatrix[1].
+  // PERPFMatrix ("PortEdgeRPFMatrix") is a port-edge-resolved version of PortRPFMatrix
+  // that is reduced after the loop to obtain PortRPFMatrix[1].
   int NPortEdges         = 0;
   HMatrix *PERPFMatrix   = 0;
   bool NeedPortRPFMatrix = (pPortRPFMatrix!=0);
@@ -811,67 +816,55 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *GetMOIFields2(RWGGeometry *G, RWGPortList *PortList,
-                       cdouble Omega, HMatrix *XMatrix, 
-                       HVector *KNVector, cdouble *PortCurrents, 
-                       HMatrix **PFContributions)
+HMatrix *RFSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
 {
   if (XMatrix->NR!=3)
    ErrExit("wrong-size (%ix%i) XMatrix in GetMOIFields",XMatrix->NR,XMatrix->NC);
   int NX = XMatrix->NC;
 
-  if (PFContributions)
-   for(int nt=0; nt<2; nt++)
-    { PFContributions[nt] = CheckHMatrix(PFContributions[nt], NPFC, NX, LHM_COMPLEX);
-      PFContributions[nt]->Zero();
-    }
-
   // compute reduced potential-field matrices
   Log("Getting RPF matrices for %i points...",NX);
-  HMatrix *RPFMatrix[2]={0,0};
-  GetMOIRPFMatrices(G, PortList, Omega, XMatrix, RPFMatrix+0, RPFMatrix+1);
- 
-  // create output matrix and fill it with BF contribution to fields
+  HMatrix *BFRPFMatrix = 0, *PortRPFMatrix = 0;
+  GetMOIRPFMatrices( G, PortList, Omega, XMatrix,
+                     (RetainContributions & CONTRIBUTION_BF)   ? &BFRPFMatrix   : 0,
+                     (RetainContributions & CONTRIBUTION_PORT) ? &PortRPFMatrix : 0
+                   );
+                    
+  // create output matrix
   HMatrix *PFMatrix = new HMatrix(NPFC, NX, LHM_COMPLEX);
-  if (KNVector)
+
+  if (BFRPFMatrix)
    { HVector Payload(NPFC*NX, PFMatrix->ZM);
-     RPFMatrix[0]->Apply(KNVector, &Payload);
-     if (PFContributions)
-      PFContributions[0]->Copy(PFMatrix);
+     BFRPFMatrix->Apply(KN, &Payload);
+     delete BFRPFMatrix;
    }
 
   // add port contribution
-  if (PortCurrents)
-   { HVector Payload(NPFC*NX, LHM_COMPLEX, (PFContributions ? PFContributions[1]->ZM : 0));
-     int NumPorts = PortList->Ports.size();
+  if (PortRPFMatrix)
+   { HVector Payload(NPFC*NX, LHM_COMPLEX);
      HVector PCVector(NumPorts, PortCurrents);
-     RPFMatrix[1]->Apply(&PCVector, &Payload);
+     PortRPFMatrix->Apply(&PCVector, &Payload);
      HMatrix PortPFContribution(NPFC, NX, Payload.ZV);
      PFMatrix->Add(&PortPFContribution);
+     delete PortRPFMatrix;
    }
   
-  Log("...done with MOI fields");
+  Log("...done with MOI fields via RPF  matrices");
   return PFMatrix;
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
-                      cdouble Omega, HMatrix *XMatrix,
-                      HVector *KN, cdouble *PortCurrents,
-                      HMatrix *PFMatrix)
+HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
 {
   int NX           = XMatrix->NC;
 
-  int NBFEdges     = KN ? G->TotalBFs : 0;
-  int NPortEdges   = PortList ? PortList->PortEdges.size() : 0;
+  int NBFEdges     = ( (RetainContributions & CONTRIBUTION_BF)   ? G->TotalBFs : 0 ); 
+  int NPortEdges   = ( (RetainContributions & CONTRIBUTION_PORT) ? PortList->PortEdges.size() : 0);
   int NEdges       = NBFEdges + NPortEdges;
   
-  int Order=9;
-  char *s=getenv("SCUFF_MOIFIELDS_ORDER");
-  if (s && 1==sscanf(s,"%i",&Order))
-   Log("Setting panel-cubature order=%i for MOI fields",Order);
+  int Order=9; CheckEnv("SCUFF_MOIFIELDS_ORDER",&Order);
 
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */
@@ -893,12 +886,10 @@ HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
   int NXNE = NX*NEdges;
   bool AllocateThreadBuffers=false;
   int NumThreads=GetNumThreads();
-  Log("Computing MOI fields at %i points (%i threads)",NX,NumThreads);
+  Log("Computing MOI fields at %ix%i = %i edge-point pairs (%i threads)",NEdges,NX,NXNE,NumThreads);
 #ifndef USE_OPENMP
 #else
-  AllocateThreadBuffers=true;
-  s=getenv("SCUFF_THREAD_BUFFERS");
-  if (s && s[0]=='0') AllocateThreadBuffers=false;
+  AllocateThreadBuffers = !CheckEnv("SCUFF_NO_THREAD_BUFFERS");
   Log("%s thread buffers",AllocateThreadBuffers ? "Allocating" : "Not allocating");
   HMatrix **PFByThread=0;
   if (AllocateThreadBuffers)
@@ -907,9 +898,7 @@ HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
      for(int nt=1; nt<NumThreads; nt++)
       PFByThread[nt] = new HMatrix(NPFC, NX, LHM_COMPLEX);
    }
-  s=getenv("SCUFF_NONCRITICAL");
-  bool NonCritical = (s && s[0]=='1');
-  Log("Getting MOI fields at %i points (%i threads)",NX,NumThreads);
+  bool NonCritical = CheckEnv("SCUFF_NONCRITICAL");
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nxne=0; nxne<NXNE; nxne++)
@@ -920,11 +909,11 @@ HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
 
      int ns, ne;
      cdouble Weight=0.0;
-     if (KN && (nEdge<NBFEdges) )
+     if (nEdge<NBFEdges)
       { G->ResolveEdge(nEdge, &ns, &ne);
         Weight = KN->GetEntry(nEdge);
       }
-     else if (PortCurrents)
+     else
       { int nPE          = nEdge - NBFEdges;
         RWGPortEdge *PE  = PortList->PortEdges[nPE];
         int nPort        = PE->nPort;
@@ -974,14 +963,11 @@ HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
-                  cdouble Omega, double X[3],
-                  HVector *KN, cdouble *PortCurrents,
-                  cdouble PF[NPFC])
+void RFSolver::GetFields(double X[3], cdouble PF[NPFC])
 { 
   HMatrix XMatrix(3,1,X);
   HMatrix PFMatrix(NPFC,1,PF);
-  GetMOIFields(G, PortList, Omega, &XMatrix, KN, PortCurrents, &PFMatrix);
+  GetFields(&XMatrix, &PFMatrix);
 }
 
 } // namespace scuff

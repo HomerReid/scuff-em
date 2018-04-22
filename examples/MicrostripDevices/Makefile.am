@@ -20,7 +20,7 @@ nodist_pkgdata_DATA = ${EXTRA_DIST}
 
 geodir   = $(pkgdatadir)/geoFiles
 geo_DATA = geoFiles/Rectangle.geo       		\
-         = geoFiles/EdgeFedAntenna.geo
+           geoFiles/EdgeFedAntenna.geo
 
 mshdir   = $(pkgdatadir)/mshFiles
 msh_DATA = mshFiles/Center_436.msh 			\
@@ -44,5 +44,5 @@ scuffgeo_DATA = scuffgeoFiles/CPW_Coarse.scuffgeo		\
                 scuffgeoFiles/EFAntenna_L8_Fine.scuffgeo
 
 portdir   = $(pkgdatadir)/portFiles
-port_DATA = portFiles/CPW.ports
+port_DATA = portFiles/CPW.ports \
             portFiles/EFAntenna.ports

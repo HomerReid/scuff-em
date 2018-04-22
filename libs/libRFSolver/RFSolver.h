@@ -18,10 +18,11 @@
  */
 
 /*
- * RFSolver.h   -- header file for libRFSolver library providing
- *              -- extensions to SCUFF-EM for modeling of RF systems
+ * RFSolver.h   -- header file for libRFSolver, a library that extends
+ *              -- the SCUFF-EM core library for modeling of RF and
+ *              -- microwave devices
  *                                          
- * homer reid   -- 3/2011 -- 3/2018
+ * homer reid   -- 3/2011 -- 4/2018
  */
 
 #ifndef RFSOLVER_H
@@ -46,7 +47,7 @@ namespace scuff {
 #define _MINUS 1
 #define NUMPOLARITIES 2
 
-//components of potential/field vector
+// components of potential/field vector
 #define _PF_AX    0
 #define _PF_AY    1
 #define _PF_AZ    2
@@ -55,6 +56,13 @@ namespace scuff {
 #define _PF_DYPHI 5
 #define _PF_DZPHI 6
 #define NPFC      7
+
+//
+#define CONTRIBUTION_BF   1    // basis functions
+#define CONTRIBUTION_PORT 2    // ports
+#define CONTRIBUTION_IWA  4    // iwA term in E-field
+#define CONTRIBUTION_DPHI 8    // -grad(Phi) term in E-field
+#define CONTRIBUTION_ALL  0xFF
 
 /***************************************************************/
 /* Data structures used to describe ports on RF devices        */
@@ -82,28 +90,82 @@ typedef struct RWGPortList
  } RWGPortList;
 
 /***************************************************************/
-/* Routines for working with RWGPortList structures            */
+/* an "RFSolver" is a SCUFF-EM geometry, plus a list of ports, */
+/* plus various internally-cached data (operating frequency,   */
+/***************************************************************/
+class RFSolver
+ {
+public:
+    ////////////////////////////////////////////////////
+    // API methods
+    ////////////////////////////////////////////////////
+
+    // constructors and geometry-definition routines
+    RFSolver(const char *scuffgeoFileName, const char *portFileName);
+    RFSolver(const char *GDSIIFileName);
+
+    ~RFSolver();
+
+    void SetSubstrate(const char *SubstrateFile);
+    void SetSubstrate(const char *EpsStr, double h);
+
+    void PlotGeometry(const char *PPFormat, ...);
+    void PlotGeometry();
+
+    // system assembly
+    void AssembleSystemMatrix(double Freq);
+    void Solve(cdouble *PortCurrents);
+    void Solve(cdouble PortCurrent, int WhichPort);
+
+    // low-level post-processing
+    HMatrix *GetFields(HMatrix *XMatrix, HMatrix *PFMatrix=0);
+    void GetFields(double X[3], cdouble PF[NPFC]);
+    // alternative implementation of GetFields that uses RPF ("reduced potential/field") matrices
+    HMatrix *GetFieldsViaRPFMatrices(HMatrix *XMatrix);
+    HMatrix *GetPanelSourceDensities(HMatrix *PSDMatrix=0);
+
+    // high-level post-processing
+    void ProcessEPFile(char *EPFile, char *OutFileName=0);
+    HMatrix *ProcessFVMesh(char *FVMesh, char *FVMeshTransFile, char *OutFileBase=0);
+    HMatrix *GetZMatrix(HMatrix *ZMatrix=0, HMatrix **pZTerms=0);
+
+// private:
+
+    ////////////////////////////////////////////////////
+    // internal methods
+    ////////////////////////////////////////////////////
+    void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
+    void AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix);
+    void AssemblePortBFInteractionMatrix();
+
+    ////////////////////////////////////////////////////
+    // internal data fields
+    ////////////////////////////////////////////////////
+
+    // info on the geometry
+    RWGGeometry *G;
+    RWGPortList *PortList;
+    int NumPorts;
+    char *FileBase;
+
+    // internally cached data
+    cdouble Omega;          // set by most recent call to AssembleSystemMatrix
+    HMatrix *M;             // LU-factorized SIE matrix, set by AssembleSystemMatrix
+    bool MClean;            // false if we need to recompute M at this frequency 
+    HMatrix *PBFIMatrix;    // port <--> basis-function interaction matrix
+    HMatrix *PPIMatrix;     // port <--> port interaction matrix
+    bool PBFIClean;         // false if PBFIMatrix/PPIMatrix need to be recomputed at this frequency
+    cdouble *PortCurrents;  // set by most recent call to SolveSystem()
+    HVector *KN;            // set by most recent call to SolveSystem()
+
+    int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
+
+ }; // class RFSolver;
+
+/***************************************************************/
+/***************************************************************/
 /***************************************************************/
 RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName);
-void PlotPortsInGMSH(RWGGeometry *G, RWGPortList *PortList, const char *format, ...);
-
-/***************************************************************/
-/* Routines for computing port contributions to the BEM system */
-/* and to post-processing (output) quantities                  */
-/***************************************************************/
-HMatrix *GetPortBFInteractionMatrix(RWGGeometry *G, RWGPortList *PortList,
-                                    cdouble Omega, HMatrix *PBFIMatrix=0,
-                                    HMatrix *PPIMatrix=0);
-
-void GetPortContributionToRHS(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                              cdouble *PortCurrents, HVector *KN);
-
-void EvalSourceDistribution(RWGGeometry *G, RWGPortList *PortList, const double X[3],
-                            HVector *KNVector, cdouble *PortCurrents,
-                            cdouble KN[6], cdouble iwSigmaTau[2]);
-
-void AddPortContributionsToPSD(RWGGeometry *G, RWGPortList *PortList,
-                               cdouble Omega, cdouble *PortCurrents, HMatrix *PSD);
 
 /***************************************************************/
 /* Routines for handling MOI (metal on insulator, i.e. thin    */
@@ -124,44 +186,9 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
 
 void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M);
 
-HMatrix *GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
-                      cdouble Omega, HMatrix *XMatrix,
-                      HVector *KN, cdouble *PortCurrents, 
-                      HMatrix *PFMatrix=0);
-
-void GetMOIFields(RWGGeometry *G, RWGPortList *PortList,
-                  cdouble Omega, double X[3],
-                  HVector *KN, cdouble *PortCurrents,
-                  cdouble PF[NPFC]);
-
-void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList, cdouble Omega, HMatrix *XMatrix,
-                       HMatrix **pBFRPFMatrix, HMatrix **pPortRPFMatrix=0);
-
-// alternative implementation of GetMOIFields that allocates
-// RPF ("reduced potential/field") matrices
-HMatrix *GetMOIFields2(RWGGeometry *G, RWGPortList *PortList,
-                       cdouble Omega, HMatrix *XMatrix,
-                       HVector *KN, cdouble *PortCurrents,
-                       HMatrix **PFContributions=0);
-
-
 /***************************************************************/
 /* OutputModules.cc ********************************************/
 /***************************************************************/
-void ProcessEPFile(RWGGeometry *G, RWGPortList *PortList,
-                   cdouble Omega, char *EPFile,
-                   HVector *KN, cdouble *PortCurrents, char *FileBase);
-
-HMatrix *ProcessFVMesh(RWGGeometry *G, RWGPortList *PortList, cdouble Omega, 
-                       const char *FVMesh, const char *FVMeshTransFile,
-                       HVector *KN, cdouble *PortCurrents, char *FileBase);
-
-void AddMinusIdVTermsToZMatrix(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                               HMatrix *KMatrix, HMatrix *ZMatrix);
-
-HMatrix *GetZMatrix(RWGGeometry *G, RWGPortList *PortList, cdouble Omega,
-                    HMatrix *M, HMatrix *ZMatrix, HMatrix **pZTerms);
-
 void Z2S(HMatrix *Z, HMatrix *S=0, double ZCharacteristic=50.0);
 void S2Z(HMatrix *S, HMatrix *Z=0, double ZCharacteristic=50.0);
 

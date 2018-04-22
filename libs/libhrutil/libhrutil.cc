@@ -87,7 +87,7 @@ double Toc(unsigned long *BytesAllocated)
  }
 
 /***************************************************************/
-/* String functions  *******************************************/
+/* String functions (not thread-safe) **************************/
 /***************************************************************/
 /* given "/home/homer/work/MyFile.dat", return "MyFile.dat" */
 char *RemoveDirectories(char *s)
@@ -132,9 +132,18 @@ char *GetFileExtension(char *s)
 }
 
 /* given "/home/homer/work/MyFile.dat", return "MyFile" */
-char *GetFileBase(char *s)
+char *GetFileBase(const char *s)
 {  
-  return RemoveExtension(RemoveDirectories(s));
+#define NUMBUFS 4
+  static int bufhead=0;
+  static char buffers[NUMBUFS][MAXSTR];
+  bufhead = (bufhead+1)%NUMBUFS;
+  char *buffer = buffers[bufhead];
+  strncpy(buffer, s, MAXSTR);
+  char *p;
+  if ( (p=strrchr(buffer,'.')) ) *p=0;         // remove file extension
+  if ( (p=strrchr(buffer,'/')) ) return p+1;   // remove directory path
+  return buffer;
 }
 
 /*
