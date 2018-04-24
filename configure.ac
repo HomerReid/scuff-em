@@ -272,6 +272,7 @@ AC_CONFIG_FILES([
  libs/libscuff/Makefile
  libs/libStaticSolver/Makefile
  libs/libRFSolver/Makefile
+ libs/libRFSolver/tests/Makefile
  libs/python/Makefile
  applications/Makefile
  applications/scuff-analyze/Makefile

@@ -21,3 +21,5 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
               -I$(top_srcdir)/libs/libscuff     \
               -I$(top_srcdir)/libs/libIncField  \
               -I$(top_builddir) # for config.h
+
+SUBDIRS = tests
