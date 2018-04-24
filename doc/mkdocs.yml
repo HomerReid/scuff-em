@@ -5,24 +5,37 @@ repo_url: https://github.com/homerreid/scuff-em/
 
 theme:
     name: readthedocs
-    custom_dir: scuff-em-mkdocs-theme
+#    name: null
+#    custom_dir: scuff-em-mkdocs-theme
 
 #python:
 #   version: 2 # for unicode
 #   setup_py_install: True
 
 markdown_extensions:
-    - wikilinks
-    - toc:
-        title: Table of Contents
-    - attr_list
-    - fenced_code
-    - mdx_math:
-        enable_dollar_delimiter: True
+    - codehilite:
+#    - wikilinks
+#    - toc:
+#        title: Table of Contents
+#    - attr_list
+#    - mdx_math:
+#        enable_dollar_delimiter: True
+ #   - pymdownx.highlight:
+ #   - pymdownx.inlinehilite:
+ #  - pymdownx.superfences:
+ #   - pymdownx.tasklist
 
 extra_javascript:
   - 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'
   - mathjaxhelper.js
+
+extra_css:
+#    - scuff-em-mkdocs-theme/css/agate.css
+#    - scuff-em-mkdocs-theme/css/highlight.css
+#    - scuff-em-mkdocs-theme/css/scuff-em.css
+#    - scuff-em-mkdocs-theme/css/tango.css
+    - scuff-em-mkdocs-theme/css/extra.css
+#    - css/extra.css
 
 pages:
 

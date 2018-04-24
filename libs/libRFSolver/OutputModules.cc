@@ -299,6 +299,7 @@ void RFSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
      HVector KNSource(NBF, LHM_COMPLEX, KMatrix->GetColumnPointer(SourcePort));
      if (!KN) KN=G->AllocateRHSVector();
      KN->Copy(&KNSource);
+     if (PortCurrents==0) PortCurrents=new cdouble[NumPorts];
      memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
      PortCurrents[SourcePort]=1.0;
      GetFields(XMatrix, PFMatrix);
@@ -387,9 +388,11 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 /*                                                             */
 /* where z0 = characteristic impedance, I=identity matrix      */
 /*                                                             */
-/* Operate in-place if the second argument is NULL.            */
+/* If the second argument is NULL, a new matrix is allocated.  */
+/* If the second argument is equal to the first argument, the  */
+/* routines operate in-place.                                  */
 /***************************************************************/
-void Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
+HMatrix *Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
 {
   HMatrix *ZpZC=new HMatrix(Z);
   HMatrix *ZmZC=new HMatrix(Z);
@@ -399,13 +402,16 @@ void Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
    }
   ZpZC->LUFactorize();
   ZpZC->LUInvert();
-  ZmZC->Multiply(ZpZC, S ? S : Z);
+
+  if (S==0) S=new HMatrix(Z);
+  ZmZC->Multiply(ZpZC, S);
 
   delete ZpZC;
   delete ZmZC;
+  return S;
 }
 
-void S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
+HMatrix *S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
 {
   // 'OmS = 'one minus S'
   HMatrix *OmS=new HMatrix(S);
@@ -418,13 +424,13 @@ void S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
    }
   OmS->LUFactorize();
   OmS->LUInvert();
-  if (Z==0) Z=S;
-  OmS->Multiply(OpS, Z ? Z : S);
+  if (Z==0) Z=new HMatrix(S);
+  OmS->Multiply(OpS, Z);
   Z->Scale(ZCharacteristic);
 
   delete OpS;
   delete OmS;
-
+  return Z;
 }
 
 } // namespace scuff

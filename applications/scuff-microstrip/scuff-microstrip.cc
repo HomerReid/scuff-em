@@ -263,8 +263,8 @@ int main(int argc, char *argv[])
   int NTNF = NT*NF;
   for (int ntnf = 0; ntnf<NTNF; ntnf++)
    { 
-     int nf = NTNF/NF;
-     int nt = NTNF%NF;
+     int nf = ntnf/NF;
+     int nt = ntnf%NF;
      double Freq = FreqList->GetEntryD(nf);
 
      G->Transform(GTCs[nt]);

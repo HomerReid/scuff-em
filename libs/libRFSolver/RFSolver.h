@@ -35,6 +35,7 @@
 #include "libscuff.h"
 #include <libhmat.h>
 #include <libMatProp.h>
+#include "EquivalentEdgePairs.h"
 
 #include <libhrutil.h>
 
@@ -170,6 +171,8 @@ public:
     HMatrix **TBlocks; 
     HMatrix **UBlocks;
 
+    EquivalentEdgePairTable *EEPTable;
+
     int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
 
  }; // class RFSolver;
@@ -194,15 +197,16 @@ int GetMOIMatrixElement(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
                         int Order=-1, bool Subtract=true, cdouble *Terms=0);
 
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
-                            cdouble Omega, HMatrix *Block, int OffsetA=0, int OffsetB=0);
+                            cdouble Omega, HMatrix *Block, int OffsetA=0, int OffsetB=0,
+                            EquivalentEdgePairTable *EEPTable=0);
 
-void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M);
+void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable *EEPTable=0);
 
 /***************************************************************/
-/* OutputModules.cc ********************************************/
+/* utility routines for converting Z <--> S parameters *********/
 /***************************************************************/
-void Z2S(HMatrix *Z, HMatrix *S=0, double ZCharacteristic=50.0);
-void S2Z(HMatrix *S, HMatrix *Z=0, double ZCharacteristic=50.0);
+HMatrix *Z2S(HMatrix *Z, HMatrix *S=0, double ZCharacteristic=50.0);
+HMatrix *S2Z(HMatrix *S, HMatrix *Z=0, double ZCharacteristic=50.0);
 
 } // namespace scuff 
 #endif // #ifndef RFSOLVER

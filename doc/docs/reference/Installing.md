@@ -46,12 +46,16 @@ but in this case the code will be somewhat crippled.
   as well as the [<span class=SC>swig</sc>](http://www.swig.org)
   interface-generator package.
 
-+</span> Although not required to install, compile, or use
-  [[scuff-em]],
++ Although not required to install, compile, or use [[scuff-em]],
   [<span class="SC">gmsh</span>](http://geuz.org/gmsh)
   is an extremely valuable open-source meshing and visualization
-  tool that is used throughout the
-  [[scuff-em]] documentation.
+  tool that is used throughout the [[scuff-em]] documentation.
+
++ My [<span class="SC">libgdsii</span>](http://github.com/HomerReid/libGDSII)
+  package contains a simple 
+  [GDSII-to-GMSH file converter](http://github.com/HomerReid/libGDSII)
+utilities for extracting shapes and other information from
+  [GDSII files](https://en.wikipedia.org/wiki/GDSII)
 
 ## Status of the GitHub repository
 

@@ -133,7 +133,6 @@ int GetNumThreads();
 int GetThreadNum();
 unsigned long GetMemoryUsage(unsigned long *MemoryUsage=0);
 void SetCPUAffinity(int WhichProcessor);
-void EnableAllCPUs();
 
 /***************************************************************/
 /* complex arithmetic ******************************************/

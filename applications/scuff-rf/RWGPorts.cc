@@ -100,7 +100,7 @@ RWGPort *CreatePort(RWGSurface *PSurface, int NumPEdges, int *PEdgeIndices,
      if ( EI<0 || EI>PSurface->NumExteriorEdges )
       ErrExit("object %s(%s): invalid exterior edge index %i",
                PSurface->Label,PSurface->MeshFileName,EI);
-     E=PSurface->ExteriorEdges[EI];
+     E=PSurface->HalfRWGEdges[EI];
      P->PPanelIndices[ne]=E->iPPanel;
      P->PPaneliQs[ne]=E->PIndex;
      P->PLengths[ne]=E->Length;
@@ -121,7 +121,7 @@ RWGPort *CreatePort(RWGSurface *PSurface, int NumPEdges, int *PEdgeIndices,
      if ( EI<0 || EI>MSurface->NumExteriorEdges )
       ErrExit("object %s(%s): invalid exterior edge index %i",
                MSurface->Label,MSurface->MeshFileName,EI);
-     E=MSurface->ExteriorEdges[EI];
+     E=MSurface->HalfRWGEdges[EI];
      P->MPanelIndices[ne]=E->iPPanel;
      P->MPaneliQs[ne]=E->PIndex;
      P->MLengths[ne]=E->Length;
@@ -249,7 +249,7 @@ int FindEdgesInPolygon(RWGSurface *S,
   int Count=0;
   for(int nei=0; nei<S->NumExteriorEdges; nei++)
    { 
-     E=S->ExteriorEdges[nei];
+     E=S->HalfRWGEdges[nei];
      V1 = S->Vertices + 3*E->iV1;
      V2 = S->Vertices + 3*E->iV2;
 

@@ -29,18 +29,6 @@ using namespace scuff;
 /***************************************************************/
 /* return true if GT is the identity transformation            */
 /***************************************************************/
-bool IsIdentity(GTransformation *GT,
-                double LengthScale=1.0, double Tol=1.0e-8)
-{ 
-  if ( fabs(GT->DX[0]) > Tol*LengthScale ) return false;
-  if ( fabs(GT->DX[1]) > Tol*LengthScale ) return false;
-  if ( fabs(GT->DX[2]) > Tol*LengthScale ) return false;
-  if ( fabs(GT->M[0][0] - 1.0) > Tol     ) return false;
-  if ( fabs(GT->M[1][1] - 1.0) > Tol     ) return false;
-  if ( fabs(GT->M[2][2] - 1.0) > Tol     ) return false;
-  return true;
-}
-
 // index of off-diagonal matrix block (ns,nsp) where nsp>ns
 int OffDiagonalBlockIndex(int NS, int ns, int nsp)
 { return ns*NS - ns*(ns+1)/2 + nsp - ns - 1; }
@@ -137,7 +125,7 @@ HMatrix *GetEquivalentPairMatrix(RWGGeometry *G, HMatrix *M=0)
           double Lengthscale = fmin( VecDistance(SA->RMax, SA->RMin),
                                      VecDistance(SB->RMax, SB->RMin)
                                    );
-          if ( IsIdentity(&T, Lengthscale) )
+          if ( T.IsIdentity(Lengthscale) )
            { double Sign=1.0;
              if (nsB<nsA)
               { int temp = nsA; nsA=nsB; nsB=temp;

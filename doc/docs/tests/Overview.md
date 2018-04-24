@@ -23,7 +23,7 @@ icon in the README section of the
 
 Beyond unit testing---which is really intended to catch minor things like
 inadvertent programming errors and missing files---the test suite is
-also useful for benchmarking and validating the performance of
+also useful for validating and benchmarking the performance of
 <span class=SC>scuff-em</span>
 on nontrivial physics and engineering problems.
 
@@ -33,11 +33,11 @@ The various individual tests live in subfolders of the `tests` subdirectory
 of the <span class=SC>scuff-em</span> source repository; after
 `make install` they are copied to the directory `$(prefix)/share/scuff-em/tests.`
 The tests come in various formats:
-    --C++ codes to be compiled and linked against `libscuff`
+    --C++ codes to be compiled and linked against `libscuff` to yield binary executables
     --python scripts to be run with the <span class=SC>scuff-em</span> python module, and
-    --shell scripts that invoke [`scuff-scatter`](../applications/scuff-scatter/scuff-scatter.md) or other
-     [<span class=SC>scuff-em</span> command-line applications](../applications)
-     and compare the resulting output files to reference files.
+    --shell scripts that invoke [`scuff-scatter`](../applications/scuff-scatter/scuff-scatter.md)
+      or other [<span class=SC>scuff-em</span> command-line applications](../applications)
+      and compare the resulting output files to reference files.
 
 ### `CheckSCUFFData`
 
@@ -58,7 +58,6 @@ of [[scuff-em]] results to known analytical solutions.
 * [Mie scattering](MieScattering/MieScattering.md)
 * [Fresnel scattering](FresnelScattering/FresnelScattering.md)
 * [Equilibrium Casimir forces between spheres](CasimirSpheres/CasimirSpheres.md)
-
 * [Equilibrium Casimir forces between plates](CasimirPlates/CasimirPlates.md)
 * [Equilibrium Casimir-Polder potential near a sphere](CPSphere/CPSphere.md)
 * [Equilibrium Casimir-Polder potential near a plate](CPPlate/CPPlate.md)

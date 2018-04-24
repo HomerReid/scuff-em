@@ -300,7 +300,7 @@ GTransformation GTransformation::operator-(const GTransformation &G2) const {
 }
 
 /***************************************************************/
-/* Apply the transformation (out-of-place) to a list of NX points  */
+/* Apply the transformation (out-of-place) to a list of NX points*/
 /* X[3*nx+0, 3*nx+1, 3*nx+2] = cartesian coords of point #nx,  */
 /* storing the result in XP.                                   */
 /* NOTE: we allow XP == X (i.e., can operate in-place).        */
@@ -338,10 +338,36 @@ void GTransformation::UnApplyRotation(const double X[3], double XP[3]) const {
   XP[2] = M[0][2]*x0 + M[1][2]*x1 + M[2][2]*x2;
 }
 
-// same, but apply the inverse transformation:
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+bool GTransformation::IsIdentity(double LengthScale, double Tol)
+{
+  double LengthTol = Tol*LengthScale;
+
+  return (     ( fabs(DX[0]) < LengthTol)
+           &&  ( fabs(DX[1]) < LengthTol)
+           &&  ( fabs(DX[2]) < LengthTol)
+           &&  ( fabs(M[0][0] - 1.0) < Tol )
+           &&  ( fabs(M[1][1] - 1.0) < Tol )
+           &&  ( fabs(M[2][2] - 1.0) < Tol )
+         );
+}
+
+bool GTransformation::IsIdentical(const GTransformation GT, double LengthScale, double Tol)
+{ 
+  // simpler, non-speed-optimized approach:
+  // GTransformation Delta = (*this) - GT; return Delta.IsIdentity();
+
+  double LengthTol = Tol*LengthScale;
+  return  (     (fabs(DX[0]-GT.DX[0]) < LengthTol)
+            &&  (fabs(DX[1]-GT.DX[1]) < LengthTol)
+            &&  (fabs(DX[2]-GT.DX[2]) < LengthTol)
+            &&  (fabs(M[0][0]*GT.M[0][0] + M[1][0]*GT.M[1][0] + M[2][0]*GT.M[2][0] - 1.0)<Tol)
+            &&  (fabs(M[0][1]*GT.M[0][1] + M[1][1]*GT.M[1][1] + M[2][1]*GT.M[2][1] - 1.0)<Tol)
+            &&  (fabs(M[0][2]*GT.M[0][2] + M[1][2]*GT.M[1][2] + M[2][2]*GT.M[2][2] - 1.0)<Tol)
+          );
+}
 
 /********************************************************************/
 /* this is a helper function for the ReadTransFile() routine below  */

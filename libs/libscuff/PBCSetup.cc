@@ -53,7 +53,7 @@ static int PointOnLine(double *X, double *L)
 /* basis vector (LBV).                                         */
 /*                                                             */
 /* if a partner edge is found, its index within S's            */
-/* ExteriorEdges array is returned. otherwise, -1 is returned. */
+/* HalfRWGEdges array is returned. otherwise, -1 is returned.  */
 /*                                                             */
 /* if a partner edge is found, then NumStraddlers[d] is        */
 /* incremented, where d is the index of the LBV, and V[0..2]   */
@@ -69,7 +69,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, HMatrix *LBasis,
 			   int NumStraddlers[MAXLDIM],
 			   int *pWhichBV, double *V)
 {
-  RWGEdge *E = S->ExteriorEdges[nei];
+  RWGEdge *E = S->HalfRWGEdges[nei];
   double *V1 = S->Vertices + 3*(E->iV1);
   double *V2 = S->Vertices + 3*(E->iV2);
   const double tolvc = S->tolVecClose;
@@ -90,11 +90,11 @@ static int FindPartnerEdge(RWGSurface *S, int nei, HMatrix *LBasis,
 
      for(int neip=0; neip<S->NumExteriorEdges; neip++)
       { 
-        if (S->ExteriorEdges[neip]==0) 
+        if (S->HalfRWGEdges[neip]==0) 
          continue;
 
-        double *V1P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV1);
-        double *V2P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV2);
+        double *V1P = S->Vertices + 3*(S->HalfRWGEdges[neip]->iV1);
+        double *V2P = S->Vertices + 3*(S->HalfRWGEdges[neip]->iV2);
         if (   (VecClose(V1T, V1P, tolvc) && VecClose(V2T, V2P, tolvc))
             || (VecClose(V1T, V2P, tolvc) && VecClose(V2T, V1P, tolvc))
            )
@@ -102,7 +102,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, HMatrix *LBasis,
            /*--------------------------------------------------------------*/
            /*- found a translate of the edge in question.                  */
            /*--------------------------------------------------------------*/
-           memcpy(V, S->Vertices + 3*(S->ExteriorEdges[neip]->iQP), 3*sizeof(double));
+           memcpy(V, S->Vertices + 3*(S->HalfRWGEdges[neip]->iQP), 3*sizeof(double));
            for(int nc=0; nc<3; nc++)
             V[nc] -= LBasis->GetEntryD(nc,nd);
            if (NumStraddlers) NumStraddlers[nd]++;
@@ -151,15 +151,14 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
   memset(NumStraddlers, 0, MAXLDIM*sizeof(int));
   for(int nei=0; nei<NumExteriorEdges; nei++)
    { 
-      if ( ExteriorEdges[nei]==0 )
+      if ( HalfRWGEdges[nei]==0 )
        continue;
 
       // see if this edge is a straddler, i.e. it lies on a face
       // of the unit cell and it has an image (a translated
       // version of itself) on the opposite side of the unit cell
       int WhichBV=0;
-      int neip=FindPartnerEdge(this, nei, LBasis,
-                               NumStraddlers, &WhichBV, V);
+      int neip=FindPartnerEdge(this, nei, LBasis, NumStraddlers, &WhichBV, V);
 
       // if so, add a new vertex, panel, and interior edge to the RWGSurface.
       if (neip!=-1)
@@ -182,13 +181,13 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
           RMin[1] = fmin(RMin[1], V[1] );
           RMin[2] = fmin(RMin[2], V[2] );
  
-          // add a new edge. actually, we simply appropriate the 
-          // existing RWGEdge structure for edge #nei, since we 
-          // will be removing it from object S's set of exterior 
+          // add a new RWGEdge describing a full RWG function. Actually, we simply 
+          // appropriate the existing RWGEdge structure describing half-RWG edge #nei, 
+          // since we will be removing it from object S's set of half-RWG
           // edges anyway. note that the iQP, iV1, iV2, iPPanel, PIndex, 
           // Centroid, and Length fields of this structure will be already 
           // correctly initialized. 
-          E=ExteriorEdges[nei];
+          E=HalfRWGEdges[nei];
           E->iQM     = NumVertices + NumNew;
           E->iMPanel = NumPanels + NumNew;
           E->Index   = NumEdges + NumNew;
@@ -200,7 +199,7 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
           NewEdges[NumNew] = E;
 
           // remove edge #nei from the list of exterior edges 
-          ExteriorEdges[nei]=0;
+          HalfRWGEdges[nei]=0;
 
           // add a new panel. Note that we can't call InitRWGPanel yet 
           // because the new vertex has not yet been added to the Vertices 
@@ -220,15 +219,15 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
           //PhasedBFCs[NumNew].WhichPanel = Panels[neip]->iPPanel;
           //PhasedBFCs[NumNew].WhichEdge  = NumEdges + NumNew;
           //PhasedBFCs[NumNew].WhichBV;
-          PhasedBFCs[3*NumNew + 0] = ExteriorEdges[neip]->iPPanel;
+          PhasedBFCs[3*NumNew + 0] = HalfRWGEdges[neip]->iPPanel;
           PhasedBFCs[3*NumNew + 1] = NumEdges + NumNew;
           PhasedBFCs[3*NumNew + 2] = WhichBV;
   
           NumNew++;
 
-       };
+       }
      
-   }; // for(nei=0; nei<NumExteriorEdges; nei++)
+   } // for(nei=0; nei<NumExteriorEdges; nei++)
 
   TotalStraddlers=NumNew;
 
@@ -237,7 +236,7 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
 
   /*--------------------------------------------------------------*/
   /*- replace internal arrays of Vertices, Panels, Edges, and     */
-  /*- ExteriorEdges with new arrays that include the straddlers   */
+  /*- HalfRWGdges with new arrays that include the straddlers     */
   /*--------------------------------------------------------------*/
   Vertices = (double *)reallocEC( Vertices, 3*(NumVertices+NumNew) * sizeof(double));
   memcpy( &(Vertices[3*NumVertices]) , NewVertices, 3*NumNew*sizeof(double));
@@ -254,22 +253,22 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
    InitRWGPanel(Panels[np], Vertices);
 
   /*--------------------------------------------------------------*/
-  /*- defragment the ExteriorEdges array -------------------------*/
+  /*- defragment the HalfRWGEdges array --------------------------*/
   /*--------------------------------------------------------------*/
   int NewNumExteriorEdges=NumExteriorEdges-NumNew;
-  RWGEdge **NewExteriorEdges=(RWGEdge **)mallocEC(NewNumExteriorEdges*sizeof(RWGEdge *));
+  RWGEdge **NewHalfRWGEdges=(RWGEdge **)mallocEC(NewNumExteriorEdges*sizeof(RWGEdge *));
   for(int nei=0, neip=0; nei<NumExteriorEdges; nei++)
-   if (ExteriorEdges[nei]!=0)
-    { NewExteriorEdges[neip]=ExteriorEdges[nei];
-      NewExteriorEdges[neip]->Index=neip;
+   if (HalfRWGEdges[nei]!=0)
+    { NewHalfRWGEdges[neip]=HalfRWGEdges[nei];
+      NewHalfRWGEdges[neip]->Index=neip;
       neip++;
-    };
+    }
 
-  free(ExteriorEdges);
-  ExteriorEdges=NewExteriorEdges;
-  NumExteriorEdges=NewNumExteriorEdges;
+  free(HalfRWGEdges);
+  HalfRWGEdges=NewHalfRWGEdges;
+  NumExteriorEdges=NumHalfRWGEdges=NewNumExteriorEdges;
  
-  NumTotalEdges=NumEdges + NumExteriorEdges;
+  NumTotalEdges=NumEdges + NumHalfRWGEdges;
   NumBFs = ( IsPEC ? NumEdges : 2*NumEdges );
 
   /*------------------------------------------------------------*/
@@ -285,11 +284,11 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
-   };
-  for(int ne=0; ne<NumExteriorEdges; ne++)
-   { E=ExteriorEdges[ne];
+   }
+  for(int ne=0; ne<NumHalfRWGEdges; ne++)
+   { E=HalfRWGEdges[ne];
      Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
-   };
+   }
 
   Log(" Surface %s: ",Label);
   int LDim=LBasis->NC;
@@ -413,6 +412,7 @@ void RWGGeometry::GetUnitCellRepresentative(const double X[3],
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /* delete me after checking that the previous routine works     */
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
 void OldGetUnitCellRepresentative(RWGGeometry *G, const double X[3],
                                   double XBar[3], double LVector[3],
                                   int nVector[MAXLDIM],
@@ -440,6 +440,7 @@ void OldGetUnitCellRepresentative(RWGGeometry *G, const double X[3],
    };
 
 }
+#endif
 
 void RWGGeometry::GetUnitCellRepresentative(const double X[3],
                                             double XBar[3],

@@ -94,6 +94,8 @@ void RFSolver::InitSolver()
   UBlocks = 0;
 
   RetainContributions = CONTRIBUTION_ALL;
+
+  EEPTable = CheckEnv("SCUFF_EQUIVALENT_PAIRS") ? new EquivalentEdgePairTable(G) : 0;
 }
 
 /***************************************************************/
@@ -126,7 +128,11 @@ RFSolver::~RFSolver()
 /***************************************************************/
 /***************************************************************/
 void RFSolver::SetSubstrate(const char *SubstrateFile)
-{ G->Substrate = new LayeredSubstrate(SubstrateFile); }
+{ 
+  if (G->Substrate)
+   delete G->Substrate;
+  G->Substrate = new LayeredSubstrate(SubstrateFile); 
+}
 
 void RFSolver::SetSubstrate(const char *EpsStr, double h)
 {
@@ -139,6 +145,8 @@ void RFSolver::SetSubstrate(const char *EpsStr, double h)
    snprintf(SubstrateDefinition,1000,"0.0 CONST_EPS_%s\n",EpsStr);
   else // grounded dielectric 
    snprintf(SubstrateDefinition,1000,"0.0 CONST_EPS_%s\n%e GROUNDPLANE\n",EpsStr,-h);
+  if (G->Substrate)
+   delete G->Substrate;
   G->Substrate=CreateLayeredSubstrate(SubstrateDefinition);
 }
 
@@ -191,6 +199,9 @@ void RFSolver::UpdateSystemMatrix()
 
 void RFSolver::AssembleSystemMatrix(double Freq)
 { 
+  // FIXME 
+  if (!G->Substrate) G->Substrate=CreateLayeredSubstrate("0.0 VACUUM\n");
+
   if (M==0) M=G->AllocateBEMMatrix();
   Omega = Freq * FREQ2OMEGA;
   Log("Assembling BEM matrix at f=%g GHz...",Freq);

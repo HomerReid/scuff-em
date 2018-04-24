@@ -244,12 +244,19 @@ AC_CHECK_HEADER(tr1/unordered_map,[AC_DEFINE([HAVE_TR1],[1],["Have tr1 headers"]
 AC_CHECK_HEADER(unordered_map,[AC_DEFINE([HAVE_CXX11],[1],["Have C++11 headers"])],[])
 AC_LANG_POP
 
+##############################################################################
+# set SCUFFLIBS to save libraries and flags required to link -lscuff
+
+SCUFFLIBS="$LDFLAGS $LIBS"
+AC_SUBST(SCUFFLIBS)
+
 ##################################################
 ##################################################
 ##################################################
 AC_CONFIG_FILES([
  Makefile
  m4/Makefile
+ scuff-em-pkgconfig
  libs/Makefile
  libs/libIncField/Makefile
  libs/libSpherical/Makefile

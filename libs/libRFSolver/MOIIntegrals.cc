@@ -233,44 +233,23 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
                     cdouble Omega, double *XDest, cdouble *PFVector,
                     int Order, bool Subtract, cdouble *SingularTerms)
 {
-  /***************************************************************/
-  /* get substrate contributions                                 */
-  /*  (minus the most singular terms if Subtract==true)          */
-  /***************************************************************/
-  LayeredSubstrate *Substrate = G->Substrate;
-  Substrate->UpdateCachedEpsMu(Omega);
-  cdouble Eps = Substrate->EpsLayer[1];
-
   //FIXME
   if (XDest[2] < -1.0e-10)
    Subtract=false;
 
-  MOIIntegrandData MOIData;
-  MOIData.S              = Substrate;
-  MOIData.Omega          = Omega;
-  MOIData.Eps            = Eps;
-  MOIData.Subtract       = Subtract;
-  MOIData.XDest          = XDest;
-  MOIData.qPoints        = 0;
-  MOIData.CubaturePoints = 0;
+  LayeredSubstrate *Substrate = G->Substrate;
+  cdouble Eps                 = Substrate ? Substrate->EpsLayer[1] : 1.0;
+  bool NeedSITerms            = (Substrate==0 || Subtract);
+  bool NeedSubstrateTerms     = Substrate && (Eps!=1.0 || !isinf(Substrate->zGP));
 
-  if (Order==-1) 
-   { RWGEdge *E = G->Surfaces[ns]->GetEdgeByIndex(ne);
-     Order = ( VecDistance(XDest, E->Centroid) < 2.0*E->Radius ) ? 9 : 4;
-   }
-  int zfdim=NPFC, fdim=2*zfdim;
-
-  bool TrivialSubstrate = (Eps==1.0 && isinf(Substrate->zGP));
-  if (TrivialSubstrate)
-   memset(PFVector, 0, NPFC*sizeof(cdouble));
-  else
-   GetBFCubature2(G, ns, ne, MOIPFIntegrand, (void *)&MOIData, fdim, Order, (double *)PFVector);
+  memset(PFVector, 0, NPFC*sizeof(cdouble));
 
   /***************************************************************/
-  /* add contributions of most singular terms in GF              */
+  /* substrate-independent (singular) terms                      */
   /***************************************************************/
-  if (SingularTerms) memset(SingularTerms, 0, NPFC*sizeof(cdouble));
-  if ( Subtract )
+  cdouble SITermBuffer[NPFC], *SITerms = SingularTerms ? SingularTerms : SITermBuffer;
+  memset(SITerms, 0, NPFC*sizeof(cdouble));
+  if ( NeedSITerms )
    { 
      cdouble p=0.0, a[3]={0.0,0.0,0.0}, dp[3]={0.0,0.0,0.0};
      GetReducedPotentials(G, ns, ne, Omega, XDest, &p, a, dp);
@@ -289,6 +268,31 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
 
      VecPlusEquals(PFVector, 1.0, SingularTerms, NPFC);
    }
+
+  if (!NeedSubstrateTerms) return 0;
+
+  /***************************************************************/
+  /* get substrate contributions                                 */
+  /*  (minus the most singular terms if Subtract==true)          */
+  /***************************************************************/
+  Substrate->UpdateCachedEpsMu(Omega);
+  MOIIntegrandData MOIData;
+  MOIData.S              = Substrate;
+  MOIData.Omega          = Omega;
+  MOIData.Eps            = Eps;
+  MOIData.Subtract       = Subtract;
+  MOIData.XDest          = XDest;
+  MOIData.qPoints        = 0;
+  MOIData.CubaturePoints = 0;
+
+  if (Order==-1) 
+   { RWGEdge *E = G->Surfaces[ns]->GetEdgeByIndex(ne);
+     Order = ( VecDistance(XDest, E->Centroid) < 2.0*E->Radius ) ? 9 : 4;
+   }
+  int zfdim=NPFC, fdim=2*zfdim;
+  cdouble SubstrateTerms[NPFC];
+  GetBFCubature2(G, ns, ne, MOIPFIntegrand, (void *)&MOIData, fdim, Order, (double *)SubstrateTerms);
+  VecPlusEquals(PFVector, 1.0, SubstrateTerms, NPFC);
 
   return MOIData.qPoints;
 }
@@ -541,10 +545,15 @@ int GetMOIMatrixElement_NC(RWGGeometry *G,
 void GetRhoMinMax(RWGGeometry *G, int nsa, int nsb, double RhoMinMax[2])
 { 
   double RMax[3], RMin[3];
-  RWGSurface *Sa = G->Surfaces[nsa];
-  RWGSurface *Sb = G->Surfaces[nsb];
-  VecSub(Sa->RMax, Sb->RMin, RMax);
-  VecSub(Sa->RMin, Sb->RMax, RMin);
+  double *RaMax = G->Surfaces[nsa]->RMax, *RaMin = G->Surfaces[nsa]->RMin;
+  double *RbMax = G->Surfaces[nsb]->RMax, *RbMin = G->Surfaces[nsb]->RMin;
+  for(int Mu=0; Mu<3; Mu++)
+   { RMax[Mu] = fmax( fabs(RbMax[Mu]-RaMin[Mu]), fabs(RaMax[Mu]-RbMin[Mu]) );
+     RMin[Mu] = (   ( RaMax[Mu] < RbMin[Mu] ) ? RbMin[Mu]-RaMax[Mu]
+                  : ( RbMax[Mu] < RaMin[Mu] ) ? RaMin[Mu]-RbMax[Mu]
+                  : 0.0
+                );
+   }
   RhoMinMax[0] = sqrt(RMin[0]*RMin[0] + RMin[1]*RMin[1]);
   RhoMinMax[1] = sqrt(RMax[0]*RMax[0] + RMax[1]*RMax[1]);
 }
@@ -605,7 +614,8 @@ void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double z
 /***************************************************************/
 /***************************************************************/
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
-                            cdouble Omega, HMatrix *Block, int OffsetA, int OffsetB)
+                            cdouble Omega, HMatrix *Block, int OffsetA, int OffsetB,
+                            EquivalentEdgePairTable *EEPTable)
 {
   int Order=-1;
   char *s=getenv("SCUFF_MOIME_ORDER");
@@ -632,32 +642,57 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   RWGSurface *Sa = G->Surfaces[nsa], *Sb=G->Surfaces[nsb];
-  int NEA = Sa->NumEdges, NEB=Sb->NumEdges;
-  int nPair=0, NPair = (nsa==nsb) ? NEA*(NEA+1)/2 : NEA*NEB;
-#ifndef USE_OPENMP
-  Log("Computing MOI matrix block (%i,%i) (%i entries)",nsa,nsb,NEA*NEB);
-#else
+  int NEA=Sa->NumEdges, NEB=Sb->NumEdges, NPair = NEA*NEB;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   int NumThreads=GetNumThreads();
-  Log("Computing MOI matrix block (%i,%i) (%i entries) (%i threads)",nsa,nsb,NEA*NEB,NumThreads);
+  Log("Computing MOI matrix block (%i,%i) (%i entries) (%i threads)",nsa,nsb,NPair,NumThreads);
+#ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-  for(int neaneb=0; neaneb<NEA*NEB; neaneb++)
+  for(int nPair=0; nPair<NPair; nPair++)
    { 
-     int nea = neaneb / NEB;
-     int neb = neaneb % NEB;
-     if (nsa==nsb && neb<nea) continue;
-     LogPercent(nPair++, NPair);
+     LogPercent(nPair, NPair);
+
+     int nea = nPair/NEB;
+     int neb = nPair%NEB;
+     if (neb<nea) continue;
+     if (EEPTable && EEPTable->HasParent(nsa, nea, nsb, neb)) continue;
 
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
      Block->SetEntry(OffsetA + nea, OffsetB + neb, ME);
+   }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NFE = G->TotalEdges;
+  if (EEPTable)
+   { Log("Filling in matrix entries for equivalent pairs...");
+     for(int neaParent=0; neaParent<NEA; neaParent++)
+      for(int nebParent=(nsa==nsb ? neaParent : 0); nebParent<NEB; nebParent++)
+       { iVec Children = EEPTable->GetChildren(nsa, neaParent, nsb, nebParent);
+         if (Children.size()==0 ) continue;
+         cdouble ME = Block->GetEntry(OffsetA + neaParent, OffsetB + nebParent);
+         for(size_t nc=0; nc<Children.size(); nc++)
+          { int ChildPair = Children[nc];
+            int nfeaChild = ChildPair/NFE, nsaChild, neaChild; G->ResolveEdge(nfeaChild, &nsaChild, &neaChild);
+            int nfebChild = ChildPair%NFE, nsbChild, nebChild; G->ResolveEdge(nfebChild, &nsbChild, &nebChild);
+            if (nsaChild!=nsa || nsbChild!=nsb) continue;
+            Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, ME);
+          }
+      }
+     Log(" ...done with equivalent pairs");
    }
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M)
+void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable *EEPTable)
 {
   if ( !M || (M->NR != G->TotalBFs) || (M->NC != G->TotalBFs) )
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
@@ -693,7 +728,7 @@ void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M)
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
-       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb]);
+       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb], EEPTable);
     }
 
   // fill in lower triangle

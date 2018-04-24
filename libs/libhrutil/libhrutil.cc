@@ -250,7 +250,7 @@ int vsnprintfEC(char *str, size_t size, const char *format, va_list ap)
 /* extension of fopen that accepts an optional colon-separated */
 /* search path.                                                */
 /* If Path is null this reduces to just the usual fopen.       */
-/* if WhichDir is non-null, then on return *WhichDir points to */
+/* If WhichDir is non-null, then on return *WhichDir points to */
 /* a static buffer containing the directory in which the file  */
 /* was found.                                                  */
 /***************************************************************/
@@ -263,10 +263,7 @@ FILE *fopenPath(const char *Path, const char *FileName,
   if ( FILE *f=fopen(FileName,Mode) )
    { sprintf(DirFound,".");
      return f;
-   };
-
-  if (!Path)
-   return 0;
+   }
 
   const char *p=Path;
   while(*p)
@@ -282,7 +279,7 @@ FILE *fopenPath(const char *Path, const char *FileName,
      if ( FILE *f=fopen(FullFileName,Mode) )
       return f;
      if (*p==':') p++;
-   };
+   }
   return 0;
 }
 
@@ -982,13 +979,7 @@ void SetCodeMarker(const char *Marker)
 
 static void SignalHandler(int WhichSignal)
 {
-  FILE *f;
-
-  if (LogFileName)
-   f=fopen(LogFileName,"a");
-  else
-   f=stderr;
-
+  FILE *f = (LogFileName ? fopen(LogFileName,"a") : stderr );
   fprintf(f,"\n\n**<><> received signal %i ",WhichSignal);
   if (CodeMarker[0]!=0)
    fprintf(f,"while %s",CodeMarker);
@@ -1001,7 +992,6 @@ static void SignalHandler(int WhichSignal)
 #endif
 
   fclose(f);
-
   exit(1);
 }
 #endif // !defined(_WIN32)

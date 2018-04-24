@@ -1049,6 +1049,9 @@ RWGSurface *RWGGeometry::ResolveEdge(int neFull, int *pns, int *pne, int *pKNInd
   return Surfaces[ns];
 }
 
+int RWGGeometry::UnResolveEdge(int ns, int ne)
+{ return EdgeIndexOffset[ns] + ne; }
+
 /***************************************************************/
 /* like the previous routine, except the input is an index into*/
 /* the overall BEM system.                                     */

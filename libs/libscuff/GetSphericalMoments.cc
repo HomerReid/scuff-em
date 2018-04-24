@@ -102,10 +102,8 @@ void VSWDotRWGIntegrand(double x[3], double b[3], double Divb,
 /***************************************************************/
 HVector *GetSphericalMoments(RWGGeometry *G, int ns,
                              cdouble Omega, int lMax,
-                             HVector *KN, int BFIndexOffset,
-                             HVector *MomentVector)
+                             HVector *KN, HVector *MomentVector)
 { 
-  
   /***************************************************************/
   /* (re)allocate the MomentVector as necessary ***********************/
   /***************************************************************/
@@ -251,7 +249,7 @@ HVector *GetSphericalMoments(RWGGeometry *G, cdouble Omega, int lMax,
   MomentVector->Zero();
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     GetSphericalMoments(G, ns, Omega, lMax, KN, G->BFIndexOffset[ns], PartialMoments);
+     GetSphericalMoments(G, ns, Omega, lMax, KN, PartialMoments);
      for(int nm=0; nm<NumMoments; nm++)
       MomentVector->AddEntry(nm, PartialMoments->GetEntry(nm));
    }

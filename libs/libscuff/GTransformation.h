@@ -93,6 +93,9 @@ public:
      void ApplyRotation(double X[3]) const { ApplyRotation(X, X); }
      void UnApplyRotation(const double X[3], double XP[3]) const;
      void UnApplyRotation(double X[3]) const { UnApplyRotation(X, X); }
+
+     bool IsIdentity(double LengthScale=1.0, double Tol=1.0e-7);
+     bool IsIdentical(GTransformation GT, double LengthScale=1.0, double Tol=1.0e-7);
      
 //private:
      double DX[3]; // translation

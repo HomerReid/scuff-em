@@ -109,17 +109,21 @@ typedef struct RWGPanel
 } RWGPanel;
 
 /***************************************************************/
-/* RWGEdge is a structure containing data on a single          */
-/* edge in a meshed surfaces.                                  */
+/* RWGEdge is a structure containing data on a single edge     */
+/* in a meshed surfaces, corresponding to a single RWG basis   */
+/* function.                                                   */
 /*                                                             */
-/* This may be an *interior* edge, in which case all fields in */
-/* the structure are valid; or it may be an *exterior* edge,   */
-/* in which case the iQM, iMPanel, and MIndex fields all have  */
-/* the value -1.                                               */
+/* This may be a *full* RWG function, supported on two panels  */
+/* (corresponding to an *interior* edge in the discretization),*/
+/* or it may be a *half* RWG (HRWG) function, supported on     */
+/* only one panel. HRWG functions are created for all exterior */
+/* edges, and in some cases may be created for interior edges  */
+/* well (to define point-like RWGPorts in RF devices.)         */
+/* RWGEdges for HRWG functions have iQM=iMPanel=MIndex=-1.     */
 /*                                                             */
 /* note: after the following code snippet                      */
-/*  double *R= O->Vertices + 3*E->IQP                          */
-/* we have that R[0..2] are the cartesian coordinates of the   */
+/*  double *QP = S->Vertices + 3*E->IQP                        */
+/* we have that QP[0..2] are the cartesian coordinates of the  */
 /* QP vertex in the basis function corresponding to edge E.    */
 /***************************************************************/
 typedef struct RWGEdge 
@@ -242,7 +246,7 @@ class RWGSurface
    double *Vertices;               /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
    RWGPanel **Panels;              /* array of pointers to panels         */
    RWGEdge **Edges;                /* array of pointers to interior edges */
-   RWGEdge **ExteriorEdges;        /* array of pointers to exterior edges */
+   RWGEdge **HalfRWGEdges;         /* array of pointers to exterior edges plus interior edges with half-RWG functions*/
    int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
    double RMax[3], RMin[3];        /* bounding box corners */
 
@@ -252,11 +256,12 @@ class RWGSurface
    int NumInteriorVertices;        /* number of interior vertices */
    int NumRefPts;                  /* number of vertices used as reference points */
 
-   int NumTotalEdges;              /* total number of edges */
-   int NumEdges;                   /* number of interior edges */
-   int NumExteriorEdges;           /* number of exterior edges */
+   int NumEdges;                   /* number of interior edges     */
+   int NumExteriorEdges;           /* number of exterior edges     */
+   int NumHalfRWGEdges;            /* =NumExteriorEdges unless point RF ports are present */
+   int NumTotalEdges;              /* NumEdges + NumHalfRWGEdges   */
 
-   int NumBFs;                     /* number of basis functions */
+   int NumBFs;                     /* number of basis functions (electric + magnetic)*/
    int NumPanels;                  /* number of panels */
    int NumBCs;                     /* number of boundary countours */
 
@@ -517,6 +522,7 @@ class RWGGeometry
    void GetKNCoefficients(HVector *KN, int ns, int ne,
                           cdouble *KAlpha, cdouble *NAlpha=0);
    RWGSurface *ResolveEdge(int neFull, int *pns=0, int *pne=0, int *pKNIndex=0);
+   int UnResolveEdge(int ns, int ne);
    RWGSurface *ResolveBF(int nbfFull, int *pns=0, int *pne=0, bool *pIsMagnetic=0);
 
    // directories within which to search for mesh files

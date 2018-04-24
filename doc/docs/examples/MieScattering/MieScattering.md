@@ -10,9 +10,9 @@ We begin by creating a [<span class="SC">gmsh</span>](http://geuz.org/gmsh) geom
 sphere [(`Sphere.geo`)](Sphere.geo). We turn this geometry file into a mesh 
 file by running the following command:
 
-````bash
+<pre class=shaded>
  % gmsh -2 -clscale 1.0 Sphere.geo
-````
+</pre>
 
 This produces a file named [`Sphere.msh`](Sphere.msh) which looks like this:
 

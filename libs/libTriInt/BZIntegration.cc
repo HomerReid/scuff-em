@@ -402,7 +402,6 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
    { 
      BZIFunction BZIFunc = Args->BZIFunc;
      void *UserData      = Args->UserData;
-     double Gamma        = Args->RLBasis->GetEntryD(0,0);
      double kBloch[3]={0.0, 0.0, 0.0};
      switch(AngularOrder)
       { case 2:  kBloch[0] = kRhoHat*Gamma; break;

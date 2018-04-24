@@ -164,7 +164,7 @@ iVec FindEdgesInPolygon(RWGSurface *S, dVec PolygonVertices)
   iVec NewEdges;
   for(int ne=0; ne<S->NumExteriorEdges; ne++)
    { 
-     RWGEdge *E = S->ExteriorEdges[ne];
+     RWGEdge *E = S->HalfRWGEdges[ne];
      double *V1 = S->Vertices + 3*E->iV1;
      double *V2 = S->Vertices + 3*E->iV2;
 
@@ -226,7 +226,8 @@ RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
      { 
        int ne = S->Panels[np]->EI[iv];
        if (ne>=0)
-        { RWGEdge *NewEdge = (RWGEdge *)mallocEC(sizeof(RWGEdge));
+        { 
+          RWGEdge *NewEdge = (RWGEdge *)mallocEC(sizeof(RWGEdge));
           NewEdge->iQP = S->Panels[np]->VI[iv];
           NewEdge->iV1 = S->Panels[np]->VI[(iv+1)%3];
           NewEdge->iV2 = S->Panels[np]->VI[(iv+2)%3];
@@ -242,9 +243,9 @@ RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
           NewEdge->Centroid[1] = 0.5*(V1[1]+V2[1]);
           NewEdge->Centroid[2] = 0.5*(V1[2]+V2[2]);
           NewEdge->Radius = VecDistance(QP, NewEdge->Centroid);
-          ne = NewEdge->Index = -1 * (++(S->NumExteriorEdges));
-          S->ExteriorEdges=(RWGEdge **)reallocEC(S->ExteriorEdges, (S->NumExteriorEdges)*sizeof(RWGEdge *));
-          S->ExteriorEdges[S->NumExteriorEdges-1] = NewEdge;
+          ne = NewEdge->Index = -1 * (++(S->NumHalfRWGEdges));
+          S->HalfRWGEdges=(RWGEdge **)reallocEC(S->HalfRWGEdges, (S->NumHalfRWGEdges)*sizeof(RWGEdge *));
+          S->HalfRWGEdges[S->NumHalfRWGEdges-1] = NewEdge;
         }
        PortEdges.push_back(new RWGPortEdge(nsMin, ne, 0, 0, +1.0));
      }
@@ -266,7 +267,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
   /***************************************************************/
   /* try to open the file ****************************************/
   /***************************************************************/
-  FILE *f=fopen(PortFileName,"r");
+  FILE *f=fopenPath(getenv("SCUFF_DATA_PATH"),PortFileName,"r");
   if (f==0)
    ErrExit("could not open file %s",PortFileName);
   

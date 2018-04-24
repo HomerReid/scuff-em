@@ -209,16 +209,16 @@ void RWGSurface::InitEdgeList()
   /*-  a. put each RWGEdge structure corresponding to an interior */ 
   /*      edge into the Edges array.                              */
   /*-  b. put each RWGEdge structure corresponding to an exterior */ 
-  /*      edge into ExteriorEdges array and also into the EVEdges */
+  /*      edge into HalfRWGEdges array and also into the EVEdges  */
   /*      lists for the edge's 2 vertices.                        */
   /*      note that the Index field of the RWGEdge struct         */
   /*      for an exterior edge is set to -(i+1), where i is the   */
-  /*      index of the edge in the ExteriorEdges array. (thus the */
+  /*      index of the edge in the HalfRWGEdges array. (thus the  */
   /*      first exterior edge has Index=-1, the second has        */
   /*      Index=-2, etc.)                                         */
   /*--------------------------------------------------------------*/
   Edges=(RWGEdge **)mallocEC(NumEdges*sizeof(Edges[0]));
-  ExteriorEdges=(RWGEdge **)mallocEC((NumTotalEdges-NumEdges)*sizeof(Edges[0]));
+  HalfRWGEdges=(RWGEdge **)mallocEC((NumTotalEdges-NumEdges)*sizeof(Edges[0]));
   NumExteriorEdges=0;
   NumExteriorVertices=0;
   for(nv=0; nv<NumVertices; nv++)
@@ -226,7 +226,7 @@ void RWGSurface::InitEdgeList()
     { 
       if (E->Index==-1)  /* E is an exterior edge */
        { 
-         ExteriorEdges[NumExteriorEdges]=E;
+         HalfRWGEdges[NumExteriorEdges]=E;
          E->Index=-(NumExteriorEdges+1);
          NumExteriorEdges++;
 
@@ -245,6 +245,7 @@ void RWGSurface::InitEdgeList()
     };
   if ( (NumExteriorEdges+NumEdges) != NumTotalEdges )
    ErrExit("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,NumExteriorEdges,NumTotalEdges-NumEdges);
+  NumHalfRWGEdges = NumExteriorEdges;
 
   /*--------------------------------------------------------------*/
   /*- now go through and classify exterior boundary contours     -*/

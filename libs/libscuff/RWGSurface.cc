@@ -380,46 +380,50 @@ void RWGSurface::InitRWGSurface()
   InitEdgeList();
 
   /*------------------------------------------------------------*/
-  /*- By default, if we are an OBJECT we do not assign half-RWG */
-  /*- basis functions to exterior edges, whereas if we are a    */
-  /*- SURFACE we do.                                            */
-  /*- The procedure for assigning half-RWG basis functions to   */
-  /*- exterior edges is simply to append the contents of the    */
-  /*- ExteriorEdges array to the end of the Edges array. The    */
-  /*- content of each individual edge structure is already      */
-  /*- properly initialized by the InitEdgeList() routine (with  */
-  /*- the exception of the Index field.) The edges remain in    */
-  /*- place within the ExteriorEdges array.                     */
+  /*- After InitEdgeList, the Edges array has length NumEdges   */
+  /*- and contains only full RWG edges, while the HalfRWGEdges  */
+  /*- array has length NumHalfRWGEdges=NumExteriorEdges and     */
+  /*- contains only half-RWG edges. (If any point-like RWGPorts */
+  /*- are subsequently added, the HalfRWGEdges array will grow  */
+  /*- to accommodate the resulting half-RWG edges, and          */
+  /*- NumHalfRWGEdges will increase, but NumExteriorEdges will  */
+  /*- remain constant.)                                         */
+  /*-                                                           */
+  /*- By default the HalfRWGEdges are not treated as degrees of */
+  /*- freedom for expanding induced surface currents. This is   */
+  /*- overridden if RWGGeometry::UserHRWGFunctions==true, in    */
+  /*- which case the full content of the HalfRWGEdges array is  */
+  /*- on to the end of the Edges array and NumEdges (and */
+  /*- NumBFs, and thus the dimension of the SIE system) grows   */
+  /*- accordingly.                                              */
   /*------------------------------------------------------------*/
-  if ( !IsObject && RWGGeometry::UseHRWGFunctions )
-   { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
-     memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
-     for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
+  if ( RWGGeometry::UseHRWGFunctions )
+   { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumHalfRWGEdges)*sizeof(RWGEdge *));
+     memcpy(Edges + NumEdges, HalfRWGEdges, NumHalfRWGEdges * sizeof(RWGEdge *));
+     for(int ne=NumEdges; ne<NumEdges + NumHalfRWGEdges; ne++)
       Edges[ne]->Index = ne;
-     NumEdges += NumExteriorEdges;
-     Log("Promoted %i exterior edges for surface %s to half-RWG basis functions.",NumExteriorEdges,Label);
-   };
+     NumEdges += NumHalfRWGEdges;
+     Log("Promoted %i exterior edges for surface %s to half-RWG basis functions.",NumHalfRWGEdges,Label);
+   }
 
   /*------------------------------------------------------------*/
   /*- now that we have put the edges into a list, we can go    -*/
   /*- back and fill in the EdgeIndices field in each RWGPanel. -*/
-  /*- Note: EdgeIndices[i] = index of panel edge #i within the -*/
-  /*- Edges[] list for the parent RWGSurface. Panel edge #i is -*/
-  /*- edge opposite vertex #i.                                 -*/
+  /*- EdgeIndices[i] = index of panel edge #i within the       -*/
+  /*- parent RWGSurface. (This index is negative if the edge is-*/
+  /*- an exterior (half-RWG) edge and UseHRWGFunctions==false. -*/
   /*------------------------------------------------------------*/
   for(int ne=0; ne<NumEdges; ne++)
    { RWGEdge *E = Edges[ne];
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
-     if ( E->iMPanel>=0 )
+     if ( E->iMPanel!=-1 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
-   };
+   }
   if ( !(RWGGeometry::UseHRWGFunctions) )
-   { 
-     for(int ne=0; ne<NumExteriorEdges; ne++)
-      { RWGEdge *E=ExteriorEdges[ne];
-        Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
-      };
-   };
+   for(int ne=0; ne<NumHalfRWGEdges; ne++)
+    { RWGEdge *E=HalfRWGEdges[ne];
+      Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
+    }
 
   /*------------------------------------------------------------*/
   /*- the number of basis functions that this object takes up   */
@@ -499,12 +503,12 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
   if (RWGGeometry::UseHRWGFunctions)
-   { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
-     memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
-     for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
+   { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumHalfRWGEdges)*sizeof(RWGEdge *));
+     memcpy(Edges + NumEdges, HalfRWGEdges, NumHalfRWGEdges* sizeof(RWGEdge *));
+     for(int ne=NumEdges; ne<NumEdges + NumHalfRWGEdges; ne++)
       Edges[ne]->Index = ne;
-     NumEdges += NumExteriorEdges;
-   };
+     NumEdges += NumHalfRWGEdges;
+   }
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 
   /*------------------------------------------------------------*/
@@ -519,14 +523,12 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
-   };
+   }
   if ( !(RWGGeometry::UseHRWGFunctions) )
-   { 
-     for(int ne=0; ne<NumExteriorEdges; ne++)
-      { RWGEdge *E=ExteriorEdges[ne];
-        Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
-      };
-   };
+   for(int ne=0; ne<NumHalfRWGEdges; ne++)
+    { RWGEdge *E=HalfRWGEdges[ne];
+      Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
+    }
 
   /*------------------------------------------------------------*/
   /*- compute bounding box -------------------------------------*/
@@ -562,9 +564,9 @@ RWGSurface::~RWGSurface()
    free(Edges[ne]);
   free(Edges);
 
-  for(int ne=0; ne<NumExteriorEdges; ne++)
-   free(ExteriorEdges[ne]);
-  free(ExteriorEdges);
+  for(int ne=0; ne<NumHalfRWGEdges; ne++)
+   free(HalfRWGEdges[ne]);
+  free(HalfRWGEdges);
 
   for(int nbc=0; nbc<NumBCs; nbc++)
    free(BCEdges[nbc]);
@@ -604,9 +606,10 @@ void RWGSurface::Transform(const GTransformation *DeltaGT)
   DeltaGT->Apply(Vertices, NumVertices);
 
   /* edge centroids */
-  int ne;
-  for(ne=0; ne<NumEdges; ne++)
+  for(int ne=0; ne<NumEdges; ne++)
     DeltaGT->Apply(Edges[ne]->Centroid, 1);
+  for(int ne=0; ne<NumHalfRWGEdges; ne++)
+    DeltaGT->Apply(HalfRWGEdges[ne]->Centroid, 1);
 
   /* origin */
   DeltaGT->Apply(Origin);
@@ -653,9 +656,10 @@ void RWGSurface::UnTransform()
   /***************************************************************/
   GT->UnApply(Vertices, NumVertices);
 
-  int ne;
-  for(ne=0; ne<NumEdges; ne++)
+  for(int ne=0; ne<NumEdges; ne++)
    GT->UnApply(Edges[ne]->Centroid, 1);
+  for(int ne=0; ne<NumHalfRWGEdges; ne++)
+   GT->UnApply(HalfRWGEdges[ne]->Centroid, 1);
 
   GT->UnApply(Origin);
 
@@ -681,16 +685,13 @@ void RWGSurface::UnTransform()
 /*-----------------------------------------------------------------*/
 void InitRWGPanel(RWGPanel *P, double *Vertices)
 {
-  int i;
   double *V[3]; 
-  double VA[3], VB[3];
-
   V[0]=Vertices + 3*P->VI[0];
   V[1]=Vertices + 3*P->VI[1];
   V[2]=Vertices + 3*P->VI[2];
 
   /* calculate centroid */ 
-  for(i=0; i<3; i++)
+  for(int i=0; i<3; i++)
    P->Centroid[i]=(V[0][i] + V[1][i] + V[2][i])/3.0;
 
   /* calculate bounding radius */ 
@@ -716,6 +717,7 @@ void InitRWGPanel(RWGPanel *P, double *Vertices)
    * TODO: FIXME
    *                  
    */ 
+  double VA[3], VB[3];
   VecSub(V[1],V[0],VA);
   VecSub(V[2],V[0],VB);
   VecCross(VA,VB,P->ZHat);
@@ -755,9 +757,9 @@ RWGEdge *RWGSurface::GetEdgeByIndex(int ne)
      return Edges[ne];
    }
   ne = -(ne+1);
-  if (ne>=NumExteriorEdges)
-   ErrExit("%s:%i: internal error(%i,%i,%i)",__FILE__,__LINE__,Index,NumExteriorEdges,ne);
-  return ExteriorEdges[ne];
+  if (ne>=NumHalfRWGEdges)
+   ErrExit("%s:%i: internal error(%i,%i,%i)",__FILE__,__LINE__,Index,NumHalfRWGEdges,ne);
+  return HalfRWGEdges[ne];
 }
 
 } // namespace scuff

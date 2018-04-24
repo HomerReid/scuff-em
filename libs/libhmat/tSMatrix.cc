@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
   S1->ExportToHDF5(pHC, "S1");
   HMatrix::CloseHDF5Context(pHC);
 
-  SMatrix *S2=new SMatrix("tSMatrix.hdf5","S1");
+  SMatrix *S2=new SMatrix(const_cast<char *>("tSMatrix.hdf5"),"S1");
   if (S2->ErrMsg)
    ErrExit(S2->ErrMsg);
 

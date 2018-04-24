@@ -1,11 +1,14 @@
 noinst_LTLIBRARIES = libRFSolver.la
-pkginclude_HEADERS = RFSolver.h
+pkginclude_HEADERS = RFSolver.h EquivalentEdgePairs.h
 
-libRFSolver_la_SOURCES = \
- RFSolver.cc      \
- RWGPorts.cc      \
- MOIIntegrals.cc  \
- OutputModules.cc
+libRFSolver_la_SOURCES = 	\
+ EquivalentEdgePairs.h 		\
+ RFSolver.h            		\
+ EquivalentEdgePairs.cc		\
+ MOIIntegrals.cc  		\
+ OutputModules.cc		\
+ RFSolver.cc      		\
+ RWGPorts.cc      		
 
 AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
               -I$(top_srcdir)/libs/libhmat      \

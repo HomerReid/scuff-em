@@ -215,8 +215,8 @@ static void DeleteFirstTriangle(TIWorkspace *TIW)
 /***************************************************************/
 static int tcmp(const void *pT1, const void *pT2)
 { 
-  Triangle *T1=*(Triangle **)pT1;
-  Triangle *T2=*(Triangle **)pT2;
+  Triangle *T1=(Triangle *)(*(Triangle **)pT1);
+  Triangle *T2=(Triangle *)(*(Triangle **)pT2);
 
   if (T1->MaxError > T2->MaxError) 
    return -1;

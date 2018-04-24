@@ -325,7 +325,7 @@ void SommerfeldIntegrate(integrand f, void *fdata, unsigned zfdim,
       break;
    };
 
-  for(int nf=0; nf<zfdim; nf++)
+  for(size_t nf=0; nf<zfdim; nf++)
    { Integral[nf] += SValues[nf];
      Error[nf]    += abs(SValues[nf] - LastSValues[nf]);
    };

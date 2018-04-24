@@ -17,7 +17,6 @@ EXTRA_DIST=				\
  scuffgeoFiles/CPW_Coarse.scuffgeo   	\
  scuffgeoFiles/CPW_Medium.scuffgeo   	\
  scuffgeoFiles/CPW_Fine.scuffgeo     	\
- scuffgeoFiles/CPW_Fine.scuffgeo     	\
  portFiles/CPW.ports			\
  portFiles/EFAntenna.ports		\
  portFiles/CoupledAntennas.ports	\
