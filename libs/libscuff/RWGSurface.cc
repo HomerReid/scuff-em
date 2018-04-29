@@ -313,8 +313,8 @@ void RWGSurface::InitRWGSurface()
       { MeshFile=vfopen("%s/%s","r",RWGGeometry::MeshDirs[nmd],MeshFileName);
         if (MeshFile) 
          Log("Found mesh file %s/%s",RWGGeometry::MeshDirs[nmd],MeshFileName);
-      };
-   };
+      }
+   }
   if (!MeshFile)
    ErrExit("could not open file %s",MeshFileName);
    

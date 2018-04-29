@@ -10,9 +10,9 @@ We begin by creating a [<span class="SC">gmsh</span>](http://geuz.org/gmsh) geom
 sphere [(`Sphere.geo`)](Sphere.geo). We turn this geometry file into a mesh 
 file by running the following command:
 
-<pre class=shaded>
+````bash
  % gmsh -2 -clscale 1.0 Sphere.geo
-</pre>
+````
 
 This produces a file named [`Sphere.msh`](Sphere.msh) which looks like this:
 
@@ -29,7 +29,7 @@ we'll use a dielectric model for silicon carbide that expresses the relative
 permittivity as a rational function of ω; in this case we'll call the geometry 
 file `SiCSphere.scuffgeo.`
 
-````bash 
+````python
 MATERIAL SiliconCarbide
    
    EpsInf = 6.7;
@@ -50,11 +50,11 @@ ENDOBJECT
 We create a simple file called [`OmegaValues.dat`](OmegaValues.dat) containing a 
 list of angular frequencies at which to run the scattering problem:
 
-````bash
-    0.010
-    0.013
-    ...
-    10.0
+````python
+0.010
+0.013
+...
+10.0
 ````
 
 (We pause to note one subtlety here: Angular frequencies specified 
@@ -82,21 +82,20 @@ a list of command-line options for [[scuff-scatter]]; these will include
 exist yet, but will be created by our first run of [[scuff-scatter]]), 
 and **(5)** a specification of the incident field.
 
-````bash
-    geometry SiCSphere.scuffgeo
-    OmegaFile OmegaValues.dat
-    PFTFile SiCSphere.PFT
-    Cache Sphere.cache
-    pwDirection 0 0 1
-    pwPolarization 1 0 0
-    
+````python
+geometry SiCSphere.scuffgeo
+OmegaFile OmegaValues.dat
+PFTFile SiCSphere.PFT
+Cache Sphere.cache
+pwDirection 0 0 1
+pwPolarization 1 0 0
 ````
 
 And now we just pipe this little file into the standard input of 
 [[scuff-scatter]]:
 
 ````bash
-    % scuff-scatter < Args 
+% scuff-scatter < Args 
 ````
 
 This produces the file `SiCSphere.PFT`, which contains one line per simulated 
@@ -111,7 +110,7 @@ the code should be using all available CPU cores on your workstation; if you fin
 not the case (for example, by monitoring CPU usage using 
 [<span class="SC">htop</span>](http://htop.sourceforge.net)) 
 you may need to 
-[reconfigure and recompile with different openmp/pthreads configuration options.][scuffEMInstallation.shtml]
+[reconfigure and recompile with different openmp/pthreads configuration options.][scuffEMInstallation]
 
 Here's a comparison of the [[scuff-scatter]] results with the analytical Mie series, as computed 
 using [this Mathematica script.](Mie.math) [Like most Mie codes, this script computes the 

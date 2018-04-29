@@ -21,21 +21,22 @@ of dimensions 1&mu;m &times; 1&mu;m, with a hole of radius 0.25 &mu;m
 centered at the center of the square. I produce coarser and 
 finer surface meshes for this geometry by saying
 
-````bash
+````python
 % gmsh -2 -clscale 1 HoleyScreenUnitCell.geo
 % RenameMesh HoleyScreenUnitCell.msh
 % gmsh -2 -clscale 0.75 HoleyScreenUnitCell.geo
 % RenameMesh HoleyScreenUnitCell.msh
 ````
+
 (where [`RenameMesh`](../SiO2Spheres/RenameMesh) is a simple 
 `bash` script that uses [[scuff-analyze]] to count the number 
 of interior edges in a surface mesh and rename the mesh file 
 accordingly.)
 This produces the files `HoleyScrenUnitCell_1228.msh`
 and `HoleyScreenUnitCell_2318.msh,`
-which you can visualize by opening in [[gmsh]]::
+which you can visualize by opening in [[gmsh]]:
 
-````bash
+````python
 % gmsh HoleyScreenUnitCell_1228.msh
 % gmsh HoleyScreenUnitCell_2318.msh
 ````

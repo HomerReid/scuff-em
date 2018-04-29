@@ -1,10 +1,8 @@
 noinst_LTLIBRARIES = libRFSolver.la
-pkginclude_HEADERS = RFSolver.h EquivalentEdgePairs.h
+pkginclude_HEADERS = RFSolver.h
 
 libRFSolver_la_SOURCES = 	\
- EquivalentEdgePairs.h 		\
  RFSolver.h            		\
- EquivalentEdgePairs.cc		\
  MOIIntegrals.cc  		\
  OutputModules.cc		\
  RFSolver.cc      		\

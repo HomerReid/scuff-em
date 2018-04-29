@@ -67,7 +67,7 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
 /*--------------------------------------------------------------*/
 /*- note: i found this on wikipedia ... ------------------------*/
 /*--------------------------------------------------------------*/
-static long JenkinsHash(const char *key, size_t len)
+long JenkinsHash(const char *key, size_t len)
 {
     long hash;
     unsigned int i;

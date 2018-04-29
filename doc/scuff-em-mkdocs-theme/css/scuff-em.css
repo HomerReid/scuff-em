@@ -1,0 +1,154 @@
+hr {
+  height:5px;
+  color: #BBB;
+  background-color: #BBB;
+}
+
+
+article ul li {
+  margin: 0 0 5px 0;
+}
+
+section ul li {
+  margin: 0 0 5px 0;
+}
+
+
+pre {
+  background-color: #CCCCCC;
+  border: 5;
+}
+
+code {
+  color: #000000;
+  border: 0;
+  font-size: 105%;
+}
+
+a code {
+  color: #2980B9;
+  border: 0;
+  font-size: 105%;
+}
+
+a.visited code {
+  color: #9B59B6;
+  border: 0;
+  font-size: 105%;
+}
+
+a.hover code {
+  color: #2980B9;
+  border: 0;
+  font-size: 105%;
+}
+
+a.wikilink {
+   font-variant: small-caps;
+   font-size: 110%;
+   color: #000000;
+}
+
+a.wikilink:hover
+ {text-decoration:none }
+
+.SmallCaps{
+   font-variant: small-caps;
+   font-size: 110%;
+   font-variant-numeric: oldstyle-nums;
+}
+
+.SC{
+   font-variant: small-caps;
+   font-size: 110%;
+   font-variant-numeric: oldstyle-nums;
+}
+
+ol.TOC { 
+  margin: 20px 0;
+  padding:3px;
+  border: 1px solid #aaaaaa;
+  background-color: #f9f9f9;
+}
+
+.toc { 
+  margin: 20px 0;
+  padding:3px;
+  border: 1px solid #aaaaaa;
+  background-color: #f9f9f9;
+}
+
+.toctitle 
+ { font-variant: small-caps; 
+   font-weight:  bold;
+   padding: 3px;
+   margin: 3px 3px;
+   text-align: center;
+ }
+
+.shaded
+{ background-color: #CCCCCC;
+}
+
+/*
+ * HR 20180424 the following makes code blocks appear 
+ * in boxes with rounded corners
+ */
+.codehilite code, .codehilite pre {
+
+ color:#505050; 
+ background-color:#F0F0F0;
+ overflow: auto;
+ box-sizing: border-box;
+
+ padding: 0.01em 16px;
+ padding-top: 0.01em;
+ padding-right-value: 16px;
+ padding-bottom: 0.01em;
+ padding-left-value: 16px;
+ padding-left-ltr-source: physical;
+ padding-left-rtl-source: physical;
+ padding-right-ltr-source: physical;
+ padding-right-rtl-source: physical;
+
+ border-radius: 16px !important;
+ border-top-left-radius: 16px;
+ border-top-right-radius: 16px;
+ border-bottom-right-radius: 16px;
+ border-bottom-left-radius: 16px;
+
+ border: 3px solid #CCC !important;
+ border-top-width: 3px;
+ border-right-width-value: 3px;
+ border-right-width-ltr-source: physical;
+ border-right-width-rtl-source: physical;
+ border-bottom-width: 3px;
+ border-left-width-value: 3px;
+ border-left-width-ltr-source: physical;
+ border-left-width-rtl-source: physical;
+ border-top-style: solid;
+ border-right-style-value: solid;
+ border-right-style-ltr-source: physical;
+ border-right-style-rtl-source: physical;
+ border-bottom-style: solid;
+ border-left-style-value: solid;
+ border-left-style-ltr-source: physical;
+ border-left-style-rtl-source: physical;
+ border-top-color: #AAA;
+ border-right-color-value: #AAA;
+ border-right-color-ltr-source: physical;
+ border-right-color-rtl-source: physical;
+ border-bottom-color: #AAA;
+ border-left-color-value: #AAA;
+ border-left-color-ltr-source: physical;
+ border-left-color-rtl-source: physical;
+ -moz-border-top-colors: none;
+ -moz-border-right-colors: none;
+ -moz-border-bottom-colors: none;
+ -moz-border-left-colors: none;
+ border-image-source: none;
+ border-image-slice: 100% 100% 100% 100%;
+ border-image-width: 1 1 1 1;
+ border-image-outset: 0 0 0 0;
+ border-image-repeat: stretch stretch;
+}

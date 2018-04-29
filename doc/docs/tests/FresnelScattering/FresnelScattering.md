@@ -15,10 +15,10 @@ dielectric ($z>0$), described by a mesh with 40 interior edges.
 The incident angle of the plane wave determines the Bloch vector of the 
 scattering problem.
 
-The aspects of {\sc scuff-em} functionality exercised by this test include the 
+The aspects of [[scuff-em]] functionality exercised by this test include the 
 following:
 
-### Core library ({\sc libscuff})
+#### Core library (<span class=SC>libscuff</span>)
 
 + Basic handling of periodic geometries. Parsing of `LATTICE...ENDLATTICE`
   statements in `.scuffgeo` files. Processing of "straddler" basis
@@ -35,19 +35,20 @@ following:
 
 + Computation of scattered fields for Bloch-periodic geometries (`GetFields.cc`).
 
-### `libMDInterp` support library:
+
+#### <span class=SC>libmdinterp</span> support library:
 
 + Instantiation and use of 2D and 3D interpolation tables (`Interp2D.cc, Interp3D.cc`)
 
-### {\sc scuff-transmission} command-line application module:
+#### <span class=SC>scuff-transmission</span> command-line application module:
 
 + Computation of transmission and reflection coefficients directly
-  from surface currents (`GetAmplitudes.cc`)
+    from surface currents (`GetAmplitudes.cc`)
 
 + Computation of transmitted and reflected power via Poynting-vector
-  integration using scattered fields (`GetFlux.cc`)
+    integration using scattered fields (`GetFlux.cc`)
 
-## Exact solution
+### Exact solution
 
 The situation considered here is that of a plane wave impinging 
 from below on a dielectric half-space (relative permittivity $\epsilon=10$)

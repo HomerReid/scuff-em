@@ -33,6 +33,8 @@
 #endif
 #include <map>
 
+typedef vector<bool> bVec;
+
 namespace scuff {
 
 /****************************************************************************/
@@ -46,7 +48,7 @@ public:
 
    bool HasParent(int ChildPair);
    bool HasParent(int nfeaChild, int nfebChild);
-   bool HasParent(int nsa, int neaChild, int nsb, int nsbChild);
+   bool HasParent(int nsa, int neaChild, int nsb, int nebChild);
 
    iVec GetChildren(int ParentPair);
    iVec GetChildren(int nfeaParent, int nfebParent);
@@ -55,27 +57,36 @@ public:
    int CountParentPairs();
    int CountChildPairs();
 
-//private:
-  void AddEquivalentEdgePair(int ParentPair, int ChildPair);
-  void AddEquivalentEdgePair(int nfeaParent, int nfebParent, int nfeaChild, int nfebChild);
+   void Export(char *FileName);
 
-  RWGGeometry *G;
+//private:
+// private methods 
+
+   int GetEdgePairIndex(int nfeParent, int nfeChild);
+   void ResolveEdgePairIndex(int nPair, int *nfeParent, int *nfeChild);
+  
+   void AddEquivalentEdgePair(int ParentPair, int ChildPair, bool SignFlip=false);
+   void AddEquivalentEdgePair(int nfeaParent, int nfebParent, int nfeaChild, int nfebChild, bool SignFlip=false);
+   void AddEquivalentEdgePair(int nfeaParent, int nfeaChild, int nfebPair);
+
+// private data fields
+
+   RWGGeometry *G;
+   int NFE; // number of full edge indices
+   double DistanceQuantum;
 
 /* ChildPairLists[ParentPair] = list of edge pairs equivalent to ParentPair */
 /* ParentPair[ChildPair]      = parent edge pair for ChildPair              */
 
-  iVec *ChildPairListArray;
-  int *ParentPairArray;
+   iVec *ChildPairListArray;
+   bVec HasParentFlag;
 
 #if defined(HAVE_CXX11) 
   std::unordered_map<int, iVec> ChildPairListMap;
-  std::unordered_map<int, int>  ParentPairMap;
 #elif defined(HAVE_TR1) 
   std::tr1::unordered_map<int, iVec> ChildPairListMap;
-  std::tr1::unordered_map<int, int>  ParentPairMap;
 #else
   std::map<int, iVec> ChildPairListMap;
-  std::map<int, int>  ParentPairMap;
 #endif 
 
 };

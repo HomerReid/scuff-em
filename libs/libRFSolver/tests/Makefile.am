@@ -12,7 +12,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
 
 TESTLIBS = $(top_builddir)/libs/libscuff/libscuff.la
 
-noinst_PROGRAMS = t1BFMOIFields tEquivalentPairs
+check_PROGRAMS = t1BFMOIFields tEquivalentPairs
 
 t1BFMOIFields_SOURCES = t1BFMOIFields.cc
 t1BFMOIFields_LDADD   = $(TESTLIBS)

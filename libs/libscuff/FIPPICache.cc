@@ -51,21 +51,7 @@ namespace scuff {
 /*--------------------------------------------------------------*/
 /*- note: i found this on wikipedia ... ------------------------*/
 /*--------------------------------------------------------------*/
-long JenkinsHash(const char *key, size_t len)
-{
-    long hash; 
-    unsigned int i;
-    for(hash = i = 0; i < len; ++i)
-    {
-        hash += key[i];
-        hash += (hash << 10);
-        hash ^= (hash >> 6);
-    }
-    hash += (hash << 3);
-    hash ^= (hash >> 11);
-    hash += (hash << 15);
-    return hash;
-}
+long JenkinsHash(const char *key, size_t len); // in FIBBICache.cc
 
 long HashFunction(const float *Key)
 { return JenkinsHash( (const char *)Key, KEYSIZE );

@@ -62,7 +62,6 @@ int main(int argc, char *argv[])
   int ns=0;
   int ne=-1;
 //
-  char *EPFile=0;
   double X[3]; int nX=0;
   bool Subtract = true;
   
@@ -97,9 +96,6 @@ int main(int argc, char *argv[])
   /***************************************************************/
   RWGGeometry::UseHRWGFunctions=false;
   RWGGeometry *G=new RWGGeometry(GeoFile);
- 
-  HMatrix *M=G->AllocateBEMMatrix();
-  HVector *KN=G->AllocateRHSVector();
 
   /***************************************************************/
   /* process substrate-related options                           */
@@ -126,9 +122,6 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* parse the port list and plot if requested *******************/
   /***************************************************************/
-  RWGPortList *PortList=ParsePortFile(G, PortFile);
-  int NumPorts = PortList->Ports.size();
-
   cdouble Omega=FREQ2OMEGA * Freq;
   int Orders[]={0, 4,7,9,13,16,20,25};
   double Times[8];

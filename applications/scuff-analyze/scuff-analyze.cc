@@ -34,6 +34,7 @@
 #include <libhrutil.h>
 
 #include "libscuff.h"
+#include "EquivalentEdgePairs.h"
 
 using namespace scuff;
 
@@ -423,6 +424,7 @@ int main(int argc, char *argv[])
   int WritePPFiles=0;
   int WriteLabels=0;
   int Neighbors=0;
+  bool EEPs=false;
   bool RegionVolumes=false;
   double WhichRegion[3]={HUGE_VAL, HUGE_VAL, HUGE_VAL};
   char *EPFile=0;
@@ -438,6 +440,7 @@ int main(int argc, char *argv[])
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
      {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
      {"Neighbors",          PA_INT,    1, 1, (void *)&Neighbors,      0, "number of neighboring cells to plot"},
+     {"EEPs",               PA_BOOL,   0, 1, (void *)&EEPs,           0, "analyze equivalent edge pairs"},
      {"RegionVolumes",      PA_BOOL,   0, 1, (void *)&RegionVolumes,  0, "compute volumes of closed regions"},
      {"WhichRegion",        PA_DOUBLE, 3, 1, (void *)&WhichRegion,    0, "identify region in which the given point lives"},
      {0,0,0,0,0,0,0}
@@ -495,7 +498,7 @@ int main(int argc, char *argv[])
 
      if (WriteLabels)
       WriteGeometryLabels(G);
-   };
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -571,7 +574,38 @@ int main(int argc, char *argv[])
    { int nr=G->GetRegionIndex(WhichRegion);
      printf("Point {%g,%g,%g} lives in region %s.\n",
              WhichRegion[0],WhichRegion[1],WhichRegion[2],G->RegionLabels[nr]);
-   };
+   }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (EEPs)
+   { char EEPFileName[100];
+     if (MeshFile)
+      { char GeoFileName[100];
+        snprintf(GeoFileName,100,"MESH__%s",GetFileBase(MeshFile));
+        G=new RWGGeometry(GeoFileName);
+        if (!G) ErrExit("Could not open %s",GeoFileName);
+        snprintf(EEPFileName,100,"%s.EEPTable",GetFileBase(MeshFile));
+      }
+     else
+      snprintf(EEPFileName,100,"%s.EEPTable",GetFileBase(GeoFile));
+
+     printf("Analyzing equivalent edge pairs...\n");
+     EquivalentEdgePairTable EEPTable(G);
+     int NFEPairs = G->TotalEdges * (G->TotalEdges+1)/2;
+     int NumParentPairs  = EEPTable.CountParentPairs();
+     int NumChildPairs  = EEPTable.CountChildPairs();
+     printf(" Of %u total edge-edge pairs:\n ",NFEPairs);
+     printf("    %u are children (savings of %.1f %%)\n",NumChildPairs,100.0*((double)NumChildPairs)/((double)NFEPairs));
+     printf("    %u are parents (%.1f %%)\n",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NFEPairs));
+     printf("    %u are unicorns\n",NFEPairs - NumParentPairs - NumChildPairs);
+
+     EEPTable.Export(EEPFileName);
+     printf("Wrote equivalent-edge pair table to %s.\n",EEPFileName);
+   }
+
+  if (MeshFile)
 
   /***************************************************************/
   /***************************************************************/

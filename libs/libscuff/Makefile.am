@@ -1,56 +1,64 @@
 lib_LTLIBRARIES = libscuff.la
-pkginclude_HEADERS = libscuff.h GTransformation.h GBarAccelerator.h PFTOptions.h PanelCubature.h
-libscuff_la_SOURCES = \
- RWGGeometry.cc 		\
- RWGSurface.cc 			\
- ReadComsolFile.cc 		\
- ReadGMSHFile.cc 		\
- InitEdgeList.cc 		\
- FIBBICache.cc   		\
- PBCSetup.cc 			\
- GCMatrixElements.cc		\
- GTransformation.cc 		\
- GTransformation.h 		\
- PointInObject.cc 		\
- Visualize.cc 			\
+pkginclude_HEADERS = libscuff.h \
+  EquivalentEdgePairs.h \
+  GTransformation.h     \
+  GBarAccelerator.h     \
+  PFTOptions.h          \
+  PanelCubature.h
+
+libscuff_la_SOURCES =		\
  AssembleBEMMatrix.cc          	\
- SurfaceSurfaceInteractions.cc 	\
+ AssembleRHSVector.cc 		\
+ AssessPanelPair.cc 		\
+ CalcGC.cc 			\
+ DSIPFT.cc 			\
  EdgeEdgeInteractions.cc	\
- PanelCubature.cc          	\
- PanelPanelInteractions.cc 	\
- TaylorDuffy.cc 		\
- TaylorDuffy.h 			\
- QDFIPPI.cc 			\
- QIFIPPICubature.cc 		\
- QIFIPPITaylorDuffy.cc 		\
- QIFIPPITaylorDuffyV2P0.cc 	\
+ EMTPFT.cc			\
+ EPPFT.cc			\
+ EquivalentEdgePairs.cc 	\
+ EquivalentEdgePairs.h  	\
+ ExpandCurrentDistribution.cc 	\
+ Faddeeva.cc        		\
+ Faddeeva.hh        		\
+ FIBBICache.cc   		\
  FIPPICache.cc 			\
  GBarAccelerator.cc 		\
  GBarAccelerator.h  		\
  GBarVDEwald.cc     		\
- Faddeeva.cc        		\
- Faddeeva.hh        		\
+ GCMatrixElements.cc		\
+ GetDipoleMoments.cc 		\
+ GetDyadicGFs.cc        	\
  GetFields.cc 			\
  GetNearFields.cc 		\
- DSIPFT.cc 			\
- EMTPFT.cc			\
- EPPFT.cc			\
+ GetPFT.cc			\
+ GetSphericalMoments.cc 	\
+ GTransformation.cc 		\
+ GTransformation.h 		\
+ InitEdgeList.cc 		\
+ libscuff.h 			\
+ libscuffInternals.h		\
  MomentPFT.cc			\
  OPFT.cc  			\
- GetPFT.cc			\
+ PanelCubature.cc          	\
+ PanelCubature.h		\
+ PanelPanelInteractions.cc 	\
+ PBCSetup.cc 			\
  PFTOptions.h			\
- GetDipoleMoments.cc 		\
- GetSphericalMoments.cc 	\
- GetDyadicGFs.cc        	\
- ExpandCurrentDistribution.cc 	\
- AssembleRHSVector.cc 		\
- AssessPanelPair.cc 		\
- CalcGC.cc 			\
+ PointInObject.cc 		\
+ QDFIPPI.cc 			\
+ QIFIPPICubature.cc 		\
+ QIFIPPITaylorDuffy.cc 		\
+ QIFIPPITaylorDuffyV2P0.cc 	\
+ ReadComsolFile.cc 		\
+ ReadGMSHFile.cc 		\
+ RWGGeometry.cc 		\
+ RWGSurface.cc 			\
  rwlock.cc 			\
  rwlock.h 			\
- libscuff.h 			\
- PanelCubature.h		\
- libscuffInternals.h
+ SurfaceSurfaceInteractions.cc 	\
+ TaylorDuffy.cc 		\
+ TaylorDuffy.h 			\
+ Visualize.cc 			
 
 # combine all of the auxiliary libraries into a single library 
 libscuff_la_LIBADD = 		 \
