@@ -50,7 +50,7 @@ namespace scuff {
 /* QVVQ[0,1,2,3] = QP, V1, V2, QM / centroid                   */
 /* P = positive panel                                          */
 /***************************************************************/
-bool AdjustXYZAxes=false;
+bool AdjustXYZAxes=true;
 void GetXYZSystem(double *QVVQ[4], double *Centroid, RWGPanel *P, double xyzHat[3][3])
 {
   xyzHat[2][0] = P->ZHat[0];
@@ -64,8 +64,8 @@ void GetXYZSystem(double *QVVQ[4], double *Centroid, RWGPanel *P, double xyzHat[
    { double EP[3];
      VecScaleAdd(Centroid, 0.1*LengthScale, xyzHat[1], EP);
      if ( VecDistance(EP,QVVQ[0]) > VecDistance(Centroid,QVVQ[0]) )
-      { VecScale(xyzHat[1], -1.0); 
-        VecScale(xyzHat[2], -1.0); 
+      { VecScale(xyzHat[0], -1.0); 
+        VecScale(xyzHat[1], -1.0); 
       }
    }
 }
@@ -351,6 +351,8 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int ParentPair, int ChildPai
                                                     bool SignFlip)
 {
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  if ( ChildPair==ParentPair )
+   printf("Not adding (%i==%i) \n",ParentPair,ChildPair);
   if ( ChildPair < ParentPair )
    printf("Not adding (%i>%i) \n",ParentPair,ChildPair);
   if ( HasParentFlag[ParentPair] )
