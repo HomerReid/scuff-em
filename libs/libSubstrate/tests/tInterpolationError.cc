@@ -53,14 +53,14 @@ void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD);
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-dVec GetRhoPoints(PhiVDFunc UserFunc, void *UserData, int NF,
+dVec GetRhoGrid(PhiVDFunc UserFunc, void *UserData, int NF,
                   double RhoMin, double RhoMax, double DesiredMaxRE)
 { 
   double DeltaRhoMin = (RhoMax - RhoMin) / (1000.0);
   double DeltaRhoMax = (RhoMax-RhoMin) / 2.0;
   double DeltaRho = (RhoMax - RhoMin) / (10.0);
   double Rho=RhoMin;
-  dVec RhoPoints(1,Rho);
+  dVec RhoGrid(1,Rho);
   while( Rho<RhoMax )
    { 
      dVec XVec(1,Rho);
@@ -82,9 +82,9 @@ dVec GetRhoPoints(PhiVDFunc UserFunc, void *UserData, int NF,
       }
      Rho+=DeltaRho;
      if (Rho>RhoMax) Rho=RhoMax;
-     RhoPoints.push_back(Rho);
+     RhoGrid.push_back(Rho);
    }
-  return RhoPoints;
+  return RhoGrid;
 }
 
 /***************************************************************/
@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
   double DeltaRho=0.1;
   double ZMin=0.0,     ZMax=0.0;
   double DeltaZ=0.1;
+  int Dimension=1;
 //
   double RelTol=1.0e-3;
 //
@@ -130,6 +131,7 @@ int main(int argc, char *argv[])
      {"ZMin",           PA_DOUBLE,  1, 1, (void *)&ZMin,           0, ""},
      {"ZMax",           PA_DOUBLE,  1, 1, (void *)&ZMax,           0, ""},
      {"DeltaZ",         PA_DOUBLE,  1, 1, (void *)&DeltaZ,         0, ""},
+     {"Dimension",      PA_INT,     1, 1, (void *)&Dimension,      0, ""},
 //
      {"RelTol",         PA_DOUBLE,  1, 1, (void *)&RelTol,         0, ""},
 //
@@ -170,7 +172,6 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int Dimension = (ZMin==ZMax) ? 1 : 2;
   int zNF = (PPIsOnly ? 2 : NUMSGFS_MOI);
   int NF  = 2*zNF;
 
@@ -189,16 +190,34 @@ int main(int argc, char *argv[])
   if (Dimension>=2) Options->NeedDerivatives |= NEED_DZ;
 
   dVec dRZVec(Dimension);
-  dRZVec[0] = DeltaRho;
-  if (Dimension==2) dRZVec[1] = DeltaZ;
+  dRZVec[0] = DeltaRho; if (Dimension==2) dRZVec[1] = DeltaZ;
 
   double *MeanRelError = new double[Dimension*NF];
   double *MeanAbsError = new double[Dimension*NF];
 
-  dVec RhoPoints=GetRhoPoints(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RhoMin, RhoMax, RelTol);
-  printf("%lu points\n",RhoPoints.size());
+  dVec RZVec(Dimension);
+  RZVec[0] = RhoMin; if (Dimension==2) RZVec[1] = ZMin;
+  dVec RhoGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 0, RhoMin, RhoMax, RelTol);
+  printf("Z=%e: %lu rho points\n",ZMin,RhoGrid.size());
 
-  vector<dVec> xPoints(1,RhoPoints);
+  if (ZMax!=ZMin)
+   { RZVec[0] = RhoMin; if (Dimension==2) RZVec[1] = ZMax;
+     RhoGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 0, RhoMin, RhoMax, RelTol);
+     printf("Z=%e: %lu rho points\n",ZMax,RhoGrid.size());
+
+     if (Dimension==2)
+      { RZVec[0] = RhoMin;
+        dVec zGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 1, ZMin, ZMax, RelTol);
+        printf("Rho=%e: %lu z points\n",RhoMin,zGrid.size());
+
+        RZVec[0] = RhoMax; 
+        zGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 1, ZMin, ZMax, RelTol);
+        printf("Rho=%e: %lu z points\n",RhoMax,zGrid.size());
+      }
+   }
+
+
+  vector<dVec> xPoints(1,RhoGrid);
   InterpND Interp(xPoints, NF, PhiVDFunc_ScalarGFs, (void *)&Data);
 
   int NVD = (1<<Dimension);
@@ -209,12 +228,12 @@ int main(int argc, char *argv[])
   memset(LastPhi, 0, NF*sizeof(double));
   double LastRho=0.0;
   FILE *f=fopen("tInterpError.out","w");
-  for(size_t nrd=0; nrd<4*(RhoPoints.size()-1); nrd++)
+  for(size_t nrd=0; nrd<4*(RhoGrid.size()-1); nrd++)
    {
      int nr = nrd/4;
      int nd = nrd%4;
-     double Rho0 = RhoPoints[nr];
-     double DRho = 0.25*(RhoPoints[nr+1] - RhoPoints[nr]);
+     double Rho0 = RhoGrid[nr];
+     double DRho = 0.25*(RhoGrid[nr+1] - RhoGrid[nr]);
      double Rho = Rho0 + nd*DRho;
      dVec RZVec(1,Rho);
 

@@ -976,21 +976,20 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
   /***************************************************************/
   /***************************************************************/
   int NXNE = NX*NEdges;
-  bool AllocateThreadBuffers=false;
   int NumThreads=GetNumThreads();
+  bool AllocateThreadBuffers=false, NonCritical=false;
+  HMatrix **PFByThread=0;
   Log("Computing MOI fields at %ix%i = %i edge-point pairs (%i threads)",NEdges,NX,NXNE,NumThreads);
-#ifndef USE_OPENMP
-#else
+#ifdef USE_OPENMP
+  NonCritical = CheckEnv("SCUFF_NONCRITICAL");
   AllocateThreadBuffers = !CheckEnv("SCUFF_NO_THREAD_BUFFERS");
   Log("%s thread buffers",AllocateThreadBuffers ? "Allocating" : "Not allocating");
-  HMatrix **PFByThread=0;
   if (AllocateThreadBuffers)
    { PFByThread = new HMatrix *[NumThreads];
      PFByThread[0] = PFMatrix;
      for(int nt=1; nt<NumThreads; nt++)
       PFByThread[nt] = new HMatrix(NPFC, NX, LHM_COMPLEX);
    }
-  bool NonCritical = CheckEnv("SCUFF_NONCRITICAL");
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nxne=0; nxne<NXNE; nxne++)

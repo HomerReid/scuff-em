@@ -430,9 +430,16 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc,
         for(int d0=0, d=0; d0<D0; d0++)
          if (isinf(X0[d0]))
           { if (xPoints.size() == 0 )
-             X0[d0] = XMin[d] + (nVec[d] + 0.5*tauVec[d])*DX[d];
+             X0[d0] = XMin[d] + (nVec[d] + 0.5*tauVec[d])*DX[d]; 
             else
-             ErrExit("%s:%i: internal error");
+             { size_t n = nVec[d], np1=n+1;
+               if (np1 >= xPoints[d].size() )
+                { n   = xPoints[d].size() - 2;
+                  np1 = xPoints[d].size() - 1;
+                }
+               double Delta = xPoints[d][np1] - xPoints[d][n];
+               X0[d0] = xPoints[d][np1] + 0.5*tauVec[d]*Delta;
+             }
             d++;
           }
 
@@ -553,6 +560,18 @@ void PhiVDFuncWrapper(double *X, void *pWrapperData, double *PhiVD)
 dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
                double xdMin, double xdMax, double DesiredMaxRE)
 { 
+  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,xdMin,xdMax);
+  if (X0.size() != 1)
+   { Log(" X0 = { ");
+     for(size_t d0=0; d0<X0.size(); d0++)
+      { if (d0==d) 
+         LogC("xx");
+        else 
+         LogC("%e",X0[d0]);
+        LogC("%c",d0==X0.size()-1 ? '}' : ',');
+      }
+   }
+  
   double DeltaMin = (xdMax - xdMin) / (1000.0);
   double DeltaMax = (xdMax - xdMin) / 2.0;
   double Delta    = (xdMax - xdMin) / (10.0); // initial guess
@@ -582,5 +601,6 @@ dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
      if (xd>xdMax) xd=xdMax;
      xdGrid.push_back(xd);
    }
+  Log(" ...%i grid points",xdGrid.size()); 
   return xdGrid;
 }

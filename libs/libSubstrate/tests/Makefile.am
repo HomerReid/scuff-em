@@ -18,12 +18,10 @@ TESTLIBS = $(top_builddir)/libs/libscuff/libscuff.la
  
 #TESTS = tGTwiddle tFullWaveSubstrate
 
-noinst_PROGRAMS = tInterpolationError tMOISGFs
+check_PROGRAMS = tInterpolationError tMOISGFs
 
 tInterpolationError_SOURCES = tInterpolationError.cc
 tInterpolationError_LDADD = $(TESTLIBS)
-
-#check_PROGRAMS = tMOISGFs
 
 tMOISGFs_SOURCES = tMOISGFs.cc
 tMOISGFs_LDADD = $(TESTLIBS)
