@@ -39,6 +39,8 @@
 
 #include <libhrutil.h>
 
+#include <map>
+
 namespace scuff {
 
 #define FREQ2OMEGA (2.0*M_PI/300.0)
@@ -112,8 +114,14 @@ public:
 
     ~RFSolver();
 
-    void SetSubstrate(const char *SubstrateFile);
-    void SetSubstrate(const char *EpsStr, double h);
+    // functions designed to allow python users to define
+    // layered substrates
+    void SetSubstratePermittivity(cdouble Epsilon);
+    void SetSubstrateThickness(double h);
+    void AddGroundPlane(double zGP);
+    void AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu=1.0);
+    void SetSubstrateFile(const char *SubstrateFile);
+    void InitializeSubstrate();
 
     void PlotGeometry(const char *PPFormat, ...);
     void PlotGeometry();
@@ -152,6 +160,7 @@ public:
     // info on the geometry
     RWGGeometry *G;
     RWGPortList *PortList;
+    EquivalentEdgePairTable *EEPTable;
     int NumPorts;
     char *FileBase;
 
@@ -171,9 +180,14 @@ public:
     HMatrix **TBlocks; 
     HMatrix **UBlocks;
 
-    EquivalentEdgePairTable *EEPTable;
-
     int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
+
+    ////////////////////////////////////////////////////
+    // stuff to facilitate python-driven sessions
+    ////////////////////////////////////////////////////
+    std::map<double, char *> SubstrateLayers;
+    char *SubstrateFile;
+    bool SubstrateInitialized;
 
  }; // class RFSolver;
 

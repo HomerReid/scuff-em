@@ -94,8 +94,10 @@ void RFSolver::InitSolver()
   UBlocks = 0;
 
   RetainContributions = CONTRIBUTION_ALL;
+  SubstrateInitialized = false;
+  SubstrateFile = 0;
 
-  EEPTable = CheckEnv("SCUFF_EQUIVALENT_PAIRS") ? new EquivalentEdgePairTable(G) : 0;
+  EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
 }
 
 /***************************************************************/
@@ -124,30 +126,61 @@ RFSolver::~RFSolver()
    }
 }
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RFSolver::SetSubstrate(const char *SubstrateFile)
-{ 
-  if (G->Substrate)
-   delete G->Substrate;
-  G->Substrate = new LayeredSubstrate(SubstrateFile); 
+/********************************************************************/
+/* routines for building up substrates from the python command line */
+/********************************************************************/
+void RFSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon,  cdouble Mu)
+{
+  char Line[100];
+  if (Mu==1.0)
+   snprintf(Line,100,"%e CONST_EPS_%s\n",zInterface,z2s(Epsilon));
+  else
+   snprintf(Line,100,"%e CONST_EPS_%s_MU_%s\n",zInterface,z2s(Epsilon),z2s(Mu));
+  SubstrateLayers.insert(std::pair<double, char *>(-zInterface, strdup(Line)));
+  SubstrateInitialized = false;
 }
 
-void RFSolver::SetSubstrate(const char *EpsStr, double h)
-{
-  char SubstrateDefinition[1000];
-  if (EpsStr==0 && h==0.0) // no substrate
-    return;
-  else if (EpsStr==0) // ground plane onl-
-   snprintf(SubstrateDefinition,1000,"0.0 GROUNDPLANE %e\n",-h);
-  else if (h==0.0) // dielectric only (no ground plane)
-   snprintf(SubstrateDefinition,1000,"0.0 CONST_EPS_%s\n",EpsStr);
-  else // grounded dielectric 
-   snprintf(SubstrateDefinition,1000,"0.0 CONST_EPS_%s\n%e GROUNDPLANE\n",EpsStr,-h);
-  if (G->Substrate)
-   delete G->Substrate;
-  G->Substrate=CreateLayeredSubstrate(SubstrateDefinition);
+void RFSolver::SetSubstratePermittivity(cdouble Epsilon)
+{ AddSubstrateLayer(0.0, Epsilon); }
+
+void RFSolver::AddGroundPlane(double zGP)
+{ char Line[100];
+  snprintf(Line,100,"%e GROUNDPLANE\n",zGP);
+  SubstrateLayers.insert(std::pair<double, char *>(-zGP, strdup(Line)));
+  SubstrateInitialized = false;
+}
+
+void RFSolver::SetSubstrateThickness(double h)
+{ AddGroundPlane(-h); 
+  SubstrateInitialized = false;
+}
+
+void RFSolver::SetSubstrateFile(const char *_SubstrateFile)
+{ 
+  SubstrateFile = strdup(_SubstrateFile);
+  SubstrateInitialized=false;
+}
+
+void RFSolver::InitializeSubstrate()
+{ 
+  if (SubstrateInitialized) return;
+  SubstrateInitialized=true;
+  if (G->Substrate) delete G->Substrate;
+  if (SubstrateFile)
+   G->Substrate = new LayeredSubstrate(SubstrateFile);
+  else if (SubstrateLayers.size() > 0)
+   { 
+     char *SubstrateDefinition=0;
+     for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
+      SubstrateDefinition = vstrappend(SubstrateDefinition,"%s",it->second);
+     G->Substrate = CreateLayeredSubstrate(SubstrateDefinition);
+   }
+  else
+   G->Substrate=CreateLayeredSubstrate("0.0 VACUUM\n");
+
+  if(SubstrateFile || SubstrateLayers.size() >0 ) 
+  G->Substrate->Describe();
+  
 }
 
 /***************************************************************/
@@ -155,6 +188,8 @@ void RFSolver::SetSubstrate(const char *EpsStr, double h)
 /***************************************************************/
 void RFSolver::UpdateSystemMatrix()
 { 
+  if (!SubstrateInitialized) InitializeSubstrate();
+
   // lazy allocation of accelerator
   if (TBlocks==0)
    { int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
@@ -199,9 +234,7 @@ void RFSolver::UpdateSystemMatrix()
 
 void RFSolver::AssembleSystemMatrix(double Freq)
 { 
-  // FIXME 
-  if (!G->Substrate) G->Substrate=CreateLayeredSubstrate("0.0 VACUUM\n");
-
+  if (!SubstrateInitialized) InitializeSubstrate();
   if (M==0) M=G->AllocateBEMMatrix();
   Omega = Freq * FREQ2OMEGA;
   Log("Assembling BEM matrix at f=%g GHz...",Freq);

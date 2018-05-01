@@ -452,7 +452,7 @@ int LayeredSubstrate::GetScalarGFs_MOI(cdouble Omega,
   /* if we subtracted the near-field term from the Fourier-space */
   /* integrand, compute and add that term in real space.         */
   /* Alternatively, if we *didn't* subtract in the Fourier       */
-  /* intergral, but we were asked to exclude the most singular   */
+  /* integral, but we were asked to exclude the most singular    */
   /* terms from the potentials, then we must evaluate and        */
   /* subtract those.                                             */
   /***************************************************************/
@@ -593,13 +593,16 @@ void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD)
   cdouble V[4*NUMSGFS_MOI];
   S->GetScalarGFs_MOI(Omega, Rho, z, V, Options);
 
-  // reorder the data in the order expected by libMDInterp
+  // reorder the data in the order expected by libMDInterp, which is:
+  //  PhiVD[ nPhi * NumVD + nVD ] = value/deriv #nVD for function #nPhi
+  // where nPhi = 2*nSGF + 0,1 for real,imag part of scalar GF #nSGF
   int NumSGFs = (Options->PPIsOnly ? 2 : NUMSGFS_MOI);
   int NumVDs  = 2*Dimension;
-  double *dV = (double *)V;
-  for(int nvd=0; nvd<NumVDs; nvd++)
-   for(int nSGF=0; nSGF<2*NumSGFs; nSGF++)
-    PhiVD[nSGF*NumVDs + nvd] = dV[nvd*NumSGFs + nSGF];
+  for(int nSGF=0; nSGF<NumSGFs; nSGF++)
+   for(int nVD=0; nVD<NumVDs; nVD++)
+    { PhiVD[ (2*nSGF + 0)*NumVDs + nVD] = real( V[nVD*NumSGFs + nSGF] );
+      PhiVD[ (2*nSGF + 1)*NumVDs + nVD] = imag( V[nVD*NumSGFs + nSGF] );
+    }
 }
 
 /***************************************************************/

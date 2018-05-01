@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
   bool PlotGeometry=false;
 //
   char *SubstrateFile=0;
-  char *EpsStr = 0;
+  cdouble Eps  = 0.0;
   double h     = 0.0;
 //
   char *TransFile=0;
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
      {"PlotGeometry",   PA_BOOL,    0, 1,       (void *)&PlotGeometry, 0,           "generate geometry/port visualization file"},
 //
      {"SubstrateFile",  PA_STRING,  1, 1,       (void *)&SubstrateFile,   0,        "substrate definition file"},
-     {"Eps",            PA_STRING,  1, 1,       (void *)&EpsStr,     0,             "substrate permittivity"},
+     {"Eps",            PA_CDOUBLE, 1, 1,       (void *)&Eps,        0,             "substrate permittivity"},
      {"h",              PA_DOUBLE,  1, 1,       (void *)&h,          0,             "substrate thickness"},
 //
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,   0,            "list of geometry transforms"},
@@ -179,9 +179,11 @@ int main(int argc, char *argv[])
   RWGGeometry *G = Solver->G;
   int NumPorts = Solver->NumPorts;
   if (SubstrateFile)
-   Solver->SetSubstrate(SubstrateFile);
-  else if (EpsStr!=0 || h!=0.0)
-   Solver->SetSubstrate(EpsStr, h);
+   Solver->SetSubstrateFile(SubstrateFile);
+  else if (Eps!=0.0 || h!=0.0)
+   { Solver->SetSubstratePermittivity(Eps);
+     Solver->SetSubstrateThickness(h);
+   }
 
   /***************************************************************/
   /* plot the geometry if requested                ***************/

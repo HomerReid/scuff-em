@@ -9,7 +9,24 @@ to compute multiport $Z$-parameters, $S$-parameters, and radiated
 field pattern of antennas, coplanar waveguides, and other *microstrip RF
 devices*---arbitrarily-shaped metal traces lying on the surface of a
 dielectric substrate, optionally terminated below by a perfectly-conducting
-ground plane. More specifically, we will consider three specific examples:
+ground plane. More specifically, we will consider three particular examples:
+
+
+| Hello              |  Goodbye                       |
+:-------------------------:|:-------------------------:
+![](EFAntenna.png)         | an *edge-fed patch antenna*, for which
+                           | we will compute input impedance over a wide
+                           | bandwidth and radiation patterns at
+                           | specific resonance frequencies
+![](CoupledAntennas.png)   | two coupled *center-fed patch antennas*,
+                           | whose mutual coupling we will study 
+                           | as a function of their separation, and
+![](CPW.png)               | a section of a *coplanar waveguide*,
+                           | which we will treat as a two-port
+                           | device and compare computed multiport
+                           | S-parameters to the predictions of 
+                           | transmission-line theory.
+
 
 + a section of a *coplanar waveguide,* modeled as a two-port network
   whose multiport $S$-matrix we compute and compare to the predictions

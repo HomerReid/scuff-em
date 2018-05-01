@@ -272,20 +272,30 @@ void LayeredSubstrate::Describe(FILE *f)
 { 
   if (f==0) f=stdout;
   int MaxLength = strlen(MPLayer[0]->Name);
-  for(int n=1; n<NumLayers; n++)
-   { int Length = strlen(MPLayer[n]->Name);
+  for(int nl=1; nl<NumLayers; nl++)
+   { int Length = strlen(MPLayer[nl]->Name);
      if (Length>MaxLength) MaxLength=Length;
    }
+  printf("Created multilayered dielectric substrate: \n");
+  Log("Created multilayered dielectric substrate:");
   int n=0;
   if (NumInterfaces>=1)
-   printf("Layer %2i (%-*s):              z > %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n]);
+   { printf("  Layer %2i (%-*s):              z > %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n]);
+     Log("  Layer %2i (%-*s):              z > %-10g",n,MaxLength,MPLayer[n]->Name,zInterface[n]);
+   }
   for(n=1; n<(NumInterfaces-1); n++)
-   printf("Layer %2i (%-*s): %-10g < z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n],zInterface[n-1]);
+   { printf("  Layer %2i (%-*s): %-10g < z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n],zInterface[n-1]);
+     Log("  Layer %2i (%-*s): %-10g < z < %-10g",n,MaxLength,MPLayer[n]->Name,zInterface[n],zInterface[n-1]);
+   }
   if ( fabs(zGP) == HUGE_VAL) 
-   printf("Layer %2i (%-*s):              z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n-1]);
+   { printf("  Layer %2i (%-*s):              z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zInterface[n-1]);
+     Log("  Layer %2i (%-*s):              z < %-10g",n,MaxLength,MPLayer[n]->Name,zInterface[n-1]);
+   }
   else
-   { printf("Layer %2i (%-*s): %10g < z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zGP,zInterface[n-1]);
-     printf("Ground plane at z=%g.\n",zGP);
+   { printf("  Layer %2i (%-*s): %10g < z < %-10g\n",n,MaxLength,MPLayer[n]->Name,zGP,zInterface[n-1]);
+     printf("  Ground plane at z=%g.\n",zGP);
+     Log("  Layer %2i (%-*s): %10g < z < %-10g",n,MaxLength,MPLayer[n]->Name,zGP,zInterface[n-1]);
+     Log("  Ground plane at z=%g.",zGP);
    }
 }
 

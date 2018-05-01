@@ -35,6 +35,13 @@
 
 typedef vector<bool> bVec;
 
+typedef struct IrreducibleEdgePair
+ { int ParentPair;
+   iVec *ChildPairs;
+ } IrreducibleEdgePair;
+
+typedef vector<IrreducibleEdgePair> IrreducibleEdgePairList;
+
 namespace scuff {
 
 /****************************************************************************/
@@ -46,18 +53,20 @@ public:
    EquivalentEdgePairTable(RWGGeometry *G);
   ~EquivalentEdgePairTable();
 
+   IrreducibleEdgePairList *GetIrreducibleEdgePairList(int nsa, int nsb);
+
    bool HasParent(int ChildPair);
    bool HasParent(int nfeaChild, int nfebChild);
    bool HasParent(int nsa, int neaChild, int nsb, int nebChild);
 
-   iVec GetChildren(int ParentPair);
-   iVec GetChildren(int nfeaParent, int nfebParent);
-   iVec GetChildren(int nsa, int neaParent, int nsb, int nebParent);
+   iVec *GetChildren(int ParentPair);
+   iVec *GetChildren(int nfeaParent, int nfebParent);
+   iVec *GetChildren(int nsa, int neaParent, int nsb, int nebParent);
 
    int CountParentPairs();
    int CountChildPairs();
 
-   void Export(char *FileName);
+   void Export(char *FileName=0);
 
 //private:
 // private methods 
@@ -82,12 +91,13 @@ public:
    bVec HasParentFlag;
 
 #if defined(HAVE_CXX11) 
-  std::unordered_map<int, iVec> ChildPairListMap;
+  typedef std::unordered_map<int, iVec> ChildPairListMap;
 #elif defined(HAVE_TR1) 
-  std::tr1::unordered_map<int, iVec> ChildPairListMap;
+  typedef std::tr1::unordered_map<int, iVec> ChildPairListMap;
 #else
-  std::map<int, iVec> ChildPairListMap;
+  typedef std::map<int, iVec> ChildPairListMap;
 #endif 
+  ChildPairListMap CPLMap;
 
 };
 

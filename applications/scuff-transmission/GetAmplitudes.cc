@@ -131,11 +131,6 @@ void GetbTwiddle(RWGSurface *S, int ne, double q[3], cdouble bTwiddle[3])
 }
 
 /***************************************************************/
-/* summand passed to GetLatticeSum to evaluate reciprocal-lattice */
-/* sums to compute Fourier-space Green's functions             */
-/***************************************************************/
-
-/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,

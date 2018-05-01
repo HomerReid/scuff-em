@@ -266,6 +266,7 @@ FILE *fopenPath(const char *Path, const char *FileName,
    }
 
   const char *p=Path;
+  if (!p) return 0;
   while(*p)
    {
      int n=0;

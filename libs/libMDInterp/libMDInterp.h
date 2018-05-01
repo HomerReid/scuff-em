@@ -548,6 +548,12 @@ class InterpND
              PhiVDFunc Phi=0, void *UserData=0, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
+    /*- user-supplied function, user-supplied grids in each dimension*/
+    /*--------------------------------------------------------------*/
+    InterpND(vector<dVec> xPoints, int NF,
+             PhiVDFunc UserFunc, void *UserData, bool Verbose=false);
+
+    /*--------------------------------------------------------------*/
     /*--------------------------------------------------------------*/
     /*- class destructor -------------------------------------------*/
     /*--------------------------------------------------------------*/
@@ -599,12 +605,14 @@ class InterpND
 
     // convert grid-point indices to cartesian coordinates
     dVec n2x(iVec nVec);
+    dVec n2x0(iVec nVec);
 
     // utility methods for handling internal storage tables
     size_t GetCTableOffset(int nCell, int nFun);
     size_t GetCTableOffset(iVec nVec, int nFun);
     size_t GetPhiVDTableOffset(int nPoint, int nFun);
     size_t GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun);
+    void FillPhiVDBuffer(double *PhiVD, double *PhiVD0);
 
     // constructor helper method
     void Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose=false);
@@ -616,12 +624,16 @@ class InterpND
     iVec NVec;               // # grid points in each dimension
     int NF;                  // number of functions
     dVec XMin, DX;           // grid points (uniform spacing)
-    double *xPoints[MAXDIM]; // grid points (non-uniform spacing)
+    vector<dVec> xPoints;   // grid points (non-uniform spacing)
 
     iVec CellStride;         // strides for computing grid-cell index
     iVec PointStride;        // strides for computing grid-point index
     int NVD;                 // # function values, derivatives per grid point
     int NCoeff;              // # coefficients per grid cell
+
+    dVec FixedCoordinates;
+    int D0;
+    int NVD0;
 
     double *CTable;          // polynomial coefficients
  };
@@ -629,6 +641,9 @@ class InterpND
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
                              dVec XVec, dVec dXVec,
                              double *MeanRelError=0, double *MeanAbsError=0);
+
+dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
+               double xdMin, double xdMax, double DesiredMaxRE);
 
 /***************************************************************/
 /* non-member function for binary searching                    */

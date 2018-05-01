@@ -344,24 +344,19 @@ iVec *GetParentChildPairs(ParentChildTable &PCTable, GTSignature GTSig)
   return (pctIterator==PCTable.end() ? 0 : pctIterator->second);
 }
 
+void DestroyParentChildTable(ParentChildTable &PCTable)
+{
+  for(ParentChildTable::iterator it=PCTable.begin(); it!=PCTable.end(); it++)
+   delete it->second;
+}
+
 /****************************************************************************/
 /* constructor helper routine to add a single equivalent edge pair **********/
 /****************************************************************************/
 void EquivalentEdgePairTable::AddEquivalentEdgePair(int ParentPair, int ChildPair,
                                                     bool SignFlip)
 {
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  if ( ChildPair==ParentPair )
-   printf("Not adding (%i==%i) \n",ParentPair,ChildPair);
-  if ( ChildPair < ParentPair )
-   printf("Not adding (%i>%i) \n",ParentPair,ChildPair);
-  if ( HasParentFlag[ParentPair] )
-   printf("Not adding (%i,%i) (Parent has parent)\n",ParentPair,ChildPair);
-  if ( HasParentFlag[ChildPair] )
-   printf("Not adding (%i,%i) (Child has parent)\n",ParentPair,ChildPair);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-  if (ChildPair < ParentPair) return;
+  if (ChildPair <= ParentPair) return;
 #pragma omp critical
  { if (!HasParentFlag[ParentPair] && !HasParentFlag[ChildPair])
     { HasParentFlag[ChildPair]=true;
@@ -369,7 +364,14 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int ParentPair, int ChildPai
       if (ChildPairListArray)
        ChildPairListArray[ParentPair].push_back(ChildPair);
       else
-       ChildPairListMap[ParentPair].push_back(ChildPair);
+       { ChildPairListMap::iterator it=CPLMap.find(ParentPair);
+         if (it!=CPLMap.end())
+          it->second.push_back(ChildPair);
+         else
+          { iVec NewChildPairList(1,ChildPair);
+            CPLMap.insert(std::pair<int, iVec>(ParentPair,NewChildPairList));
+          }
+       }
     }
  }
 }
@@ -378,11 +380,6 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int nfeaParent, int nfebPare
                                                     int nfeaChild, int nfebChild,
                                                     bool SignFlip)
 { 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  if ( (nfebParent<nfeaParent) || (nfebChild < nfeaChild) )
-   printf("Not adding (%i,%i) <--> (%i,%i)\n",nfeaParent,nfebParent,nfeaChild,nfebChild);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   if ( (nfebParent<nfeaParent) || (nfebChild < nfeaChild) )
    return;
 
@@ -419,17 +416,18 @@ double GetMinPanelRadius(RWGGeometry *G)
 /******************************************************************/
 /******************************************************************/
 /******************************************************************/
-EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G): G(_G)
+EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
+ : G(_G)
 {
   // set some internal class data fields
   DistanceQuantum = 0.1 * GetMinPanelRadius(G);
-  NFE = G->TotalEdges; 
+  NFE = G->TotalEdges;
 
   int NFEPairs=NFE*(NFE+1)/2;
   Log("Detecting equivalences among %i edges (%i pairs)...",NFE,NFEPairs);
 
   ChildPairListArray=0;
-  bool UseArrays = !CheckEnv("SCUFF_USE_EEPTMAPS");
+  bool UseArrays = CheckEnv("SCUFF_USE_EEPARRAYS");
   if (UseArrays)
    ChildPairListArray = new iVec[NFE*NFE];
   
@@ -470,9 +468,10 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G): G(_G)
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   if (G->LogLevel >= SCUFF_VERBOSE2)
    { Log(" results of equivalent-edge detection:");
-     int TotalResults=EEResults[0];
-     Log("  Equivalent            : %6i",EEResults[0]);
-     for(size_t nr=1; nr<NUMEERESULTS; nr++)
+     int TotalResults=EEResults[EQUIV_PLUS] + EEResults[EQUIV_MINUS];
+     Log("  Equivalent plus       : %6i",EEResults[EQUIV_PLUS]);
+     Log("  Equivalent minus      : %6i",EEResults[EQUIV_MINUS]);
+     for(size_t nr=2; nr<NUMEERESULTS; nr++)
       if (EEResults[nr]) 
        { TotalResults+=EEResults[nr];
          Log("Inequivalent(%10s): %6i",EEResultNames[nr],EEResults[nr]);
@@ -481,6 +480,7 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G): G(_G)
      Log("  %15s: %6i (should be %i)","Total",TotalResults,NFEPairs);
    }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   if (WriteEEPLogs)
    { FILE *f=vfopen("/tmp/%s.ChildEdgeLists","w",GetFileBase(G->GeoFileName));
      for(int nfe=0; nfe<NFE; nfe++)
@@ -545,6 +545,8 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G): G(_G)
       for(size_t n=0; n<nfebPairs->size(); n++)
        AddEquivalentEdgePair(nfeaParent, nfeaChild, (*nfebPairs)[n]);
     }
+
+  DestroyParentChildTable(PCTable);
  
   /*----------------------------------------------------------------*/
   /* report some statistics on equivalent edge pairs to log file    */
@@ -582,18 +584,24 @@ bool EquivalentEdgePairTable::HasParent(int nsa, int neaChild, int nsb, int nebC
                       ];
 }
 
-iVec EquivalentEdgePairTable::GetChildren(int ParentPair)
-{ return ChildPairListArray ? ChildPairListArray[ParentPair] : ChildPairListMap[ParentPair]; } 
+iVec *EquivalentEdgePairTable::GetChildren(int ParentPair)
+{ 
+  if (ChildPairListArray) 
+   return &(ChildPairListArray[ParentPair]);
 
-iVec EquivalentEdgePairTable::GetChildren(int nfeaParent, int nfebParent)
+  ChildPairListMap::iterator it=CPLMap.find(ParentPair);
+  return (it==CPLMap.end() ? 0 : &(it->second));
+}
+
+iVec *EquivalentEdgePairTable::GetChildren(int nfeaParent, int nfebParent)
 { return GetChildren(nfeaParent*NFE + nfebParent); }
 
-iVec EquivalentEdgePairTable::GetChildren(int nsa, int neaParent, int nsb, int nebParent)
+iVec *EquivalentEdgePairTable::GetChildren(int nsa, int neaParent, int nsb, int nebParent)
 { return GetChildren( G->UnResolveEdge(nsa, neaParent), G->UnResolveEdge(nsb, nebParent) ); }
 
 int EquivalentEdgePairTable::CountParentPairs()
 { 
-  if (!ChildPairListArray) return ChildPairListMap.size();
+  if (!ChildPairListArray) return CPLMap.size();
 
   int NumParentPairs=0;
   for(int n=0; n<NFE*NFE; n++)
@@ -604,12 +612,20 @@ int EquivalentEdgePairTable::CountParentPairs()
 
 int EquivalentEdgePairTable::CountChildPairs()
 { 
+   // first way of counting
    int NumChildPairs[2]={0,0};
    for(int n=0; n<NFE*NFE; n++)
     if (HasParentFlag[n])
      NumChildPairs[0]++;
-   for(int n=0; n<NFE*NFE; n++)
-    NumChildPairs[1]+=(ChildPairListArray[n].size()>0 ? 1 : 0);
+
+   // second way of counting
+   if (ChildPairListArray)
+    for(int n=0; n<NFE*NFE; n++)
+     NumChildPairs[1]+=(ChildPairListArray[n].size()>0 ? 1 : 0);
+   else
+    for(ChildPairListMap::iterator it=CPLMap.begin(); it!=CPLMap.end(); it++)
+     NumChildPairs[1]+=it->second.size();
+
   if (NumChildPairs[0]!=NumChildPairs[1])
    Log("Whoops! NumChildPairs={%i,%i} by different methods",NumChildPairs[0],NumChildPairs[1]); 
   else 
@@ -620,19 +636,50 @@ int EquivalentEdgePairTable::CountChildPairs()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+IrreducibleEdgePairList *EquivalentEdgePairTable::GetIrreducibleEdgePairList(int nsa, int nsb)
+{
+  IrreducibleEdgePairList *IEPList = new IrreducibleEdgePairList;
+  RWGSurface *Sa = G->Surfaces[nsa], *Sb = G->Surfaces[nsb];
+  int NEA = Sa->NumEdges, NEB = Sb->NumEdges;
+   
+  for(int neaParent=0; neaParent<NEA; neaParent++)
+   for(int nebParent=(nsa==nsb ? neaParent : 0); nebParent<NEB; nebParent++)
+    { 
+      int nfeaParent = G->UnResolveEdge(nsa, neaParent);
+      int nfebParent = G->UnResolveEdge(nsb, nebParent);
+      int ParentPair = GetEdgePairIndex(nfeaParent, nfebParent);
+
+      if (HasParentFlag[ParentPair]) continue;
+      IrreducibleEdgePair IEP;
+      IEP.ParentPair = ParentPair;
+      IEP.ChildPairs = GetChildren(ParentPair);
+      IEPList->push_back(IEP);
+    }
+  return IEPList;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void EquivalentEdgePairTable::Export(char *FileName)
-{ FILE *f=fopen(FileName,"w");
+{
+  char FileNameBuffer[100];
+  if (!FileName)
+   { FileName = FileNameBuffer;
+     snprintf(FileNameBuffer,100,"%s.EEPTable",GetFileBase(G->GeoFileName));
+   }
+  FILE *f = fopen(FileName,"w");
   if (!f) 
    { Warn("could not open file %s (skipping edge-pair table export)",FileName); return;}
   for(int ParentPair=0; ParentPair<NFE*NFE; ParentPair++)
-   { iVec Children = GetChildren(ParentPair);
-     if (Children.size()==0) continue;
+   { iVec *Children = GetChildren(ParentPair);
+     if (Children==0 || Children->size()==0) continue;
      int neaParent, nebParent;
      ResolveEdgePairIndex(ParentPair, &neaParent, &nebParent);
      fprintf(f,"{%i,%i} ",neaParent, nebParent);
-     for(size_t n=0; n<Children.size(); n++)
+     for(size_t n=0; n<Children->size(); n++)
       { int neaChild, nebChild;
-        ResolveEdgePairIndex(Children[n], &neaChild, &nebChild);
+        ResolveEdgePairIndex( (*Children)[n], &neaChild, &nebChild);
         fprintf(f,"{%i,%i} ",neaChild,nebChild);
       }
      fprintf(f,"\n");
