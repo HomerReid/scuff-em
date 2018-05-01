@@ -567,10 +567,7 @@ class InterpND
     void EvaluateVD(double *X, double *PhiVD);
     void EvaluateVDD(double *X, double *PhiVD);
 
-    double PlotInterpolationError(PhiVDFunc UserFunc,
-                                  void *UserData,
-                                  char *OutFileName,
-                                  bool CentersOnly=false);
+    double PlotInterpolationError(char *OutFileName, bool CentersOnly=false);
 
     /*--------------------------------------------------------------*/
     /*- return true if point lies in the interior or on the boundary*/
@@ -634,6 +631,8 @@ class InterpND
     dVec FixedCoordinates;
     int D0;
     int NVD0;
+    PhiVDFunc CachedUserFunc;
+    void *CachedUserData;
 
     double *CTable;          // polynomial coefficients
  };
@@ -643,7 +642,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
                              double *MeanRelError=0, double *MeanAbsError=0);
 
 dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double xdMin, double xdMax, double DesiredMaxRE);
+               double xdMin, double xdMax, double DesiredMaxRE, bool Verbose=false);
 
 /***************************************************************/
 /* non-member function for binary searching                    */

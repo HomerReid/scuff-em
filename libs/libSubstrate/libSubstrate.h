@@ -228,9 +228,7 @@ public:
 
    InterpND *InitScalarGFInterpolator(cdouble Omega, double RhoMin, double RhoMax,
                                       double zMin, double zMax, bool PPIsOnly, bool Subtract,
-                                      bool RetainSingularTerms, 
-                                      double DeltaRho=0.0, double Deltaz=0.0,
-                                      bool Verbose=false);
+                                      bool RetainSingularTerms, bool Verbose=false);
    void DestroyScalarGFInterpolator();
 
 // private:

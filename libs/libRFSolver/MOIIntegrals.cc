@@ -285,7 +285,7 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
   MOIData.qPoints        = 0;
   MOIData.CubaturePoints = 0;
 
-  if (Order==-1) 
+  if (Order==-1)
    { RWGEdge *E = G->Surfaces[ns]->GetEdgeByIndex(ne);
      Order = ( VecDistance(XDest, E->Centroid) < 2.0*E->Radius ) ? 9 : 4;
    }
@@ -631,12 +631,10 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   bool PPIsOnly = true;
   bool Subtract = true;
   bool RetainSingularTerms = false;
-  double DeltaRho=0.0, DeltaZ=0.0;
   bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
   Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
   G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
-                                         PPIsOnly, Subtract, RetainSingularTerms,
-                                         DeltaRho, DeltaZ, Verbose);
+                                         PPIsOnly, Subtract, RetainSingularTerms, Verbose);
 
   /***************************************************************/
   /***************************************************************/
@@ -747,12 +745,10 @@ void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdge
   bool PPIsOnly = true;
   bool Subtract = true;
   bool RetainSingularTerms = false;
-  double DeltaRho=0.0, DeltaZ=0.0;
   bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
   Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
   G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
-                                         PPIsOnly, Subtract, RetainSingularTerms,
-                                         DeltaRho, DeltaZ, Verbose);
+                                         PPIsOnly, Subtract, RetainSingularTerms, Verbose);
 
   /***************************************************************/
   /***************************************************************/
@@ -837,11 +833,9 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
   bool PPIsOnly = false;
   bool Subtract = (XMatrix->GetEntryD(2,0) >= 0.0);
   bool RetainSingularTerms = false;
-  double DeltaRho=0.0, DeltaZ=0.0;
   bool Verbose = (G->LogLevel==SCUFF_VERBOSE2);
   G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
-                                         PPIsOnly, Subtract, RetainSingularTerms,
-                                         DeltaRho, DeltaZ, Verbose);
+                                         PPIsOnly, Subtract, RetainSingularTerms, Verbose);
 
   /***************************************************************/
   /* loop over all (edge, eval point) pairs to get contributions */
@@ -956,7 +950,7 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
   int NPortEdges   = ( (RetainContributions & CONTRIBUTION_PORT) ? PortList->PortEdges.size() : 0);
   int NEdges       = NBFEdges + NPortEdges;
   
-  int Order=9; CheckEnv("SCUFF_MOIFIELDS_ORDER",&Order);
+  int Order=-1; CheckEnv("SCUFF_MOIFIELDS_ORDER",&Order);
 
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */

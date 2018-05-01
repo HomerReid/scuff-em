@@ -261,7 +261,8 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- call user's function to populate table of function values   */
    /*- and derivatives at grid points                              */
    /*--------------------------------------------------------------*/
-   int NumThreads = GetNumThreads();
+   int ThreadTaskThreshold = 16; CheckEnv("SCUFF_INTERP_MIN_TASKS",&ThreadTaskThreshold);
+   int NumThreads = (NPoint <= ThreadTaskThreshold ? 1 :  GetNumThreads() );
    Log("Evaluating interpolation function at %i points (%i threads)",NPoint,NumThreads);
 #ifdef USE_OPENMP
 #pragma omp parallel for num_threads(NumThreads)
@@ -353,6 +354,9 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    free(PhiVDTable);
    if (PhiVDBuffer) free(PhiVDBuffer);
    delete M;
+
+   CachedUserFunc = UserFunc; 
+   CachedUserData = UserData;
 }
 
 /****************************************************************/
@@ -415,10 +419,7 @@ void InterpND::Evaluate(double *x0Vec, double *Phi)
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
-double InterpND::PlotInterpolationError(PhiVDFunc UserFunc,
-                                        void *UserData,
-                                        char *OutFileName,
-                                        bool CentersOnly)
+double InterpND::PlotInterpolationError(char *OutFileName, bool CentersOnly)
 {
   FILE *f=fopen(OutFileName,"w");
   if (!f) return 0.0;
@@ -458,7 +459,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc,
             d++;
           }
 
-        UserFunc(&(X0[0]), UserData, PhiExact);
+        CachedUserFunc(&(X0[0]), CachedUserData, PhiExact);
         Evaluate(&(X0[0]), PhiInterp);
 
         for(int nf=0; nf<NF; nf++)
@@ -552,28 +553,10 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 }
 
 /***************************************************************/
-/* Automatically determine the grid of points needed to achieve*/
-/* maximum relative error of DesiredMaxRE over the full range  */
 /***************************************************************/
-typedef struct PhiVDFuncWrapperData
- { PhiVDFunc UserFunc;
-   void *UserData;
-   dVec X0;
-   int d;
- } PhiVDFuncWrapperData;
-
-void PhiVDFuncWrapper(double *X, void *pWrapperData, double *PhiVD)
-{ 
-  PhiVDFuncWrapperData *WrapperData = (PhiVDFuncWrapperData *)pWrapperData;
-  PhiVDFunc UserFunc  = WrapperData->UserFunc;
-  void *UserData      = WrapperData->UserData;
-  dVec X0             = WrapperData->X0;
-  X0[WrapperData->d]  = X[0];
-  UserFunc( &(X0[0]), UserData, PhiVD);
-}
-
+/***************************************************************/
 dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double xdMin, double xdMax, double DesiredMaxRE)
+               double xdMin, double xdMax, double DesiredMaxRE, bool Verbose)
 { 
   Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,xdMin,xdMax);
   if (X0.size() != 1)
@@ -600,10 +583,14 @@ dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
      while(!Done)
       { dVec DeltaVec(X0.size(), 0.0); DeltaVec[d]=Delta;
         double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec);
-        if ( Err > DesiredMaxRE )
-         Delta *= 0.9;
+        if ( Err > 10.0*DesiredMaxRE )
+         Delta *= 0.2;
+        else if ( Err > DesiredMaxRE )
+         Delta *= 0.75;
         else if (Err<0.5*DesiredMaxRE)
-         Delta *= 1.1;
+         Delta *= 1.25;
+        else if (Err<0.1*DesiredMaxRE)
+         Delta *= 5.0;
         else 
          Done = true;
 
@@ -611,6 +598,7 @@ dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
          { Delta = (Delta<DeltaMin ? DeltaMin : DeltaMax);
            Done=true;
          }
+        if (Verbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,X0[d],Delta,Err);
       }
      xd+=Delta;
      if (xd>xdMax) xd=xdMax;

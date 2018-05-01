@@ -610,52 +610,27 @@ void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD)
 /***************************************************************/
 InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
                                                      double RhoMin, double RhoMax,
-                                                     double zMin, double zMax,
+                                                     double ZMin, double ZMax,
                                                      bool PPIsOnly, bool Subtract,
                                                      bool RetainSingularTerms,
-                                                     double DeltaRho, double Deltaz,
                                                      bool Verbose)
 {
   UpdateCachedEpsMu(Omega);
+  if (EpsLayer[1]==1.0 && isinf(zGP)) return 0; // substrate is trivial
+  DestroyScalarGFInterpolator();
 
-  bool TrivialSubstrate = (EpsLayer[1]==1.0 && isinf(zGP));
-  if (TrivialSubstrate)
-   return 0;
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int Dimension = ( EqualFloat(ZMin,ZMax) ? 1 : 2 );
 
-  if (ScalarGFInterpolator)
-   { delete ScalarGFInterpolator;
-     ScalarGFInterpolator=0;
-   }
-
-  int Dimension = ( EqualFloat(zMin,zMax) ? 1 : 2 );
-
-  dVec RzMin(Dimension), RzMax(Dimension);
-  RzMin[0] = RhoMin;  RzMax[0] = RhoMax;
-  if (Dimension>=2)
-   { RzMin[1] = fmin(zMin,zMax);  RzMax[1] = fmax(zMin,zMax); }
- 
-  char *s=getenv("SCUFF_SUBSTRATE_INTERPOLATION_TOLERANCE");
-  if (s) sscanf(s,"%le", &DeltaRho);
-  if (Dimension==2)
-   { s=getenv("SCUFF_SUBSTRATE_DELTAZ");
-     if (s) sscanf(s,"%le", &Deltaz);
-   }
-  if (DeltaRho==0.0) DeltaRho=0.1;
-  if (Deltaz==0.0) Deltaz=0.1;
-
-  iVec NRz(Dimension);
-  NRz[0]=(int)(ceil((RhoMax - RhoMin)/DeltaRho));
-  if (Dimension>=2)
-   NRz[1]=(int)(ceil((zMax - zMin)/Deltaz));
-
-  int zNF = (PPIsOnly ? 2 : NUMSGFS_MOI);
-  int NF  = 2*zNF;
+  double Z0 = fmin( fabs(ZMin), fabs(ZMax) );
 
   PhiVDFuncData Data;
   Data.S         = this;
   Data.Omega     = Omega;
   Data.Dimension = Dimension;
-  Data.zFixed    = zMin;
+  Data.zFixed    = Z0;
    
   ScalarGFOptions *Options = &(Data.Options);
   InitScalarGFOptions(Options);
@@ -664,17 +639,47 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   Options->RetainSingularTerms=RetainSingularTerms;
   Options->NeedDerivatives = NEED_DRHO;
   if (Dimension>=2) Options->NeedDerivatives |= NEED_DZ;
- 
-  if (Dimension==1)
-   Log("Initializing ScalarGF interpolator for Rho=[%g,%g](%i points)",RhoMin,RhoMax,NRz[0]);
-  else
-   Log("Initializing ScalarGF interpolator for Rho=[%g,%g](%i pts), z=[%g,%g](%i pts)",RhoMin,RhoMax,NRz[0],zMin,zMax,NRz[1]);
-  ScalarGFInterpolator = new InterpND(RzMin, RzMax, NRz, NF, PhiVDFunc_ScalarGFs, (void *)&Data, Verbose);
+
+  int zNF = (PPIsOnly ? 2 : NUMSGFS_MOI);
+  int NF  = 2*zNF;
+
+  /***************************************************************/
+  /* autotune grids of Rho, Z points *****************************/
+  /***************************************************************/
+  double Tolerance = 1.0e-3;
+  CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_TOLERANCE", &Tolerance);
+  Log("Designing ScalarGF interpolation grids to achieve tolerance %e",Tolerance);
+  Verbose &= CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_VERBOSE");
+
+  dVec RZ0Vec(1, RhoMin);
+  if (Dimension>1) RZ0Vec.push_back(Z0);
+
+  dVec RhoGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance, Verbose);
+  vector<dVec> RZGrid(1,RhoGrid);
+  Log("  Rho=[%g,%g] @ Z=%e: %lu points",RhoMin,RhoMax,Z0,RZGrid[0].size());
+
+  if (Dimension>=1)
+   { dVec ZGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance, Verbose);
+     RZGrid.push_back(ZGrid);
+     Log("  Z=[%g,%g] @ Rho=%e: %lu points",ZMin,ZMax,RhoMin,RZGrid[1].size());
+   }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  ScalarGFInterpolator = new InterpND(RZGrid, NF, PhiVDFunc_ScalarGFs, (void *)&Data, Verbose);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   memcpy(&SGFIOptions, Options, sizeof(ScalarGFOptions));
-  if (Dimension==1) zSGFI=zMin;
+  if (Dimension==1) zSGFI=Z0;
   return ScalarGFInterpolator;
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void LayeredSubstrate::DestroyScalarGFInterpolator()
 { if (ScalarGFInterpolator)
    delete ScalarGFInterpolator;

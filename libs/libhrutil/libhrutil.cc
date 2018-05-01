@@ -140,10 +140,10 @@ char *GetFileBase(const char *s)
   bufhead = (bufhead+1)%NUMBUFS;
   char *buffer = buffers[bufhead];
   strncpy(buffer, s, MAXSTR);
-  char *p;
-  if ( (p=strrchr(buffer,'.')) ) *p=0;         // remove file extension
-  if ( (p=strrchr(buffer,'/')) ) return p+1;   // remove directory path
-  return buffer;
+  char *p = strrchr(buffer,'/');
+  char *ret = p ? p+1 : buffer;
+  if ( (p=strrchr(ret,'.')) ) *p=0;         // remove file extension
+  return ret;
 }
 
 /*

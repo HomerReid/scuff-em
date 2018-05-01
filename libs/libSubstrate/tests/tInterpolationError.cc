@@ -92,6 +92,8 @@ dVec GetRhoGrid(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+printf("argv[0]=%s\n",argv[0]);
+printf("GFB(argv[0])=%s\n",GetFileBase(argv[0]));
   InstallHRSignalHandler();
   InitializeLog(argv[0]);
 
@@ -106,12 +108,7 @@ int main(int argc, char *argv[])
   double Freq=0.0;
 //
   double RhoMin=0.0, RhoMax=2.0;
-  double DeltaRho=0.1;
   double ZMin=0.0,     ZMax=0.0;
-  double DeltaZ=0.1;
-  int Dimension=1;
-//
-  double RelTol=1.0e-3;
 //
   bool PPIsOnly=true;
   bool NoSubtract=false;
@@ -127,13 +124,8 @@ int main(int argc, char *argv[])
 //
      {"RhoMin",         PA_DOUBLE,  1, 1, (void *)&RhoMin,         0, ""},
      {"RhoMax",         PA_DOUBLE,  1, 1, (void *)&RhoMax,         0, ""},
-     {"DeltaRho",       PA_DOUBLE,  1, 1, (void *)&DeltaRho,       0, ""},
      {"ZMin",           PA_DOUBLE,  1, 1, (void *)&ZMin,           0, ""},
      {"ZMax",           PA_DOUBLE,  1, 1, (void *)&ZMax,           0, ""},
-     {"DeltaZ",         PA_DOUBLE,  1, 1, (void *)&DeltaZ,         0, ""},
-     {"Dimension",      PA_INT,     1, 1, (void *)&Dimension,      0, ""},
-//
-     {"RelTol",         PA_DOUBLE,  1, 1, (void *)&RelTol,         0, ""},
 //
      {"PPIsOnly",       PA_BOOL,    0, 1, (void *)&PPIsOnly,       0, ""},
      {"NoSubtract",     PA_BOOL,    0, 1, (void *)&NoSubtract,       0, ""},
@@ -172,120 +164,23 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int zNF = (PPIsOnly ? 2 : NUMSGFS_MOI);
-  int NF  = 2*zNF;
-
-  PhiVDFuncData Data;
-  Data.S         = S;
-  Data.Omega     = Omega;
-  Data.Dimension = Dimension;
-  Data.zFixed    = ZMin;
-   
-  ScalarGFOptions *Options = &(Data.Options);
-  InitScalarGFOptions(Options);
-  Options->PPIsOnly=PPIsOnly;
-  Options->Subtract=Subtract;
-  Options->RetainSingularTerms=!Subtract;
-  Options->NeedDerivatives = NEED_DRHO;
-  if (Dimension>=2) Options->NeedDerivatives |= NEED_DZ;
-
-  dVec dRZVec(Dimension);
-  dRZVec[0] = DeltaRho; if (Dimension==2) dRZVec[1] = DeltaZ;
-
-  double *MeanRelError = new double[Dimension*NF];
-  double *MeanAbsError = new double[Dimension*NF];
-
-  dVec RZVec(Dimension);
-  RZVec[0] = RhoMin; if (Dimension==2) RZVec[1] = ZMin;
-  dVec RhoGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 0, RhoMin, RhoMax, RelTol);
-  printf("Z=%e: %lu rho points\n",ZMin,RhoGrid.size());
-
-  if (ZMax!=ZMin)
-   { RZVec[0] = RhoMin; if (Dimension==2) RZVec[1] = ZMax;
-     RhoGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 0, RhoMin, RhoMax, RelTol);
-     printf("Z=%e: %lu rho points\n",ZMax,RhoGrid.size());
-
-     if (Dimension==2)
-      { RZVec[0] = RhoMin;
-        dVec zGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 1, ZMin, ZMax, RelTol);
-        printf("Rho=%e: %lu z points\n",RhoMin,zGrid.size());
-
-        RZVec[0] = RhoMax; 
-        zGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, 1, ZMin, ZMax, RelTol);
-        printf("Rho=%e: %lu z points\n",RhoMax,zGrid.size());
-      }
+  bool RetainSingularTerms = !Subtract;
+  S->InitScalarGFInterpolator(Omega, RhoMin, RhoMax, ZMin, ZMax,
+                              PPIsOnly, Subtract, RetainSingularTerms);
+  InterpND *Interp = S->ScalarGFInterpolator;
+  double MaxError = Interp->PlotInterpolationError(const_cast<char *>("/tmp/tInterpolationError.out"));
+  printf("Rho points (%lu) = { ",Interp->xPoints[0].size());
+  for(size_t n=0; n<Interp->xPoints[0].size(); n++)
+   printf("%e ",Interp->xPoints[0][n]);
+  printf("}\n");
+  if (ZMin!=ZMax)
+   { printf("Z   points (%lu) = { ",Interp->xPoints[1].size());
+     for(size_t n=0; n<Interp->xPoints[1].size(); n++)
+       printf("%e ",Interp->xPoints[1][n]);
    }
-
-
-  vector<dVec> xPoints(1,RhoGrid);
-  InterpND Interp(xPoints, NF, PhiVDFunc_ScalarGFs, (void *)&Data);
-
-  int NVD = (1<<Dimension);
-  double *PhiVDExact  = new double[NVD*NF];
-  double *PhiExact    = new double[NF];
-  double *PhiInterp   = new double[NF];
-  double *LastPhi     = new double[NF]; 
-  memset(LastPhi, 0, NF*sizeof(double));
-  double LastRho=0.0;
-  FILE *f=fopen("tInterpError.out","w");
-  for(size_t nrd=0; nrd<4*(RhoGrid.size()-1); nrd++)
-   {
-     int nr = nrd/4;
-     int nd = nrd%4;
-     double Rho0 = RhoGrid[nr];
-     double DRho = 0.25*(RhoGrid[nr+1] - RhoGrid[nr]);
-     double Rho = Rho0 + nd*DRho;
-     dVec RZVec(1,Rho);
-
-     PhiVDFunc_ScalarGFs(&(RZVec[0]), (void *)&Data, PhiVDExact);
-     for(int nf=0; nf<NF; nf++) PhiExact[nf] = PhiVDExact[nf*NVD + 0];
-     Interp.Evaluate(&Rho, PhiInterp);
-
-     double MaxRE = 0.0;
-     for(int nf=0; nf<NF; nf++) 
-      MaxRE = fmax(MaxRE, RD(PhiInterp[nf], PhiExact[nf]));
-
-     fprintVec(f,&(RZVec[0]),Dimension);
-     fprintf(f,"%e ",MaxRE);
-     fprintVec(f,PhiExact,NF),
-     fprintVec(f,PhiInterp,NF);
-     for(int nf=0; nf<NF; nf++)
-      fprintf(f,"%e ",PhiVDExact[ nf*2 + 1]);
- 
-     if(nrd>0)
-      for(int nf=0; nf<NF; nf++)
-       fprintf(f,"%e ",(PhiExact[nf] - LastPhi[nf])/(Rho-LastRho));
-     LastRho=Rho;
-     memcpy(LastPhi, PhiExact, NF*sizeof(double));
-     fprintf(f,"\n");
-   }
-  fclose(f);
-
-/*
-
-  int PointsPerDim = 3;
-  int NumPoints = (Dimension==1 ? PointsPerDim : PointsPerDim*PointsPerDim);
-  double RhoSpacing = (RhoMax - RhoMin) / ((double)(PointsPerDim-1));
-  double ZSpacing   = (ZMax   - ZMin)   / ((double)(PointsPerDim-1));
-  for(int np=0; np<NumPoints; np++)
-   { 
-     int nr = np%NumPoints;
-     int nz = np/NumPoints;
-
-     dVec RZVec(Dimension);
-     RZVec[0] = RhoMin + nr*RhoSpacing;
-     if (Dimension==2) RZVec[1] = ZMin + nz*ZSpacing;
-
-     double MaxRE=GetInterpolationError(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZVec, dRZVec,
-                                        MeanRelError, MeanAbsError);
-     printf("\n");
-     printf("(Rho,Z)={");   fprintVec(stdout, &(RZVec[0]), Dimension, "%g"); printf("}: ");
-     printf("(dRho,dZ)={"); fprintVec(stdout, &(dRZVec[0]), Dimension,"%g"); printf("}: ");
-     printf("{MaxRE}={%e}\n",MaxRE);
-     printf("    nf   Mean    Max\n");
-     for(int nf=0; nf<Dimension*NF; nf++)
-      printf("   %i    %.2e    %.2e\n",nf,MeanRelError[nf],MeanAbsError[nf]);
-   }
-*/
+  printf("}\n");
+  printf("Max error = %e \n",MaxError);
+  printf("Wrote error data to /tmp/tInterpolationError.out.\n");
+  printf("Thank you for your support.\n");
 
 }
