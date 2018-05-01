@@ -634,7 +634,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   if (Dimension>=2)
    { RzMin[1] = fmin(zMin,zMax);  RzMax[1] = fmax(zMin,zMax); }
  
-  char *s=getenv("SCUFF_SUBSTRATE_DELTARHO");
+  char *s=getenv("SCUFF_SUBSTRATE_INTERPOLATION_TOLERANCE");
   if (s) sscanf(s,"%le", &DeltaRho);
   if (Dimension==2)
    { s=getenv("SCUFF_SUBSTRATE_DELTAZ");

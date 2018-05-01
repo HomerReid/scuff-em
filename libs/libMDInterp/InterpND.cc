@@ -177,7 +177,7 @@ InterpND::InterpND(dVec XMin0, dVec XMax0, iVec NVec0, int _NF,
   D=0;
   for(size_t d=0; d<XMin0.size(); d++)
    if (NVec0[d] < 2 || EqualFloat(XMin0[d],XMax0[d]) )
-    FixedCoordinates.push_back( XMin[d] );
+    FixedCoordinates.push_back( XMin0[d] );
    else
     { FixedCoordinates.push_back( HUGE_VAL );
       NVec.push_back( NVec0[d] );
@@ -193,7 +193,7 @@ InterpND::InterpND(dVec XMin0, dVec XMax0, iVec NVec0, int _NF,
 /* class constructor 2: construct the class from a user-supplied*/
 /* function and user-supplied grids for each variable           */
 /****************************************************************/
-InterpND::InterpND(vector<dVec> xPoints0, int _NF,
+InterpND::InterpND(vector<dVec> &xPoints0, int _NF,
                    PhiVDFunc UserFunc, void *UserData, bool Verbose)
   : NF(_NF)
  

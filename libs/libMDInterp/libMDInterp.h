@@ -550,7 +550,7 @@ class InterpND
     /*--------------------------------------------------------------*/
     /*- user-supplied function, user-supplied grids in each dimension*/
     /*--------------------------------------------------------------*/
-    InterpND(vector<dVec> xPoints, int NF,
+    InterpND(vector<dVec> &xPoints, int NF,
              PhiVDFunc UserFunc, void *UserData, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
