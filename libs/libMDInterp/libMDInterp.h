@@ -631,8 +631,6 @@ class InterpND
     dVec FixedCoordinates;
     int D0;
     int NVD0;
-    PhiVDFunc CachedUserFunc;
-    void *CachedUserData;
 
     double *CTable;          // polynomial coefficients
  };
