@@ -92,8 +92,6 @@ dVec GetRhoGrid(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-printf("argv[0]=%s\n",argv[0]);
-printf("GFB(argv[0])=%s\n",GetFileBase(argv[0]));
   InstallHRSignalHandler();
   InitializeLog(argv[0]);
 

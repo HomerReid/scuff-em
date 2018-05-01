@@ -658,7 +658,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   vector<dVec> RZGrid(1,RhoGrid);
   Log("  Rho=[%g,%g] @ Z=%e: %lu points",RhoMin,RhoMax,Z0,RZGrid[0].size());
 
-  if (Dimension>=1)
+  if (Dimension>1)
    { dVec ZGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance, Verbose);
      RZGrid.push_back(ZGrid);
      Log("  Z=[%g,%g] @ Rho=%e: %lu points",ZMin,ZMax,RhoMin,RZGrid[1].size());
