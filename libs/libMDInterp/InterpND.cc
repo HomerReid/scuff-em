@@ -205,7 +205,7 @@ InterpND::InterpND(vector<dVec> &xPoints0, int _NF,
    else
     { FixedCoordinates.push_back( HUGE_VAL );
       xPoints.push_back(xPoints0[d]);
-      NVec.push_back( xPoints0[d].size() );
+      NVec.push_back( xPoints0[d].size() - 1 );
       D++;
     }
 
@@ -424,7 +424,7 @@ double InterpND::PlotInterpolationError(char *OutFileName, bool CentersOnly)
   FILE *f=fopen(OutFileName,"w");
   if (!f) return 0.0;
 
-  double *PhiExact  = new double[NVD*NF];
+  double *PhiExact  = new double[NVD0*NF];
   double *PhiInterp = new double[NF];
 
   iVec Threes(D, 3);
@@ -454,7 +454,7 @@ double InterpND::PlotInterpolationError(char *OutFileName, bool CentersOnly)
                   np1 = xPoints[d].size() - 1;
                 }
                double Delta = xPoints[d][np1] - xPoints[d][n];
-               X0[d0] = xPoints[d][np1] + 0.5*tauVec[d]*Delta;
+               X0[d0] = xPoints[d][n] + 0.5*tauVec[d]*Delta;
              }
             d++;
           }
@@ -469,9 +469,7 @@ double InterpND::PlotInterpolationError(char *OutFileName, bool CentersOnly)
             MaxRelErr=fmax(MaxRelErr, fabs(Exact-Interp)/fabs(Exact));
          }
 
-        fprintVec(f,&(X0[0]),D);
-        for(int d0=0; d0<D0; d0++)
-         fprintf(f,"%e ",X0[d0]);
+        fprintVec(f,&(X0[0]),D0);
         for(int nf=0; nf<NF; nf++)
          fprintf(f,"%e ",PhiExact[nf*NVD0+0]);
         fprintVecCR(f,PhiInterp,NF);
