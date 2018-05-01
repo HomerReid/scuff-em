@@ -163,7 +163,8 @@ void RFSolver::SetSubstrateFile(const char *_SubstrateFile)
 
 void RFSolver::InitializeSubstrate()
 { 
-  if (SubstrateInitialized) return;
+  if (SubstrateInitialized)
+   return;
   SubstrateInitialized=true;
   if (G->Substrate) delete G->Substrate;
   if (SubstrateFile)
@@ -173,14 +174,11 @@ void RFSolver::InitializeSubstrate()
      char *SubstrateDefinition=0;
      for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
       SubstrateDefinition = vstrappend(SubstrateDefinition,"%s",it->second);
+     SubstrateLayers.clear();
      G->Substrate = CreateLayeredSubstrate(SubstrateDefinition);
    }
   else
    G->Substrate=CreateLayeredSubstrate("0.0 VACUUM\n");
-
-  if(SubstrateFile || SubstrateLayers.size() >0 ) 
-  G->Substrate->Describe();
-  
 }
 
 /***************************************************************/

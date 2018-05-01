@@ -181,8 +181,8 @@ int main(int argc, char *argv[])
   if (SubstrateFile)
    Solver->SetSubstrateFile(SubstrateFile);
   else if (Eps!=0.0 || h!=0.0)
-   { Solver->SetSubstratePermittivity(Eps);
-     Solver->SetSubstrateThickness(h);
+   { if (Eps!=0.0) Solver->SetSubstratePermittivity(Eps);
+     if (h!=0.0)   Solver->SetSubstrateThickness(h);
    }
 
   /***************************************************************/
@@ -261,12 +261,11 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* loop over frequencies and geometric transforms              */
   /***************************************************************/
-  int NF = FreqList->N;
-  int NTNF = NT*NF;
-  for (int ntnf = 0; ntnf<NTNF; ntnf++)
+  int NF = FreqList->N, NFNT=NF*NT;
+  for (int nfnt = 0; nfnt<NFNT; nfnt++)
    { 
-     int nf = ntnf/NF;
-     int nt = ntnf%NF;
+     int nf = nfnt/NT;
+     int nt = nfnt%NT;
      double Freq = FreqList->GetEntryD(nf);
 
      G->Transform(GTCs[nt]);
@@ -323,7 +322,7 @@ int main(int argc, char *argv[])
 
      G->UnTransform();
 
-    }  // for (ntnf=0..)
+    }  // for (nfnt=0..)
  
    printf("Thank you for your support.\n");
- }
+}

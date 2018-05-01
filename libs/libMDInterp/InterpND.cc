@@ -51,11 +51,11 @@ bool Increment(iVec &n, iVec &N)
   return true;
 }
 
-double Monomial(dVec xVec, iVec pVec)
+double Monomial(dVec XVec, iVec pVec)
 { double Value=1.0;
   for(unsigned d=0; d<pVec.size(); d++)
    for(int p=0; p<pVec[d]; p++)
-    Value*=xVec[d];
+    Value*=XVec[d];
   return Value;
 }
 
@@ -91,24 +91,37 @@ iVec InterpND::GetCell(size_t Index)
   return nVec;
 }
 
-dVec InterpND::n2x(iVec nVec)
-{ dVec xVec(D);
+dVec InterpND::X2X0(dVec XVec)
+{ dVec X0Vec = FixedCoordinates;
+  for(int d0=0, d=0; d0<D0; d0++)
+   if (isinf(X0Vec[d0])) 
+    X0Vec[d0] = XVec[d++];
+  return X0Vec;
+}
+
+dVec InterpND::X02X(dVec X0Vec)
+{
+  dVec XVec;
+  for(int d0=0; d0<D0; d0++)
+   if (isinf(FixedCoordinates[d0]))
+    XVec.push_back(X0Vec[d0]);
+   else if (!EqualFloat(X0Vec[d0],FixedCoordinates[d0]))
+    ErrExit("%s:%i: X0Vec[%i]=%e != %e",__FILE__,__LINE__,d0,X0Vec[d0],FixedCoordinates[d0]);
+  return XVec;
+}
+
+dVec InterpND::n2X(iVec nVec)
+{ dVec XVec(D);
   for(int d=0; d<D; d++)
    { int n=nVec[d];
-     xVec[d] = (xPoints.size()>0 ? xPoints[d][n] : XMin[d] + n*DX[d]);
+     XVec[d] = (XGrids.size()>0 ? XGrids[d][n] : XMin[d] + n*DX[d]);
    }
-  return xVec;
+  return XVec;
 }
 
-dVec InterpND::n2x0(iVec nVec)
-{ dVec xVec = n2x(nVec);
-  dVec x0Vec = FixedCoordinates;
-  for(int d0=0, d=0; d0<D0; d0++)
-   if (isinf(x0Vec[d0])) 
-    x0Vec[d0] = xVec[d++];
-  return x0Vec;
-}
-
+dVec InterpND::n2X0(iVec nVec)
+{ return X2X0(n2X(nVec)); }
+ 
 /****************************************************************/
 /* layout of PhiVDTable:                                        */
 /*  Phi values, derivatives for function #1  at point #1        */
@@ -170,20 +183,19 @@ size_t InterpND::GetCTableOffset(iVec nVec, int nFun)
 /* class constructor 1: construct the class from a user-supplied*/
 /* function and uniform grids                                   */
 /****************************************************************/
-InterpND::InterpND(dVec XMin0, dVec XMax0, iVec NVec0, int _NF,
+InterpND::InterpND(dVec X0Min, dVec X0Max, iVec N0Vec, int _NF,
                    PhiVDFunc UserFunc, void *UserData, bool Verbose)
  : NF(_NF)
 { 
-  D=0;
-  for(size_t d=0; d<XMin0.size(); d++)
-   if (NVec0[d] < 2 || EqualFloat(XMin0[d],XMax0[d]) )
-    FixedCoordinates.push_back( XMin0[d] );
+  D0=X0Min.size();
+  for(int d0=0; d0<D0; d0++)
+   if (N0Vec[d0] < 2 || EqualFloat(X0Min[d0],X0Max[d0]) )
+    FixedCoordinates.push_back( X0Min[d0] );
    else
     { FixedCoordinates.push_back( HUGE_VAL );
-      NVec.push_back( NVec0[d] );
-      XMin.push_back( XMin0[d] );
-      DX.push_back( (XMax0[d] - XMin0[d]) / NVec[d] );
-      D++;
+      NVec.push_back( N0Vec[d0] );
+      XMin.push_back( X0Min[d0] );
+      DX.push_back(  (X0Max[d0] - X0Min[d0]) / N0Vec[d0] );
     }
 
   Initialize(UserFunc, UserData, Verbose);
@@ -193,20 +205,19 @@ InterpND::InterpND(dVec XMin0, dVec XMax0, iVec NVec0, int _NF,
 /* class constructor 2: construct the class from a user-supplied*/
 /* function and user-supplied grids for each variable           */
 /****************************************************************/
-InterpND::InterpND(vector<dVec> &xPoints0, int _NF,
+InterpND::InterpND(vector<dVec> &X0Grids, int _NF,
                    PhiVDFunc UserFunc, void *UserData, bool Verbose)
   : NF(_NF)
  
 { 
-  D=0;
-  for(size_t d=0; d<xPoints0.size(); d++)
-   if ( xPoints0[d].size() == 1 )
-    FixedCoordinates.push_back( xPoints0[d][0] );
+  D0=X0Grids.size();
+  for(int d0=0; d0<D0; d0++)
+   if ( X0Grids[d0].size() == 1 )
+    FixedCoordinates.push_back( X0Grids[d0][0] );
    else
     { FixedCoordinates.push_back( HUGE_VAL );
-      xPoints.push_back(xPoints0[d]);
-      NVec.push_back( xPoints0[d].size() - 1 );
-      D++;
+      XGrids.push_back(X0Grids[d0]);
+      NVec.push_back( X0Grids[d0].size() - 1 );
     }
 
   Initialize(UserFunc, UserData, Verbose);
@@ -262,8 +273,9 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- and derivatives at grid points                              */
    /*--------------------------------------------------------------*/
    int ThreadTaskThreshold = 16; CheckEnv("SCUFF_INTERP_MIN_TASKS",&ThreadTaskThreshold);
-   int NumThreads = (NPoint <= ThreadTaskThreshold ? 1 :  GetNumThreads() );
-   Log("Evaluating interpolation function at %i points (%i threads)",NPoint,NumThreads);
+   int NumThreads = ( ((int)NPoint) <= ThreadTaskThreshold ? 1 :  GetNumThreads() );
+   if (Verbose)
+    Log("Evaluating interpolation function at %i points (%i threads)",NPoint,NumThreads);
 #ifdef USE_OPENMP
 #pragma omp parallel for num_threads(NumThreads)
 #endif
@@ -271,8 +283,8 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
     {
       if (Verbose) LogPercent(nPoint,NPoint);
       size_t Offset = GetPhiVDTableOffset(nPoint,0);
-      dVec x0Vec  = n2x0(GetPoint(nPoint));
-      UserFunc(&(x0Vec[0]), UserData, PhiVDTable + Offset);
+      dVec X0Vec  = n2X0(GetPoint(nPoint));
+      UserFunc(&(X0Vec[0]), UserData, PhiVDTable + Offset);
     }
 
    /*--------------------------------------------------------------*/
@@ -320,17 +332,15 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
        // vector of scaling factors to accomodate grid-cell dimensions
        dVec D2Vec(D); // DeltaOver2 vector
        for(int d=0; d<D; d++)
-        if (xPoints.size()==0)
+        if (XGrids.size()==0)
          D2Vec[d] = 0.5*DX[d];
-        else if (xPoints[d].size() == 1)
-         D2Vec[d] = 0.0;
         else 
          { size_t n=nVec[d], np1=n+1;
-           if (np1 >= xPoints[d].size() )
-            { np1 = xPoints[d].size() - 1;
+           if (np1 >= XGrids[d].size() )
+            { np1 = XGrids[d].size() - 1;
               n   = np1-1;
             }
-           D2Vec[d] = 0.5*(xPoints[d][np1] - xPoints[d][n]);
+           D2Vec[d] = 0.5*(XGrids[d][np1] - XGrids[d][n]);
          }
 
        // populate RHS vector with function values and derivatives
@@ -359,40 +369,50 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
-void InterpND::Evaluate(double *x0Vec, double *Phi)
+bool InterpND::PointInGrid(double *X0Vec, int *nVec, double *XBarVec)
+{ 
+  for(int d0=0, d=0; d0<D0; d0++)
+   if ( !isinf(FixedCoordinates[d0]) )
+    {
+      if (!EqualFloat(X0Vec[d0], FixedCoordinates[d0])) return false;
+    }
+   else
+    { 
+      double *XdGrid = (XGrids.size() > 0 ? &(XGrids[d][0]) : 0);
+      double XdMin   = (XGrids.size() > 0 ? 0.0              : XMin[d] );
+      double DXd     = (XGrids.size() > 0 ? 0.0              : DX[d] );
+      int nd;
+      double XdBar;
+      if (!FindInterval(X0Vec[d0], XdGrid, NVec[d], XdMin, DXd, &nd, &XdBar))
+       return false;
+      if (nVec) nVec[d]=nd;
+      if (XBarVec) XBarVec[d] = 2.0*(XdBar-0.5);
+      d++;
+    }
+  return true;
+}
+
+/****************************************************************/
+/****************************************************************/
+/****************************************************************/
+bool InterpND::Evaluate(double *X0, double *Phi)
 {
-  dVec xVec;
-  for(int d0=0; d0<D0; d0++)
-   if (isinf(FixedCoordinates[d0]))
-    xVec.push_back(x0Vec[d0]);
-   else if (!EqualFloat(x0Vec[d0],FixedCoordinates[d0]))
-    ErrExit("%s:%i: x0Vec[%i]=%e != %e",__FILE__,__LINE__,d0,x0Vec[d0],FixedCoordinates[d0]);
- 
   /****************************************************************/
   /****************************************************************/
   /****************************************************************/
   iVec nVec(D);
-  dVec xBarVec(D);
-  for(int d=0; d<D; d++)
-   { int n;
-     double xBar;
-     double *_xPoints = (xPoints.size() > 0 ? &(xPoints[d][0]) : 0);
-     double _XMin     = (xPoints.size() > 0 ? 0.0              : XMin[d] );
-     double _DX       = (xPoints.size() > 0 ? 0.0              : DX[d] );
-     FindInterval(xVec[d], _xPoints, NVec[d], _XMin, _DX, &n, &xBar);
-     nVec[d]=n;
-     xBarVec[d] = 2.0*(xBar-0.5);
-   }
+  dVec XBarVec(D);
+  if ( !PointInGrid(X0, &(nVec[0]), &(XBarVec[0])) ) return false;
   
   /****************************************************************/
   /* tabulate powers of the scaled/shifted coordinates            */
   /****************************************************************/
-  double xPowers[MAXDIM][4];
+  double XBarPowers[MAXDIM][4];
   for(int d=0; d<D; d++)
-   { xPowers[d][0]=1.0;
-     xPowers[d][1]=xBarVec[d];
-     xPowers[d][2]=xPowers[d][1]*xBarVec[d];
-     xPowers[d][3]=xPowers[d][2]*xBarVec[d];
+   { XBarPowers[d][0]=1.0;
+     XBarPowers[d][1]=XBarVec[d];
+     XBarPowers[d][2]=XBarPowers[d][1]*XBarVec[d];
+     XBarPowers[d][3]=XBarPowers[d][2]*XBarVec[d];
    }
 
   /****************************************************************/
@@ -403,14 +423,15 @@ void InterpND::Evaluate(double *x0Vec, double *Phi)
   memset(Phi, 0, NF*sizeof(double));
   iVec Fours(D,4);
   LOOP_OVER_IVECS(nCoeff,pVec,Fours)
-   { double xFactor=1.0;
+   { double XFactor=1.0;
      for(int d=0; d<D; d++)
-      xFactor*=xPowers[d][pVec[d]];
+      XFactor*=XBarPowers[d][pVec[d]];
      for(int nf=0; nf<NF; nf++)
       { double *C = CTable + GetCTableOffset(nVec, nf);
-        Phi[nf] += C[nCoeff]*xFactor;
+        Phi[nf] += C[nCoeff]*XFactor;
       }
    }
+  return true;
 }
 
 /****************************************************************/
@@ -442,16 +463,16 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
         dVec X0 = FixedCoordinates;
         for(int d0=0, d=0; d0<D0; d0++)
          if (isinf(X0[d0]))
-          { if (xPoints.size() == 0 )
+          { if (XGrids.size() == 0 )
              X0[d0] = XMin[d] + (nVec[d] + 0.5*tauVec[d])*DX[d]; 
             else
              { size_t n = nVec[d], np1=n+1;
-               if (np1 >= xPoints[d].size() )
-                { n   = xPoints[d].size() - 2;
-                  np1 = xPoints[d].size() - 1;
+               if (np1 >= XGrids[d].size() )
+                { n   = XGrids[d].size() - 2;
+                  np1 = XGrids[d].size() - 1;
                 }
-               double Delta = xPoints[d][np1] - xPoints[d][n];
-               X0[d0] = xPoints[d][n] + 0.5*tauVec[d]*Delta;
+               double Delta = XGrids[d][np1] - XGrids[d][n];
+               X0[d0] = XGrids[d][n] + 0.5*tauVec[d]*Delta;
              }
             d++;
           }
@@ -485,7 +506,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 /* Column 2: mean absolute error in Phi at sample points        */
 /****************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec XVec, dVec dXVec,
+                             dVec XVec, dVec dXVec, bool Verbose,
                              double *MeanRelError, double *MeanAbsError)
 { 
   int D = XVec.size();
@@ -550,14 +571,14 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double xdMin, double xdMax, double DesiredMaxRE, bool Verbose)
+dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
+               double XdMin, double XdMax, double DesiredMaxRE, bool Verbose)
 { 
-  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,xdMin,xdMax);
+  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XdMin,XdMax);
   if (X0.size() != 1)
    { Log(" X0 = { ");
      for(size_t d0=0; d0<X0.size(); d0++)
-      { if (d0==d) 
+      { if ( ((int)d0) == d ) 
          LogC("xx");
         else 
          LogC("%e",X0[d0]);
@@ -565,19 +586,19 @@ dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
       }
    }
   
-  double DeltaMin = (xdMax - xdMin) / (1000.0);
-  double DeltaMax = (xdMax - xdMin) / 2.0;
-  double Delta    = (xdMax - xdMin) / (10.0); // initial guess
+  double DeltaMin = (XdMax - XdMin) / (1000.0);
+  double DeltaMax = (XdMax - XdMin) / 2.0;
+  double Delta    = (XdMax - XdMin) / (10.0); // initial guess
  
-  double xd = xdMin;
-  dVec xdGrid(1,xd);
-  while( xd<xdMax )
+  double Xd = XdMin;
+  dVec XdGrid(1,Xd);
+  while( Xd<XdMax )
    { 
-     dVec X0Vec = X0;  X0Vec[d] = xd;
+     dVec X0Vec = X0;  X0Vec[d] = Xd;
      bool Done = false;
      while(!Done)
       { dVec DeltaVec(X0.size(), 0.0); DeltaVec[d]=Delta;
-        double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec);
+        double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, false);
         if ( Err > 10.0*DesiredMaxRE )
          Delta *= 0.2;
         else if ( Err > DesiredMaxRE )
@@ -593,12 +614,12 @@ dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
          { Delta = (Delta<DeltaMin ? DeltaMin : DeltaMax);
            Done=true;
          }
-        if (Verbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,X0[d],Delta,Err);
+        if (Verbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
       }
-     xd+=Delta;
-     if (xd>xdMax) xd=xdMax;
-     xdGrid.push_back(xd);
+     Xd+=Delta;
+     if (Xd>XdMax) Xd=XdMax;
+     XdGrid.push_back(Xd);
    }
-  Log(" ...%i grid points",xdGrid.size()); 
-  return xdGrid;
+  Log(" ...%i grid points",XdGrid.size()); 
+  return XdGrid;
 }

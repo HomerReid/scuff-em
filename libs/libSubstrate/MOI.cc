@@ -497,25 +497,10 @@ bool LayeredSubstrate::GetScalarGFs_Interp(cdouble Omega, double Rho, double z,
   if (!Options->UseInterpolator) return false;
   if (!ScalarGFInterpolator) return false;
   if (Omega!=OmegaCache) return false;
- 
-  dVec XMin = ScalarGFInterpolator->XMin;
-  dVec DX   = ScalarGFInterpolator->DX;
-  iVec NVec = ScalarGFInterpolator->NVec;
-  int D     = XMin.size();
-  
-  double RhoMin = XMin[0];
-  double RhoMax = RhoMin + (NVec[0]-1)*DX[0];
-  if ( Rho < RhoMin || Rho>RhoMax ) return false;
 
-  if (D==1)
-   { 
-     if (!EqualFloat(z, zSGFI)) return false;
-   }
-  else // (D>1)
-   { double zMin = XMin[1];
-     double zMax = zMin + (NVec[1]-1)*DX[1];
-     if ( z < zMin || z>zMax ) return false;
-   }
+  // FIXME
+  if (ScalarGFInterpolator->D == 1 && !EqualFloat(z,zSGFI) )
+   return false;
 
   int NumSGFs      = (Options->PPIsOnly    ? 2 : NUMSGFS_MOI);
   int NumSGFsTable = (SGFIOptions.PPIsOnly ? 2 : NUMSGFS_MOI);
@@ -536,10 +521,7 @@ bool LayeredSubstrate::GetScalarGFs_Interp(cdouble Omega, double Rho, double z,
   double RhoZ[2];
   RhoZ[0] = Rho;
   RhoZ[1] = z;
-  cdouble PhiVD[NUMSGFS_MOI];
-  ScalarGFInterpolator->Evaluate(RhoZ,(double *)PhiVD);
-  memcpy(V, PhiVD, NumSGFs * sizeof(cdouble));
-  return true;
+  return ScalarGFInterpolator->Evaluate(RhoZ,(double *)V);
 }
 
 int LayeredSubstrate::GetScalarGFs_MOI(cdouble Omega, double Rho,
@@ -648,18 +630,18 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   /***************************************************************/
   double Tolerance = 1.0e-3;
   CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_TOLERANCE", &Tolerance);
-  Log("Designing ScalarGF interpolation grids to achieve tolerance %e",Tolerance);
+  Log("Optimizing ScalarGF interpolation grids to achieve tolerance %e",Tolerance);
   Verbose &= CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_VERBOSE");
 
   dVec RZ0Vec(1, RhoMin);
   if (Dimension>1) RZ0Vec.push_back(Z0);
 
-  dVec RhoGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance, Verbose);
+  dVec RhoGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance, Verbose);
   vector<dVec> RZGrid(1,RhoGrid);
   Log("  Rho=[%g,%g] @ Z=%e: %lu points",RhoMin,RhoMax,Z0,RZGrid[0].size());
 
   if (Dimension>1)
-   { dVec ZGrid=GetxdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance, Verbose);
+   { dVec ZGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance, Verbose);
      RZGrid.push_back(ZGrid);
      Log("  Z=[%g,%g] @ Rho=%e: %lu points",ZMin,ZMax,RhoMin,RZGrid[1].size());
    }
@@ -667,6 +649,10 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  size_t GridPoints = RZGrid[0].size();
+  if (Dimension>1) GridPoints *= RZGrid[1].size();
+  Log("Creating interpolation table (%lu points)",GridPoints);
+  
   ScalarGFInterpolator = new InterpND(RZGrid, NF, PhiVDFunc_ScalarGFs, (void *)&Data, Verbose);
 
   /***************************************************************/

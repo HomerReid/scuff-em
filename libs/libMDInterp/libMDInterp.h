@@ -544,13 +544,13 @@ class InterpND
     /*--------------------------------------------------------------*/
     /*- user-supplied function, uniform grid                        */
     /*--------------------------------------------------------------*/
-    InterpND(dVec XMin, dVec XMax, iVec NVec, int NF,
+    InterpND(dVec X0Min, dVec X0Max, iVec N0Vec, int NF,
              PhiVDFunc Phi=0, void *UserData=0, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
     /*- user-supplied function, user-supplied grids in each dimension*/
     /*--------------------------------------------------------------*/
-    InterpND(vector<dVec> &xPoints, int NF,
+    InterpND(vector<dVec> &X0Grids, int NF,
              PhiVDFunc UserFunc, void *UserData, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
@@ -560,12 +560,17 @@ class InterpND
     ~InterpND();
 
     /*--------------------------------------------------------------*/
-    /*- class method that does the interpolation to return an      -*/
-    /*- approximate value for the function at the given eval point -*/
+    /*- return true/false if X0 does/does not lie within the grid   */
     /*--------------------------------------------------------------*/
-    void Evaluate(double *X, double *Phi);
-    void EvaluateVD(double *X, double *PhiVD);
-    void EvaluateVDD(double *X, double *PhiVD);
+    bool PointInGrid(double *X0, int *nVec=0, double *XBarVec=0);
+
+    /*--------------------------------------------------------------*/
+    /*- perform interpolation to return approximate values for the  */
+    /*- interpolated functions at the given eval point             -*/
+    /*--------------------------------------------------------------*/
+    bool Evaluate(double *X0, double *Phi);
+    void EvaluateVD(double *X0, double *PhiVD);
+    void EvaluateVDD(double *X0, double *PhiVD);
 
     double PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly=false);
 
@@ -601,8 +606,12 @@ class InterpND
     size_t GetCellIndex(iVec nVec);
 
     // convert grid-point indices to cartesian coordinates
-    dVec n2x(iVec nVec);
-    dVec n2x0(iVec nVec);
+    dVec n2X(iVec nVec);
+    dVec n2X0(iVec nVec);
+
+    // convert between reduced and full coordinates of an evaluation point
+    dVec X02X(dVec X0Vec);
+    dVec X2X0(dVec XVec);
 
     // utility methods for handling internal storage tables
     size_t GetCTableOffset(int nCell, int nFun);
@@ -621,7 +630,7 @@ class InterpND
     iVec NVec;               // # grid points in each dimension
     int NF;                  // number of functions
     dVec XMin, DX;           // grid points (uniform spacing)
-    vector<dVec> xPoints;   // grid points (non-uniform spacing)
+    vector<dVec> XGrids;     // grid points (non-uniform spacing)
 
     iVec CellStride;         // strides for computing grid-cell index
     iVec PointStride;        // strides for computing grid-point index
@@ -636,11 +645,11 @@ class InterpND
  };
 
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec XVec, dVec dXVec,
+                             dVec XVec, dVec dXVec, bool Verbose=false,
                              double *MeanRelError=0, double *MeanAbsError=0);
 
-dVec GetxdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double xdMin, double xdMax, double DesiredMaxRE, bool Verbose=false);
+dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
+               double XdMin, double XdMax, double DesiredMaxRE, bool Verbose=false);
 
 /***************************************************************/
 /* non-member function for binary searching                    */
