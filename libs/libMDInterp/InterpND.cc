@@ -354,9 +354,6 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    free(PhiVDTable);
    if (PhiVDBuffer) free(PhiVDBuffer);
    delete M;
-
-   CachedUserFunc = UserFunc; 
-   CachedUserData = UserData;
 }
 
 /****************************************************************/
@@ -419,7 +416,7 @@ void InterpND::Evaluate(double *x0Vec, double *Phi)
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
-double InterpND::PlotInterpolationError(char *OutFileName, bool CentersOnly)
+double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly)
 {
   FILE *f=fopen(OutFileName,"w");
   if (!f) return 0.0;
@@ -459,7 +456,7 @@ double InterpND::PlotInterpolationError(char *OutFileName, bool CentersOnly)
             d++;
           }
 
-        CachedUserFunc(&(X0[0]), CachedUserData, PhiExact);
+        UserFunc(&(X0[0]), UserData, PhiExact);
         Evaluate(&(X0[0]), PhiInterp);
 
         for(int nf=0; nf<NF; nf++)

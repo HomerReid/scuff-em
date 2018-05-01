@@ -53,43 +53,6 @@ void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD);
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-dVec GetRhoGrid(PhiVDFunc UserFunc, void *UserData, int NF,
-                  double RhoMin, double RhoMax, double DesiredMaxRE)
-{ 
-  double DeltaRhoMin = (RhoMax - RhoMin) / (1000.0);
-  double DeltaRhoMax = (RhoMax-RhoMin) / 2.0;
-  double DeltaRho = (RhoMax - RhoMin) / (10.0);
-  double Rho=RhoMin;
-  dVec RhoGrid(1,Rho);
-  while( Rho<RhoMax )
-   { 
-     dVec XVec(1,Rho);
-     bool GotDeltaRho = false;
-     while(!GotDeltaRho)
-      { dVec dXVec(1,DeltaRho);
-        double Err=GetInterpolationError(UserFunc, UserData, NF, XVec, dXVec);
-        if ( Err > DesiredMaxRE )
-         DeltaRho *= 0.9;
-        else if (Err<0.5*DesiredMaxRE)
-         DeltaRho *= 1.1;
-        else 
-         GotDeltaRho = true;
-
-        if (DeltaRho<DeltaRhoMin || DeltaRho>DeltaRhoMax)
-         { DeltaRho = (DeltaRho<DeltaRhoMin ? DeltaRhoMin : DeltaRhoMax);
-           GotDeltaRho=true;
-         }
-      }
-     Rho+=DeltaRho;
-     if (Rho>RhoMax) Rho=RhoMax;
-     RhoGrid.push_back(Rho);
-   }
-  return RhoGrid;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
@@ -166,7 +129,17 @@ int main(int argc, char *argv[])
   S->InitScalarGFInterpolator(Omega, RhoMin, RhoMax, ZMin, ZMax,
                               PPIsOnly, Subtract, RetainSingularTerms);
   InterpND *Interp = S->ScalarGFInterpolator;
-  double MaxError = Interp->PlotInterpolationError(const_cast<char *>("/tmp/tInterpolationError.out"));
+
+  PhiVDFuncData Data;
+  Data.S         = S;
+  Data.Omega     = Omega;
+  Data.Dimension = Interp->xPoints.size();
+  Data.zFixed    = S->zSGFI;
+  memcpy(&(Data.Options), &(S->SGFIOptions), sizeof(ScalarGFOptions));
+
+  double MaxError = Interp->PlotInterpolationError(PhiVDFunc_ScalarGFs, (void *)&Data,
+                                                   const_cast<char *>("/tmp/tInterpolationError.out"));
+
   printf("Rho points (%lu) = { ",Interp->xPoints[0].size());
   for(size_t n=0; n<Interp->xPoints[0].size(); n++)
    printf("%e ",Interp->xPoints[0][n]);

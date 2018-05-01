@@ -567,7 +567,7 @@ class InterpND
     void EvaluateVD(double *X, double *PhiVD);
     void EvaluateVDD(double *X, double *PhiVD);
 
-    double PlotInterpolationError(char *OutFileName, bool CentersOnly=false);
+    double PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly=false);
 
     /*--------------------------------------------------------------*/
     /*- return true if point lies in the interior or on the boundary*/
