@@ -93,8 +93,10 @@ iVec InterpND::GetCell(size_t Index)
 
 dVec InterpND::n2x(iVec nVec)
 { dVec xVec(D);
-  for(int d=0, n=nVec[0]; d<D; n=nVec[++d])
-   xVec[d] = (xPoints.size()>0 ? xPoints[d][n] : XMin[d] + n*DX[d]);
+  for(int d=0; d<D; d++)
+   { int n=nVec[d];
+     xVec[d] = (xPoints.size()>0 ? xPoints[d][n] : XMin[d] + n*DX[d]);
+   }
   return xVec;
 }
 
@@ -136,8 +138,10 @@ void InterpND::FillPhiVDBuffer(double *PhiVD, double *PhiVD0)
   int nvd=0;
   iVec Twos(D0,2);
   LOOP_OVER_IVECS(nvd0, dx0Vec, Twos)
-   { for(int d0=0; d0<D0; d0++)
-      if ( !isinf(FixedCoordinates[d0]) && dx0Vec[d0]!=0 ) continue;
+   { bool Skip=false;
+     for(int d0=0; d0<D0; d0++)
+      if ( !isinf(FixedCoordinates[d0]) && dx0Vec[d0]!=0 ) Skip=true;
+     if (Skip) continue;
      PhiVD[ nvd++ ] = PhiVD0[ nvd0 ];
    }
 }
@@ -247,7 +251,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    NVD0   = (1<<D0);
 
    size_t PhiVDTableSize = (NPoint * NF * NVD0) * sizeof(double);
-   double *PhiVDTable=(double *)mallocEC(PhiVDTableSize);
+   double *PhiVDTable = (double *)mallocEC(PhiVDTableSize);
    size_t CTableSize = (NCell * NF * NCoeff) * sizeof(double);
    CTable=(double *)mallocEC(CTableSize);
    if (!PhiVDTable || !CTable)
@@ -308,14 +312,25 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- and derivatives at the grid-cell corners, then solve linear */
    /*- system to compute polynomial coefficients for this grid cell*/
    /*--------------------------------------------------------------*/
-   double *PhiVDBuffer = (D==D0 ? 0 : new double[NVD]);
+   double *PhiVDBuffer = (D==D0 ? 0 : (double *)mallocEC(NVD*sizeof(double)) );
    LOOP_OVER_IVECS(nCell, nVec, NVec)
     for(int nf=0; nf<NF; nf++)
      { 
        // vector of scaling factors to accomodate grid-cell dimensions
        dVec D2Vec(D); // DeltaOver2 vector
-       for(int d=0, n=nVec[d]; d<D; d++, n=(d==D ? 0 : nVec[d]))
-        D2Vec[d] = 0.5*( xPoints.size()>0 ? (xPoints[d][n+1]-xPoints[d][n]) : DX[d] );
+       for(int d=0; d<D; d++)
+        if (xPoints.size()==0)
+         D2Vec[d] = 0.5*DX[d];
+        else if (xPoints[d].size() == 1)
+         D2Vec[d] = 0.0;
+        else 
+         { size_t n=nVec[d], np1=n+1;
+           if (np1 >= xPoints[d].size() )
+            { np1 = xPoints[d].size() - 1;
+              n   = np1-1;
+            }
+           D2Vec[d] = 0.5*(xPoints[d][np1] - xPoints[d][n]);
+         }
 
        // populate RHS vector with function values and derivatives
        // at all corners of grid cell
