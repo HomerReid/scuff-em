@@ -498,8 +498,8 @@ bool LayeredSubstrate::GetScalarGFs_Interp(cdouble Omega, double Rho, double z,
   if (!ScalarGFInterpolator) return false;
   if (Omega!=OmegaCache) return false;
 
-  // FIXME
-  if (ScalarGFInterpolator->D == 1 && !EqualFloat(z,zSGFI) )
+  // FIXME to use new support for interpolation with empty ranges
+  if (ScalarGFInterpolator->D==1 && !EqualFloat(z,zSGFI) )
    return false;
 
   int NumSGFs      = (Options->PPIsOnly    ? 2 : NUMSGFS_MOI);
@@ -631,6 +631,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   double Tolerance = 1.0e-3;
   CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_TOLERANCE", &Tolerance);
   Log("Optimizing ScalarGF interpolation grids to achieve tolerance %e",Tolerance);
+  if (Tolerance==0.0) return 0;
   Verbose &= CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_VERBOSE");
 
   dVec RZ0Vec(1, RhoMin);
