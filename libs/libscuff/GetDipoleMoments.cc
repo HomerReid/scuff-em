@@ -325,4 +325,73 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
 HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD)
 { return GetPanelSourceDensities(Omega, 0, KN, PSD); }
 
-} // namespace scuff
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVector *KNVector,
+                                           cdouble E0[3], double nHat[3], char *RegionLabel,
+                                           cdouble *Terms)
+{
+  // create a plane wave with the specified polarization and direction
+  // in the specified region
+  int RegionIndex = RegionLabel ? GetRegionByLabel(RegionLabel) : 0;
+  PlaneWave PW(E0, nHat, RegionLabel);
+  cdouble EpsRel, MuRel; 
+  RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsRel, &MuRel);
+  PW.SetFrequencyAndEpsMu(Omega, EpsRel, MuRel);
+
+  // get panel currents for the given source distribution
+  HMatrix *PSDMatrix=GetPanelSourceDensities(Omega, kBloch, KNVector);
+
+  // compute <E\dot K> and <H\dot N> inner products by summing
+  // contributions of surface currents on all surfaces bounding
+  // the region in question
+  cdouble EDotK=0.0, HDotN=0.0;
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S = Surfaces[ns];
+     double Sign;
+     if (S->RegionIndices[0] == RegionIndex)
+      Sign=1.0;
+     else if (S->RegionIndices[1] == RegionIndex)
+      Sign=-1.0;
+     else 
+      continue;
+
+     int Offset = PanelIndexOffset[ns];
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        double X[3], Area;
+        cdouble KN[6], *K=KN+0, *N=KN+3;
+        PSDMatrix->GetEntriesD(Offset+np, "0:2",  X);
+        PSDMatrix->GetEntriesD(Offset+np, "3:3",  &Area);
+        PSDMatrix->GetEntries(Offset+np,  "5:7",  K);
+        PSDMatrix->GetEntries(Offset+np,  "9:11", N);
+
+        cdouble EH[6], *E=EH+0, *H=EH+3;
+        PW.GetFields(X, EH);
+
+        EDotK += Sign*Area*VecHDot(E,K);
+        HDotN += Sign*Area*VecHDot(H,N);
+      }
+   }
+  delete PSDMatrix;
+  
+  cdouble PreFactor = II*ZVAC*MuRel*Omega / (4.0*M_PI);
+  EDotK *= PreFactor;
+  HDotN *= PreFactor;
+ 
+  if (Terms)
+   { Terms[0] = EDotK;
+     Terms[1] = HDotN;
+   }
+
+  return (EDotK + HDotN);
+}
+
+cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, HVector *KNVector,
+                                           cdouble E0[3], double nHat[3], char *RegionLabel,
+                                           cdouble *Terms)
+{ return GetPlaneWaveAmplitude(Omega, 0, KNVector, E0, nHat, RegionLabel, Terms); }
+
+} // namespace scuff 

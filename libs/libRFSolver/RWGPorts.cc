@@ -584,6 +584,9 @@ void RFSolver::AssemblePortBFInteractionMatrix()
 
      cdouble ME;
      GetMOIMatrixElement(G, nsLeft, neLeft, nsRight, neRight, Omega, &ME, Order);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+printf("{%5i,%5i} %+.6e %s\n",neLeft,neRight,Weight,CD2S(ME));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      if (AllocateThreadBuffers)
       PBFPIByThread[GetThreadNum()]->AddEntry(nBFPE, nPort, Weight*ME);

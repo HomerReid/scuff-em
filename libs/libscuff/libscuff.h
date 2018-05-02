@@ -418,6 +418,12 @@ class RWGGeometry
    HMatrix *GetPanelSourceDensities(cdouble Omega, double *kBloch, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
 
+   /* scattering amplitudes */
+   cdouble GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVector *KNVector,
+                                 cdouble E0[3], double nHat[3], char *RegionLabel=0, cdouble *Terms=0);
+   cdouble GetPlaneWaveAmplitude(cdouble Omega, HVector *KNVector,
+                                 cdouble E0[3], double nHat[3], char *RegionLabel=0, cdouble *Terms=0);
+
    /* electric and magnetic dipole moments */
    HMatrix *GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM=0, HMatrix *KNResolved=0);
 
