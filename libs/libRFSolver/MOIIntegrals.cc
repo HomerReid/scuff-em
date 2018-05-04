@@ -327,19 +327,6 @@ void MOIMEIntegrand(double xA[3], double bA[3], double DivbA,
 
    cdouble V[2];
    int qPoints = S->GetScalarGFs_MOI(Omega, Rho, 0.0, V, &Options);
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-double XDS[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-XDS[0]=Rho;
-HMatrix XMatrix(1,6,XDS);
-cdouble VE[2];
-HMatrix VMatrix(2, 1, VE);
-S->GetScalarGFs_MOI(Omega, &XMatrix, &VMatrix, &Options);
-printf(" Rho=%e Interp={%s,%s} Exact={%s,%s}\n",
-Rho,CD2S(V[_SGF_APAR]),CD2S(V[_SGF_PHI]),
-    CD2S(VE[_SGF_APAR]),CD2S(VE[_SGF_PHI]));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
    Data->CubaturePoints += 1;
    Data->qPoints += qPoints;
 
@@ -457,10 +444,6 @@ int GetMOIMatrixElement(RWGGeometry *G,
       { Terms[6] = GabArray[0][GCME_GC] - GPhiTerm[0];
         Terms[7] = (1.0-Eta)*GPhiTerm[0];
       }
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-printf("{%5i,%5i}  %s   %s    %s\n",nea,neb,
-CD2S(ME[0]),CD2S(GabArray[0][GCME_GC]),CD2S(GPhiTerm[0]));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      ME[0] += GabArray[0][GCME_GC] - Eta*GPhiTerm[0];
  
    }
@@ -612,7 +595,8 @@ void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double z
     double *SurfaceXMax = G->Surfaces[ns]->RMax;
     double *SurfaceXMin = G->Surfaces[ns]->RMin;
     for(int i=0; i<3; i++)
-      { RMax[i] = fmax(RMax[i], PointXMax[i] - SurfaceXMin[i]);
+      { RMax[i] = fmax(RMax[i], fabs(PointXMax[i] - SurfaceXMin[i]) );
+        RMax[i] = fmax(RMax[i], fabs(PointXMin[i] - SurfaceXMax[i]) );
         if (SurfaceXMin[i]>PointXMax[i]) 
          RMin[i] = fmin(RMin[i], fabs(SurfaceXMin[i]-PointXMax[i]));
         else if (PointXMin[i]>SurfaceXMax[i])

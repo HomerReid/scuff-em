@@ -106,15 +106,15 @@ bool FindInterval(double X, double *XPoints, int N, double XMin, double DX,
        Inside=false;
      }
     else if ( X>=XPoints[N-1] )
-     { X=XPoints[N-1]; 
+     { Inside = (X==XPoints[N-1]);
+       X=XPoints[N-1]; 
        n=N-2;
        XBar=1.0;
-       Inside = (X==XPoints[N-1]);
      }
     else
      { n=BinSearch(X,XPoints,N);
        XBar = (X - XPoints[n]) / (XPoints[n+1]-XPoints[n]);
-     };
+     }
    }
   else // uniform grid
    { if ( X <= XMin )

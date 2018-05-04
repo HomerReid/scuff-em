@@ -236,21 +236,12 @@ void RFSolver::AssembleSystemMatrix(double Freq)
   if (M==0) M=G->AllocateBEMMatrix();
   Omega = Freq * FREQ2OMEGA;
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  AssemblePortBFInteractionMatrix();
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   Log("Assembling BEM matrix at f=%g GHz...",Freq);
   if (DisableSystemBlockCache)
    AssembleMOIMatrix(G, Omega, M);
   else
    UpdateSystemMatrix();
   Log("Factorizing...");
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *Context=HMatrix::OpenHDF5Context("/tmp/MIncorrect.HDF5");
-M->ExportToHDF5(Context,"M");
-HMatrix::CloseHDF5Context(Context);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   M->LUFactorize();
   PBFIClean=false;
 }

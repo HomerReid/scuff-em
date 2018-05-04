@@ -649,10 +649,15 @@ IrreducibleEdgePairList *EquivalentEdgePairTable::GetIrreducibleEdgePairList(int
       int nfebParent = G->UnResolveEdge(nsb, nebParent);
       int ParentPair = GetEdgePairIndex(nfeaParent, nfebParent);
 
+Log("{%i,%i} hasparents[%i]=%i ",nfeaParent,nfebParent,ParentPair,HasParentFlag[ParentPair]);
       if (HasParentFlag[ParentPair]) continue;
       IrreducibleEdgePair IEP;
       IEP.ParentPair = ParentPair;
       IEP.ChildPairs = GetChildren(ParentPair);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static int NumParents=0;
+Log("%i {%i,%i} %i children ",++NumParents,nfeaParent,nfebParent,IEP.ChildPairs ? IEP.ChildPairs->size() : 0);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       IEPList->push_back(IEP);
     }
   return IEPList;

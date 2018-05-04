@@ -535,7 +535,7 @@ void RFSolver::AssemblePortBFInteractionMatrix()
   G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
                                          PPIsOnly, Subtract, RetainSingularTerms);
 
-  int Order=9; CheckEnv("SCUFF_PORTBFI_ORDER",&Order);
+  int Order=-1; CheckEnv("SCUFF_PORTBFI_ORDER",&Order);
 
   int NumPortEdges = PortList->PortEdges.size();
   int NBFPE        = NBF + (PPIMatrix ? NumPortEdges : 0);
@@ -584,9 +584,6 @@ void RFSolver::AssemblePortBFInteractionMatrix()
 
      cdouble ME;
      GetMOIMatrixElement(G, nsLeft, neLeft, nsRight, neRight, Omega, &ME, Order);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-printf("{%5i,%5i} %+.6e %s\n",neLeft,neRight,Weight,CD2S(ME));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      if (AllocateThreadBuffers)
       PBFPIByThread[GetThreadNum()]->AddEntry(nBFPE, nPort, Weight*ME);
