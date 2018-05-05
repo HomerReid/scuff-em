@@ -1,8 +1,12 @@
 MathJax.Hub.Config({
-  "tex2jax": { inlineMath: [ [ '$', '$' ] ] }
-});
-MathJax.Hub.Config({
+  extensions: ["MathMenu.js", "MathZoom.js", "tex2jax.js"],
   config: ["MMLorHTML.js"],
   jax: ["input/TeX", "output/HTML-CSS", "output/NativeMML"],
-  extensions: ["MathMenu.js", "MathZoom.js"]
+  tex2jax: { inlineMath: [ [ '$', '$' ] ] },
+  TeX: { equationNumbers: { autoNumber: "AMS"},
+         Macros: { 
+            RR:    '{\\mathbf R}', 
+            bold: ['\\mathbf{#1}', 1]
+                 }       
+       };
 });

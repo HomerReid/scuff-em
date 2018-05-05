@@ -118,10 +118,4 @@ theoretical predictions (curves):
 Here is the [[gnuplot]] script that I use to produce this 
 plot: [PlotFresnelData.gp](PlotFresnelData.gp).
 
-[scuff-transmission]:                 ../../applications/scuff-transmission/scuff-transmission.md
-[scuffEMGeometries]:                  ../../reference/Geometries.md
-[scuffEMTransformations]:             ../../reference/Transformations.md
-[scuffEMMaterials]:                   ../../reference/Materials.md
-[scuffEMInstallation]:                ../../reference/Installation.md
-[EmigPaper]:                          http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.99.170403
-[gnuplot]:             ../https://www.gnuplot.info
+{!Links.md!}

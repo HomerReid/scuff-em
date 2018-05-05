@@ -12,16 +12,19 @@ markdown_extensions:
     - wikilinks
     - toc:
         title: Table of Contents
+#        FirstH1: true
     - attr_list
+    - mkdcomments
     - mdx_math:
         enable_dollar_delimiter: True
 #    - pymdownx.highlight:
     - pymdownx.inlinehilite:
     - pymdownx.superfences:
 #    - pymdownx.tasklist
+    - markdown_include.include:
+        base_path: docs
 
 extra_javascript:
-#  - MathJax.js
   - 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'
   - mathjaxhelper.js
 

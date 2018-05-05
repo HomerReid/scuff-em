@@ -20,9 +20,10 @@ pre {
 }
 
 code {
-  color: #000000;
+  color: inherit;
+  background: inherit;
   border: 0;
-  font-size: 105%;
+  font-size: 100%;
 }
 
 a code {

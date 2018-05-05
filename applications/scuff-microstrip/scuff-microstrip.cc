@@ -279,6 +279,12 @@ int main(int argc, char *argv[])
      /* (re)assemble and factorize the BEM matrix                    */
      /*--------------------------------------------------------------*/
      Solver->AssembleSystemMatrix(Freq);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+void *Context = HMatrix::OpenHDF5Context("/tmp/MIncorrect.hdf5");
+Solver->M->ExportToHDF5(Context,"M");
+HMatrix::CloseHDF5Context(Context);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 
      /*--------------------------------------------------------------*/
      /* switch off to output modules to handle various calculations -*/

@@ -574,6 +574,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
                double XdMin, double XdMax, double DesiredMaxRE, bool Verbose)
 { 
+Verbose=true;
   Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XdMin,XdMax);
   if (X0.size() != 1)
    { Log(" X0 = { ");
@@ -595,26 +596,29 @@ dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
   while( Xd<XdMax )
    { 
      dVec X0Vec = X0;  X0Vec[d] = Xd;
-     bool Done = false;
-     while(!Done)
+     bool TooBig=false, JustRight=false;
+     while(!JustRight)
       { dVec DeltaVec(X0.size(), 0.0); DeltaVec[d]=Delta;
         double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, false);
+        if (Verbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
         if ( Err > 10.0*DesiredMaxRE )
-         Delta *= 0.2;
+         { TooBig=true; Delta *= 0.2; }
         else if ( Err > DesiredMaxRE )
-         Delta *= 0.75;
-        else if (Err<0.5*DesiredMaxRE)
-         Delta *= 1.25;
-        else if (Err<0.1*DesiredMaxRE)
-         Delta *= 5.0;
-        else 
-         Done = true;
+         { TooBig=true; Delta *= 0.75; }
+        else if ( Err<0.1*DesiredMaxRE )
+         { if (TooBig) 
+            JustRight=true; // prevent oscillatory behavior
+           else
+            Delta *= 2.0; 
+         }
+        else
+         JustRight = true;
 
         if (Delta<DeltaMin || Delta>DeltaMax)
          { Delta = (Delta<DeltaMin ? DeltaMin : DeltaMax);
-           Done=true;
+           if (Verbose) Log("   setting Delta=%f",Delta);
+           JustRight = true;
          }
-        if (Verbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
       }
      Xd+=Delta;
      if (Xd>XdMax) Xd=XdMax;

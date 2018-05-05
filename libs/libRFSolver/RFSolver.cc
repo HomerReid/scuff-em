@@ -208,13 +208,13 @@ void RFSolver::UpdateSystemMatrix()
   if (Omega!=OmegaCache)
    for(int ns=0; ns<G->NumSurfaces; ns++)
     if (G->Mate[ns]==-1)
-     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns]);
+     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns], 0, 0, EEPTable);
 
   // UBlocks recomputed if frequency has changed or surfaces were moved
   for(int nsa=0, nb=0; nsa<G->NumSurfaces; nsa++)
    for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nb++)
     if (Omega!=OmegaCache || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
-     AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nb]);
+     AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nb], 0, 0, EEPTable);
 
   // stamp blocks into M matrix
   for(int nsa=0, nb=0; nsa<G->NumSurfaces; nsa++)
@@ -238,7 +238,7 @@ void RFSolver::AssembleSystemMatrix(double Freq)
 
   Log("Assembling BEM matrix at f=%g GHz...",Freq);
   if (DisableSystemBlockCache)
-   AssembleMOIMatrix(G, Omega, M);
+   AssembleMOIMatrix(G, Omega, M, EEPTable);
   else
    UpdateSystemMatrix();
   Log("Factorizing...");
