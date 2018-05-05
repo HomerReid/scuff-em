@@ -725,7 +725,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
            int nsaChild, neaChild; G->ResolveEdge(nfeaChild, &nsaChild, &neaChild);
            int nsbChild, nebChild; G->ResolveEdge(nfebChild, &nsbChild, &nebChild);
            if (nsaChild!=nsa || nsbChild!=nsb) continue;
-           Block->SetEntry(OffsetA + neaChild, OffsetB + neaChild, Sign*ME);
+           Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, Sign*ME);
          }
       }
      Log(" ...done with equivalent pairs");

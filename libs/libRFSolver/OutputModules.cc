@@ -347,13 +347,6 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
    }
 
   AssemblePortBFInteractionMatrix();
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *Context = HMatrix::OpenHDF5Context("/tmp/RIncorrect.HDF5");
-PBFIMatrix->ExportToHDF5(Context,"PBFI");
-PPIMatrix->ExportToHDF5(Context,"PPI");
-HMatrix::CloseHDF5Context(Context);
-exit(1);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   // Term1 = -(R^T * W * R) where R = port/BF interaction matrix
   HMatrix *RMatrix=PBFIMatrix, *WRMatrix = new HMatrix(RMatrix);
