@@ -74,10 +74,13 @@ void GetXYZSystem(double *QVVQ[4], double *Centroid, RWGPanel *P, double xyzHat[
 /* given a (full or half) RWG edge E, compute the standard     */
 /* rotation that operates on E to put it into standard position*/
 /***************************************************************/
-GTransformation GetStandardRotation(RWGSurface *S, int ne)
+GTransformation GetStandardRotation(RWGSurface *S, int ne, bool Invert=false)
 {
   RWGEdge *E = S->Edges[ne];
   double *QP = S->Vertices + 3*E->iQP;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (Invert && E->iQM!=-1) QP = S->Vertices + 3*E->iQM;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   double *V1 = S->Vertices + 3*E->iV1;
   //double *V2 = S->Vertices + 3*E->iV2;
   double *X0 = E->Centroid;
@@ -190,9 +193,9 @@ static const char *EEResultNames[]=
 /* file (for debugging purposes).                              */
 /***************************************************************/
 #define EERELTOL 1.0e-6
-bool OldEEPMethod=true;
+bool OldEEPMethod=false;
 int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
-                        double DistanceQuantum, GTSignature *Gb2aSig)
+                        double DistanceQuantum, GTSignature *Gb2aSig, bool bInvert=false)
 { 
   RWGEdge *Ea = Sa->GetEdgeByIndex(nea);
   RWGEdge *Eb = Sb->GetEdgeByIndex(neb);
@@ -216,23 +219,24 @@ int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
   // the X,Y,Z coordinate system of its positive panel is aligned with
   // that of Ea. Then confirm that all 4 vertices of the transformed Eb 
   // coincide with those of Ea.
-  double aBasis[3][3], bBasis[3][3];
-  GetXYZSystem(Va, Ea->Centroid, Sa->Panels[Ea->iPPanel], aBasis);
-  GetXYZSystem(Vb, Eb->Centroid, Sb->Panels[Eb->iPPanel], bBasis);
 
-  // to transform Eb into Ea:
-  //  (1) translate through -1.0 * Eb->Centroid (so Eb is centered at the origin)
-  //  (2) Rotate the xyz system of Eb into that of Ea
-  //  (3) translate through +1.0 * Ea->Centroid
 static bool Init=true;
 if (Init)
  { Init=false;
-   OldEEPMethod = !CheckEnv("SCUFF_NEW_EEPMETHOD");
+   OldEEPMethod = CheckEnv("SCUFF_OLD_EEPMETHOD");
  }
 
 GTransformation Gb2a;
 if (OldEEPMethod)
 {
+  // old method to transform Eb into Ea:
+  //  (1) translate through -1.0 * Eb->Centroid (so Eb is centered at the origin)
+  //  (2) Rotate the xyz system of Eb into that of Ea
+  //  (3) translate through +1.0 * Ea->Centroid
+  double aBasis[3][3], bBasis[3][3];
+  GetXYZSystem(Va, Ea->Centroid, Sa->Panels[Ea->iPPanel], aBasis);
+  GetXYZSystem(Vb, Eb->Centroid, Sb->Panels[Eb->iPPanel], bBasis);
+
   GTransformation GT1(Eb->Centroid);
   GTransformation GT2;
   for(int Mu=0; Mu<3; Mu++)
@@ -246,7 +250,8 @@ if (OldEEPMethod)
   GetGTSignature(GT2,DistanceQuantum,Gb2aSig);
 }
 else
- { GTransformation GStandard_b = GetStandardRotation(Sb, neb);
+ { // new method
+   GTransformation GStandard_b = GetStandardRotation(Sb, neb, bInvert);
    GTransformation GStandard_a = GetStandardRotation(Sa, nea);
    Gb2a = -GStandard_a + GStandard_b;
    GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
@@ -284,10 +289,10 @@ else
   return QPMTwist ? EQUIV_MINUS : EQUIV_PLUS;
 }
 
-int TestEdgeEquivalence(RWGGeometry *G, int nfea, int nfeb, double DistanceQuantum, GTSignature *Gb2aSig)
+int TestEdgeEquivalence(RWGGeometry *G, int nfea, int nfeb, double DistanceQuantum, GTSignature *Gb2aSig, bool bInvert=false)
 { int nea, nsa; RWGSurface *Sa = G->ResolveEdge(nfea, &nsa, &nea);
   int neb, nsb; RWGSurface *Sb = G->ResolveEdge(nfeb, &nsb, &neb);
-  return TestEdgeEquivalence(Sa, nea, Sb, neb, DistanceQuantum, Gb2aSig);
+  return TestEdgeEquivalence(Sa, nea, Sb, neb, DistanceQuantum, Gb2aSig, bInvert);
 }
 
 /******************************************************************/
@@ -317,10 +322,19 @@ ChildEdgeList GetChildEdgeList(RWGGeometry *G, int nfeParent, double DistanceQua
   ChildEdgeList ChildEdges;
   ChildEdgeData CEData;
   for(CEData.nfeChild=nfeParent+1; CEData.nfeChild<G->TotalEdges; CEData.nfeChild++)
-   { int Status=TestEdgeEquivalence(G, nfeParent, CEData.nfeChild, DistanceQuantum, &(CEData.GTSig));
+   { 
+     int Status=TestEdgeEquivalence(G, nfeParent, CEData.nfeChild, DistanceQuantum, &(CEData.GTSig));
      if (Status==EQUIV_PLUS || Status==EQUIV_MINUS)
       { CEData.Sign = (Status==EQUIV_MINUS ? -1 : 1);
         ChildEdges.push_back(CEData);
+      }
+     else
+      { Status=TestEdgeEquivalence(G, nfeParent, CEData.nfeChild, DistanceQuantum, &(CEData.GTSig), true);
+        if (Status==EQUIV_PLUS)
+         { CEData.Sign = -1;
+           ChildEdges.push_back(CEData);
+printf("Got one foryaf!\n");
+         }
       }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 #pragma omp critical
