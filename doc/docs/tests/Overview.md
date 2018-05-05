@@ -45,9 +45,29 @@ Upon a successful <span class=SC>scuff-em</span> build and install,
 a binary utility code called `CheckSCUFFData` will be placed
 in `$(prefix)/share/scuff-em/tests`. This is a simple utility
 used by some tests to compare data files produced by 
-[<span class=SC>scuff-em</span> command-line applications](../applications)
-to reference data files. See the examples below for
-information on how this tool is used.
+[<span class=SC>scuff-em</span> command-line applications][applications]
+to reference data files. The basic command-line syntax is
+```bash
+   CheckSCUFFData --data SCUFFOutput.dat --reference CorrectOutput.dat --checklist ChecklistFile
+```
+where 
+
++ `SCUFFOutput.dat` is an output file produced by the <span class=SC>scuff-em</span>
+  command-line code being tested (such as a `.Zparms` file produced by
+  [<span class=SC>scuff-rf</span>][scuff-rf] or a `.NEQPFT` file produced by
+  [<span class=SC>scuff-neq</span>][scuff-neq])
+
++ `CorrectOutput.dat`---a reference file distributed with the <span class=SC>scuff-em</span>
+   distribution---is the same output file as produced by a <span class=SC>scuff-em</span> 
+   version that is known to be correct 
+
++ `CheckListFile` is a simple text file defining which data items in the output file
+   are to be tested against their counterparts in the reference file.
+   (For an example of a `CheckListFile`, see e.g.
+   [`tests/Fresnel/Fresnel.Checklist.`](FresnelScattering/Fresnel.Checklist).)
+
+See the examples below and in the `tests` subdirectory of your 
+<span class=SC>scuff-em</span> distribution for more detail on how this tool is used.
 
 ## Descriptions of the individual tests in the validation suite
 
@@ -67,6 +87,5 @@ of [[scuff-em]] results to known analytical solutions.
 ## Running the [[scuff-em]] tests
 
 ## Checking the results of validation tests
- 
-[CoreLibrary]:         ../API/libscuff.md
-[Applications]:        ../reference/TopLevel.md#AvailableApplications../API
+
+{!Links.md!}

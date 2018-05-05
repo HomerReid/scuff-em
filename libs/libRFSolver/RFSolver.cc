@@ -65,6 +65,7 @@ RFSolver::RFSolver(const char *scuffgeoFileName, const char *portFileName)
 /* RF solver class constructor #2: construct from a .GDSII     */
 /* file                                                        */
 /***************************************************************/
+#if 0
 RFSolver::RFSolver(const char *GDSIIFileName)
 { 
   FileBase = strdup(GetFileBase(GDSIIFileName));
@@ -72,6 +73,7 @@ RFSolver::RFSolver(const char *GDSIIFileName)
 
   InitSolver();
 }
+#endif
 
 void RFSolver::InitSolver()
 {

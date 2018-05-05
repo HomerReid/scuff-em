@@ -71,6 +71,43 @@ void GetXYZSystem(double *QVVQ[4], double *Centroid, RWGPanel *P, double xyzHat[
 }
 
 /***************************************************************/
+/* given a (full or half) RWG edge E, compute the standard     */
+/* rotation that operates on E to put it into standard position*/
+/***************************************************************/
+GTransformation GetStandardRotation(RWGSurface *S, int ne)
+{
+  RWGEdge *E = S->Edges[ne];
+  double *QP = S->Vertices + 3*E->iQP;
+  double *V1 = S->Vertices + 3*E->iV1;
+  //double *V2 = S->Vertices + 3*E->iV2;
+  double *X0 = E->Centroid;
+  
+  double MX0[3];
+  MX0[0]=-X0[0];
+  MX0[1]=-X0[1];
+  MX0[2]=-X0[2];
+  GTransformation GTA(MX0);
+  double VScratch1[3], VScratch2[3], nHat[3];
+  VecCross( VecSub(V1,X0,VScratch1), VecSub(QP, V1, VScratch2), nHat);
+  VecNormalize(nHat);
+  double Phi   = atan2(nHat[1], nHat[0]);
+  double Theta = atan2(sqrt(nHat[0]*nHat[0] + nHat[1]*nHat[1]), nHat[2]);
+
+  //double XHat[3]={1.0, 0.0, 0.0};
+  double YHat[3]={0.0, 1.0, 0.0};
+  double ZHat[3]={0.0, 0.0, 1.0};
+  GTransformation GTB(ZHat, -Phi   * RAD2DEG);
+  GTransformation GTC(YHat, -Theta * RAD2DEG);
+  GTransformation GT = GTC + GTB + GTA;
+  double V1Prime[3];
+  GT.Apply(V1, V1Prime);
+  double Xi = atan2(V1Prime[1], V1Prime[0]);
+  GTransformation GTD(ZHat, -Xi * RAD2DEG);
+  return GTD + GT;
+}
+
+
+/***************************************************************/
 /* compute a vector associated with an RWG edge that helps to  */
 /* determine when two edges are equivalent.                    */
 /* This vector is proportional to the dipole moment of the RWG */
@@ -153,6 +190,7 @@ static const char *EEResultNames[]=
 /* file (for debugging purposes).                              */
 /***************************************************************/
 #define EERELTOL 1.0e-6
+bool OldEEPMethod=true;
 int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
                         double DistanceQuantum, GTSignature *Gb2aSig)
 { 
@@ -186,17 +224,33 @@ int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
   //  (1) translate through -1.0 * Eb->Centroid (so Eb is centered at the origin)
   //  (2) Rotate the xyz system of Eb into that of Ea
   //  (3) translate through +1.0 * Ea->Centroid
+static bool Init=true;
+if (Init)
+ { Init=false;
+   OldEEPMethod = !CheckEnv("SCUFF_NEW_EEPMETHOD");
+ }
+
+GTransformation Gb2a;
+if (OldEEPMethod)
+{
   GTransformation GT1(Eb->Centroid);
   GTransformation GT2;
   for(int Mu=0; Mu<3; Mu++)
    for(int Nu=0; Nu<3; Nu++)
     GT2.M[Mu][Nu] = aBasis[0][Mu]*bBasis[0][Nu] + aBasis[1][Mu]*bBasis[1][Nu] + aBasis[2][Mu]*bBasis[2][Nu];
   GTransformation GT3(Ea->Centroid);
-  GTransformation Gb2a = GT3 + GT2 - GT1;
+  Gb2a = GT3 + GT2 - GT1;
   //GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
 
   VecSub(Ea->Centroid, Eb->Centroid, GT2.DX);
   GetGTSignature(GT2,DistanceQuantum,Gb2aSig);
+}
+else
+ { GTransformation GStandard_b = GetStandardRotation(Sb, neb);
+   GTransformation GStandard_a = GetStandardRotation(Sa, nea);
+   Gb2a = -GStandard_a + GStandard_b;
+   GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
+ }
 
   // make sure {V1,V2} = {V1,V2}, possibly with twist
   double VbPrime[4][3];

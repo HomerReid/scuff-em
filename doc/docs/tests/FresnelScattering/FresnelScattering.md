@@ -1,7 +1,7 @@
 # Fresnel Scattering
 
 The `FresnelScattering` unit of the
-[<span class=SC>scuff-em</span> test suite](../Overview.md)
+[<span class=SC>scuff-em</span> test suite][TestSuite]
 uses the [<span class=SC>scuff-transmission</span> command-line module][scuff-transmission]
 to study the textbook case of *Fresnel scattering*: the transmission and
 reflection of plane waves at a planar dielectric interface of infinite extent
@@ -9,7 +9,7 @@ in the transverse dimensions.
 
 More specifically, we consider plane waves incident from below
 on a dielectric half-space of permittivity $\epsilon_r=10.$
-The geometry is 2D-periodic with a unit cell of dimensions $L_x=L_y=1 \mu$m;
+The geometry is 2D-periodic with a unit cell of dimensions $L_x=L_y=1\, \mu$m;
 the only meshed surface is the planar interface between vacuum ($z<0$) and
 dielectric ($z>0$), described by a mesh with 40 interior edges.
 The incident angle of the plane wave determines the Bloch vector of the 
@@ -38,7 +38,8 @@ following:
 
 #### <span class=SC>libmdinterp</span> support library:
 
-+ Instantiation and use of 2D and 3D interpolation tables (`Interp2D.cc, Interp3D.cc`)
++ Instantiation and use of 2D and 3D interpolation 
+  tables (`Interp2D.cc, Interp3D.cc`)
 
 #### <span class=SC>scuff-transmission</span> command-line application module:
 
@@ -54,7 +55,7 @@ The situation considered here is that of a plane wave impinging
 from below on a dielectric half-space (relative permittivity $\epsilon=10$)
 filling the region $z>0$. (More details on the setup for
 [[scuff-transmission]] calculations may be found in the document
-[Computation of reflection and transmission coefficients in <span class="SC">scuff-em</span>](../../tex/scuff-transmission.pdf).)
+[Computation of reflection and transmission coefficients in <span class="SC">scuff-em</span>][scuffTransmissionMemo].)
 
 For this case, the transmission and reflection coefficients
 for the TE and TM polarizations read 
@@ -97,8 +98,8 @@ ARGS="${ARGS} --ZAbove      1.0"
 
 Here the file
 [`E10HalfSpace_40.scuffgeo`](E10HalfSpace_40.scuffgeo)
-describes the [<span class="SC">scuff-em"</span> geometry][scuffEMGeometries] 
-(it refers to a mesh file named [`Square_40.msh`](Square_40.msh))
+describes the [<span class="SC">scuff-em</span> geometry][scuffEMGeometries]
+(it refers to a mesh file named [`Square_40.msh`](Square_40.msh) )
 and the command-line arguments ask for a calculation at 
 two angular frequencies ($\omega=\{0.1, 1\}\omega_0$ with 
 $\omega_0\equiv 3\times 10^{14}$ rad/sec the default
@@ -117,5 +118,19 @@ theoretical predictions (curves):
 
 Here is the [[gnuplot]] script that I use to produce this 
 plot: [PlotFresnelData.gp](PlotFresnelData.gp).
+
+## Unit test
+
+The unit test is performed by running the script `tests/Fresnel/TestFresnel.sh.`
+This runs `scuff-transmission` to do the calculation described above, with
+results written to output file `E10HalfSpace_40.transmission.`
+The `CheckSCUFFData` utility is then invoked to compare the content 
+of this file against the reference file `E10HalfSpace_40.transmission.reference`.
+(To generate this reference file, run `% TestFresnel.sh --reference` with
+no other arguments.)
+The items to be checked in the comparison are defined by the checklist
+[`Fresnel.Checklist`](Fresnel.Checklist). The unit test passes iff 
+all data items for all data sets agree within specified tolerances.
+
 
 {!Links.md!}

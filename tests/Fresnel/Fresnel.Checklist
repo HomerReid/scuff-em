@@ -1,9 +1,23 @@
+#
+# Fresnel.Checklist--- checklist file to inform CheckSCUFFData which items in the
+#                      output of TestFresnel.sh are to be compared to their 
+#                      counterparts in the reference data file
+#                     
+#
+
+# error tolerances
 ABSTOL 1.0e-6
 RELTOL 1.0e-2
 
+# 
+# data keys: each distinct set of key values defines a distinct dataset to
+#            be compared between reference and test outputh
 KEY  Omega 1
 KEY  Theta 2
-
+  
+#
+# data items: for each distinct set of key values
+#
 DATA tFluxTE   3
 DATA rFluxTE   4
 DATA tFluxTM   5

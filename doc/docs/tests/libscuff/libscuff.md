@@ -151,7 +151,7 @@ $$
 
 As reference values for testing `libscuff` routines for evaluating RWG integrals, I consider matrix elements between
 RWG functions on the following surface mesh, in which the triangles are sufficiently regular that it's
-easy to write down and evaluate the required 4-dimensional integrals .
+easy to write down and evaluate the required 4-dimensional integrals.
 
 For example, the positive-positive-panel contribution to $\mc{I}_{\nabla 0 0}$ reads
 <!----------------------------------------------------->

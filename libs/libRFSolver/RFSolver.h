@@ -108,21 +108,29 @@ public:
     ////////////////////////////////////////////////////
 
     // constructors and geometry-definition routines
-    RFSolver(const char *scuffgeoFileName, const char *portFileName);
-    RFSolver(const char *GDSIIFileName);
-    void InitSolver();
+    RFSolver(const char *scuffgeoFileName=0, const char *portFileName=0);
 
+    //RFSolver(const char *GDSIIFileName);
     ~RFSolver();
 
-    // functions designed to allow python users to define
-    // layered substrates
+    // functions designed to allow python users to define microstrip
+    // geometries line-by-line from python scripts
+    void SetGeometryFile(const char *scuffgeoFileName);
+    void AddMetalTraceMesh(const char *MeshFile, const char *Transformation=0);
+    void ImportGDSIILayer(const char *GDSIIFile, int Layer=-1);
+
     void SetSubstratePermittivity(cdouble Epsilon);
     void SetSubstrateThickness(double h);
     void AddGroundPlane(double zGP);
     void AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu=1.0);
     void SetSubstrateFile(const char *SubstrateFile);
-    void InitializeSubstrate();
 
+    void SetPortFile(const char *PortFile);
+    void AddPortPoint(const char *PortLabel, double x, double y, double z);
+    void AddPortPolygon(const char *PortLabel, dVec Vertices);
+
+    // function to produce a GMSH post-processing visualization file to sanity-check
+    // the geometry specification
     void PlotGeometry(const char *PPFormat, ...);
     void PlotGeometry();
 
@@ -131,6 +139,11 @@ public:
     void Solve(cdouble *PortCurrents);
     void Solve(cdouble PortCurrent, int WhichPort);
 
+    // high-level post-processing
+    void ProcessEPFile(char *EPFile, char *OutFileName=0);
+    HMatrix *ProcessFVMesh(char *FVMesh, char *FVMeshTransFile, char *OutFileBase=0);
+    HMatrix *GetZMatrix(HMatrix *ZMatrix=0, HMatrix **pZTerms=0);
+
     // low-level post-processing
     HMatrix *GetFields(HMatrix *XMatrix, HMatrix *PFMatrix=0);
     void GetFields(double X[3], cdouble PF[NPFC]);
@@ -138,16 +151,14 @@ public:
     HMatrix *GetFieldsViaRPFMatrices(HMatrix *XMatrix);
     HMatrix *GetPanelSourceDensities(HMatrix *PSDMatrix=0);
 
-    // high-level post-processing
-    void ProcessEPFile(char *EPFile, char *OutFileName=0);
-    HMatrix *ProcessFVMesh(char *FVMesh, char *FVMeshTransFile, char *OutFileBase=0);
-    HMatrix *GetZMatrix(HMatrix *ZMatrix=0, HMatrix **pZTerms=0);
-
 // private:
 
     ////////////////////////////////////////////////////
     // internal methods
     ////////////////////////////////////////////////////
+    void InitSolver();
+    void InitializeSubstrate();
+
     void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
     void AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix);
     void AssemblePortBFInteractionMatrix();
@@ -183,10 +194,12 @@ public:
     int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
 
     ////////////////////////////////////////////////////
-    // stuff to facilitate python-driven sessions
+    // stuff to facilitate python-driven sessions:
     ////////////////////////////////////////////////////
     std::map<double, char *> SubstrateLayers;
     char *SubstrateFile;
+    char *scuffgeoFile;
+    char *PortFile;
     bool SubstrateInitialized;
 
  }; // class RFSolver;

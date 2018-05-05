@@ -1,4 +1,4 @@
-# <span class=SC>scuff-rf</span> The <span class=SC>scuff-em</span> RF module
+# The <span class=SC>scuff-em</span> RF module
 
 The <span class=SC>scuff-em</span> RF module is an extension of the
 [<span class=SC>scuff-em</span> core library][libscuff] to enable
@@ -49,6 +49,8 @@ ported from its earlier version. For the time being, please
 
 [EarlierVersion]: http://homerreid.com/scuff-em/scuff-RF
 
+
+
 [GMSH]:                 http://www.geuz.org/gmsh
 [scuffGeometries]:      ../../reference/Geometries
 [scuff-rf]              ../../applications/scuff-RF/scuff-RF.md
@@ -56,3 +58,5 @@ ported from its earlier version. For the time being, please
 [libSubstrate]          ../../tex/FullWaveSubstrate.pdf
 [PCBTraceMemo]:		http://www.analog.com/media/en/training-seminars/tutorials/MT-094.pdf
 [scuffRFMemo]:		../../tex/scuff-rf.pdf
+
+{!Links.md!}

@@ -16,8 +16,8 @@ of the media inside.
 approximates a two-dimensional surface.
 [[scuff-em]] doesn't do the meshing for you;
 you use external meshing software such as 
-[GMSH](http://geuz.org/gmsh) or 
-[COMSOL](http://www.comsol.com)
+[<span class=SC>gmsh</span>][GMSH] or
+[<span class=SC>comsol</span>][COMSOL]
 for that.)
 
 In more complicated cases, it may not be possible to
@@ -32,7 +32,7 @@ two-dimensional meshed *surfaces* lying between them.
 Finally, your geometry may be infinitely *extended* in 
 one or two directions. Examples of 1D extended geometries
 include this description of
-[*parallel silicon beams*](../examples/SiliconBeams/SiliconBeams.md),
+[*parallel silicon beams*][SiliconBeamExample]
 while examples of 2D extended geometries include
 a planar metamaterial array or an infinite square lattice
 of spheres. In this case, your ``.scuffgeo`` file will
@@ -104,7 +104,7 @@ repositories of mesh files which you can then re-use for
 [[scuff-em]] calculations launched from whatever directory you like.
 
 The optional ``MATERIAL`` keyword is used to select a 
-[<span class="SC">scuff-em</span> material designation][Materials]
+[<span class="SC">scuff-em</span> material designation][scuffEMMaterials]
 (in this case, `Gold`) for the medium interior to 
 your object. The actual definition of the material ``Gold``
 (given by a ``MATERIAL...ENDMATERIAL`` clause)
@@ -686,9 +686,9 @@ For more information on the implementation
 of material substrates in <span class=SC>scuff-em</span>,
 see these memos:
 
-+["Implicit handling of multilayered dielectric substrates in <span class=SC>scuff-static</span>"](../tex/StaticDielectricSubstrate.pdf)
++["Implicit handling of multilayered dielectric substrates in <span class=SC>scuff-static</span>"][StaticSubstrate]
 
-+["Implicit handling of multilayered dielectric substrates in full-wave <span class=SC>scuff-em</span>"](../tex/FullWaveSubstrate.pdf)
++["Implicit handling of multilayered dielectric substrates in full-wave <span class=SC>scuff-em</span>"][FullWaveSubstrate]
 
 <a name="Reference"></a>
 # 5. Syntax reference for the ``.scuffgeo`` file format
@@ -824,7 +824,7 @@ through the origin and through the point with cartesian coordinates
 ### ``MATERIAL...ENDMATERIAL`` sections
 
 > For details on how to write a ``MATERIAL`` section,
-> see [here][Materials].
+> see [here][scuffEMMaterials].
 
 <a name="Examples"></a> 
 # 6. A compendium of sample ``.scuffgeo`` files
@@ -931,4 +931,4 @@ ENDOBJECT
 
 ![SphericalShell](SphericalShell.png)
 
-[Materials]: Materials.md
+{!Links.md!}
