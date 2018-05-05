@@ -348,7 +348,7 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 
   AssemblePortBFInteractionMatrix();
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *Context = HMatrix::OpenHDF5Context("/tmp/RIncorrect.hdf5");
+void *Context = HMatrix::OpenHDF5Context("/tmp/RIncorrect.HDF5");
 PBFIMatrix->ExportToHDF5(Context,"PBFI");
 PPIMatrix->ExportToHDF5(Context,"PPI");
 HMatrix::CloseHDF5Context(Context);

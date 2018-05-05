@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      Solver->AssembleSystemMatrix(Freq);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *Context = HMatrix::OpenHDF5Context("/tmp/MIncorrect.hdf5");
+void *Context = HMatrix::OpenHDF5Context("/tmp/MIncorrect.HDF5");
 Solver->M->ExportToHDF5(Context,"M");
 HMatrix::CloseHDF5Context(Context);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
