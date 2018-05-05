@@ -241,6 +241,11 @@ void RFSolver::AssembleSystemMatrix(double Freq)
    AssembleMOIMatrix(G, Omega, M, EEPTable);
   else
    UpdateSystemMatrix();
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+void *Context = HMatrix::OpenHDF5Context("/tmp/MIncorrect.HDF5");
+M->ExportToHDF5(Context,"M");
+HMatrix::CloseHDF5Context(Context);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   Log("Factorizing...");
   M->LUFactorize();
   PBFIClean=false;

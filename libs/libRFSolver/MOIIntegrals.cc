@@ -682,6 +682,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   int NFE = G->TotalEdges;
+#if 0
   if (EEPTable)
    { Log("Filling in matrix entries for equivalent pairs...");
      for(int neaParent=0; neaParent<NEA; neaParent++)
@@ -699,6 +700,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
       }
      Log(" ...done with equivalent pairs");
    }
+#endif
   if (IEPList)
    { Log("Filling in matrix entries for child edge pairs ...");
      for(int nPair=0; nPair<NumPairs; nPair++)
