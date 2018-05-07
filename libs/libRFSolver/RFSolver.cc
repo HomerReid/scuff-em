@@ -263,14 +263,15 @@ void RFSolver::InitGeometry()
   FileBase = strdup( scuffgeoFile ? GetFileBase(scuffgeoFile) : "pyscuff");
 
   /*--------------------------------------------------------------*/
-  /*- write .scuffgeo file from user's specifications    ---------*/
+  /*- write .scuffgeo file from user's specifications, then try  -*/
+  /*- to create the geometry                                     -*/
   /*--------------------------------------------------------------*/
   bool ownsGeoFile = false;
   if (!scuffgeoFile)
    { 
      ownsGeoFile = true;
      char buffer[100];
-     snprintf(buffer,100,"pyscuffgeo.XXXXXX");
+     snprintf(buffer,100,".pyscuffgeo.XXXXXX");
      scuffgeoFile=vstrdup(buffer);
      FILE *f=fdopen( mkstemp(scuffgeoFile), "w");
      if (!f) ErrExit("could not write file %s",scuffgeoFile);
@@ -285,16 +286,10 @@ void RFSolver::InitGeometry()
       }
      MeshFiles.clear();
      MeshTransforms.clear();
-
-     if (SubstrateLayers.size()>0)
-      { fprintf(f,"SUBSTRATE\n");
-        for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
-         fprintf(f," %s",it->second);
-        fprintf(f,"ENDSUBSTRATE\n");
-        SubstrateLayers.clear();
-      }
      fclose(f);
    }
+  RWGGeometry::UseHRWGFunctions=false;
+  G = new RWGGeometry(scuffgeoFile);
 
   /*--------------------------------------------------------------*/
   /*- write .ports file from user's specifications ---------------*/
@@ -304,7 +299,7 @@ void RFSolver::InitGeometry()
    { 
      ownsPortFile = true;
      char buffer[100];
-     snprintf(buffer,100,"pyscuffports.XXXXXX");
+     snprintf(buffer,100,".pyscuffports.XXXXXX");
      portFile=vstrdup(buffer);
      FILE *f=fdopen( mkstemp(portFile), "w");
      if (!f) ErrExit("could not write file %s",portFile);
@@ -323,25 +318,27 @@ void RFSolver::InitGeometry()
      fclose(f);
      PortTerminalVertices.clear();
    }
-
-  /*--------------------------------------------------------------*/
-  /*- read in geometry file and port list ------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGGeometry::UseHRWGFunctions=false;
-  G = new RWGGeometry(scuffgeoFile);
-
   if (!portFile) ErrExit("no ports specified");
-
   PortList = ParsePortFile(G, portFile);
   NumPorts = PortList->Ports.size();
+  if (NumPorts==0) Warn("no ports found");
 
-  if (NumPorts==0)
-   Warn("no ports found");
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (SubstrateLayers.size()>0)
+   { char *SubstrateDescription=0;
+     for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
+      SubstrateDescription=vstrappend(SubstrateDescription,"%s\n",it->second);
+     SubstrateLayers.clear();
+     G->Substrate = CreateLayeredSubstrate(SubstrateDescription);
+     free(SubstrateDescription);
+   }
 
   EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
  
-  if(ownsGeoFile)
-   unlink(scuffgeoFile);
+  //if(ownsGeoFile)
+  // unlink(scuffgeoFile);
   //if(ownsPortFile)
   // unlink(portFile);
 }

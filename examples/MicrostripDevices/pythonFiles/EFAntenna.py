@@ -32,7 +32,7 @@ SParmFile = open("EFAntenna_L8_" + Res + ".Sparms", 'w')
 ###################################################
 # compute Z- and S-parameters over a range of frequencies
 ###################################################
-Freqs = np.linspace(0.5,20,40) # frequencies at which to calculate (GHz)
+Freqs = np.linspace(2.5,20,36) # frequencies at which to calculate (GHz)
 for Freq in Freqs:
 
         print("Working at F={:.2g} GHz: ".format(Freq))
