@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
   GTCList GTCs = ReadTransFile(TransFile);
   G->CheckGTCList(GTCs);
   int NT = GTCs.size();
-  if (NT==1) Solver->DisableSystemBlockCache=true;
+  if (NT>1) Solver->EnableSystemBlockCache();
 
   char OutFileBaseBuffer[100], *OutFileBase = (NT>1 ? OutFileBaseBuffer : FileBase);
 

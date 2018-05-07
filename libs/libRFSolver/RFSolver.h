@@ -50,6 +50,10 @@ namespace scuff {
 #define _MINUS 1
 #define NUMPOLARITIES 2
 
+// special coded values for cached frequencies
+#define NO_CACHE      HUGE_VAL
+#define CACHE_DIRTY   -1.23456e78;
+
 // components of potential/field vector
 #define _PF_AX    0
 #define _PF_AY    1
@@ -135,7 +139,8 @@ public:
     void PlotGeometry(const char *PPFormat, ...);
     void PlotGeometry();
 
-    // system assembly
+    // system assembly 
+    void EnableSystemBlockCache();
     void AssembleSystemMatrix(double Freq);
     void Solve(cdouble *PortCurrents);
     void Solve(cdouble PortCurrent, int WhichPort);
@@ -167,8 +172,8 @@ public:
 
     void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
     void AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix);
-    void AssemblePortBFInteractionMatrix();
-    void UpdateSystemMatrix();
+    void AssemblePortBFInteractionMatrix(cdouble Omega);
+    void UpdateSystemMatrix(cdouble Omega);
 
     ////////////////////////////////////////////////////
     // internal data fields
@@ -182,18 +187,15 @@ public:
     char *FileBase;
 
     // internally stored variables
-    cdouble Omega;          // set by most recent call to AssembleSystemMatrix
     HMatrix *M;             // LU-factorized SIE matrix, set by AssembleSystemMatrix
-    bool MClean;            // false if we need to recompute M at this frequency 
     HMatrix *PBFIMatrix;    // port <--> basis-function interaction matrix
     HMatrix *PPIMatrix;     // port <--> port interaction matrix
-    bool PBFIClean;         // false if PBFIMatrix/PPIMatrix need to be recomputed at this frequency
-    cdouble *PortCurrents;  // set by most recent call to SolveSystem()
     HVector *KN;            // set by most recent call to SolveSystem()
+    cdouble *PortCurrents;  // set by most recent call to SolveSystem()
+    cdouble OmegaSIE;       // frequencies at which M, PBFI/PP were last computed
+    cdouble OmegaPBFI;
 
-    // caching of system matrix blocks when geometrical transformations are present
-    bool DisableSystemBlockCache;
-    cdouble OmegaCache;
+    // optional caching of system matrix blocks (useful with geometrical transformations)
     HMatrix **TBlocks; 
     HMatrix **UBlocks;
 

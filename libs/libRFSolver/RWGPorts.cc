@@ -394,11 +394,11 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
 /* the columns of this matrix are the vectors called           */
 /* \mathbf{r}_p (p=1,\cdots,NumPorts) in the memo).            */
 /***************************************************************/
-void RFSolver::AssemblePortBFInteractionMatrix()
+void RFSolver::AssemblePortBFInteractionMatrix(cdouble Omega)
 { 
-  // don't need to recompute the matrix if has been assembled at this frequency already
-  if (PBFIClean) return;
-  PBFIClean=true;
+  // don't need to recompute the matrix if has been assembled at this frequency already;
+  if (Omega==OmegaPBFI) return;
+  OmegaPBFI=Omega;
 
   Log("Computing port<-->BF interaction matrix");
 
@@ -586,6 +586,7 @@ HMatrix *RFSolver::GetPanelSourceDensities(HMatrix *PSDMatrix)
   /***************************************************************/
   /* get basis-function contributions     ************************/
   /***************************************************************/
+  cdouble Omega = G->StoredOmega;
   PSDMatrix=G->GetPanelSourceDensities(Omega, KN, PSDMatrix);
 
   if ( !(RetainContributions & CONTRIBUTION_BF) )

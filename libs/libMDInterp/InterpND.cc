@@ -574,7 +574,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
                double XdMin, double XdMax, double DesiredMaxRE, bool Verbose)
 { 
-Verbose=true;
+  bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
   Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XdMin,XdMax);
   if (X0.size() != 1)
    { Log(" X0 = { ");
@@ -600,7 +600,7 @@ Verbose=true;
      while(!JustRight)
       { dVec DeltaVec(X0.size(), 0.0); DeltaVec[d]=Delta;
         double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, false);
-        if (Verbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
+        if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
         if ( Err > 10.0*DesiredMaxRE )
          { TooBig=true; Delta *= 0.2; }
         else if ( Err > DesiredMaxRE )
@@ -616,7 +616,7 @@ Verbose=true;
 
         if (Delta<DeltaMin || Delta>DeltaMax)
          { Delta = (Delta<DeltaMin ? DeltaMin : DeltaMax);
-           if (Verbose) Log("   setting Delta=%f",Delta);
+           if (ExtraVerbose) Log("   setting Delta=%f",Delta);
            JustRight = true;
          }
       }

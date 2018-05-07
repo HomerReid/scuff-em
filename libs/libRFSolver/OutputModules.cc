@@ -94,6 +94,7 @@ void RFSolver::ProcessEPFile(char *EPFile, char *OutFileName)
   fprintf(f,"# 18,19: re, im -dxPhi \n");
   fprintf(f,"# 20,21: re, im -dyPhi \n");
   fprintf(f,"# 22,23: re, im -dzPhi \n");
+  cdouble Omega=G->StoredOmega;
   for(int nx=0; nx<XMatrix->NC; nx++)
    { 
      double *X   = (double *)XMatrix->GetColumnPointer(nx);
@@ -136,7 +137,7 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
   RFSolver *Solver      = (RFSolver *)UserData;
 
   RWGGeometry *G        = Solver->G;
-  cdouble Omega         = Solver->Omega;
+  cdouble Omega         = G->StoredOmega;
 
   /***************************************************************/
   /***************************************************************/
@@ -321,16 +322,7 @@ void RFSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
 }
 
 /***************************************************************/
-/* return the NPxNP impedance matrix (NP=number of ports).     */
-/*                                                             */
-/* M = LU-factorized SIE system matrix                         */
-/*                                                             */
-/* If ZMatrix is non-null, it should be a caller-allocated     */
-/* complex-valued HMatrix of dimension NumPorts x NumPorts.    */
-/*                                                             */
-/* If pZTerms is non-null, pZTerms[0..2] should be caller-     */
-/* allocated arrays of the same size as ZMatrix, which on      */
-/* return store separate contributions to ZMatrix.             */
+/* compute the NPxNP impedance matrix (NP=number of ports).    */
 /***************************************************************/
 HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 {
@@ -346,7 +338,7 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
      ZTerms[2] = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
    }
 
-  AssemblePortBFInteractionMatrix();
+  AssemblePortBFInteractionMatrix(G->StoredOmega);
 
   // Term1 = -(R^T * W * R) where R = port/BF interaction matrix
   HMatrix *RMatrix=PBFIMatrix, *WRMatrix = new HMatrix(RMatrix);

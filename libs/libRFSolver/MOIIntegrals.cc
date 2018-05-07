@@ -714,6 +714,15 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
       }
      Log(" ...done with equivalent pairs");
    }
+
+  /***************************************************************/
+  /* if this is a diagonal block (nsa==nsb) we only filled in the*/
+  /* upper triangle, so go back and fill in the lower part now   */
+  /***************************************************************/
+  if (nsa==nsb)
+   for(int nea=1, Offset=OffsetA; nea<NEA; nea++)
+    for(int neb=0; neb<nea; neb++)
+     Block->SetEntry(Offset+nea, Offset+neb, Block->GetEntry(Offset+neb, Offset+nea) );
 }
 
 /***************************************************************/
@@ -901,6 +910,8 @@ HMatrix *RFSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
    ErrExit("wrong-size (%ix%i) XMatrix in GetMOIFields",XMatrix->NR,XMatrix->NC);
   int NX = XMatrix->NC;
 
+  cdouble Omega = G->StoredOmega;
+
   // compute reduced potential-field matrices
   Log("Getting RPF matrices for %i points...",NX);
   HMatrix *BFRPFMatrix = 0, *PortRPFMatrix = 0;
@@ -944,6 +955,8 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
   int NEdges       = NBFEdges + NPortEdges;
   
   int Order=-1; CheckEnv("SCUFF_MOIFIELDS_ORDER",&Order);
+
+  cdouble Omega = G->StoredOmega;
 
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */

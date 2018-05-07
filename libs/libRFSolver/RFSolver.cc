@@ -65,30 +65,27 @@ void RFSolver::InitSolver()
   /* initialize internal variables needed to perform RF calculations (which   */
   /* are allocated lazily)                                                    */
   /*--------------------------------------------------------------------------*/
-  G            = 0;
-  PortList     = 0;
-  EEPTable     = 0;
-  NumPorts     = 0;
-  FileBase     = 0;
+  G              = 0;
+  PortList       = 0;
+  EEPTable       = 0;
+  NumPorts       = 0;
+  FileBase       = 0;
 
-  Omega        = -1.0;
-  M            = 0;
-  MClean       = false;
-  PBFIMatrix   = 0; 
-  PPIMatrix    = 0;
-  PBFIClean    = false;
-  KN           = 0;
-  PortCurrents = 0;
+  M              = 0;
+  PBFIMatrix     = 0; 
+  PPIMatrix      = 0;
+  KN             = 0;
+  PortCurrents   = 0;
+  OmegaSIE       = CACHE_DIRTY;
+  OmegaPBFI      = CACHE_DIRTY;
 
-  DisableSystemBlockCache = false;
-  OmegaCache = HUGE_VAL;
-  TBlocks = 0;
-  UBlocks = 0;
+  TBlocks        = 0;
+  UBlocks        = 0;
 
   RetainContributions = CONTRIBUTION_ALL;
-  SubstrateFile = 0;
-  scuffgeoFile  = 0;
-  portFile      = 0;
+  SubstrateFile  = 0;
+  scuffgeoFile   = 0;
+  portFile       = 0;
 }
 
 /***************************************************************/
@@ -311,7 +308,7 @@ void RFSolver::InitGeometry()
           { double V = PortTerminalVertices[2*nPort+Pol][nv];
             if (nv==0 || isinf(V)) fprintf(f,"\n   %s ",(Pol==_PLUS ? "POSITIVE" : "NEGATIVE"));
             if (isinf(V)) continue;
-            fprintf(f,"%e ",V);
+            fprintf(f,"%g ",V);
           }
         fprintf(f,"\nENDPORT\n\n");
       }
@@ -343,70 +340,80 @@ void RFSolver::InitGeometry()
   // unlink(portFile);
 }
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RFSolver::UpdateSystemMatrix()
-{ 
-  if (!G) InitGeometry();
 
-  // lazy allocation of accelerator
-  if (TBlocks==0)
-   { int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
-     TBlocks = new HMatrix *[NS];
-     UBlocks = new HMatrix *[NU];
-     for(int nsa=0; nsa<NS; nsa++)
-      { int NBFA = G->Surfaces[nsa]->NumBFs;
-        int Mate = G->Mate[nsa];
-        TBlocks[nsa] = (Mate!=-1) ? TBlocks[Mate] : new HMatrix(NBFA, NBFA, LHM_COMPLEX);
-        for(int nsb=nsa+1, nb=0; nsb<NS; nsb++, nb++)
-         { int NBFB = G->Surfaces[nsb]->NumBFs;
-           UBlocks[nb] = new HMatrix(NBFA, NBFB, LHM_COMPLEX);
-         }
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RFSolver::EnableSystemBlockCache()
+{ 
+  if (TBlocks!=0) return; // already enabled
+
+  int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
+  if (NS==1)
+   { Log("Block caching not available for single-surface geometries (skipping)");
+     return;
+   }
+  else 
+   Log("Initializing system block cache (%i/%i diagonal/off-diagonal blocks)",NS,NU);
+
+  TBlocks = new HMatrix *[NS];
+  UBlocks = new HMatrix *[NU];
+  for(int nsa=0, nu=0; nsa<NS; nsa++)
+   { int NBFA = G->Surfaces[nsa]->NumBFs, Mate=G->Mate[nsa];
+     TBlocks[nsa] = (Mate!=-1) ? TBlocks[Mate] : new HMatrix(NBFA, NBFA, LHM_COMPLEX);
+     for(int nsb=nsa+1; nsb<NS; nsb++, nu++)
+      { int NBFB = G->Surfaces[nsb]->NumBFs;
+        UBlocks[nu] = new HMatrix(NBFA, NBFB, LHM_COMPLEX);
       }
    }
+  OmegaSIE = CACHE_DIRTY;
+}
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RFSolver::UpdateSystemMatrix(cdouble Omega)
+{ 
   // TBlocks recomputed only if frequency has changed
-  if (Omega!=OmegaCache)
+  if (Omega!=OmegaSIE)
    for(int ns=0; ns<G->NumSurfaces; ns++)
     if (G->Mate[ns]==-1)
      AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns], 0, 0, EEPTable);
 
   // UBlocks recomputed if frequency has changed or surfaces were moved
-  for(int nsa=0, nb=0; nsa<G->NumSurfaces; nsa++)
-   for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nb++)
-    if (Omega!=OmegaCache || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
-     AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nb], 0, 0, EEPTable);
+  for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
+   for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nu++)
+    if (Omega!=OmegaSIE || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
+     AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu], 0, 0, EEPTable);
 
   // stamp blocks into M matrix
-  for(int nsa=0, nb=0; nsa<G->NumSurfaces; nsa++)
+  for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
    { int OffsetA = G->BFIndexOffset[nsa];
      M->InsertBlock(TBlocks[nsa], OffsetA, OffsetA);
-     for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nb++)
+     for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nu++)
       {  int OffsetB = G->BFIndexOffset[nsb];
-         M->InsertBlock(UBlocks[nb],OffsetA, OffsetB);
-         M->InsertBlockTranspose(UBlocks[nb],OffsetB, OffsetA);
+         M->InsertBlock(UBlocks[nu],OffsetA, OffsetB);
+         M->InsertBlockTranspose(UBlocks[nu],OffsetB, OffsetA);
       }
    }
-
-  OmegaCache=Omega;
+  OmegaSIE=Omega;
 }
 
 void RFSolver::AssembleSystemMatrix(double Freq)
 { 
   if (!G) InitGeometry();
-
   if (M==0) M=G->AllocateBEMMatrix();
-  Omega = Freq * FREQ2OMEGA;
 
   Log("Assembling BEM matrix at f=%g GHz...",Freq);
-  if (DisableSystemBlockCache)
+  cdouble Omega = Freq * FREQ2OMEGA;
+  G->UpdateCachedEpsMuValues(Omega);
+  if (TBlocks==0)
    AssembleMOIMatrix(G, Omega, M, EEPTable);
   else
-   UpdateSystemMatrix();
+   UpdateSystemMatrix(Omega);
+
   Log("Factorizing...");
   M->LUFactorize();
-  PBFIClean=false;
 }
 
 void RFSolver::Solve(cdouble *CallerPortCurrents)
@@ -426,7 +433,8 @@ void RFSolver::Solve(cdouble *CallerPortCurrents)
   /*--------------------------------------------------------------*/
   /*- (re)compute port-BF interaction matrix as necessary --------*/
   /*--------------------------------------------------------------*/
-  AssemblePortBFInteractionMatrix();
+  cdouble Omega = G->StoredOmega;
+  AssemblePortBFInteractionMatrix(Omega);
 
   if (CallerPortCurrents) // if zero, assumes PortCurrents has already been initialized
    memcpy(PortCurrents, CallerPortCurrents, NumPorts*sizeof(cdouble));
@@ -543,25 +551,43 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
        { RMax[i] = fmax(RMax[i], G->Surfaces[ns]->RMax[i]);
          RMin[i] = fmin(RMin[i], G->Surfaces[ns]->RMin[i]);
        }
-     int NI = S->NumInterfaces;
-     if (!isinf(S->zGP)) NI++;
-     for(int ni=0; ni<NI; ni++)
-      { double z;
-        if (ni==S->NumInterfaces)
-         { z=S->zGP;
-           fprintf(f,"View \"Ground plane\" {\n");
-         }
-        else
-         { z=S->zInterface[ni];
-           fprintf(f,"View \"%s upper surfaces\" {\n",S->MPLayer[ni+1]->Name);
-         }
-        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n};\n",
-                   RMin[0], RMin[1], z, RMax[0], RMin[1], z, RMax[0], RMax[1], z, RMin[0], RMax[1], z, ni,ni,ni,ni);
+
+     //
+     for(int nl=0; nl<S->NumLayers; nl++)
+      { fprintf(f,"View \"Layer %i (%s)\" {\n",nl,S->MPLayer[nl]->Name);
+        double zAbove = S->zInterface[0];
+        double zBelow = (nl==S->NumLayers-1) ? S->zGP : S->zInterface[nl+1];
+        // top surface
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMin[0], RMin[1], zAbove, RMax[0], RMin[1], zAbove, RMax[0], RMax[1], zAbove, RMin[0], RMax[1], zAbove, nl, nl, nl, nl);
+        // side surfaces
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMin[0], RMin[1], zAbove, RMin[0], RMax[1], zAbove, RMin[0], RMax[1], zBelow, RMin[0], RMin[1], zBelow, nl, nl, nl, nl);
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMax[0], RMin[1], zAbove, RMax[0], RMax[1], zAbove, RMax[0], RMax[1], zBelow, RMax[0], RMin[1], zBelow, nl, nl, nl, nl);
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMin[0], RMin[1], zAbove, RMax[0], RMin[1], zAbove, RMax[0], RMin[1], zBelow, RMin[0], RMin[1], zBelow, nl, nl, nl, nl);
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMin[0], RMax[1], zAbove, RMax[0], RMax[1], zAbove, RMax[0], RMax[1], zBelow, RMin[0], RMax[1], zBelow, nl, nl, nl, nl);
+        // bottom surface
+        if ( zBelow!=S->zGP )
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMin[0], RMin[1], zBelow, RMax[0], RMin[1], zBelow, RMax[0], RMax[1], zBelow, RMin[0], RMax[1], zBelow, nl, nl, nl, nl);
+        fprintf(f,"};\n");
+      }
+
+     if ( !isinf(S->zGP) )
+      { 
+        int nl = S->NumLayers;
+        fprintf(f,"View \"Ground plane\" {\n");
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n",
+                   RMin[0], RMin[1], S->zGP, RMax[0], RMin[1], S->zGP, RMax[0], RMax[1], S->zGP, RMin[0], RMax[1], S->zGP, nl, nl, nl, nl);
+        fprintf(f,"};\n");
       }
    }
   fclose(f);
 
-  fprintf(stdout,"RF geometry plotted to file %s.\n",PPFileName);
+  fprintf(stdout,"RF geometry visualization written to GMSH file %s.\n",PPFileName);
 }
 
 void RFSolver::PlotGeometry()
