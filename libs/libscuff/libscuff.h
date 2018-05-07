@@ -315,12 +315,12 @@ class RWGSurface
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
    /* the actual body of the class constructor */
-   void InitRWGSurface();
+   char *InitRWGSurface();
 
    /* constructor subroutines */
-   void InitEdgeList();
-   void ReadGMSHFile(FILE *MeshFile, char *FileName);
-   void ReadComsolFile(FILE *MeshFile, char *FileName);
+   char *InitEdgeList();
+   char *ReadGMSHFile(FILE *MeshFile, char *FileName);
+   char *ReadComsolFile(FILE *MeshFile, char *FileName);
    void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
    void UpdateBoundingBox();
 
@@ -419,6 +419,8 @@ class RWGGeometry
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
 
    /* scattering amplitudes */
+   cdouble GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVector *KNVector, PlaneWave *PW, cdouble *Terms=0);
+   cdouble GetPlaneWaveAmplitude(cdouble Omega, HVector *KNVector, PlaneWave *PW, cdouble *Terms=0);
    cdouble GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVector *KNVector,
                                  cdouble E0[3], double nHat[3], char *RegionLabel=0, cdouble *Terms=0);
    cdouble GetPlaneWaveAmplitude(cdouble Omega, HVector *KNVector,

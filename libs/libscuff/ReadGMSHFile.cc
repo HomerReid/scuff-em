@@ -66,7 +66,7 @@ namespace scuff {
 /* Otherwise, only panels on the specified physical region   */
 /* are read.                                                 */
 /*************************************************************/
-void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
+char *RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
 {
   RWGPanel *P;
   char buffer[100];
@@ -94,7 +94,7 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
   while(KeywordFound==0)
    { 
      if (!fgets(buffer,100,MeshFile))
-      ErrExit("%s: failed to find node start keyword");
+      return vstrdup("%s: failed to find node start keyword");
      LineNum++;
      if( !strncmp(buffer,NODE_START_KEYWORD1,strlen(NODE_START_KEYWORD1)))
       { WhichMeshFormat=FORMAT_LEGACY; KeywordFound=1; }
@@ -102,7 +102,7 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
       { WhichMeshFormat=FORMAT_NEW; KeywordFound=1; }
    };
   if ( !fgets(buffer,100,MeshFile) || !(NumVertices=atoi(buffer)) )
-   ErrExit("%s: invalid number of nodes",FileName); 
+   return vstrdup("%s: invalid number of nodes",FileName);
   LineNum++;
 
   /*------------------------------------------------------------*/
@@ -121,16 +121,16 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
    GMSH2HR[i]=-1;
   for (nv=0; nv<NumVertices; nv++)
    { if (!fgets(buffer,100,MeshFile))
-      ErrExit("%s: too few nodes",FileName);
+      return vstrdup("%s: too few nodes",FileName);
      LineNum++;
      nConv=sscanf(buffer,"%i %le %le %le",&NodeIndex,
                           Vertices+3*nv,Vertices+3*nv+1,Vertices+3*nv+2); 
      if(nConv!=4)
-      ErrExit("%s:%i: invalid node specification",FileName,LineNum); 
+      return vstrdup("%s:%i: invalid node specification",FileName,LineNum); 
      if (NodeIndex>2*NumVertices)
-      ErrExit("%s: internal error in ReadGMSHFile",FileName);
+      return vstrdup("%s: internal error in ReadGMSHFile",FileName);
      GMSH2HR[NodeIndex]=nv;
-   }; /* for (nv=0; nv<NumVertices; nv++) */
+   } /* for (nv=0; nv<NumVertices; nv++) */
    
   /*------------------------------------------------------------*/
   /*- Apply one-time geometrical transformation (if any) to all */ 
@@ -152,7 +152,7 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
   
      for(int nvc=0; nvc<3*NumVertices; nvc++)
       Vertices[nvc] = PixelSize*round(Vertices[nvc]/PixelSize);
-   };
+   }
  
   /*------------------------------------------------------------*/
   /*- Eliminate any redundant vertices from the vertex list.   -*/
@@ -167,10 +167,9 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
        for(jGMSH=0; jGMSH<2*NumVertices; jGMSH++)
         if (GMSH2HR[jGMSH]==j)
          GMSH2HR[jGMSH]=i;
-
        NumRedundantVertices++;
        //fprintf(stderr,"\n*\n* redundant nodes found!!(%i,%i)\n*\n",i,j);
-     };
+     }
  
   /*------------------------------------------------------------*/
   /* Confirm that the next two lines in the file are the        */
@@ -178,37 +177,37 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
   /* keyword, then read the number of elements.                 */
   /*------------------------------------------------------------*/
   if ( !fgets(buffer,100,MeshFile) )
-   ErrExit("%s: bad file format (nodes section not terminated)",FileName);
+   return vstrdup("%s: bad file format (nodes section not terminated)",FileName);
   LineNum++;
 
   if ( WhichMeshFormat==FORMAT_LEGACY ) 
    { if ( strncmp(buffer,NODE_END_KEYWORD1,strlen(NODE_END_KEYWORD1)))
-      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      return vstrdup("%s:%i: unexpected keyword",FileName,LineNum);
    }
   else
    { if ( strncmp(buffer,NODE_END_KEYWORD2,strlen(NODE_END_KEYWORD2)))
-      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
-   };
+      return vstrdup("%s:%i: unexpected keyword",FileName,LineNum);
+   }
 
   if ( !fgets(buffer,100,MeshFile) )
-   ErrExit("%s: bad file format (elements section not initiated)",FileName);
+   return vstrdup("%s: bad file format (elements section not initiated)",FileName);
   LineNum++;
 
   if ( WhichMeshFormat==FORMAT_LEGACY ) 
    { if ( strncmp(buffer,ELM_START_KEYWORD1,strlen(ELM_START_KEYWORD1)))
-      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      return vstrdup("%s:%i: unexpected keyword",FileName,LineNum);
    }
   else
    { if ( strncmp(buffer,ELM_START_KEYWORD2,strlen(ELM_START_KEYWORD2)))
-      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      return vstrdup("%s:%i: unexpected keyword",FileName,LineNum);
    }
 
   if ( !fgets(buffer,100,MeshFile) )
-   ErrExit("%s: bad file format (invalid number of elements)",FileName);
+   return vstrdup("%s: bad file format (invalid number of elements)",FileName);
   LineNum++;
   nConv=sscanf(buffer,"%i",&NumElements);
   if (nConv!=1 || NumElements<0) 
-   ErrExit("%s:%i: invalid number of elements",FileName,LineNum);
+   return vstrdup("%s:%i: invalid number of elements",FileName,LineNum);
  
   /*------------------------------------------------------------*/
   /*- Now read each line of the elements section.               */ 
@@ -218,7 +217,7 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
   for (ne=0; ne<NumElements; ne++)
    { 
      if (!fgets(buffer,100,MeshFile))
-      ErrExit("too few elements in input file");
+      return vstrdup("too few elements in input file");
      LineNum++;
 
      if (WhichMeshFormat==FORMAT_LEGACY)
@@ -226,14 +225,14 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
         nConv=sscanf(buffer,"%i %i %i %i %i %i %i %i",
                      &ElNum,&ElType,&RegPhys,&RegElem,&NodeCnt,VI,VI+1,VI+2);
         if (nConv<5)
-         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         return vstrdup("%s:%i: invalid element specification",FileName,LineNum);
       }
      else
       { 
         nConv=sscanf(buffer,"%i %i %i%n",&ElNum,&ElType,&nTags,&nRead);
         bufPos=nRead;
         if (nConv<3)
-         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         return vstrdup("%s:%i: invalid element specification",FileName,LineNum);
 
         // read the first 'tag,' which should be the physical region
         if (nTags==0)
@@ -246,16 +245,16 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
         for(nt=0; nt<nTags-1; nt++)
          { sscanf(buffer+bufPos,"%i%n",&iDummy,&nRead);
            bufPos+=nRead;
-         };
+         }
 
         // finally, read the vertex indices. 
         nConv=sscanf(buffer+bufPos,"%i %i %i",VI,VI+1,VI+2);
 
         if (ElType==TYPE_TRIANGLE && nConv!=3)
-         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         return vstrdup("%s:%i: invalid element specification",FileName,LineNum);
         else if (ElType==TYPE_POINT && nConv!=1)
-         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
-      };
+         return vstrdup("%s:%i: invalid element specification",FileName,LineNum);
+      }
    
      /* we only process elements that are points or triangles */
      switch(ElType)
@@ -335,7 +334,7 @@ defined
 
       }; //for(np=0; np<NumPanels; np++)
 
-   }; // if (NumRefPts>0)
+   } // if (NumRefPts>0)
 
   free(GMSH2HR);
   fclose(MeshFile);

@@ -1,4 +1,4 @@
-# Input impedance, mutual coupling, and radiated fields of microstrip RF devices
+<h1> Input impedance, mutual coupling, and radiated fields of microstrip RF devices </h1>
 
 In this example, we use the
 [<span class=SC>scuff-em</span> RF module][scuff-rf]
@@ -32,123 +32,63 @@ The input files for all of these examples may be found in
 the `share/scuff-em/examples/MicrostripDevices`
 subdirectory of your `scuff-em` installation.
 
-# Describing microstrip geometries in <span class=SC>scuff-em</span>
+[TOC]
 
-The description of microstrip geometries in <span class=SC>scuff-em</span>
-consists of three ingredients:
+## The <span class=SC>scuff-em</span> RF module: A brief overview
 
-1. one or more meshed polygons defining metal traces (red regions in the
-pictures above)
+The <span class=SC>scuff-em</span> RF module is discussed in detail
+at [its main documentation page][scuff-rf], but for busy readers
+we summarize here some salient points.
 
-2. a description of the substrate (its relative permittivity $\epsilon_r$ and
-thickness $h$).
++ The module extends the [<span class=SC>scuff-em</span> core library][libscuff] to
+  allow RF modeling problems to be studied within the framework of the
+  [surface-integral-equation (SIE) approach to electromagnetic scattering implemented by <span class=SC>scuff-em</span>][libscuff].
 
-3. a definition of where the *ports* are located on the traces (indicated
-schematically by white lines and arrows in the pictures above.)
++ The functionality of the module may be accessed either from C++/python
+  API codes or via the `scuff-rf` command-line module distributed with
+  <span class=SC>scuff-em</span>; in particular, all of the microstrip-device
+  calculations covered in this example may be done equally well
+  in python or from the command line, and we will show how to do everything
+  both ways.
 
-We'll consider each of these items in turn.
++ The primary way in which the RF module extends the core library is by adding
+  support for [*RF ports*][RFPorts], regions of meshed surfaces into which RF currents are
+  forced. This means that, in addition to specifying the usual
+  [collection of meshed surfaces constituting a <span class=SC>scuff-em</span> geometry][scuffEMGeometries],
+  you must also define one or more ports for your structure.
+  Port terminals in <span class=SC>scuff-em</span> are defined by geometric objects:
+  lines or polygons (identifying regions on the boundaries of meshed surfaces)
+  or points (identifying source/sink points inside meshed surfaces).
+  Port definitions may be communicated to <span class=SC>scuff-em</span> by
+  **(a)** writing a simple text file (`.ports` file),
+  **(b)** making API calls from C++/python,
+  **(c)** creating a GDSII file containing points, lines, or polygons tagged by special text strings.
+  (Examples of all of these methods are discussed below).
 
-## 1. Specifying meshed metal traces
+## Example 1: Edge-fed patch antenna
 
-### 1A. Write a `.scuffgeo` file
+Our first example is the *edge-fed patch antenna* originally studied in this paper:
 
-One way to define metal traces is simply to write a standard [<span class=SC>scuff-em</span> geometry file][scuffEMGeometries]
-specifying one or more mesh files (such as [<span class=SC>gmsh</span>][GMSH] `.msh` files or [<span class=SC>comsol</span>][COMSOL] `.mphtxt` files),
-optionally subjected to rigid geometrical transformations (translations and rotations). For example, [<span class=SC>scuff-em</span>
-geometry files for the coupled-antenna geometry](#CoupledAntennaSCUFFGEOFile) shown above describe the geometry as containing two copies
-of a mesh file for the single antenna, the second of which is displaced relative to the first.
++ [Wu et al., "Feeding Structure Contribution to Radiation by Patch Antennas with Rectangular Boundaries," IEEE Transactions on Antennas and Propagation **40** 1245 (1992). DOI: 10.1109/8.18245](https://doi.org/10.1109/8.182458)
 
-### 1B. Use API routines to add polygon meshes
+This antenna is also used as a demonstration example for the commercial solver FEKO:
 
-Alternatively, you can skip writing a `.scuffgeo` file altogether and instead just build up your
-geometry from a C++ or python code by making one or more calls to the `AddMetalTraceMesh()`
-API routine. Each call to this routine adds one copy of the meshed polygon to your geometry,
-optionally displaced or rotated. Thus, the following two lines in a python code
-yield the same effect as the `.scuffgeo` file above:
++ [http://feko.info/fekoweb/applications/white-papers/edge_fed_rectangular_microstrip_patch_antenna/document](http://feko.info/fekoweb/applications/white-papers/edge_fed_rectangular_microstrip_patch_antenna/document)
 
-```python
-  AddMetalTraceMesh('
+A
 
-### 1C. Use API routines to import layers from GDSII files
+### Python calculation
 
-As an alternative to calling `AddMetalTraceMesh` to specify pre-meshed polygons,
-you can call the `ImportGDSIILayer()` API routine to request that all polygons
-be instantiated as metal traces in your geometry.
+### Command-line solution
 
-## 2. Define the substrate
+Here's how the same calculation could be run from the command line using `scuff-rf`:
 
-### 2A. Write a `.substrate` file
-
-One way to specify the substrate is to write a simple text file (conventionally 
-assigned file extension `.substrate`) describing the substrate in your geometry.
-As discussed in more detail in the technical documentation for the 
-[<span class=SC>scuff-em</span> full-wave substrate module][FullWaveSubstrate],
-each line of this file adds either **(a)** a single material layer to the substrate,
-specified by the $z$-coordinate of its upper surface and a
-[<span class=SC>scuff-em</span> material descriptor][scuffEMMaterials] describing
-its bulk permittivity and permeability, or **(b)** a perfectly conducting ground plane,
-specified by its height ($z$-coordinate) and the keyword `GROUNDPLANE`.
-Here's a `.substrate` file defining a dielectric layer of relative
-permittivity $\epsilon_r = 2.2$ and thickness 0.794 mm terminated 
-below by a ground plane.
-
-```python
-0.0    CONST_EPS_2.2
--0.794 GROUNDPLANE
-```
-
-Note that, if the `GROUNDPLANE` line were omitted, this file would
-describe an infinitely thick substrate (half-space) filling the region $z<0$.
-
-### 2B. Include a `SUBSTRATE....ENDSUBSTRATE` section in your `.scuffgeo` file
-
-If you chose to write a `.scuffgeo` file to define your metal traces, you can
-include the substrate definition in this file by adding a `SUBSTRATE...ENDSUBSTRATE`
-clause. The text between the opening and closing keywords is processed
-as if it had been read in from the `.substrate` file; thus, to specify the 
-substrate described above we would say
-
-```python
-SUBSTRATE
-     0.0   CONST_EPS_2.2
-  -0.794   GROUNDPLANE
-ENDSUBSTRATE
-```
-
-### 2C. Use API routines to define substrate properties
-
-Finally, you can specify substrate properties directly from C++ or
-python codes by calling API routines:
-
-```python
- SetSubstratePermittivity(2.2);
-
- # the following are equivalent
- SetSubstrateThickness(+0.794);
- AddGroundPlane(-0.794);
-
- AddSubstrateLayer(0.0, 2.2);
-
- SetSubstrateFile("MyFile.substrate");
-```
-
-## 3. Specifying ports
-
-### 3A. Write a `.Ports` file
-
-### 3B. Import port definitions from a `.GDSII` file
-
-
-# Double-checking your geometry specification: The `PlotGeometry` API routine
-
-# Example 1: Edge-fed patch antenna
-
-# Example 2: Coupled center-fed patch antennas
+## Example 2: Coupled center-fed patch antennas
 
 <a name="CoupledAntennaSCUFFGEOFile">
 
 The <span class=SC>scuff-em</span> geometry files
 
-# Example 3: Coplanar waveguide section
+## Example 3: Coplanar waveguide section
 
 {!Links.md!}

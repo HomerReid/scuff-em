@@ -275,7 +275,7 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
   /* get substrate contributions                                 */
   /*  (minus the most singular terms if Subtract==true)          */
   /***************************************************************/
-  Substrate->UpdateCachedEpsMu(Omega);
+  if (Substrate) Substrate->UpdateCachedEpsMu(Omega);
   MOIIntegrandData MOIData;
   MOIData.S              = Substrate;
   MOIData.Omega          = Omega;
@@ -377,53 +377,56 @@ int GetMOIMatrixElement(RWGGeometry *G,
                         cdouble Omega, cdouble *ME,
                         int Order, bool Subtract, cdouble *Terms)
 {
-  /***************************************************************/
-  /* if cubature order unspecified, autodetermine it based on    */
-  /* distance between panels                                     */
-  /***************************************************************/
-  if (Order==-1) 
-   { double rRel;
-     int ncv=AssessBFPair(G->Surfaces[nsa], nea, G->Surfaces[nsb], neb, &rRel);
-     Order = ( (ncv>0 || rRel <=1.0) ? 9 : 4);
-   }
-
-  /***************************************************************/
-  /* get substrate contributions *********************************/
-  /***************************************************************/
-  LayeredSubstrate *Substrate = G->Substrate;
-  Substrate->UpdateCachedEpsMu(Omega);
-  cdouble Eps = Substrate->EpsLayer[1];
-
-  bool SeparateTerms = (Terms!=0);
-
-  MOIIntegrandData MOIData;
-  MOIData.S              = Substrate;
-  MOIData.Omega          = Omega;
-  MOIData.Eps            = Eps;
-  MOIData.Subtract       = Subtract;
-  MOIData.SeparateTerms  = SeparateTerms;
-  MOIData.qPoints        = 0;
-  MOIData.CubaturePoints = 0;
-
-  int zfdim = SeparateTerms ? 6 : 1;
-  int fdim = 2*zfdim;
   ME[0]=0.0;
   if (Terms) 
    memset(Terms, 0, 8*sizeof(cdouble));
 
-  bool TrivialSubstrate = (Eps==1.0 && isinf(Substrate->zGP));
-  if (!TrivialSubstrate)
-   GetBFBFCubature2(G, nsa, nea, nsb, neb,
-                    MOIMEIntegrand, (void *)&MOIData,
-                    fdim, Order, (double *)(SeparateTerms ? Terms : ME));
+  LayeredSubstrate *Substrate = G->Substrate;
+  cdouble Eps = (Substrate && Substrate->NumLayers>0 ? Substrate->EpsLayer[1] : 1.0);
 
-  if (SeparateTerms)
-   ME[0] = Terms[0] + Terms[1];
+  bool NeedSITerms        = (Substrate==0 || Subtract);
+  bool NeedSubstrateTerms = (Substrate && (Eps!=1.0 || !isinf(Substrate->zGP)));
+  int qPoints=0;
+
+  /***************************************************************/
+  /* get substrate contributions *********************************/
+  /***************************************************************/ 
+  if (Substrate)
+   { 
+     Substrate->UpdateCachedEpsMu(Omega);
+     Eps = Substrate->EpsLayer[1];
+
+     bool SeparateTerms = (Terms!=0);
+
+     MOIIntegrandData MOIData;
+     MOIData.S              = Substrate;
+     MOIData.Omega          = Omega;
+     MOIData.Eps            = Eps;
+     MOIData.Subtract       = Subtract;
+     MOIData.SeparateTerms  = SeparateTerms;
+     MOIData.qPoints        = 0;
+     MOIData.CubaturePoints = 0;
+
+     if (Order==-1) 
+      { double rRel;
+        int ncv=AssessBFPair(G->Surfaces[nsa], nea, G->Surfaces[nsb], neb, &rRel);
+        Order = ( (ncv>0 || rRel <=1.0) ? 9 : 4);
+      }
+
+     int zfdim = SeparateTerms ? 6 : 1, fdim=2*zfdim;
+     GetBFBFCubature2(G, nsa, nea, nsb, neb, MOIMEIntegrand, (void *)&MOIData,
+                      fdim, Order, (double *)(SeparateTerms ? Terms : ME));
+
+     qPoints += MOIData.qPoints;
+
+     if (SeparateTerms)
+      ME[0] = Terms[0] + Terms[1];
+   }
 
   /***************************************************************/
   /* add 'bare' (substrate-independent) EEIs                     */
   /***************************************************************/
-  if (Subtract)
+  if (NeedSITerms)
    { 
      GetGCMEArgStruct GCMEArgs, *Args=&GCMEArgs;
      InitGetGCMEArgs(Args);
@@ -445,11 +448,9 @@ int GetMOIMatrixElement(RWGGeometry *G,
         Terms[7] = (1.0-Eta)*GPhiTerm[0];
       }
      ME[0] += GabArray[0][GCME_GC] - Eta*GPhiTerm[0];
- 
    }
 
-  return MOIData.qPoints;
-
+  return qPoints;
 }
 
 /***************************************************************/
@@ -627,15 +628,18 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /* pre-allocate interpolator for subtrate green's functions if */
   /* it is not already there                                     */
   /***************************************************************/
-  double RhoMinMax[2];
-  GetRhoMinMax(G, nsa, nsb, RhoMinMax);
-  bool PPIsOnly = true;
-  bool Subtract = true;
-  bool RetainSingularTerms = false;
-  bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
-  Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
-  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
-                                         PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+  if (G->Substrate)
+   { 
+     double RhoMinMax[2];
+     GetRhoMinMax(G, nsa, nsb, RhoMinMax);
+     bool PPIsOnly = true;
+     bool Subtract = true;
+     bool RetainSingularTerms = false;
+     bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
+     Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
+     G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
+                                            PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -681,26 +685,6 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int NFE = G->TotalEdges;
-#if 0
-  if (EEPTable)
-   { Log("Filling in matrix entries for equivalent pairs...");
-     for(int neaParent=0; neaParent<NEA; neaParent++)
-      for(int nebParent=(nsa==nsb ? neaParent : 0); nebParent<NEB; nebParent++)
-       { iVec *Children = EEPTable->GetChildren(nsa, neaParent, nsb, nebParent);
-         if (!Children || Children->size()==0 ) continue;
-         cdouble ME = Block->GetEntry(OffsetA + neaParent, OffsetB + nebParent);
-         for(size_t nc=0; nc<Children->size(); nc++)
-          { int ChildPair = (*Children)[nc];
-            int nfeaChild = ChildPair/NFE, nsaChild, neaChild; G->ResolveEdge(nfeaChild, &nsaChild, &neaChild);
-            int nfebChild = ChildPair%NFE, nsbChild, nebChild; G->ResolveEdge(nfebChild, &nsbChild, &nebChild);
-            if (nsaChild!=nsa || nsbChild!=nsb) continue;
-            Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, ME);
-          }
-      }
-     Log(" ...done with equivalent pairs");
-   }
-#endif
   if (IEPList)
    { Log("Filling in matrix entries for child edge pairs ...");
      for(int nPair=0; nPair<NumPairs; nPair++)
@@ -743,15 +727,18 @@ void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdge
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */
   /***************************************************************/
-  double RhoMinMax[2];
-  GetRhoMinMax(G, RhoMinMax);
-  bool PPIsOnly = true;
-  bool Subtract = true;
-  bool RetainSingularTerms = false;
-  bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
-  Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
-  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
-                                         PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+  if (G->Substrate)
+   { 
+     double RhoMinMax[2];
+     GetRhoMinMax(G, RhoMinMax);
+     bool PPIsOnly = true;
+     bool Subtract = true;
+     bool RetainSingularTerms = false;
+     bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
+     Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
+     G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
+                                            PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -831,14 +818,17 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */
   /***************************************************************/
-  double RhoMinMax[2], zMinMax[2];
-  GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
-  bool PPIsOnly = false;
   bool Subtract = (XMatrix->GetEntryD(2,0) >= 0.0);
-  bool RetainSingularTerms = false;
-  bool Verbose = (G->LogLevel==SCUFF_VERBOSE2);
-  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
-                                         PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+  if (G->Substrate)
+   { 
+     double RhoMinMax[2], zMinMax[2];
+     GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
+     bool PPIsOnly = false;
+     bool RetainSingularTerms = false;
+     bool Verbose = (G->LogLevel==SCUFF_VERBOSE2);
+     G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
+                                            PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+   }
 
   /***************************************************************/
   /* loop over all (edge, eval point) pairs to get contributions */
@@ -958,13 +948,16 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions    */
   /***************************************************************/
-  double RhoMinMax[2], zMinMax[2];
-  GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
-  bool PPIsOnly = false;
   bool Subtract = (XMatrix->GetEntryD(2,0)>=0.0);
-  bool RetainSingularTerms = false;
-  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
-                                         PPIsOnly, Subtract, RetainSingularTerms);
+  if (G->Substrate)
+   {
+     double RhoMinMax[2], zMinMax[2];
+     GetRzMinMax(G, XMatrix, RhoMinMax, zMinMax);
+     bool PPIsOnly = false;
+     bool RetainSingularTerms = false;
+     G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], zMinMax[0], zMinMax[1],
+                                            PPIsOnly, Subtract, RetainSingularTerms);
+   }
 
   PFMatrix=CheckHMatrix(PFMatrix,NPFC,NX,LHM_COMPLEX,"GetMOIFields");
   PFMatrix->Zero();

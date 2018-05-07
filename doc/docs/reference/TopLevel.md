@@ -132,7 +132,7 @@ Typical outputs from [[scuff-em]] calculations include
 
 ### RF / microwave engineering
 
- + [<span class="SC">scuff-RF</span>][scuff-RF]
+ + [<span class="SC">scuff-rf</span>][scuff-rf]
 > A tool for modeling the electromagnetic properties of 
 > passive RF devices such as antennas and inductors.
 > Available outputs include: frequency-dependent
@@ -188,15 +188,5 @@ note="\texttt{http://github.com/homerreid/scuff-EM}"
 ````
 
 [GMSH]: http://www.geuz.org/gmsh
-[scuff-scatter]:            ../applications/scuff-scatter/scuff-scatter.md
-[scuff-transmission]:       ../applications/scuff-transmission/scuff-transmission.md
-[scuff-tmatrix]:            ../applications/scuff-tmatrix/scuff-tmatrix.md
-[scuff-cas3D]:              ../applications/scuff-cas3D/scuff-cas3D.md
-[scuff-caspol]:             ../applications/scuff-caspol/scuff-caspol.md
-[scuff-neq]:                ../applications/scuff-neq/scuff-neq.md
-[scuff-RF]:                 ../applications/scuff-RF/scuff-RF.md
-[scuff-static]              ../applications/scuff-static/scuff-static.md
-[GNUGPL]:                   http://en.wikipedia.org/wiki/GNU_General_Public_License
-[GitHub]:                   https://github.com/HomerReid/scuff-em/
-[FSCCasimirPaper]:          http://dx.doi.org/10.1103/PhysRevA.88.022514
-[FSCNEQPaper]:              http://dx.doi.org/10.1103/PhysRevB.88.054305
+
+{!Links.md!}

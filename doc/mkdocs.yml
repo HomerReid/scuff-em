@@ -75,7 +75,7 @@ pages:
     - 'scuff-cas3D':           'applications/scuff-cas3D/scuff-cas3D.md'
     - 'scuff-caspol':          'applications/scuff-caspol/scuff-caspol.md'
     - 'scuff-neq':             'applications/scuff-neq/scuff-neq.md'
-    - 'scuff-RF':              'applications/scuff-RF/scuff-RF.md'
+    - 'scuff-rf':              'applications/scuff-rf/scuff-rf.md'
     - 'scuff-static':          'applications/scuff-static/scuff-static.md'
     - 'scuff-spectrum':        'applications/scuff-spectrum/scuff-spectrum.md'
     - 'scuff-analyze':         'applications/scuff-analyze/scuff-analyze.md'

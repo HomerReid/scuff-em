@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- process command-line arguments -----------------------------*/
   /*--------------------------------------------------------------*/
-  char *GeoFile;
   int NR=10;
   int NC=12;
   double pnnz=0.2; // probability of nonzero entry
@@ -110,7 +109,7 @@ int main(int argc, char *argv[])
   S1->ExportToHDF5(pHC, "S1");
   HMatrix::CloseHDF5Context(pHC);
 
-  SMatrix *S2=new SMatrix(const_cast<char *>("tSMatrix.hdf5"),"S1");
+  SMatrix *S2=new SMatrix(const_cast<char *>("tSMatrix.hdf5"),const_cast<char *>("S1"));
   if (S2->ErrMsg)
    ErrExit(S2->ErrMsg);
 

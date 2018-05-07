@@ -329,18 +329,31 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatri
 /***************************************************************/
 /***************************************************************/
 cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVector *KNVector,
-                                           cdouble E0[3], double nHat[3], char *RegionLabel,
-                                           cdouble *Terms)
+                                           PlaneWave *PW, cdouble *Terms)
+
 {
-  // create a plane wave with the specified polarization and direction
-  // in the specified region
-  int RegionIndex = RegionLabel ? GetRegionByLabel(RegionLabel) : 0;
-  PlaneWave PW(E0, nHat, RegionLabel);
-  cdouble EpsRel, MuRel; 
-  RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsRel, &MuRel);
-  PW.SetFrequencyAndEpsMu(Omega, EpsRel, MuRel);
+  HVector *RHSVector = AssembleRHSVector(Omega, kBloch, PW);
+  cdouble ucdot=0.0, hdot=0.0;
+  double KNSign[2]={1.0, -1.0};
+  for(int ns=0, nbf=0; ns<NumSurfaces; ns++)
+   for(int ne=0; ne<Surfaces[ns]->NumEdges; ne++)
+    for(int KN=0; KN<(Surfaces[ns]->IsPEC ? 1 : 2); KN++, nbf++)
+     { ucdot += KNSign[KN]*RHSVector->GetEntry(nbf)*KNVector->GetEntry(nbf);
+        hdot += KNSign[KN]*conj(RHSVector->GetEntry(nbf))*KNVector->GetEntry(nbf);
+     }
+  double Prefac = 0.5*ZVAC*ZVAC;
+  if (G->LDim)
+   { if (PW->nHat[2]==0.0)
+      PreFac=0.0;
+     else
+      Prefac /= (G->LVolume * nHat[2]);
+   }
+  if (Terms) Terms[0]=Prefac*hdot;
+  delete RHSVector;
+  return Prefac*ucdot;
 
   // get panel currents for the given source distribution
+#if 0
   HMatrix *PSDMatrix=GetPanelSourceDensities(Omega, kBloch, KNVector);
 
   // compute <E\dot K> and <H\dot N> inner products by summing
@@ -351,9 +364,9 @@ cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVecto
    { 
      RWGSurface *S = Surfaces[ns];
      double Sign;
-     if (S->RegionIndices[0] == RegionIndex)
+     if (S->RegionIndices[0] == PW->RegionIndex)
       Sign=1.0;
-     else if (S->RegionIndices[1] == RegionIndex)
+     else if (S->RegionIndices[1] == PW->RegionIndex)
       Sign=-1.0;
      else 
       continue;
@@ -369,7 +382,7 @@ cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVecto
         PSDMatrix->GetEntries(Offset+np,  "9:11", N);
 
         cdouble EH[6], *E=EH+0, *H=EH+3;
-        PW.GetFields(X, EH);
+        PW->GetFields(X, EH);
 
         EDotK += Sign*Area*VecHDot(E,K);
         HDotN += Sign*Area*VecHDot(H,N);
@@ -377,6 +390,7 @@ cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVecto
    }
   delete PSDMatrix;
   
+  cdouble MuRel = RegionMPs[PW->RegionIndex]->GetMu(Omega);
   cdouble PreFactor = II*ZVAC*MuRel*Omega / (4.0*M_PI);
   EDotK *= PreFactor;
   HDotN *= PreFactor;
@@ -387,11 +401,32 @@ cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVecto
    }
 
   return (EDotK + HDotN);
+#endif
 }
+
+cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVector *KNVector,
+                                           cdouble E0[3], double nHat[3], char *RegionLabel,
+                                           cdouble *Terms)
+{
+  // create a plane wave with the specified polarization and direction
+  // in the specified region
+  PlaneWave PW(E0, nHat, RegionLabel);
+  PW.RegionIndex = RegionLabel ? GetRegionByLabel(RegionLabel) : 0;
+  cdouble EpsRel, MuRel; 
+  RegionMPs[PW.RegionIndex]->GetEpsMu(Omega, &EpsRel, &MuRel);
+  PW.SetFrequencyAndEpsMu(Omega, EpsRel, MuRel);
+  return GetPlaneWaveAmplitude(Omega, kBloch, KNVector, &PW, Terms);
+}
+
+cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, HVector *KNVector,
+                                           PlaneWave *PW, cdouble *Terms)
+{ return GetPlaneWaveAmplitude(Omega, 0, KNVector, PW, Terms); }
+
 
 cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, HVector *KNVector,
                                            cdouble E0[3], double nHat[3], char *RegionLabel,
                                            cdouble *Terms)
 { return GetPlaneWaveAmplitude(Omega, 0, KNVector, E0, nHat, RegionLabel, Terms); }
+
 
 } // namespace scuff 

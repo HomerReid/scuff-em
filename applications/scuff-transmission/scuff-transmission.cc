@@ -367,6 +367,8 @@ int main(int argc, char *argv[])
       /*--------------------------------------------------------------*/
       double UpperFluxRatio[NUMPOLS], LowerFluxRatio[NUMPOLS];
       cdouble UpperAmplitude[NUMPOLS][NUMPOLS], LowerAmplitude[NUMPOLS][NUMPOLS];
+      cdouble UpperAmplitude2[NUMPOLS][NUMPOLS], LowerAmplitude2[NUMPOLS][NUMPOLS];
+      cdouble UpperAmplitude3[NUMPOLS][NUMPOLS], LowerAmplitude3[NUMPOLS][NUMPOLS];
       cdouble tIntegral[NUMPOLS][NUMPOLS], rIntegral[NUMPOLS][NUMPOLS];
       
       for(int IncPol = POL_TE; IncPol<=POL_TM; IncPol++)
@@ -394,7 +396,18 @@ int main(int argc, char *argv[])
          GetPlaneWaveAmplitudes(G, KN, Omega, kBloch, LowerRegionIndex, false, aTETM, true);
          LowerAmplitude[IncPol][POL_TE] = aTETM[POL_TE];
          LowerAmplitude[IncPol][POL_TM] = aTETM[POL_TM];
-       };
+
+         for(int DestPol = POL_TE; DestPol<=POL_TM; DestPol++)
+          { 
+            PlaneWave *UpperPW = FromAbove ? ReflectedPW[DestPol]   : TransmittedPW[DestPol];
+            PlaneWave *LowerPW = FromAbove ? TransmittedPW[DestPol] : ReflectedPW[DestPol];
+            cdouble Terms[2];
+            UpperAmplitude2[IncPol][DestPol] = G->GetPlaneWaveAmplitude(Omega, kBloch, KN, UpperPW, Terms);
+            UpperAmplitude3[IncPol][DestPol] = Terms[0];
+            LowerAmplitude2[IncPol][DestPol] = G->GetPlaneWaveAmplitude(Omega, kBloch, KN, LowerPW, Terms);
+            LowerAmplitude3[IncPol][DestPol] = Terms[0];
+          }
+       }
 
       // write results to file
       fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
@@ -419,6 +432,24 @@ int main(int argc, char *argv[])
       fprintf(f,"%e %e ", abs(rIntegral[POL_TE][POL_TM]), arg(rIntegral[POL_TE][POL_TM]));
       fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TE]), arg(rIntegral[POL_TM][POL_TE]));
       fprintf(f,"%e %e ", abs(rIntegral[POL_TM][POL_TM]), arg(rIntegral[POL_TM][POL_TM]));
+
+      fprintf(f,"%e %e ", abs(UpperAmplitude2[POL_TE][POL_TE]), arg(UpperAmplitude2[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude2[POL_TE][POL_TM]), arg(UpperAmplitude2[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude2[POL_TM][POL_TE]), arg(UpperAmplitude2[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude2[POL_TM][POL_TM]), arg(UpperAmplitude2[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude2[POL_TE][POL_TE]), arg(LowerAmplitude2[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude2[POL_TE][POL_TM]), arg(LowerAmplitude2[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude2[POL_TM][POL_TE]), arg(LowerAmplitude2[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude2[POL_TM][POL_TM]), arg(LowerAmplitude2[POL_TM][POL_TM]));
+
+      fprintf(f,"%e %e ", abs(UpperAmplitude3[POL_TE][POL_TE]), arg(UpperAmplitude3[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude3[POL_TE][POL_TM]), arg(UpperAmplitude3[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude3[POL_TM][POL_TE]), arg(UpperAmplitude3[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude3[POL_TM][POL_TM]), arg(UpperAmplitude3[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude3[POL_TE][POL_TE]), arg(LowerAmplitude3[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude3[POL_TE][POL_TM]), arg(LowerAmplitude3[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude3[POL_TM][POL_TE]), arg(LowerAmplitude3[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude3[POL_TM][POL_TM]), arg(LowerAmplitude3[POL_TM][POL_TM]));
 
       fprintf(f,"\n");
       fflush(f);

@@ -17,7 +17,7 @@
 * [Geometrical transformations](reference/Transformations.md)
 * [Incident Fields](reference/IncidentFields.md)
 * [Brillouin-zone integration](reference/BrillouinZoneIntegration.md)
-* [FAQ](reference/FAQ.md)
+* [scuffEMFAQ](reference/FAQ.md)
 
 # Tutorial Examples
 
@@ -35,6 +35,7 @@
 ### RF device modeling
 
 * [S-parameters, directivity, and radiated field patterns of Yagi-Uda antennas](examples/YagiUdaAntennas/YagiUdaAntennas.md)
+* [Input impedance, mutual coupling, and radiated fields of microstrip RF devices][MicrostripDevicesExample]
 
 ### Fluctuation-induced phenomena
 
@@ -76,7 +77,7 @@
     + [<span class="SC">scuff-neq</span>][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
   
 * *RF / microwave engineering code*
-    + [<span class="SC">scuff-rf</span>][scuff-RF]         - multiport network parameters
+    + [<span class="SC">scuff-rf</span>][scuff-rf]         - multiport network parameters
                                      (S- and impedance parameters),
                                      and radiated fields, for passive RF
                                      and microwave structures.
@@ -131,24 +132,4 @@
 * [<span class=SC>scuff-static:</span> Pure electrostatics in <span class=SC>scuff-em</span>](tex/scuff-static.pdf) -- a technical memo describing the implementation of the [<span class=SC>scuff-static</span>](applications/scuff-static) code for electrostatics
 * [Electromagnetism in the vector-spherical-wave (VSW) basis](tex/scuffSpherical.pdf) -- a technical memo collecting results of various classical electromagnetism calculations in the vector-spherical-wave basis
 
-[scuffEMLogo]:        img/scuffEMLogo.png
-[GeneralReference]:   applications/GeneralReference.md
-[scuff-scatter]:      applications/scuff-scatter/scuff-scatter.md
-[scuff-ldos]:         applications/scuff-ldos/scuff-ldos.md
-[scuff-transmission]: applications/scuff-transmission/scuff-transmission.md
-[scuff-tmatrix]:      applications/scuff-tmatrix/scuff-tmatrix.md
-[scuff-cas3D]:        applications/scuff-cas3D/scuff-cas3D.md
-[scuff-caspol]:       applications/scuff-caspol/scuff-caspol.md
-[scuff-neq]:          applications/scuff-neq/scuff-neq.md
-[scuff-RF]:           applications/scuff-RF/scuff-RF.md
-[scuff-static]:       applications/scuff-static/scuff-static.md
-[scuff-spectrum]:     applications/scuff-spectrum/scuff-spectrum.md
-[scuff-analyze]:      applications/scuff-analyze/scuff-analyze.md
-[scuff-integrate]:    applications/scuff-integrate/scuff-integrate.md
-[libscuff]:           API/libscuff.md
-[Implementation]:     forDevelopers/Implementation.md
-[DataStructures]:     forDevelopers/DataStructures.md
-[Documentation]:      forDevelopers/Documentation.md
-[SingularIntegrals]:  forDevelopers/SingularIntegrals.md
-[GitHub]:             https://github.com/HomerReid/scuff-em/
-[FAQ]:                reference/FAQ.md
+{!Links.md!}

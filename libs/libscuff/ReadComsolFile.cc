@@ -44,12 +44,11 @@ namespace scuff {
 static int SkipTo(FILE *f, const char *SearchString, char *Line)
 { 
   int Lines=0;
-
   while( fgets(Line,MAXSTR,f) )
    { Lines++;
      if (strstr(Line,SearchString))
       return Lines;
-   };
+   }
   return 0;
 }
 
@@ -57,7 +56,7 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* Constructor helper function for reading in nodes and  *******/
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
-void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
+char *RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
 { 
   char Line[MAXSTR];
   int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
@@ -69,16 +68,16 @@ void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   /***************************************************************/
   LinesRead=SkipTo(MeshFile,"# number of mesh points",Line);
   if (LinesRead==0)
-   ErrExit("%s: failed to find line '#number of mesh points'",FileName);
+   return vstrdup("%s: failed to find line '#number of mesh points'",FileName);
   LineNum+=LinesRead;
 
   nConv=sscanf(Line,"%i ",&NumVertices);
   if (nConv!=1 || NumVertices<0 || NumVertices>10000000)
-   ErrExit("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
+   return vstrdup("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
 
   LinesRead=SkipTo(MeshFile,"# Mesh point coordinates",Line);
   if (LinesRead==0)
-   ErrExit("%s: failed to find line '#Mesh point coordinates'",FileName);
+   return vstrdup("%s: failed to find line '#Mesh point coordinates'",FileName);
   LineNum+=LinesRead;
 
   /***************************************************************/
@@ -88,12 +87,12 @@ void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   for(nv=0; nv<NumVertices; nv++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
-      ErrExit("%s: unexpected end of file",FileName);
+      return vstrdup("%s: unexpected end of file",FileName);
      LineNum++;
 
      if ( 3!=sscanf(Line,"%le %le %le",
                     Vertices+3*nv,Vertices+3*nv+1,Vertices+3*nv+2))
-      ErrExit("%s:%i: syntax error",FileName,LineNum);
+      return vstrdup("%s:%i: syntax error",FileName,LineNum);
    };
 
   /***************************************************************/
@@ -106,21 +105,21 @@ void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   /***************************************************************/
   LinesRead=SkipTo(MeshFile,"3 # number of nodes per element",Line);
   if (LinesRead==0)
-   ErrExit("%s: failed to find line '3 #number of nodes per element'", FileName);
+   return vstrdup("%s: failed to find line '3 #number of nodes per element'", FileName);
   LineNum+=LinesRead;
 
   if ( !fgets(Line,MAXSTR,MeshFile) )
-   ErrExit("%s: unexpected end of file",FileName);
+   return vstrdup("%s: unexpected end of file",FileName);
   LineNum++;
   nConv=sscanf(Line,"%i",&NumPanels);
   if (nConv!=1 || !strstr(Line,"# number of elements"))
-   ErrExit("%s:%i: syntax error",FileName,LineNum);
+   return vstrdup("%s:%i: syntax error",FileName,LineNum);
 
   if ( !fgets(Line,MAXSTR,MeshFile) )
-   ErrExit("%s: unexpected end of file",FileName);
+   return vstrdup("%s: unexpected end of file",FileName);
   LineNum++;
   if ( !strstr(Line,"# Elements") )
-   ErrExit("%s:%i: syntax error",FileName,LineNum);
+   return vstrdup("%s:%i: syntax error",FileName,LineNum);
 
   /***************************************************************/
   /* read panels    **********************************************/ 
@@ -129,11 +128,11 @@ void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   for(np=0; np<NumPanels; np++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
-      ErrExit("%s: unexpected end of file",FileName);
+      return vstrdup("%s: unexpected end of file",FileName);
      LineNum++;
 
      if ( 3!=sscanf(Line,"%i %i %i",&n1,&n2,&n3) )
-      ErrExit("%s:%i: syntax error",FileName,LineNum); 
+      return vstrdup("%s:%i: syntax error",FileName,LineNum); 
  
      Panels[np]=NewRWGPanel(Vertices,n1,n2,n3);
      Panels[np]->Index=np;
@@ -143,7 +142,7 @@ void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   /* ignore the rest of the file and we are done *****************/
   /***************************************************************/
   fclose(MeshFile);
-
+  return 0;
 } 
 
 } // namespace scuff

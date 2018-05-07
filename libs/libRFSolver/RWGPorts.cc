@@ -525,15 +525,18 @@ void RFSolver::AssemblePortBFInteractionMatrix()
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix XMatrix(3,2,PortList->RMinMax);
-  double RhoMinMax[2], zMinMax[2];
-  GetRzMinMax(G, &XMatrix, RhoMinMax, zMinMax);
-  Log("  initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
-  bool PPIsOnly=true;
-  bool Subtract=true;
-  bool RetainSingularTerms=false;
-  G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
-                                         PPIsOnly, Subtract, RetainSingularTerms);
+  if (G->Substrate)
+   {  
+     HMatrix XMatrix(3,2,PortList->RMinMax);
+     double RhoMinMax[2], zMinMax[2];
+     GetRzMinMax(G, &XMatrix, RhoMinMax, zMinMax);
+     Log("  initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
+     bool PPIsOnly=true;
+     bool Subtract=true;
+     bool RetainSingularTerms=false;
+     G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
+                                            PPIsOnly, Subtract, RetainSingularTerms);
+   }
 
   int Order=-1; CheckEnv("SCUFF_PORTBFI_ORDER",&Order);
 

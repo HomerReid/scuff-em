@@ -1,0 +1,270 @@
+<h1> The <span class=SC>scuff-em</span> RF module</h1>
+
+The <span class=SC>scuff-em</span> RF module is an extension of the
+[<span class=SC>scuff-em</span> core library][libscuff] to enable
+RF device modeling within the framework of the surface-integral-equation (SIE)
+approach to electromagnetic scattering implemented by <span class=SC>scuff-em</span>.
+More specifically, the RF module extends <span class=SC>scuff-em</span>'s
+core SIE solver in two key ways:
+
++ As a new type of incident-field source, <span class=SC>scuff-rf</span>
+  introduces the notion of *RF port.* An RF port is simply
+  a localized region of a material body into which an RF current
+  may be injected. The fields radiated by currents forced into RF ports
+  are taken to be the incident fields in an SIE scattering problem, which
+  <span class=SC>scuff-em</span> then solves like any other scattering problem
+  to determine the induced currents everywhere *else* (outside the ports)
+  on the surfaces in a geometry.
+
+  Having computed the induced currents in response to an RF port excitation,
+  we can now make use of the full panoply of existing post-processing options
+  (calculation of scattered and total field components, induced moments, 
+  absorbed and scattered power, visualization of fields and currents, etc)
+  provided by the  [<span class=SC>scuff-em</span> core library][libscuff].
+  However, 
+
++ As a specific new type of post-processing calculation, <span class=SC>scuff-rf</span>
+  implements an algorithm for computing the matrix of *impedance parameters*
+  for a multiport RF structure.
+
+This page documents how to *use* the <span class=SC>scuff-em</span> RF module
+for practical RF device modeling; technical details regarding the implementation
+of the module are discussed in the [<span class=SC>scuff-rf</span> technical memo][scuffRFMemo].
+
+[TOC]
+
+## Multiple interfaces to the <span class=SC>scuff-em</span> RF module: C++, python, command-line
+
+There are multiple ways to access the functionality
+offered by the <span class=SC>scuff-em</span> RF module:
+
++ You can write C++ or python codes that make calls to API routines
+  to describe geometries, solve RF modeling problems, and do
+  various post-processing calculations. This is ideal for interactive
+  calculations and for harnessing existing C++ or python codes
+  for post-processing.
+  
++ You can use the `scuff-rf` command-line module (built and installed by the standard
+  <span class=SC>scuff-em</span> installation process), passing command-line 
+  options to describe the geometry and the calculations to perform.
+  Among other things, this is useful for large-scale batch-processed jobs
+  on HPC clusters.
+  
+In general, the full functionality of the module is available
+via either interface, and anything you might want to do will be doable
+in multiple ways. In this documentation and the closely related
+[illustrative tutorial on microstrip-device modeling with 
+the <span class=SC>scuff-em</span> RF module][MicrostripDevicesExample]
+we will generally provide both python codes and command-line scripts
+for running all calculations.
+
+## Describing microstrip geometries in <span class=SC>scuff-em</span>
+
+The description of microstrip geometries in <span class=SC>scuff-em</span>
+consists of three ingredients:
+
+1. one or more meshed polygons defining metal traces (red regions in the
+pictures above)
+
+2. a description of the substrate (its relative permittivity $\epsilon_r$ and
+thickness $h$).
+
+3. a definition of where the *ports* are located on the traces (indicated
+schematically by white lines and arrows in the pictures above.)
+
+We'll consider each of these items in turn.
+
+### 1. Specifying meshed metal traces
+
+#### 1A. Write a `.scuffgeo` file
+
+One way to define metal traces is simply to write a standard [<span class=SC>scuff-em</span> geometry file][scuffEMGeometries]
+specifying one or more mesh files (such as [<span class=SC>gmsh</span>][GMSH] `.msh` files or [<span class=SC>comsol</span>][COMSOL] `.mphtxt` files),
+optionally subjected to rigid geometrical transformations (translations and rotations). For example, [<span class=SC>scuff-em</span>
+geometry files for the coupled-antenna geometry](#CoupledAntennaSCUFFGEOFile) shown above describe the geometry as containing two copies
+of a mesh file for the single antenna, the second of which is displaced relative to the first.
+
+#### 1B. Use API routines to add polygon meshes
+
+Alternatively, you can skip writing a `.scuffgeo` file altogether and instead just build up your
+geometry from a C++ or python code by making one or more calls to the `AddMetalTraceMesh()`
+API routine. Each call to this routine adds one copy of the meshed polygon to your geometry,
+optionally displaced or rotated. Thus, the following two lines in a python code
+yield the same effect as the `.scuffgeo` file above:
+
+```python
+  AddMetalTraceMesh('')
+```
+
+#### 1C. Use API routines to import layers from GDSII files
+
+As an alternative to calling `AddMetalTraceMesh` to specify pre-meshed polygons,
+you can call the `ImportGDSIILayer()` API routine to request that all polygons
+be instantiated as metal traces in your geometry.
+
+### 2. Define the substrate
+
+#### 2A. Write a `.substrate` file
+
+One way to specify the substrate is to write a simple text file (conventionally 
+assigned file extension `.substrate`) describing the substrate in your geometry.
+As discussed in more detail in the technical documentation for the 
+[<span class=SC>scuff-em</span> full-wave substrate module][FullWaveSubstrate],
+each line of this file adds either **(a)** a single material layer to the substrate,
+specified by the $z$-coordinate of its upper surface and a
+[<span class=SC>scuff-em</span> material descriptor][scuffEMMaterials] describing
+its bulk permittivity and permeability, or **(b)** a perfectly conducting ground plane,
+specified by its height ($z$-coordinate) and the keyword `GROUNDPLANE`.
+Here's a `.substrate` file defining a dielectric layer of relative
+permittivity $\epsilon_r = 2.2$ and thickness 0.794 mm terminated 
+below by a ground plane.
+
+```python
+0.0    CONST_EPS_2.2
+-0.794 GROUNDPLANE
+```
+
+Note that, if the `GROUNDPLANE` line were omitted, this file would
+describe an infinitely thick substrate (half-space) filling the region $z<0$.
+
+#### 2B. Include a `SUBSTRATE....ENDSUBSTRATE` section in your `.scuffgeo` file
+
+If you chose to write a `.scuffgeo` file to define your metal traces, you can
+include the substrate definition in this file by adding a `SUBSTRATE...ENDSUBSTRATE`
+clause. The text between the opening and closing keywords is processed
+as if it had been read in from the `.substrate` file; thus, to specify the 
+substrate described above we would say
+
+```python
+SUBSTRATE
+     0.0   CONST_EPS_2.2
+  -0.794   GROUNDPLANE
+ENDSUBSTRATE
+```
+
+#### 2C. Use API routines to define substrate properties
+
+Finally, you can specify substrate properties directly from C++ or
+python codes by calling API routines. For example, to define
+
+```python
+ SetSubstratePermittivity(2.2);
+ AddSubstrateLayer(0.0, 2.2);    // equivalent to previous line
+
+ SetSubstrateThickness(+0.794);
+ AddGroundPlane(-0.794);         // equivalent to previous line
+
+ SetSubstrateFile("MyFile.substrate");
+```
+
+<a name="RFPorts">
+### 3. Specifying ports
+
+Ports are regions of surfaces into which external RF currents are forced.
+(More specifically, a port will generally have a *positive* terminal, into
+which a current is forced, and a *negative* terminal, from which an identical
+current is extracted. Specifying no negative terminal for a port is equivalent
+to placing the negative terminal on the ground plane of the substrate or on
+a fictitious surface at spatial infinity.)
+
+There are two ways to define port terminals in <span class=SC>scuff-em</span>:
+
+|                                                  |                                                                                                                                                                                                 |
+|:------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|[![](EFAntenna.png)](EFAntenna.png)               | by specifying a planar polygon enclosing a finite length of the *boundary* of a surface, in which case the injected or extracted current will be evenly distributed over the length of the port |
+|[![](CoupledAntennas.png)](CoupledAntennas.png)   | by specifying a single point lying in the *interior* of a surface, in which case the injected or extracted current will be sourced from or sunk into that point.                                |
+
+The requisite information may be communicated to <span class=SC>scuff-em</span> in 
+various ways.
+
+#### 3A. Write a `.ports` file
+
+Ports may be defined by writing a simple text file (conventionally given file extension `.ports`)
+that defines, for each port terminal, a list of $3N$ numbers `x1 y1 z1 x2 y2 z2 ...`
+which will be interpreted as vertex coordinates.
+If $N=1$ the coordinates are those of the source/sink point (second type of port above);
+otherwise, the coordinates are those of the $N$ vertices of the polygon enclosing
+a section of the surface boundary (first type of port above). (If $N=2$ then the
+coordinates define a line which must lie on a surface boundary).
+
+```
+```
+
+The port file may be specified to <span class=SC>scuff-em</span> by saying
+`SetPortFile("MyPorts.port")` in C++ or python, or by saying 
+`--PortFile MyPorts.port` on the `scuff-rf` command line.
+
+#### 3B. Make API calls
+
+If you are building up your geometry from a python script, you can define ports
+via the `AddPort` routine, whose inputs are lists of vertices defining
+the positive and (optional) negative port terminals.
+
+```python
+ Port1PositiveVertices=[0 0
+ Port1NegativeVertices=[0 0
+ AddPort(Port1PositiveVertices, Port1NegativeVertices)
+
+ Port1SourceVertex=[
+ AddPort(Port1SourceVertex)
+```
+
+Note that `AddPort` assumes that only a single polygon is needed to define
+each port terminal. For port terminals requiring multiple polygons,
+you can use `AddPortTerminal` instead.
+
+#### 3C. Import port definitions from a `.GDSII` file
+
+A way to bypass the manual specification of vertices is to define the
+geometric objects (points, lines, or polygons) defining your ports as elements
+(on any layer) of a GDSII file, labeled by specially-formatted text strings 
+placed on the same layer.
+
+More specifically, to define a port terminal by a polygon,
+draw the polygon as a GDSII boundary and add (*on the same GDSII layer*)
+a text string, with reference point lying inside the polygon,
+of the form `PORT 1+` or `PORT 2-`. (Here `PORT` is a fixed keyword,
+the integer is the one-based index of the port, and the sign specifies
+whether this is the positive or negative port terminal; you can use the
+characters `P` in place of `+` and `M` or `N` in place of `-`).
+
+To define a port terminal by a line, draw the line as zero-width GDSII path
+and place the text string somewhere near it. (<span class=SC>scuff-em</span>
+will look for zero-width path whose center lies closest to the text string.)
+
+To define a port terminal by a point, draw a polygon (boundary or box) surrounding the point
+with a labeling text string whose reference point lies inside the boundary/box,
+as above. (To avoid confusing <span class=SC>scuff-em</span>,
+make sure the boundary doesn't fully enclose any *exterior* edges in a meshed
+surface; this is always possible since the source/sink vertices of pointlike 
+ports must lie in the *interior* of meshed surfaces.)
+
+Here are some examples of port-terminal specifications in GDSII files. (Screenshots
+are from the wonderful open-source tool [klayout](https://www.klayout.de); click
+for larger images.) The GDSII files here may be found in the
+`share/scuff-em/examples/MicrostripDevices/GSIIFiles` subdirectory of your <span class=SC>scuff-em</span> installation.
+
+|                                                          |                                                  |
+|:--------------------------------------------------------:|:------------------------------------------------:|
+| Point-defined defined port terminal (source/sink vertex) | [![](EFAntenna.png)](EFAntenna.png)              |
+| Line-defined port terminal                               | [![](EFAntenna.png)](EFAntenna.png)              |
+| Polygon-defined port terminals                           | [![](EFAntenna.png)](EFAntenna.png)              |
+
+
+### Double-checking your geometry specification: The `PlotGeometry` API routine
+
+Having assembled a microstrip geometry via the steps outlined above, it is highly recommended
+that you ask <span class=SC>scuff-em</span> to confirm what it thinks your geometry
+looks like. This may be done by calling the `PlotGeometry()` API routine in a C++ or python
+code, or by specifying the `--PlotGeometry` command-line option to `scuff-rf.`
+The result will be a [GMSH][GMSH] post-processing file with file extension `.pp` that you
+can open in GMSH to see how <span class=SC>scuff-em</span> understood your specification of 
+metal traces, ports, and substrates.
+
+### Earlier version of the <span class=SC>scuff-rf</span> documentation
+
+An earlier version of the <span class=SC>scuff-rf</span> documentation
+may be found at 
+[http://homerreid.com/scuff-em/scuff-RF](http://homerreid.com/scuff-em/scuff-RF).
+
+{!Links.md!}

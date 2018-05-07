@@ -262,7 +262,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
    };
 
   // ok, all checks passed, now on to the main body of the class constructor.
-  InitRWGSurface();
+  ErrMsg=InitRWGSurface();
   
 }
 
@@ -281,7 +281,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   IsPEC=1;
   tolVecClose=0.0; // to be updated once mesh is read in
   OTGT=0;
-  InitRWGSurface();
+  ErrMsg=InitRWGSurface();
 }
 
 /*--------------------------------------------------------------*/
@@ -295,7 +295,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 /*- Label, SurfaceZeta, RegionLabels, IsPEC.                    */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void RWGSurface::InitRWGSurface()
+char *RWGSurface::InitRWGSurface()
 { 
   ErrMsg=0;
   kdPanels = NULL;
@@ -316,7 +316,7 @@ void RWGSurface::InitRWGSurface()
       }
    }
   if (!MeshFile)
-   ErrExit("could not open file %s",MeshFileName);
+   return vstrdup("could not open file %s",MeshFileName);
    
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/
@@ -344,26 +344,27 @@ void RWGSurface::InitRWGSurface()
   /*------------------------------------------------------------*/
   char *p=GetFileExtension(MeshFileName);
   if (!p)
-   ErrExit("file %s: invalid extension",MeshFileName);
+   return vstrdup("file %s: invalid extension",MeshFileName);
   else if (!StrCaseCmp(p,"msh"))
-   ReadGMSHFile(MeshFile,MeshFileName);
+   { char *GMSHError = ReadGMSHFile(MeshFile,MeshFileName);
+     if (GMSHError) return GMSHError;
+   }
   else if (!StrCaseCmp(p,"mphtxt"))
    { if ( MeshTag != -1 )
-      ErrExit("MESHTAG is not yet implemented for .mphtxt files");
+      return vstrdup("MESHTAG is not yet implemented for .mphtxt files");
      ReadComsolFile(MeshFile,MeshFileName);
    }
   else
-   ErrExit("file %s: unknown extension %s",MeshFileName,p);
+   return vstrdup("file %s: unknown extension %s",MeshFileName,p);
 
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
   if (NumPanels==0)
-   { if ( MeshTag == -1 ) 
-      ErrExit("file %s: no panels found",MeshFileName);
-     else
-      ErrExit("file %s: no panels found for mesh tag %i",MeshFileName,MeshTag);
-   };
+   if ( MeshTag == -1 ) 
+    return vstrdup("file %s: no panels found",MeshFileName);
+   else
+    return vstrdup("file %s: no panels found for mesh tag %i",MeshFileName,MeshTag);
 
   /*------------------------------------------------------------*/
   /*- Now that we have put the panels in an array, go through  -*/
@@ -377,7 +378,8 @@ void RWGSurface::InitRWGSurface()
   /* gather necessary edge connectivity info. this is           */
   /* complicated enough to warrant its own separate routine.    */
   /*------------------------------------------------------------*/
-  InitEdgeList();
+  ErrMsg=InitEdgeList();
+  if (ErrMsg) return ErrMsg;
 
   /*------------------------------------------------------------*/
   /*- After InitEdgeList, the Edges array has length NumEdges   */
@@ -448,8 +450,7 @@ void RWGSurface::InitRWGSurface()
   /*-          transformed, we can just untransform x to make   */
   /*-          the Contain() work correctly.                    */
   /*------------------------------------------------------------*/
-  InitkdPanels(false); 
-
+  InitkdPanels(false);
 } 
 
 /*--------------------------------------------------------------*/
@@ -497,7 +498,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   /*------------------------------------------------------------*/
   /* gather necessary edge connectivity info                   -*/
   /*------------------------------------------------------------*/
-  InitEdgeList();
+  if ( (ErrMsg=InitEdgeList()) ) return;
 
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
@@ -545,8 +546,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
       RMin[0] = fmin(RMin[0], V[0] );
       RMin[1] = fmin(RMin[1], V[1] );
       RMin[2] = fmin(RMin[2], V[2] );
-    };
-
+    }
 } 
 
 /***************************************************************/

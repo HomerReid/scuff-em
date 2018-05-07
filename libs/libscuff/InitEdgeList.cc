@@ -44,7 +44,7 @@ namespace scuff {
 /* regarding interior edges, exterior edges, boundary contours,*/
 /* etc.                                                        */
 /***************************************************************/
-void RWGSurface::InitEdgeList()
+char *RWGSurface::InitEdgeList()
 { 
   RWGPanel *P; 
   RWGEdge *E, ***EVEdges, *BCEdgeList;
@@ -154,8 +154,8 @@ void RWGSurface::InitEdgeList()
          /* we have encountered this edge twice before ******************/
          /***************************************************************/
          if ( E->iMPanel != -1 )
-          ErrExit("%s: invalid mesh topology: edge %i of panel %i also belongs to panels %i and %i ",
-                      MFN,ne,np,E->iPPanel,E->iMPanel);
+          return vstrdup("%s: invalid mesh topology: edge %i of panel %i also belongs to panels %i and %i ",
+                          MFN,ne,np,E->iPPanel,E->iMPanel);
 
          /***************************************************************/
          /* we have encountered this edge once before                   */
@@ -231,11 +231,11 @@ void RWGSurface::InitEdgeList()
          NumExteriorEdges++;
 
          if (EVNumEdges[E->iV1]==2) 
-          ErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV1);
+          return vstrdup("%s: invalid mesh topology: vertex %i",MFN,E->iV1);
          EVEdges[E->iV1][ EVNumEdges[E->iV1]++ ] = E;
 
          if (EVNumEdges[E->iV2]==2) 
-          ErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV2);
+          return vstrdup("%s: invalid mesh topology: vertex %i",MFN,E->iV2);
          EVEdges[E->iV2][ EVNumEdges[E->iV2]++ ] = E;
 
          NumExteriorVertices++;
@@ -244,7 +244,7 @@ void RWGSurface::InitEdgeList()
        Edges[E->Index]=E;
     };
   if ( (NumExteriorEdges+NumEdges) != NumTotalEdges )
-   ErrExit("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,NumExteriorEdges,NumTotalEdges-NumEdges);
+   return vstrdup("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,NumExteriorEdges,NumTotalEdges-NumEdges);
   NumHalfRWGEdges = NumExteriorEdges;
 
   /*--------------------------------------------------------------*/
@@ -306,7 +306,7 @@ void RWGSurface::InitEdgeList()
       { 
         /* verify that this vertex is connected to exactly 2 exterior edges */
         if ( EVNumEdges[nvp]!=2 )
-         ErrExit("%s: invalid mesh topology: vertex %i",MFN,nvp);
+         return vstrdup("%s: invalid mesh topology: vertex %i",MFN,nvp);
 
         /* mark this vertex as having been visited */
         EVNumEdges[nvp]=0; 
@@ -324,7 +324,7 @@ void RWGSurface::InitEdgeList()
         else if ( nvp==E->iV2 )
          nvp=E->iV1;
         else
-         ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+         return vstrdup("%s:%i: internal error",__FILE__,__LINE__);
 
         /* set E equal to next edge in boundary contour */
         if ( E==EVEdges[nvp][0] )  
@@ -332,7 +332,7 @@ void RWGSurface::InitEdgeList()
         else if ( E==EVEdges[nvp][1] )  
          E=EVEdges[nvp][0];
         else
-         ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+         return vstrdup("%s:%i: internal error",__FILE__,__LINE__);
 
       } while (nvp!=nv);
 
@@ -367,6 +367,11 @@ void RWGSurface::InitEdgeList()
   free(EVEdges[0]);
   free(EVEdges);
 
+  return 0;
+}
+
+} // namespace scuff
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -396,7 +401,3 @@ void RWGSurface::InitEdgeList()
    };
   fclose(f);
 #endif
-
-}
-
-} // namespace scuff

@@ -126,8 +126,7 @@ int ProcessOption(char *Option, char *Args[], int NumArgs,
 {
   int ni, na;
 
-  OptStruct *OS;
-  for(OS=OSArray; OS->Name!=0; OS++)
+  for(OptStruct *OS=OSArray; OS->Name!=0; OS++)
    if ( !StrCaseCmp(Option, OS->Name) )
     { 
       /*--------------------------------------------------------------*/
@@ -205,9 +204,9 @@ int ProcessOption(char *Option, char *Args[], int NumArgs,
          default: 
            // unknown value for 'Type' field in OptStruct structure
            ErrExit("%s:%i:internal error",__FILE__,__LINE__);
-       };
+       }
 
-    }; // if (!StrCaseCmp...)
+    } // if (!StrCaseCmp...)
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -227,8 +226,7 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  OptStruct *OS;
-  for(OS=OSArray; OS->Name!=0; OS++)
+  for(OptStruct *OS=OSArray; OS->Name!=0; OS++)
    if (OS->NumInstances)
     *(OS->NumInstances)=0;
 
@@ -236,17 +234,16 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
   /* first handle any arguments that might have been passed via  */
   /* stdin                                                       */
   /***************************************************************/
-  char *Tokens[MAXTOK];
-  int NumTokens;
   char ErrMsg[MAXSTR];
   if ( !isatty(fileno(stdin)) )
    { 
-     char Line[MAXSTR];
      int LineNum=0;
+     char Line[MAXSTR];
      while(fgets(Line,MAXSTR,stdin))
       { 
         LineNum++;
-        NumTokens=Tokenize(Line,Tokens,MAXTOK);
+        char *Tokens[MAXTOK];
+        int NumTokens=Tokenize(Line,Tokens,MAXTOK);
 
         if (NumTokens==0 || Tokens[0][0]=='#') 
          continue;
@@ -254,9 +251,9 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
         if (ProcessOption(Tokens[0], Tokens+1, NumTokens-1, OSArray, ErrMsg))
          { snprintf(Line,MAXSTR,"stdin:%i: %s",LineNum,ErrMsg);
            OSUsage(argv[0], OSArray, Line);
-         };
-      };
-   };
+         }
+      }
+   }
 
   /***************************************************************/
   /* and now handle command-line arguments ***********************/
@@ -281,18 +278,20 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
       { if (AbortOnUnknown) 
          OSUsage(argv[0], OSArray,"unknown option %s",argv[narg]);
         continue;
-      };
+      }
 
      /*--------------------------------------------------------------*/
      /*- collect all successive arguments that do not begin with     */
      /*- '--' as parameters for the current option                   */
      /*--------------------------------------------------------------*/
-     for(int nt=NumTokens=0; nt<MAXTOK && argv[narg+nt+1] && (narg+nt+1)<argc; nt++)
+     char *Tokens[MAXTOK];
+     int NumTokens=0;
+     for(int nt=0; nt<MAXTOK && argv[narg+nt+1] && (narg+nt+1)<argc; nt++)
       { if ( !strncmp(argv[narg+nt+1],"--",2) )
          break;
         Tokens[NumTokens]=argv[narg+nt+1];
         NumTokens++;
-      };
+      }
      int Status=ProcessOption(argv[narg]+2, Tokens, NumTokens, OSArray, ErrMsg);
 
      if (Status!=0 && AbortOnUnknown==true)
@@ -304,7 +303,7 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
 
      narg+=NumTokens;
 
-   };
+   }
 
 }
 

@@ -47,34 +47,17 @@ namespace scuff {
 /* file plus a .ports file                                     */
 /***************************************************************/
 RFSolver::RFSolver(const char *scuffgeoFileName, const char *portFileName)
-{
-  /*--------------------------------------------------------------*/
-  /* try to read in geometry and port list -----------------------*/
-  /*--------------------------------------------------------------*/
-  RWGGeometry::UseHRWGFunctions=false;
-  G = new RWGGeometry(scuffgeoFileName);
-  PortList = ParsePortFile(G, portFileName);
-  NumPorts = PortList->Ports.size();
-  FileBase = strdup(GetFileBase(scuffgeoFileName));
-
-  InitSolver();
-
-}
-
-/***************************************************************/
-/* RF solver class constructor #2: construct from a .GDSII     */
-/* file                                                        */
-/***************************************************************/
-#if 0
-RFSolver::RFSolver(const char *GDSIIFileName)
 { 
-  FileBase = strdup(GetFileBase(GDSIIFileName));
-  NumPorts = 0; // PortList->Ports.size();
-
   InitSolver();
+  scuffgeoFile = scuffgeoFileName ? strdup(scuffgeoFileName) : 0;
+  portFile     = portFileName     ? strdup(portFileName)     : 0;
 }
-#endif
 
+/***************************************************************/
+/* constructor helper routine that just handles minor stuff;   */
+/* most actual initialization is handled by InitGeometry below,*/
+/* which is called lazily just-in-time as needed               */
+/***************************************************************/
 void RFSolver::InitSolver()
 {
   /*--------------------------------------------------------------------------*/
@@ -96,8 +79,9 @@ void RFSolver::InitSolver()
   UBlocks = 0;
 
   RetainContributions = CONTRIBUTION_ALL;
-  SubstrateInitialized = false;
   SubstrateFile = 0;
+  scuffgeoFile  = 0;
+  portFile      = 0;
 
   EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
 }
@@ -129,40 +113,54 @@ RFSolver::~RFSolver()
 }
 
 /********************************************************************/
-/* routines for building up substrates from the python command line */
+/* routines for building up geometries line-by-line from python     */
+/* scripts; these just make a note of whatever feature the user     */
+/* added, with the actual initialization done later by InitGeometry()*/
 /********************************************************************/
-void RFSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon,  cdouble Mu)
-{
+void RFSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu)
+{ 
+  if (G) ErrExit("can't modify substrate after geometry has been initialized");
+
   char Line[100];
-  if (Mu==1.0)
+  if (isinf(real(Epsilon)))
+   snprintf(Line,100,"%e GROUNDPLANE\n",zInterface);
+  else if (Mu==1.0)
    snprintf(Line,100,"%e CONST_EPS_%s\n",zInterface,z2s(Epsilon));
   else
    snprintf(Line,100,"%e CONST_EPS_%s_MU_%s\n",zInterface,z2s(Epsilon),z2s(Mu));
   SubstrateLayers.insert(std::pair<double, char *>(-zInterface, strdup(Line)));
-  SubstrateInitialized = false;
 }
+
+void RFSolver::AddGroundPlane(double zGP)
+{ AddSubstrateLayer(zGP, HUGE_VAL); }
 
 void RFSolver::SetSubstratePermittivity(cdouble Epsilon)
 { AddSubstrateLayer(0.0, Epsilon); }
 
-void RFSolver::AddGroundPlane(double zGP)
-{ char Line[100];
-  snprintf(Line,100,"%e GROUNDPLANE\n",zGP);
-  SubstrateLayers.insert(std::pair<double, char *>(-zGP, strdup(Line)));
-  SubstrateInitialized = false;
-}
-
 void RFSolver::SetSubstrateThickness(double h)
-{ AddGroundPlane(-h); 
-  SubstrateInitialized = false;
-}
+{ AddGroundPlane(-h); }
 
 void RFSolver::SetSubstrateFile(const char *_SubstrateFile)
 { 
+  if (G) ErrExit("can't modify substrate after geometry has been initialized");
   SubstrateFile = strdup(_SubstrateFile);
-  SubstrateInitialized=false;
 }
 
+void RFSolver::SetGeometryFile(const char *_scuffgeoFile)
+{
+  if (MeshFiles.size() > 0)
+   { Warn("can't add geometry file after adding metal traces");
+     return;
+   }
+  if (_scuffgeoFile==0) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+  if (scuffgeoFile)
+   { Warn("overwriting existing geometry file %s with new file %s",scuffgeoFile,_scuffgeoFile);
+     free(scuffgeoFile);
+   }
+  scuffgeoFile = vstrdup(_scuffgeoFile);
+}
+
+#if 0
 void RFSolver::InitializeSubstrate()
 { 
   if (SubstrateInitialized)
@@ -182,13 +180,100 @@ void RFSolver::InitializeSubstrate()
   else
    G->Substrate=CreateLayeredSubstrate("0.0 VACUUM\n");
 }
+#endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Transformation)
+{
+  char *ErrMsg=0;
+
+  if (G) 
+   ErrMsg=vstrdup("can't add metal traces after geometry has been initialized");
+  if (scuffgeoFile)
+   ErrMsg=vstrdup("can't add metal traces to existing geometry file %s",scuffgeoFile);
+
+  // check that mesh is valid
+  if (!ErrMsg) 
+   { RWGSurface *S = new RWGSurface(MeshFile);
+     if (S->ErrMsg) ErrMsg = strdup(S->ErrMsg);
+     delete S;
+   }
+
+  // check that transformation is valid
+  if (!ErrMsg && Transformation)
+   { GTransformation *GT = new GTransformation(Transformation, &ErrMsg);
+     delete GT;
+   }
+
+  if (ErrMsg)
+   { Warn("AddMetalTraceMesh: %s (ignoring)",ErrMsg);
+     free(ErrMsg);
+     return;
+   }
+
+  MeshFiles.push_back(strdup(MeshFile));
+  MeshTransforms.push_back( Transformation ? strdup(Transformation) : 0);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RFSolver::InitGeometry()
+{ 
+  if (G) return;
+
+  FileBase = strdup( scuffgeoFile ? GetFileBase(scuffgeoFile) : "pyscuff");
+
+  /*--------------------------------------------------------------*/
+  /*- write .scuffgeo file from user's specifications    ---------*/
+  /*--------------------------------------------------------------*/
+  if (!scuffgeoFile)
+   { if ( MeshFiles.size()==0 ) ErrExit("no metal traces specified");
+     if (MeshFiles.size() != MeshTransforms.size()) ErrExit("%s:%i: internal error");
+     char buffer[100];
+     snprintf(buffer,100,"pyscuffgeo.XXXXXX");
+     scuffgeoFile=vstrdup(buffer);
+     FILE *f=fdopen( mkstemp(scuffgeoFile), "w");
+     if (!f) ErrExit("could not write file %s",scuffgeoFile);
+     for(size_t n=0; n<MeshFiles.size(); n++)
+      { fprintf(f,"OBJECT %s_%lu \n MESHFILE %s \n",GetFileBase(MeshFiles[n]),n,MeshFiles[n]);
+        free(MeshFiles[n]);
+        if (MeshTransforms[n]) { fprintf(f," %s\n",MeshTransforms[n]); free(MeshTransforms[n]); }
+        fprintf(f,"ENDOBJECT\n");
+      }
+     if (SubstrateLayers.size()>0)
+      { fprintf(f,"SUBSTRATE\n");
+        for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
+         fprintf(f," %s",it->second);
+        fprintf(f,"ENDSUBSTRATE\n");
+      }
+     fclose(f);
+   }
+
+  /*--------------------------------------------------------------*/
+  /*- read in geometry file and port list ------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGGeometry::UseHRWGFunctions=false;
+  G = new RWGGeometry(scuffgeoFile);
+
+  if (!portFile) ErrExit("no ports specified");
+
+  PortList = ParsePortFile(G, portFile);
+  NumPorts = PortList->Ports.size();
+
+  SubstrateLayers.clear();
+  MeshFiles.clear();
+  MeshTransforms.clear();
+}
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void RFSolver::UpdateSystemMatrix()
 { 
-  if (!SubstrateInitialized) InitializeSubstrate();
+  if (!G) InitGeometry();
 
   // lazy allocation of accelerator
   if (TBlocks==0)
@@ -234,7 +319,8 @@ void RFSolver::UpdateSystemMatrix()
 
 void RFSolver::AssembleSystemMatrix(double Freq)
 { 
-  if (!SubstrateInitialized) InitializeSubstrate();
+  if (!G) InitGeometry();
+
   if (M==0) M=G->AllocateBEMMatrix();
   Omega = Freq * FREQ2OMEGA;
 

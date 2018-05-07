@@ -464,12 +464,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
   /***************************************************************/
   /* read and process lines from input file one at a time        */
-  /***************************************************************/
   RWGSurface *S=0, *SP;
   char Line[MAXSTR];
   int LineNum=0; 
-  int nTokens;
-  char *Tokens[MAXTOK];
   while( fgets(Line,MAXSTR,f) )
    { 
      LineNum++;
@@ -477,7 +474,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      /*--------------------------------------------------------------*/
      /*- break up line into tokens; skip blank lines and comments ---*/
      /*--------------------------------------------------------------*/
-     nTokens=Tokenize(Line, Tokens, MAXTOK);
+     char *Tokens[MAXTOK];
+     int nTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( nTokens==0 || Tokens[0][0]=='#' )
       continue; 
     
@@ -543,16 +541,16 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       }
      else if ( !StrCaseCmp(Tokens[0],"OBJECT") || !StrCaseCmp(Tokens[0],"SURFACE") )
       { 
+        RWGSurface *S;
         if ( nTokens==2 )
          S=new RWGSurface(f,Tokens[1],&LineNum,Tokens[0]);
         else if (nTokens!=1)
          ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
         else
-         { 
-           char Label[MAXSTR];
+         { char Label[MAXSTR];
            snprintf(Label,MAXSTR,"Surface_%i",NumSurfaces+1);
            S=new RWGSurface(f,Label,&LineNum,Tokens[0]);
-         };
+         }
 
         if (S->ErrMsg)
          ErrExit("%s:%i: %s",GeoFileName,LineNum,S->ErrMsg); 
@@ -617,9 +615,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         /* unknown keyword                                              */
         /*--------------------------------------------------------------*/
         ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
-      };
+      }
 
-   }; // while( fgets(Line,MAXSTR,f) )
+   } // while( fgets(Line,MAXSTR,f) )
 
   /*******************************************************************/
   /* Before doing any vector comparisons with VecClose (e.g.
@@ -640,7 +638,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   if (LBasis)
    { LDim=LBasis->NC;
      InitPBCData();
-   };
+   }
 
   /*******************************************************************/
   /* Autodetect nesting relationships & topologically sort           */
@@ -655,11 +653,11 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
    Surfaces[ns]->InitkdPanels(false, LogLevel);
   for (int ns = 1; ns < NumSurfaces; ++ns) 
    { 
-     S=Surfaces[ns];
+     RWGSurface *S=Surfaces[ns];
      int NewSlotForS=-1;
      for (int nsp = ns-1; nsp >= 0; --nsp) // innermost to outermost
       { 
-        SP = Surfaces[nsp];
+        RWGSurface *SP = Surfaces[nsp];
         if ( SP->Contains(S) ) 
          {
            if (SP->IsPEC) 
@@ -674,7 +672,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          } 
         else if ( S->Contains(SP) )
          NewSlotForS = nsp;
-      };
+      }
 
      if ( NewSlotForS != -1 )
       {  
@@ -685,7 +683,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          { 
            Surfaces[nsp] = Surfaces[nsp-1];
 
-           SP = Surfaces[nsp];
+           RWGSurface *SP = Surfaces[nsp];
            if (    SP->RegionIndices[0] == S->RegionIndices[0] 
                 && S->Contains(SP) 
               ) 
@@ -696,11 +694,11 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 	      free(SP->RegionLabels[0]);
 	      SP->RegionLabels[0]=strdupEC(S->RegionLabels[1]);
             };
-         };
+         }
         Surfaces[NewSlotForS] = S;
-      };
+      }
 
-    }; // for(ns = 1 ...)
+    } // for(ns = 1 ...)
 
   /*******************************************************************/
   /* make sure that all panel normals point in the correct direction.*/
@@ -708,7 +706,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   int NumFlipped=0;
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
-     S=Surfaces[ns];
+     RWGSurface *S=Surfaces[ns];
      int ExteriorRegion=S->RegionIndices[0]; 
      int InteriorRegion=S->RegionIndices[1]; 
      double X[3];
@@ -741,8 +739,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          ErrExit("%s:%i: internal error (%i,%i)",__FILE__,__LINE__,ns,np);
 */
 
-      };
-   };
+      }
+   }
   Log("Flipped %i panel normals to comport with region definitions.",NumFlipped);
  
   /*******************************************************************/
@@ -802,12 +800,12 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Mate=(int *)mallocEC(NumSurfaces*sizeof(int));
   Mate[0]=-1;
   for(int ns=1; ns<NumSurfaces; ns++)
-   { S=Surfaces[ns];
+   { RWGSurface *S=Surfaces[ns];
      Mate[ns]=-1;
      int nr1=S->RegionIndices[0];
      int nr2=S->RegionIndices[1];
      for(int nsp=0; nsp<ns && Mate[ns]==-1; nsp++)
-      { SP=Surfaces[nsp];
+      { RWGSurface *SP=Surfaces[nsp];
         int nr1p=SP->RegionIndices[0];
         int nr2p=SP->RegionIndices[1];
         if (    ( !strcmp(S->MeshFileName, SP->MeshFileName) )
@@ -818,9 +816,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
                 )
            ) { Mate[ns]=nsp;
                Log("Noting that surface %i (%s) is a duplicate of surface %i (%s)...",ns,S->Label,nsp,SP->Label);
-             };
-      };
-   };
+             }
+      }
+   }
 
   /***************************************************************/
   /* initialize SurfaceMoved[] array.                            */
@@ -848,7 +846,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
     FIBBICaches[ns] = FIBBICaches[ Mate[ns] ];
    else
     FIBBICaches[ns] = CreateFIBBICache(Surfaces[ns]->MeshFileName);
-
 }
 
 /***************************************************************/
@@ -864,7 +861,7 @@ RWGGeometry::~RWGGeometry()
   for(int nr=0; nr<NumRegions; nr++)
    { delete RegionMPs[nr];
      free(RegionLabels[nr]); 
-   };
+   }
   free(RegionMPs);
   free(RegionLabels);
 

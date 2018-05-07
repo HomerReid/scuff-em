@@ -412,17 +412,17 @@ int main(int argc, char *argv[])
      else if (Ext && !strcasecmp(Ext,"msh"))
       { MeshFile=strdup(argv[1]); 
         argv[1]=0; 
-      };
-   };
+      }
+   }
 
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
   int PhysicalRegion=-1;
   char *TransFile=0;
-  int WriteGPFiles=0;
-  int WritePPFiles=0;
-  int WriteLabels=0;
+  bool WriteGPFiles=0;
+  bool WritePPFiles=0;
+  bool WriteLabels=0;
   int Neighbors=0;
   bool EEPs=false;
   bool RegionVolumes=false;
@@ -459,7 +459,9 @@ int main(int argc, char *argv[])
   if (TransFile && GeoFile==0)
    ErrExit("--transfile option may only be used with --geometry");
   if (EPFile)
-   WritePPFiles=1;
+   WritePPFiles=true;
+  if (WriteLabels)
+   WritePPFiles=true;
    
   /***************************************************************/
   /**************************************************************/
@@ -526,8 +528,7 @@ int main(int argc, char *argv[])
       }
 
      printf("Visualizations for %i transforms written to %s.\n",NGTC,PPFileName);
- 
-   };
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -549,7 +550,7 @@ int main(int argc, char *argv[])
                  XMatrix->GetEntryD(n,2));
      fprintf(f,"};\n\n");
      fclose(f);
-  };
+  }
 
   /***************************************************************/
   /***************************************************************/

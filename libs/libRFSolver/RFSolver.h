@@ -157,6 +157,7 @@ public:
     // internal methods
     ////////////////////////////////////////////////////
     void InitSolver();
+    void InitGeometry();
     void InitializeSubstrate();
 
     void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
@@ -197,10 +198,10 @@ public:
     // stuff to facilitate python-driven sessions:
     ////////////////////////////////////////////////////
     std::map<double, char *> SubstrateLayers;
+    sVec MeshFiles, MeshTransforms;
     char *SubstrateFile;
     char *scuffgeoFile;
-    char *PortFile;
-    bool SubstrateInitialized;
+    char *portFile;
 
  }; // class RFSolver;
 
