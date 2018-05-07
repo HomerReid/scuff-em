@@ -65,9 +65,24 @@ we summarize here some salient points.
   **(c)** creating a GDSII file containing points, lines, or polygons tagged by special text strings.
   (Examples of all of these methods are discussed below).
 
+## Layout of the `MicrostripDevices` directory
+
+All files needed to run the examples described here may be found
+in the `share/scuff-em/examples/MicrostripDevices` directory of your
+<span class=SC>scuff-em</span> installation. The files are organized into
+subdirectories as follows:
+
++ `scuffgeoFiles`: <span class=SC>scuff-em</span> geometry files (`.scuffgeo` files)
++ `mshFiles`: [<span class=SC>gmsh</span>][GMSH]-produced mesh files (`.msh` files) referenced by the `.scuffgeo files
++ `geoFiles`: [<span class=SC>gmsh</span>][GMSH] geometry files (`.geo` files) that are meshed by [[gmsh]] to produce `.msh` files
++ `portFiles`: Files defining [RF ports][RFPorts] (`.port` files)
++ `GDSIIFiles`: GDSII files that may be used in place of `.port` files (and optionally in place of `.scuffgeo` files, although this is [not recommended](../../applications/scuff-rf/scuff-rf.md#GDSIIGeometrySpecification))
++ `python`: Python scripts that run the calculations described below
++ `bashScripts`: Shell scripts that run the calculations described below
+
 ## Example 1: Edge-fed patch antenna
 
-Our first example is the *edge-fed patch antenna* originally studied in this paper:
+Our first example is the *edge-fed patch antenna* shown above and studied originally in this paper:
 
 + [Wu et al., "Feeding Structure Contribution to Radiation by Patch Antennas with Rectangular Boundaries," IEEE Transactions on Antennas and Propagation **40** 1245 (1992). DOI: 10.1109/8.18245](https://doi.org/10.1109/8.182458)
 
@@ -75,13 +90,50 @@ This antenna is also used as a demonstration example for the commercial solver F
 
 + [http://feko.info/fekoweb/applications/white-papers/edge_fed_rectangular_microstrip_patch_antenna/document](http://feko.info/fekoweb/applications/white-papers/edge_fed_rectangular_microstrip_patch_antenna/document)
 
-A
+### Defining metal meshes and RF ports
 
-### Python calculation
+The metallization region is described by the [GMSH][GMSH] geometry file 
+[`EdgeFedAntenna.geo`](EdgeFedAntenna.geo),
+which we process with [[gmsh]] to yield mesh files
+`EFAntenna_L8_Coarse.msh` (coarser discretization) and
+`EFAntenna_L8_Fine.msh` (finer discretization):
+
+```bash
+ % gmsh -2 EdgeFedAntenna.geo -setnumber LFeed 8.0 -setnumber N 1 -o EFAntenna_L8_Coarse.geo
+ % gmsh -2 EdgeFedAntenna.geo -setnumber LFeed 8.0 -setnumber N 2 -o EFAntenna_L8_Fine.geo
+```
+
+Note that the `.geo` file contains several user-definable parameters, of which
+we are here specifying two: `LFeed` (length of feed line) and `N` (discretization
+fineness, i.e. number of triangle edges per unit length).
+The coarser mesh looks like this:
+
+![EFAntennaMesh.pdf](EFAntennaMesh.pdf)
+
+The next step is to define a single RF port with positive terminal
+lying on the feed edge.
+Note that the `.geo` file is set up to ensure that the feed edge always lies on the
+$x$-axis centered at the origin, irrespective of the settings of the user-tweakable
+parameters; this means that we only need to define one port specification one 
+time, and can then reuse it for all meshes produced from this `.geo` file.
+In this case, we can simply specify the port to be defined by a line segment
+lying on the $x$ axis and extending at least over the
+range $\left[-\frac{W_{\hbox{feed}}}{2}, +\frac{W_{\hbox{feed}}}{2}\right]$.
+For example, we might define this line segment to run from 
+$\vb x_1=(-5,0,0)$ to $\vb x_2=(+5,0,0)$; this yields the file `EFAntenna.ports,`
+which looks like this:
+
+```python
+PORT
+	POSITIVE -5 0 0 +5 0 0 
+ENDPORT
+```
+
+### Python calculation:
 
 ### Command-line solution
 
-Here's how the same calculation could be run from the command line using `scuff-rf`:
+Here's how the same calculation is run from the command line using `scuff-rf`:
 
 ## Example 2: Coupled center-fed patch antennas
 

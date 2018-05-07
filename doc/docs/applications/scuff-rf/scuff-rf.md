@@ -96,12 +96,6 @@ yield the same effect as the `.scuffgeo` file above:
   AddMetalTraceMesh('')
 ```
 
-#### 1C. Use API routines to import layers from GDSII files
-
-As an alternative to calling `AddMetalTraceMesh` to specify pre-meshed polygons,
-you can call the `ImportGDSIILayer()` API routine to request that all polygons
-be instantiated as metal traces in your geometry.
-
 ### 2. Define the substrate
 
 #### 2A. Write a `.substrate` file
@@ -213,6 +207,7 @@ Note that `AddPort` assumes that only a single polygon is needed to define
 each port terminal. For port terminals requiring multiple polygons,
 you can use `AddPortTerminal` instead.
 
+<a name="GDSIIPortSpecification">
 #### 3C. Import port definitions from a `.GDSII` file
 
 A way to bypass the manual specification of vertices is to define the
@@ -260,6 +255,29 @@ code, or by specifying the `--PlotGeometry` command-line option to `scuff-rf.`
 The result will be a [GMSH][GMSH] post-processing file with file extension `.pp` that you
 can open in GMSH to see how <span class=SC>scuff-em</span> understood your specification of 
 metal traces, ports, and substrates.
+
+<a name="GDSIIGeometrySpecification">
+#### Using API routines to import layers from GDSII files
+
+As an alternative to writing a `.scuffgeo` file or calling `AddMetalTraceMesh` to specify
+pre-meshed polygons, you can call the `ImportGDSIILayer()` API routine to request that
+all polygons on a given layer in a GDSII file be instantiated as metal traces in your
+geometry.
+
+Under the hood, what is going here is the following: <span class=SC>scuff-em</span>
+parses the GDSII file to extract polygon definitions, creates a
+[[gmsh]] geometry (`.geo`) file for each polygon, runs [[gmsh]] to create a mesh file
+with the meshing lengthscale you specified, and calls `AddMetalTraceMesh` to
+add it to the geometry.
+
+Thus, together with the option
+to [use GDSII files to define ports](#GDSIIPortSpecification), this *in principle*
+allows the entirety of a <span class=SC>scuff-em</span> microstrip geometry to
+be defined by GDSII files, eliminating the need to run [gmsh] or
+write `.scuffgeo` or `.port` files by hand.
+
+However, at present this way of doing things is **not recommended,** for
+reasons of computational efficiency. 
 
 ### Earlier version of the <span class=SC>scuff-rf</span> documentation
 

@@ -342,12 +342,7 @@ cdouble RWGGeometry::GetPlaneWaveAmplitude(cdouble Omega, double *kBloch, HVecto
         hdot += KNSign[KN]*conj(RHSVector->GetEntry(nbf))*KNVector->GetEntry(nbf);
      }
   double Prefac = 0.5*ZVAC*ZVAC;
-  if (G->LDim)
-   { if (PW->nHat[2]==0.0)
-      PreFac=0.0;
-     else
-      Prefac /= (G->LVolume * nHat[2]);
-   }
+  if (LDim) Prefac /= LVolume;
   if (Terms) Terms[0]=Prefac*hdot;
   delete RHSVector;
   return Prefac*ucdot;

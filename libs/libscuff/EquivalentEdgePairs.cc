@@ -633,7 +633,7 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
 /***************************************************************/
 EquivalentEdgePairTable::~EquivalentEdgePairTable()
 {
- if (ChildPairListArray) delete[] ChildPairListArray;
+  if (ChildPairListArray) delete[] ChildPairListArray;
 }
 
 /****************************************************************************/

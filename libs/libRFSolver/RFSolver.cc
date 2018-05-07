@@ -82,8 +82,6 @@ void RFSolver::InitSolver()
   SubstrateFile = 0;
   scuffgeoFile  = 0;
   portFile      = 0;
-
-  EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
 }
 
 /***************************************************************/
@@ -91,25 +89,27 @@ void RFSolver::InitSolver()
 /***************************************************************/
 RFSolver::~RFSolver()
 {
-  if (G)            delete G;
+  if (EEPTable)     delete EEPTable;
   if (PortList)     delete PortList;
   if (FileBase)     free(FileBase);
   if (M)            delete M;
+  if (KN)           delete KN;
   if (PBFIMatrix)   delete PBFIMatrix;
   if (PortCurrents) delete PortCurrents;
-  if (KN)           delete KN;
 
-  int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
   if (TBlocks)
-   { for(int ns=0; ns<NS; ns++)
+   { for(int ns=0; ns<G->NumSurfaces; ns++)
       delete TBlocks[ns];
      delete TBlocks;
    }
   if (UBlocks)
-   { for(int nu=0; nu<NU; nu++)
+   { int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
+     for(int nu=0; nu<NU; nu++)
       delete UBlocks[nu];
      delete UBlocks;
    }
+
+  if (G)            delete G;
 }
 
 /********************************************************************/
@@ -230,24 +230,31 @@ void RFSolver::InitGeometry()
   /*- write .scuffgeo file from user's specifications    ---------*/
   /*--------------------------------------------------------------*/
   if (!scuffgeoFile)
-   { if ( MeshFiles.size()==0 ) ErrExit("no metal traces specified");
-     if (MeshFiles.size() != MeshTransforms.size()) ErrExit("%s:%i: internal error");
+   { 
+
      char buffer[100];
      snprintf(buffer,100,"pyscuffgeo.XXXXXX");
      scuffgeoFile=vstrdup(buffer);
      FILE *f=fdopen( mkstemp(scuffgeoFile), "w");
      if (!f) ErrExit("could not write file %s",scuffgeoFile);
+
+     if (MeshFiles.size()==0) ErrExit("no metal traces specified");
+     if (MeshFiles.size() != MeshTransforms.size()) ErrExit("%s:%i: internal error");
      for(size_t n=0; n<MeshFiles.size(); n++)
       { fprintf(f,"OBJECT %s_%lu \n MESHFILE %s \n",GetFileBase(MeshFiles[n]),n,MeshFiles[n]);
         free(MeshFiles[n]);
         if (MeshTransforms[n]) { fprintf(f," %s\n",MeshTransforms[n]); free(MeshTransforms[n]); }
         fprintf(f,"ENDOBJECT\n");
       }
+     MeshFiles.clear();
+     MeshTransforms.clear();
+
      if (SubstrateLayers.size()>0)
       { fprintf(f,"SUBSTRATE\n");
         for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
          fprintf(f," %s",it->second);
         fprintf(f,"ENDSUBSTRATE\n");
+        SubstrateLayers.clear();
       }
      fclose(f);
    }
@@ -263,9 +270,7 @@ void RFSolver::InitGeometry()
   PortList = ParsePortFile(G, portFile);
   NumPorts = PortList->Ports.size();
 
-  SubstrateLayers.clear();
-  MeshFiles.clear();
-  MeshTransforms.clear();
+  EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
 }
 
 /***************************************************************/
@@ -374,5 +379,121 @@ void RFSolver::Solve(cdouble PortCurrent, int WhichPort)
   PortCurrents[WhichPort]=PortCurrent;
   Solve(0);
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RFSolver::PlotGeometry(const char *PPFormat, ...)
+{
+  if (!G) InitGeometry();
+
+  /***************************************************************/
+  /* open the file ***********************************************/
+  /***************************************************************/
+  char PPFileName[1000];
+  if (!PPFormat)
+   snprintf(PPFileName,1000,"%s.pp",FileBase);
+  else
+   { va_list ap;
+     va_start(ap,PPFormat);
+     vsnprintfEC(PPFileName,997,PPFormat,ap);
+     va_end(ap);
+   }
+
+  FILE *f=fopen(PPFileName,"w");
+  if (!f)
+   { Warn("could not open file %s (skipping geometry plot)",PPFileName);
+     return;
+   }
+  fclose(f);
+
+  /***************************************************************/
+  /* plot geometry ***********************************************/
+  /***************************************************************/
+  G->WritePPMesh(PPFileName,FileBase);
+  
+  /***************************************************************/
+  /* plot ports **************************************************/
+  /***************************************************************/
+  f=fopen(PPFileName,"a");
+  for(unsigned nPort=0; nPort<PortList->Ports.size(); nPort++)
+   for(int Pol=_PLUS; Pol<=_MINUS; Pol++)
+    { 
+      RWGPort *Port = PortList->Ports[nPort];
+      if (Port->PortEdges[Pol].size() == 0) continue;
+
+      fprintf(f,"View \"Port %i %s terminal\" {\n",nPort+1, (Pol==_PLUS ? "positive" : "negative") );
+      /*--------------------------------------------------------------*/
+      /*- scalar lines and arrows for port edges                      */
+      /*--------------------------------------------------------------*/
+      for(unsigned nPE=0; nPE<Port->PortEdges[Pol].size(); nPE++)
+       { RWGPortEdge *PE = Port->PortEdges[Pol][nPE];
+         RWGSurface *S   = G->Surfaces[PE->ns];
+         RWGEdge *E      = S->GetEdgeByIndex(PE->ne);
+         double *V1      = S->Vertices + 3*E->iV1;
+         double *V2      = S->Vertices + 3*E->iV2;
+         int Value       = (Pol==_PLUS ? 1 : -1 ) * (nPort+1);
+         fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
+                    V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],Value,Value);
+
+         // arrow to indicate direction of current flow
+         double *X0   = E->Centroid;
+         double *ZHat = S->Panels[E->iPPanel]->ZHat;
+         double *P0   = S->Panels[E->iPPanel]->Centroid;
+         double V1mV2[3]; VecSub(V1, V2, V1mV2);
+         double Dir[3];   VecCross(ZHat, V1mV2, Dir);
+         double X0P[3];   VecScaleAdd(X0, 0.1, Dir, X0P);
+         bool DirPointsIntoPanel = (VecDistance(X0P,P0) < VecDistance(X0,P0));
+         bool DirShouldPointIntoPanel = (Pol==_MINUS);
+         if (PE->Sign==-1.0) DirShouldPointIntoPanel = !DirShouldPointIntoPanel;
+         if (DirPointsIntoPanel!=DirShouldPointIntoPanel) VecScale(Dir, -1.0);
+         fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",X0[0],X0[1],X0[2],Dir[0],Dir[1],Dir[2]);
+       }
+      fprintf(f,"};\n");
+      fprintf(f,"View[PostProcessing.NbViews-1].CenterGlyphs=1;\n");
+      fprintf(f,"View[PostProcessing.NbViews-1].LineWidth = 5;\n");
+      fprintf(f,"View[PostProcessing.NbViews-1].LineType  = 1;\n");
+      fprintf(f,"View[PostProcessing.NbViews-1].CustomMax = %i;\n",+(NumPorts+1));
+      fprintf(f,"View[PostProcessing.NbViews-1].CustomMin = %i;\n",-(NumPorts+1));
+      fprintf(f,"View[PostProcessing.NbViews-1].RangeType = 2;\n");
+      fprintf(f,"View[PostProcessing.NbViews-1].ShowScale = 0;\n");
+      fprintf(f,"View.Light = 0;\n");
+   }
+
+  /***************************************************************/
+  /* plot substrate layers and/or ground plane *******************/
+  /***************************************************************/
+  if (G->Substrate)
+   {  
+     LayeredSubstrate *S = G->Substrate;
+     double RMax[3] = {-HUGE_VAL, -HUGE_VAL, -HUGE_VAL};
+     double RMin[3] = { HUGE_VAL,  HUGE_VAL,  HUGE_VAL};
+     for(int ns=0; ns<G->NumSurfaces; ns++)
+      for(int i=0; i<3; i++)
+       { RMax[i] = fmax(RMax[i], G->Surfaces[ns]->RMax[i]);
+         RMin[i] = fmin(RMin[i], G->Surfaces[ns]->RMin[i]);
+       }
+     int NI = S->NumInterfaces;
+     if (!isinf(S->zGP)) NI++;
+     for(int ni=0; ni<NI; ni++)
+      { double z;
+        if (ni==S->NumInterfaces)
+         { z=S->zGP;
+           fprintf(f,"View \"Ground plane\" {\n");
+         }
+        else
+         { z=S->zInterface[ni];
+           fprintf(f,"View \"%s upper surfaces\" {\n",S->MPLayer[ni+1]->Name);
+         }
+        fprintf(f,"SQ(%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e) {%i,%i,%i,%i};\n};\n",
+                   RMin[0], RMin[1], z, RMax[0], RMin[1], z, RMax[0], RMax[1], z, RMin[0], RMax[1], z, ni,ni,ni,ni);
+      }
+   }
+
+  fclose(f);
+}
+
+void RFSolver::PlotGeometry()
+ { PlotGeometry(0); }
 
 } // namespace scuff

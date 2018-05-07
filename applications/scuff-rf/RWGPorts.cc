@@ -168,8 +168,8 @@ bool PointOnLineSegment(double *X, double *V1, double *V2)
 
   VecSub( X, V1, A);
   VecSub(V2, V1, B);
-  double A2  =   A[0]*A[0] + A[1]*A[1] + A[2]*A[2];
-  double B2  =   B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
+  double A2  = A[0]*A[0] + A[1]*A[1] + A[2]*A[2];
+  double B2  = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
 
   if ( A2<1.0e-12*B2 || fabs(A2-B2)<1.0e-12*B2 )
    return true;
@@ -183,7 +183,7 @@ bool PointOnLineSegment(double *X, double *V1, double *V2)
   // A2 * (1-AdB^2/A2B2) < 1e-12*B2
   // (A2*B2 - AdB^2)  < 1e-12*B2*B2
 
-  double AdB =   A[0]*B[0] + A[1]*B[1] + A[2]*B[2];
+  double AdB = A[0]*B[0] + A[1]*B[1] + A[2]*B[2];
   if (AdB<0.0) 
    return false;
   if ( (A2*B2-AdB*AdB) > 1.0e-12*B2*B2 ) 
@@ -234,7 +234,6 @@ bool PointInPolygon(double *X, double *V, int NumVertices)
       return false;
    };
   return true; 
-
 }
 
 /***************************************************************/
