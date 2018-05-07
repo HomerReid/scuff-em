@@ -145,9 +145,14 @@ public:
     HMatrix *ProcessFVMesh(char *FVMesh, char *FVMeshTransFile, char *OutFileBase=0);
     HMatrix *GetZMatrix(HMatrix *ZMatrix=0, HMatrix **pZTerms=0);
 
+    // utility routines for converting Z <--> S parameters
+    HMatrix *Z2S(HMatrix *Z, HMatrix *S=0, double ZCharacteristic=50.0);
+    HMatrix *S2Z(HMatrix *S, HMatrix *Z=0, double ZCharacteristic=50.0);
+
     // low-level post-processing
     HMatrix *GetFields(HMatrix *XMatrix, HMatrix *PFMatrix=0);
     void GetFields(double X[3], cdouble PF[NPFC]);
+
     // alternative implementation of GetFields that uses RPF ("reduced potential/field") matrices
     HMatrix *GetFieldsViaRPFMatrices(HMatrix *XMatrix);
     HMatrix *GetPanelSourceDensities(HMatrix *PSDMatrix=0);
@@ -236,12 +241,6 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
                             EquivalentEdgePairTable *EEPTable=0);
 
 void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable *EEPTable=0);
-
-/***************************************************************/
-/* utility routines for converting Z <--> S parameters *********/
-/***************************************************************/
-HMatrix *Z2S(HMatrix *Z, HMatrix *S=0, double ZCharacteristic=50.0);
-HMatrix *S2Z(HMatrix *S, HMatrix *Z=0, double ZCharacteristic=50.0);
 
 } // namespace scuff 
 #endif // #ifndef RFSOLVER

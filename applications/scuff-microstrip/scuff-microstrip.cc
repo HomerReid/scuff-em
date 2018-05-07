@@ -176,15 +176,15 @@ int main(int argc, char *argv[])
   /* create the RFSolver                                         */
   /***************************************************************/
   RFSolver *Solver = new RFSolver(GeoFile, PortFile);
-
-  RWGGeometry *G = Solver->G;
-  int NumPorts = Solver->NumPorts;
   if (SubstrateFile)
    Solver->SetSubstrateFile(SubstrateFile);
-  else if (Eps!=0.0 || h!=0.0)
-   { if (Eps!=0.0) Solver->SetSubstratePermittivity(Eps);
+  else
+   { if (Eps!=1.0) Solver->SetSubstratePermittivity(Eps);
      if (h!=0.0)   Solver->SetSubstrateThickness(h);
    }
+  Solver->InitGeometry();
+  RWGGeometry *G = Solver->G;
+  int NumPorts = Solver->NumPorts;
 
   /***************************************************************/
   /* plot the geometry if requested                ***************/
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
         if (ZParms) 
          WriteZSParms(FileBase, Tag, 'Z', Freq, ZSMatrix, ZTerms);
         if (SParms)
-         { Z2S(ZSMatrix, 0, ZCharacteristic);
+         { Solver->Z2S(ZSMatrix, 0, ZCharacteristic);
            WriteZSParms(FileBase, Tag, 'S', Freq, ZSMatrix);
          }
       }

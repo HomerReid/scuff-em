@@ -392,7 +392,7 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 /* If the second argument is equal to the first argument, the  */
 /* routines operate in-place.                                  */
 /***************************************************************/
-HMatrix *Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
+HMatrix *RFSolver::Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
 {
   HMatrix *ZpZC=new HMatrix(Z);
   HMatrix *ZmZC=new HMatrix(Z);
@@ -411,7 +411,7 @@ HMatrix *Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
   return S;
 }
 
-HMatrix *S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
+HMatrix *RFSolver::S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
 {
   // 'OmS = 'one minus S'
   HMatrix *OmS=new HMatrix(S);

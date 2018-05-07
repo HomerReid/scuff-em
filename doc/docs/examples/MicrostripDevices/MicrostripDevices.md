@@ -84,15 +84,15 @@ subdirectories as follows:
 
 Our first example is the *edge-fed patch antenna* shown above and studied originally in this paper:
 
-+ [Wu et al., "Feeding Structure Contribution to Radiation by Patch Antennas with Rectangular Boundaries," IEEE Transactions on Antennas and Propagation **40** 1245 (1992). DOI: 10.1109/8.18245](https://doi.org/10.1109/8.182458)
++ [Wu et al., "Feeding Structure Contribution to Radiation by Patch Antennas with Rectangular Boundaries," IEEE Transactions on Antennas and Propagation **40** 1245 (1992). DOI: 10.1109/8.18245][PatchAntennaPaper]
 
 This antenna is also used as a demonstration example for the commercial solver FEKO:
 
 + [http://feko.info/fekoweb/applications/white-papers/edge_fed_rectangular_microstrip_patch_antenna/document](http://feko.info/fekoweb/applications/white-papers/edge_fed_rectangular_microstrip_patch_antenna/document)
 
-### Defining metal meshes and RF ports
+### Defining metal meshes
 
-The metallization region is described by the [GMSH][GMSH] geometry file 
+The metal patch is described by the [GMSH][GMSH] geometry file 
 [`EdgeFedAntenna.geo`](EdgeFedAntenna.geo),
 which we process with [[gmsh]] to yield mesh files
 `EFAntenna_L8_Coarse.msh` (coarser discretization) and
@@ -103,15 +103,19 @@ which we process with [[gmsh]] to yield mesh files
  % gmsh -2 EdgeFedAntenna.geo -setnumber LFeed 8.0 -setnumber N 2 -o EFAntenna_L8_Fine.geo
 ```
 
-Note that the `.geo` file contains several user-definable parameters, of which
-we are here specifying two: `LFeed` (length of feed line) and `N` (discretization
-fineness, i.e. number of triangle edges per unit length).
 The coarser mesh looks like this:
 
 ![EFAntennaMesh.pdf](EFAntennaMesh.pdf)
 
-The next step is to define a single RF port with positive terminal
-lying on the feed edge.
+Note that the `.geo` file contains several user-definable parameters, of which
+we are here specifying two: `LFeed` (length of feed line) and `N` (discretization
+fineness, i.e. number of triangle edges per unit length).
+
+### Defining ports
+
+The next step is to define a single RF port with positive terminal lying on the feed edge.
+(We won't specify a negative terminal for this port; this is equivalent to placing
+the negative terminal on the substrate ground plane).
 Note that the `.geo` file is set up to ensure that the feed edge always lies on the
 $x$-axis centered at the origin, irrespective of the settings of the user-tweakable
 parameters; this means that we only need to define one port specification one 
@@ -120,14 +124,48 @@ In this case, we can simply specify the port to be defined by a line segment
 lying on the $x$ axis and extending at least over the
 range $\left[-\frac{W_{\hbox{feed}}}{2}, +\frac{W_{\hbox{feed}}}{2}\right]$.
 For example, we might define this line segment to run from 
-$\vb x_1=(-5,0,0)$ to $\vb x_2=(+5,0,0)$; this yields the file `EFAntenna.ports,`
-which looks like this:
+$\vb x_1=(-5;0,0)$ to $\vb x_2=(+5,0,0)$; in a python code
+this would look like
+
+```python
+  Solver.AddPort([-5, 0, 0, 5, 0, 0])
+```
+
+Alternatively, we could write a `.port` file (call it `EFAntenna.ports`)
+consisting of just three lines:
 
 ```python
 PORT
 	POSITIVE -5 0 0 +5 0 0 
 ENDPORT
 ```
+
+and specify this file by saying `Solver.SetPortFile("EFAntenna.ports")` (in python)
+or `--portFile EFAntenna.ports` on the <span class=SC>scuff-rf</span> command line.
+
+### Defining the substrate
+
+Finally, we need to define the grounded dielectric substrate. Referring to the
+[original paper][PatchAntennaPaper] cited above, the substrate has relative
+permittivity $\epsilon_r=2.2$ and thickness $h=0.794$ mm and is terminated by a 
+ground plane. We could describe this situation in python by saying
+
+```python
+   Solver.SetSubstratePermittivity(2.2)
+   Solver.SetSubstrateThickness(0.794)
+```
+
+Alternatively, we could write a text file called `EFAntenna.substrate`:
+
+```python
+0.0    CONST_EPS_2.2
+-0.794 GROUNDPLANE 
+```
+
+and say `Solver.SetSubstrateFile("EFAntenna.substrate")` (in python) or 
+`--substratefile EFAntenna.substrate` (on the <span class=SC>scuff-rf</span>
+command line). (Or we could include the content of the file
+in a `SUBSTRATE...ENDSUBSTRATE` clause in a `.scuffgeo` file.)
 
 ### Python calculation:
 
@@ -142,5 +180,7 @@ Here's how the same calculation is run from the command line using `scuff-rf`:
 The <span class=SC>scuff-em</span> geometry files
 
 ## Example 3: Coplanar waveguide section
+
+[PatchAntennaPaper]:		https://doi.org/10.1109/8.182458
 
 {!Links.md!}

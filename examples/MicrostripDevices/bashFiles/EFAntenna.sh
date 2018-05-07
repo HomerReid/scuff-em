@@ -17,5 +17,5 @@ do
   ARGS="${ARGS} --ZParameters"
   ARGS="${ARGS} --Eps 2.2 --h 0.794"
   
-  ${SCUFF_BIN}/scuff-microstrip ${ARGS}
+  ${SCUFF_BIN}scuff-microstrip ${ARGS}
 done  

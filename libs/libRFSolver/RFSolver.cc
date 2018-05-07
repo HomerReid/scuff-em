@@ -180,13 +180,13 @@ void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Transformatio
   if (!ErrMsg) 
    { RWGSurface *S = new RWGSurface(MeshFile);
      if (S->ErrMsg) ErrMsg = strdup(S->ErrMsg);
-     delete S;
+     //delete S;
    }
 
   // check that transformation is valid
   if (!ErrMsg && Transformation)
    { GTransformation *GT = new GTransformation(Transformation, &ErrMsg);
-     delete GT;
+     //delete GT;
    }
 
   if (ErrMsg)

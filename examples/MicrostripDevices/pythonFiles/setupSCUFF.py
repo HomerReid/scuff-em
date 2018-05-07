@@ -26,26 +26,23 @@ import scuff;
 
 ##############################################################
 # Try to determine automatically the installed location of
-# the SCUFF-EM examples and set it as SCUFF_EXAMPLES.
-# You can bypass this by presetting SCUFF_EXAMPLES to be
-# to ${prefix}/share/scuff-em/examples where ${prefix} is the
-# installation prefix you specified when installing SCUFF-EM
-# (default is /usr/local.)
+# SCUFF-EM. You can bypass this by presetting the environnment
+# variable SCUFF to the "--prefix" you specified when
+# installing SCUFF-EM (default is /usr/local.)
 ##############################################################
 # first attempt: use pkg-config
-if 'SCUFF_EXAMPLES' not in locals() and 'SCUFF_EXAMPLES' not in globals():
+if 'SCUFF' not in locals() and 'SCUFF' not in globals():
 
-    SCUFF_EXAMPLES="/usr/local/share/scuff-em/examples" # default
+    SCUFF="/usr/local" # default
     try:
-        SCUFF_DATA=commands.getoutput("pkg-config scuff-em --variable=datadir");
-        if len(SCUFF_DATA)!=0:
-            SCUFF_EXAMPLES=SCUFF_DATA + "/scuff-em/examples"
+        SCUFF=commands.getoutput("pkg-config scuff-em --variable=exec_prefix");
     except:
         pass
 
-if 'SCUFF_EXAMPLES' in locals() or 'SCUFF_EXAMPLES' in globals():
-    os.environ["SCUFF_EXAMPLES"]=SCUFF_EXAMPLES
+if 'SCUFF' in locals() or 'SCUFF' in globals():
+    os.environ["SCUFF"]=SCUFF
 
+SCUFF_EXAMPLES=SCUFF + "/share/scuff-em/examples"
 ##############################################################
 # If the user set the variable scuffExample to the name of one
 # of the scuff-em example (i.e. scuffExample="MicrostripDevices")

@@ -280,7 +280,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   RegionLabels[0]=RegionLabels[1]=0;
   IsPEC=1;
   tolVecClose=0.0; // to be updated once mesh is read in
-  OTGT=0;
+  GT=OTGT=0;
   ErrMsg=InitRWGSurface();
 }
 
@@ -307,6 +307,9 @@ char *RWGSurface::InitRWGSurface()
   /*-     MESHPATH statements in .scuffgeo files or via the     */
   /*-     SCUFF_MESH_PATH environment variable                  */
   /*------------------------------------------------------------*/
+  char *WhichDir=0;
+  FILE *MeshFile=fopenPath(getenv("SCUFF_MESH_PATH"),  MeshFileName, "r", &WhichDir);
+#if 0
   FILE *MeshFile=fopen(MeshFileName,"r");
   if (!MeshFile)
    { for(int nmd=0; MeshFile==0 && nmd<RWGGeometry::NumMeshDirs; nmd++)
@@ -315,8 +318,13 @@ char *RWGSurface::InitRWGSurface()
          Log("Found mesh file %s/%s",RWGGeometry::MeshDirs[nmd],MeshFileName);
       }
    }
+#endif
   if (!MeshFile)
    return vstrdup("could not open file %s",MeshFileName);
+  if  (WhichDir)
+   Log(" Opened mesh file %s/%s",WhichDir,MeshFile);
+  else
+   Log(" Opened mesh file %s",MeshFile);
    
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/
