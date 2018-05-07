@@ -391,7 +391,7 @@ int GetMOIMatrixElement(RWGGeometry *G,
   /***************************************************************/
   /* get substrate contributions *********************************/
   /***************************************************************/ 
-  if (Substrate)
+  if (NeedSubstrateTerms)
    { 
      Substrate->UpdateCachedEpsMu(Omega);
      Eps = Substrate->EpsLayer[1];

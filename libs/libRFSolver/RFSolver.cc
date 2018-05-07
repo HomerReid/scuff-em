@@ -28,6 +28,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <libhrutil.h>
 #include <libhmat.h>
@@ -64,14 +65,20 @@ void RFSolver::InitSolver()
   /* initialize internal variables needed to perform RF calculations (which   */
   /* are allocated lazily)                                                    */
   /*--------------------------------------------------------------------------*/
+  G            = 0;
+  PortList     = 0;
+  EEPTable     = 0;
+  NumPorts     = 0;
+  FileBase     = 0;
+
   Omega        = -1.0;
   M            = 0;
   MClean       = false;
   PBFIMatrix   = 0; 
   PPIMatrix    = 0;
   PBFIClean    = false;
-  PortCurrents = 0;
   KN           = 0;
+  PortCurrents = 0;
 
   DisableSystemBlockCache = false;
   OmegaCache = HUGE_VAL;
@@ -89,14 +96,6 @@ void RFSolver::InitSolver()
 /***************************************************************/
 RFSolver::~RFSolver()
 {
-  if (EEPTable)     delete EEPTable;
-  if (PortList)     delete PortList;
-  if (FileBase)     free(FileBase);
-  if (M)            delete M;
-  if (KN)           delete KN;
-  if (PBFIMatrix)   delete PBFIMatrix;
-  if (PortCurrents) delete PortCurrents;
-
   if (TBlocks)
    { for(int ns=0; ns<G->NumSurfaces; ns++)
       delete TBlocks[ns];
@@ -109,6 +108,14 @@ RFSolver::~RFSolver()
      delete UBlocks;
    }
 
+  if (PortCurrents) delete PortCurrents;
+  if (KN)           delete KN;
+  if (PBFIMatrix)   delete PBFIMatrix;
+  if (PPIMatrix)    delete PPIMatrix;
+  if (M)            delete M;
+  if (FileBase)     free(FileBase);
+  if (EEPTable)     delete EEPTable;
+  if (PortList)     delete PortList;
   if (G)            delete G;
 }
 
@@ -160,31 +167,6 @@ void RFSolver::SetGeometryFile(const char *_scuffgeoFile)
   scuffgeoFile = vstrdup(_scuffgeoFile);
 }
 
-#if 0
-void RFSolver::InitializeSubstrate()
-{ 
-  if (SubstrateInitialized)
-   return;
-  SubstrateInitialized=true;
-  if (G->Substrate) delete G->Substrate;
-  if (SubstrateFile)
-   G->Substrate = new LayeredSubstrate(SubstrateFile);
-  else if (SubstrateLayers.size() > 0)
-   { 
-     char *SubstrateDefinition=0;
-     for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
-      SubstrateDefinition = vstrappend(SubstrateDefinition,"%s",it->second);
-     SubstrateLayers.clear();
-     G->Substrate = CreateLayeredSubstrate(SubstrateDefinition);
-   }
-  else
-   G->Substrate=CreateLayeredSubstrate("0.0 VACUUM\n");
-}
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Transformation)
 {
   char *ErrMsg=0;
@@ -217,6 +199,60 @@ void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Transformatio
   MeshTransforms.push_back( Transformation ? strdup(Transformation) : 0);
 }
 
+void RFSolver::SetPortFile(const char *_portFile)
+{ char *ErrMsg=0;
+  if (G)
+   ErrMsg=vstrdup("can't add port file after geometry has been initialized");
+  else if (PortTerminalVertices.size() > 0)
+   ErrMsg=vstrdup("can't add port file after calling AddPort() or AddPortTerminal()");
+  if (ErrMsg)
+   { Warn("SetPortFile: %s (ignoring)",ErrMsg);
+     free(ErrMsg);
+     return;
+   }
+  if (portFile) free(portFile);
+  portFile = strdup(_portFile);
+}
+
+void RFSolver::AddPort(const dVec PVertices, const dVec MVertices)
+{ char *ErrMsg=0;
+  if (G)
+   ErrMsg=vstrdup("can't add port after geometry has been initialized");
+  else if (portFile)
+   ErrMsg=vstrdup("can't add port after calling SetPortFile()");
+  if (ErrMsg)
+   { Warn("AddPort: %s (ignoring)",ErrMsg);
+     free(ErrMsg);
+     return;
+   }
+
+  // the following could happen if the user calls AddPortTerminal('P',...) followed by AddPort()
+  if ( (PortTerminalVertices.size() % 2) ==1 )
+   PortTerminalVertices.push_back(dVec());
+
+  PortTerminalVertices.push_back(PVertices);
+  PortTerminalVertices.push_back(MVertices);
+}
+
+void RFSolver::AddPort(const dVec PVertices)
+{ AddPort(PVertices, dVec()); }
+
+void RFSolver::AddPortTerminal(char PM, const dVec Vertices)
+{ 
+  bool NewTerminalIsNegative     = ( (toupper(PM)=='M') || (PM=='-') );
+  bool CurrentTerminalIsNegative = ((PortTerminalVertices.size() % 2) != 1);
+  bool SignChange = (NewTerminalIsNegative != CurrentTerminalIsNegative);
+  bool AddNewTerminal = (PortTerminalVertices.size()==0 || SignChange);
+
+  if (AddNewTerminal)
+   PortTerminalVertices.push_back(Vertices);
+  else
+   { PortTerminalVertices.back().push_back(HUGE_VAL);
+     for(size_t n=0; n<Vertices.size(); n++) 
+      PortTerminalVertices.back().push_back(Vertices[n]);
+   }
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -229,9 +265,10 @@ void RFSolver::InitGeometry()
   /*--------------------------------------------------------------*/
   /*- write .scuffgeo file from user's specifications    ---------*/
   /*--------------------------------------------------------------*/
+  bool ownsGeoFile = false;
   if (!scuffgeoFile)
    { 
-
+     ownsGeoFile = true;
      char buffer[100];
      snprintf(buffer,100,"pyscuffgeo.XXXXXX");
      scuffgeoFile=vstrdup(buffer);
@@ -260,6 +297,34 @@ void RFSolver::InitGeometry()
    }
 
   /*--------------------------------------------------------------*/
+  /*- write .ports file from user's specifications ---------------*/
+  /*--------------------------------------------------------------*/
+  bool ownsPortFile = false;
+  if (!portFile)
+   { 
+     ownsPortFile = true;
+     char buffer[100];
+     snprintf(buffer,100,"pyscuffports.XXXXXX");
+     portFile=vstrdup(buffer);
+     FILE *f=fdopen( mkstemp(portFile), "w");
+     if (!f) ErrExit("could not write file %s",portFile);
+
+     for(size_t nPort=0; nPort<PortTerminalVertices.size()/2; nPort++)
+      { fprintf(f,"PORT");
+        for(int Pol=_PLUS; Pol<=_MINUS; Pol++)
+         for(size_t nv=0; nv<PortTerminalVertices[2*nPort+Pol].size(); nv++)
+          { double V = PortTerminalVertices[2*nPort+Pol][nv];
+            if (nv==0 || isinf(V)) fprintf(f,"\n   %s ",(Pol==_PLUS ? "POSITIVE" : "NEGATIVE"));
+            if (isinf(V)) continue;
+            fprintf(f,"%e ",V);
+          }
+        fprintf(f,"\nENDPORT\n\n");
+      }
+     fclose(f);
+     PortTerminalVertices.clear();
+   }
+
+  /*--------------------------------------------------------------*/
   /*- read in geometry file and port list ------------------------*/
   /*--------------------------------------------------------------*/
   RWGGeometry::UseHRWGFunctions=false;
@@ -270,7 +335,15 @@ void RFSolver::InitGeometry()
   PortList = ParsePortFile(G, portFile);
   NumPorts = PortList->Ports.size();
 
+  if (NumPorts==0)
+   Warn("no ports found");
+
   EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
+ 
+  if(ownsGeoFile)
+   unlink(scuffgeoFile);
+  //if(ownsPortFile)
+  // unlink(portFile);
 }
 
 /***************************************************************/
@@ -455,7 +528,7 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
       fprintf(f,"View[PostProcessing.NbViews-1].LineType  = 1;\n");
       fprintf(f,"View[PostProcessing.NbViews-1].CustomMax = %i;\n",+(NumPorts+1));
       fprintf(f,"View[PostProcessing.NbViews-1].CustomMin = %i;\n",-(NumPorts+1));
-      fprintf(f,"View[PostProcessing.NbViews-1].RangeType = 2;\n");
+      //fprintf(f,"View[PostProcessing.NbViews-1].RangeType = 2;\n");
       fprintf(f,"View[PostProcessing.NbViews-1].ShowScale = 0;\n");
       fprintf(f,"View.Light = 0;\n");
    }
@@ -489,8 +562,9 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
                    RMin[0], RMin[1], z, RMax[0], RMin[1], z, RMax[0], RMax[1], z, RMin[0], RMax[1], z, ni,ni,ni,ni);
       }
    }
-
   fclose(f);
+
+  fprintf(stdout,"RF geometry plotted to file %s.\n",PPFileName);
 }
 
 void RFSolver::PlotGeometry()

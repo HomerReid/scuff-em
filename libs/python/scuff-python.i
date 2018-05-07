@@ -8,6 +8,12 @@
 %include "std_complex.i" // conversion for std::complex
 %apply std::complex<double> { cdouble };
 
+%include "std_vector.i"
+namespace std {
+   %template(IntVector) vector<int>;
+   %template(DoubleVector) vector<double>;
+}
+
 %include "numpy.i" // numpy array conversions
 
 // some additional backward compatibility declarations for supporting numpy < 1.7.0

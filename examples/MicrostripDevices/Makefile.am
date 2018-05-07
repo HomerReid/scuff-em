@@ -1,30 +1,4 @@
-EXTRA_DIST=				\
- geoFiles/Rectangle.geo			\
- geoFiles/EdgeFedAntenna.geo		\
- geoFiles/PointFedAntenna.geo		\
- mshFiles/Center_436.msh		\
- mshFiles/Center_237.msh		\
- mshFiles/Center_98.msh			\
- mshFiles/Flank_912.msh              	\
- mshFiles/Flank_504.msh              	\
- mshFiles/Flank_216.msh              	\
- mshFiles/EFAntenna_L0_Coarse.msh       \
- mshFiles/EFAntenna_L0_Fine.msh         \
- mshFiles/EFAntenna_L8_Coarse.msh       \
- mshFiles/EFAntenna_L8_Fine.msh         \
- mshFiles/PointFedAntenna_Coarse.msh    \
- mshFiles/PointFedAntenna_Fine.msh      \
- scuffgeoFiles/CPW_Coarse.scuffgeo   	\
- scuffgeoFiles/CPW_Medium.scuffgeo   	\
- scuffgeoFiles/CPW_Fine.scuffgeo     	\
- portFiles/CPW.ports			\
- portFiles/EFAntenna.ports		\
- portFiles/CoupledAntennas.ports	\
- transFiles/HPlane.trans        	\
- transFiles/EPlane.trans
-
 pkgdatadir = $(datadir)/scuff-em/examples/MicrostripDevices
-nodist_pkgdata_DATA = ${EXTRA_DIST}
 
 geodir   = $(pkgdatadir)/geoFiles
 geo_DATA = geoFiles/Rectangle.geo       		\
@@ -32,18 +6,18 @@ geo_DATA = geoFiles/Rectangle.geo       		\
            geoFiles/PointFedAntenna.geo
 
 mshdir   = $(pkgdatadir)/mshFiles
-msh_DATA = mshFiles/Center_436.msh 			\
-           mshFiles/Center_237.msh 			\
-           mshFiles/Center_98.msh  			\
-           mshFiles/Flank_912.msh			\
-           mshFiles/Flank_504.msh                 	\
-           mshFiles/Flank_216.msh                 	\
+msh_DATA = mshFiles/CPWCenter_Coarse.msh 		\
+           mshFiles/CPWCenter_Medium.msh 		\
+           mshFiles/CPWCenter_Fine.msh  		\
+           mshFiles/CPWFlank_Coarse.msh			\
+           mshFiles/CPWFlank_Medium.msh                 \
+           mshFiles/CPWFlank_Fine.msh                 	\
            mshFiles/EFAntenna_L0_Coarse.msh       	\
            mshFiles/EFAntenna_L0_Fine.msh         	\
            mshFiles/EFAntenna_L8_Coarse.msh       	\
            mshFiles/EFAntenna_L8_Fine.msh		\
-           mshFiles/PointFedAntenna_Coarse.msh		\
-           mshFiles/PointFedAntenna_Fine.msh
+           mshFiles/PFAntenna_Coarse.msh		\
+           mshFiles/PFAntenna_Fine.msh      
 
 scuffgeodir   = $(pkgdatadir)/scuffgeoFiles
 scuffgeo_DATA = scuffgeoFiles/CPW_Coarse.scuffgeo		\
@@ -53,14 +27,23 @@ scuffgeo_DATA = scuffgeoFiles/CPW_Coarse.scuffgeo		\
                 scuffgeoFiles/EFAntenna_L0_Fine.scuffgeo	\
                 scuffgeoFiles/EFAntenna_L8_Coarse.scuffgeo	\
                 scuffgeoFiles/EFAntenna_L8_Fine.scuffgeo	\
-                scuffgeoFiles/CoupledAntennas_Coarse.scuffgeo	\
-                scuffgeoFiles/CoupledAntennas_Fine.scuffgeo
+                scuffgeoFiles/PFAntennas_Coarse.scuffgeo	\
+                scuffgeoFiles/PFAntennas_Fine.scuffgeo
 
 portdir   = $(pkgdatadir)/portFiles
 port_DATA = portFiles/CPW.ports 				\
             portFiles/EFAntenna.ports				\
-            portFiles/CoupledAntennas.ports 
+            portFiles/PFAntennas.ports 
 
 transdir   = $(pkgdatadir)/transFiles
 trans_DATA = transFiles/EPlane.trans				\
              transFiles/HPlane.trans
+
+shdir    = $(pkgdatadir)/bashFiles
+sh_DATA  = bashFiles/setupSCUFF.sh 				\
+           bashFiles/EFAntenna.sh	
+
+pydir    = $(pkgdatadir)/pythonFiles
+py_DATA  = pythonFiles/setupSCUFF.py				\
+           pythonFiles/EFAntenna.py				\
+           pythonFiles/CPW.py      

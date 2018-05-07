@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
   /* create the RFSolver                                         */
   /***************************************************************/
   RFSolver *Solver = new RFSolver(GeoFile, PortFile);
+
   RWGGeometry *G = Solver->G;
   int NumPorts = Solver->NumPorts;
   if (SubstrateFile)
@@ -191,7 +192,6 @@ int main(int argc, char *argv[])
   if (PlotGeometry)
    { fprintf(stderr,"--PlotGeometry option was specified; plotting ports ONLY.\n");
      Solver->PlotGeometry();
-     fprintf(stderr,"RF ports plotted to file %s.pp.\n",GetFileBase(G->GeoFileName));
      fprintf(stderr,"Thank you for your support.\n");
      exit(0);
    }

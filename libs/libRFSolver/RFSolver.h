@@ -117,7 +117,7 @@ public:
     // geometries line-by-line from python scripts
     void SetGeometryFile(const char *scuffgeoFileName);
     void AddMetalTraceMesh(const char *MeshFile, const char *Transformation=0);
-    void ImportGDSIILayer(const char *GDSIIFile, int Layer=-1);
+    //void ImportGDSIILayer(const char *GDSIIFile, int Layer=-1);
 
     void SetSubstratePermittivity(cdouble Epsilon);
     void SetSubstrateThickness(double h);
@@ -126,8 +126,9 @@ public:
     void SetSubstrateFile(const char *SubstrateFile);
 
     void SetPortFile(const char *PortFile);
-    void AddPortPoint(const char *PortLabel, double x, double y, double z);
-    void AddPortPolygon(const char *PortLabel, dVec Vertices);
+    void AddPort(const dVec PVertexCoordinates, const dVec MVertexCoordinates);
+    void AddPort(const dVec PVertexCoordinates);
+    void AddPortTerminal(char PM, const dVec VertexCoordinates);
 
     // function to produce a GMSH post-processing visualization file to sanity-check
     // the geometry specification
@@ -158,7 +159,6 @@ public:
     ////////////////////////////////////////////////////
     void InitSolver();
     void InitGeometry();
-    void InitializeSubstrate();
 
     void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
     void AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix);
@@ -195,12 +195,19 @@ public:
     int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
 
     ////////////////////////////////////////////////////
-    // stuff to facilitate python-driven sessions:
+    // stuff to facilitate python-driven sessions by storing user-specified
+    // data on a geometry for eventual lazy initialization
     ////////////////////////////////////////////////////
     std::map<double, char *> SubstrateLayers;
-    sVec MeshFiles, MeshTransforms;
     char *SubstrateFile;
+
+    sVec MeshFiles, MeshTransforms;
     char *scuffgeoFile;
+
+    // PortTerminalVertices[2*nPort + Pol][3*nv+0, 3*nv+1, 3*nv+2] =
+    //  = coordinates of vertex #nv on polygon defining #Pol terminal of #nPort
+    //    (multiple distinct polygons separated by a single infinite coordinate)
+    std::vector<dVec> PortTerminalVertices;
     char *portFile;
 
  }; // class RFSolver;
