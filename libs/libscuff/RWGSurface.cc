@@ -451,6 +451,8 @@ char *RWGSurface::InitRWGSurface()
   /*-          the Contain() work correctly.                    */
   /*------------------------------------------------------------*/
   InitkdPanels(false);
+
+  return 0;
 } 
 
 /*--------------------------------------------------------------*/
