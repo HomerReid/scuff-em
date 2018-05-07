@@ -6,9 +6,7 @@ libhrutil_la_SOURCES = \
  ProcessOptions.cc    \
  Vector.cc
 
-noinst_PROGRAMS = tProcessArguments tProcessOptions
-tProcessArguments_SOURCES = tProcessArguments.cc
-tProcessArguments_LDADD = libhrutil.la
+noinst_PROGRAMS = tProcessOptions
 tProcessOptions_SOURCES = tProcessOptions.cc
 tProcessOptions_LDADD = libhrutil.la
 
