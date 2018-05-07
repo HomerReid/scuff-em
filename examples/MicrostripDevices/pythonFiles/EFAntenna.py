@@ -44,7 +44,7 @@ SParmFile.write("# 2,3 re,im S11       \n");
 Freqs = np.linspace(2.5,20,36) # frequencies at which to calculate (GHz)
 for Freq in Freqs:
 
-        print("F={:.2g} GHz: ".format(Freq),end='')
+        print("F={:.1f} GHz: ".format(Freq),end='')
 
         t0  = time.time();
 	Solver.AssembleSystemMatrix(Freq)        # assemble SIE system
@@ -56,7 +56,7 @@ for Freq in Freqs:
         S11 = SMatrix.GetEntry(0,0);
         t2  = time.time()
 
-        print(" S11={:+1e},{:+1e}   System: {:1g}s  ZMat: {:1g}s".format(S11.real,S11.imag,t1-t0,t2-t1));
+        print(" S11={:+.2f},{:+.2f}   System: {:.1f}s  ZMat: {:.1f}s".format(S11.real,S11.imag,t1-t0,t2-t1));
 
         ZParmFile.write("%e %e %e \n" % (Freq,Z11.real,Z11.imag))
         ZParmFile.flush()
