@@ -564,25 +564,25 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
 /***************************************************************/
 RWGSurface::~RWGSurface()
 { 
-  free(Vertices);
+  if(Vertices) free(Vertices);
 
   for(int np=0; np<NumPanels; np++)
    free(Panels[np]);
-  free(Panels);
+  if(Panels) free(Panels);
 
   for(int ne=0; ne<NumEdges; ne++)
    free(Edges[ne]);
-  free(Edges);
+  if (Edges) free(Edges);
 
   for(int ne=0; ne<NumHalfRWGEdges; ne++)
    free(HalfRWGEdges[ne]);
-  free(HalfRWGEdges);
+  if (HalfRWGEdges) free(HalfRWGEdges);
 
   for(int nbc=0; nbc<NumBCs; nbc++)
    free(BCEdges[nbc]);
   if (BCEdges) free(BCEdges);
   if (NumBCEdges) free(NumBCEdges);
-  free(WhichBC);
+  if (WhichBC) free(WhichBC);
 
   if (MeshFileName) free(MeshFileName);
   if (Label) free(Label);

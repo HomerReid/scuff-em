@@ -175,17 +175,29 @@ Here's how the same calculation is run from the command line using `scuff-rf`:
 
 ## Example 2: Coupled center-fed patch antennas
 
-For our next trick, we consider the
+For our next trick, we again pursue the theme of microstrip patch antennas, but now
+with some variations:
 
-+ [Wu et al., "Feeding Structure Contribution to Radiation by Patch Antennas with Rectangular Boundaries," IEEE Transactions on Antennas and Propagation **40** 1245 (1992). DOI: 10.1109/8.18245][PatchAntennaPaper]
++ First, instead of the reflection coefficient ($S_{11}$)
+  of a single antenna, we'll look at the *coupling* ($S_{12}$) between
+  *two* patch antennas.
 
++ Second, these antennas are driven by currents injected into points lying 
+  inside them (they are *center-fed*), not edge-fed like the previous example.
 
-<a name="CoupledAntennaSCUFFGEOFile">
++ Third, instead of varying the frequency, we'll (mostly) 
+  keep the frequency fixed and instead vary the *separation distance* between the
+  patches; to do this with maximum efficiency in <span class=SC>scuff-em</span> we
+  will need to take advantage of the [structure of the system matrix][Implementation]---which
+  will turn out to be extremely easy to do. 
 
-The <span class=SC>scuff-em</span> geometry files
+The antennas in this example were studied in this paper:
+
++ [Jedlicka et al., "Measured Mutual Coupling Between Microstrip Antennas", IEEE Transactions on Antennas and Propagation **29** 147 (1981). DOI: 10.1109/TAP.1981.1142529][AntennaCouplingPaper]
 
 ## Example 3: Coplanar waveguide section
 
 [PatchAntennaPaper]:		https://doi.org/10.1109/8.182458
+[AntennaCouplingPaper]:		https://doi.org/10.1109/TAP.1981.1142529
 
 {!Links.md!}
