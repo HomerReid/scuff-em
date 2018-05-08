@@ -1025,6 +1025,12 @@ HMatrix *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
   char FFBuffer[100], *FullFileBase = (TransFile ? FFBuffer : PPFileBase);
 
   RWGSurface *S=new RWGSurface(MeshFile);
+  if (S->ErrMsg) 
+   { Warn("MakeMeshPlot: %s (aborting)",S->ErrMsg);
+     delete S;
+     return 0; 
+   }
+     
   GTCList GTCs = ReadTransFile(TransFile);
   int NT = GTCs.size();
   HMatrix *Integrals=0;

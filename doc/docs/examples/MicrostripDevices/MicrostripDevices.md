@@ -175,6 +175,11 @@ Here's how the same calculation is run from the command line using `scuff-rf`:
 
 ## Example 2: Coupled center-fed patch antennas
 
+For our next trick, we consider the
+
++ [Wu et al., "Feeding Structure Contribution to Radiation by Patch Antennas with Rectangular Boundaries," IEEE Transactions on Antennas and Propagation **40** 1245 (1992). DOI: 10.1109/8.18245][PatchAntennaPaper]
+
+
 <a name="CoupledAntennaSCUFFGEOFile">
 
 The <span class=SC>scuff-em</span> geometry files
