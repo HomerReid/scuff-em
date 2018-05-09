@@ -122,7 +122,7 @@ void RFSolver::ProcessEPFile(char *EPFile, char *OutFileName)
 /***************************************************************/
 static const char *DataNames[]=
    { "#RS_re Phi",       "#IS_im Phi",   "#MS_|Phi|",
-     "#RV_re E",0,0,     "#IV_im E",0,0, "#MV_|E|",0,0,
+     "#RV_re E",0,0,     "#IV_im E",0,0, "#MS_|E|",
      "#RS_re Sigma",     "#IS_im Sigma",
      "#RV_re K",0,0,     "#IV_im K",0,0,
      "#RS_re K dot iwA", "#IS_im K dot iwA",
@@ -130,7 +130,7 @@ static const char *DataNames[]=
      "#RS_re Kdot E",    "#RS_im Kdot E"
    };
 #define NUMDATA_WITHPSDS    (sizeof(DataNames)/sizeof(DataNames[0]))
-#define NUMDATA_WITHOUTPSDS 12
+#define NUMDATA_WITHOUTPSDS 10
   
 HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
 {
@@ -177,6 +177,7 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
 
      cdouble E[3];
      VecAdd(iwA, mdPhi, E);
+     double EMagnitude = sqrt( norm(E[0]) + norm(E[1]) + norm(E[2]) );
 
      int nc=0;
      DataMatrix->SetEntry(nx,nc++,Phi);
@@ -188,9 +189,7 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
      DataMatrix->SetEntry(nx,nc++,E[0]);
      DataMatrix->SetEntry(nx,nc++,E[1]);
      DataMatrix->SetEntry(nx,nc++,E[2]);
-     DataMatrix->SetEntry(nx,nc++,E[0]);
-     DataMatrix->SetEntry(nx,nc++,E[1]);
-     DataMatrix->SetEntry(nx,nc++,E[2]);
+     DataMatrix->SetEntry(nx,nc++,EMagnitude);
 
      if (GetPSDs)
       { 

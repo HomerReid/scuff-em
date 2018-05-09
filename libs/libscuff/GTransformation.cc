@@ -535,7 +535,7 @@ GTCList ReadTransFile(const char *FileName)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (FileName==0)
+  if (FileName==0 || strlen(FileName)==0 )
    { 
      GTCs.push_back( CreateGTComplex() );
      Log("Using a single (empty) geometrical transformation with label %s.",GTCs[0]->Tag);

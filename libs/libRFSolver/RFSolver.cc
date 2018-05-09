@@ -156,7 +156,7 @@ void RFSolver::InitSubstrate()
 {
   if (SubstrateInitialized) return;
   SubstrateInitialized=true;
-  OmegaSIE=CACHE_DIRTY;
+  OmegaSIE=OmegaPBFI=CACHE_DIRTY;
 
   if (!G) ErrExit("%s:%i: internal error");
   if (G->Substrate) free(G->Substrate);
