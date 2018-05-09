@@ -201,29 +201,26 @@ RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
 {
   RWGPortEdgeList PortEdges;
 
-  // find the vertex that lies closest to X
+  // get distance to closest vertex on any surface
   double MinDistance=HUGE_VAL;
-  int nsMin=-1, nvMin=-1;
   for(int ns=0; ns<G->NumSurfaces; ns++)
    for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
     for(int iv=0; iv<3; iv++)
      { int nv = G->Surfaces[ns]->Panels[np]->VI[iv];
-       double d=VecDistance(X, G->Surfaces[ns]->Vertices + 3*nv);
-       if (d<MinDistance)
-        { MinDistance=d;
-          nsMin=ns;
-          nvMin=nv;
-        }
+       double ThisDistance=VecDistance(X, G->Surfaces[ns]->Vertices + 3*nv);
+       MinDistance = fmin(MinDistance, ThisDistance);
      }
-
-  if (nsMin==-1 || nvMin==-1)
-   return PortEdges;
  
-  RWGSurface *S=G->Surfaces[nsMin];
-  for(int np=0; np<S->NumPanels; np++)
-   for(int iv=0; iv<3; iv++)
-    if (S->Panels[np]->VI[iv] == nvMin)
-     { 
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
+    for(int iv=0; iv<3; iv++)
+     {  
+       RWGSurface *S = G->Surfaces[ns];
+       int nv = S->Panels[np]->VI[iv];
+       double ThisDistance=VecDistance(X, S->Vertices + 3*nv);
+       if ( fabs(ThisDistance-MinDistance) > 1.0e-6*ThisDistance )
+        continue;
+
        int ne = S->Panels[np]->EI[iv];
        if (ne>=0)
         { 
@@ -247,7 +244,7 @@ RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
           S->HalfRWGEdges=(RWGEdge **)reallocEC(S->HalfRWGEdges, (S->NumHalfRWGEdges)*sizeof(RWGEdge *));
           S->HalfRWGEdges[S->NumHalfRWGEdges-1] = NewEdge;
         }
-       PortEdges.push_back(new RWGPortEdge(nsMin, ne, 0, 0, +1.0));
+       PortEdges.push_back(new RWGPortEdge(ns, ne, 0, 0, +1.0));
      }
 
   return PortEdges;
@@ -320,6 +317,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
         int Pol = (toupper(Tokens[0][0])=='P') ? _PLUS : _MINUS;
         if (NumVertices==1)
          { 
+           // point-like port 
            RWGPortEdgeList NewPEs=AddPointPort(G, &(VertexCoordinates[0]));
            for(unsigned npe=0; npe<NewPEs.size(); npe++)
             { RWGPortEdge *PE   = NewPEs[npe];
@@ -330,7 +328,8 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
             }
          }
         else
-         { for(int ns=0; ns<G->NumSurfaces; ns++)
+         { // exterior edge port
+           for(int ns=0; ns<G->NumSurfaces; ns++)
             { iVec neList = FindEdgesInPolygon(G->Surfaces[ns], VertexCoordinates);
               for(unsigned nne=0; nne<neList.size(); nne++)
                { RWGPortEdge *PE = new RWGPortEdge(ns, -1-neList[nne], CurrentPortIndex, Pol, -1.0);

@@ -84,6 +84,7 @@ void RFSolver::InitSolver()
 
   RetainContributions = CONTRIBUTION_ALL;
   SubstrateFile  = 0;
+  SubstrateInitialized = false;
   scuffgeoFile   = 0;
   portFile       = 0;
 }
@@ -119,11 +120,12 @@ RFSolver::~RFSolver()
 /********************************************************************/
 /* routines for building up geometries line-by-line from python     */
 /* scripts; these just make a note of whatever feature the user     */
-/* added, with the actual initialization done later by InitGeometry()*/
+/* added, with the actual initialization done later by              */
+/* InitGeometry() and/or InitSubstrate()                            */
 /********************************************************************/
 void RFSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu)
 { 
-  if (G) ErrExit("can't modify substrate after geometry has been initialized");
+  SubstrateInitialized=false;
 
   char Line[100];
   if (isinf(real(Epsilon)))
@@ -146,10 +148,39 @@ void RFSolver::SetSubstrateThickness(double h)
 
 void RFSolver::SetSubstrateFile(const char *_SubstrateFile)
 { 
-  if (G) ErrExit("can't modify substrate after geometry has been initialized");
+  SubstrateInitialized=false;
   SubstrateFile = strdup(_SubstrateFile);
 }
 
+void RFSolver::InitSubstrate()
+{
+  if (SubstrateInitialized) return;
+  SubstrateInitialized=true;
+  OmegaSIE=CACHE_DIRTY;
+
+  if (!G) ErrExit("%s:%i: internal error");
+  if (G->Substrate) free(G->Substrate);
+
+  if (SubstrateFile)
+   { G->Substrate = new LayeredSubstrate(SubstrateFile);
+     free(SubstrateFile);
+     SubstrateFile=0;
+   }
+  else if (SubstrateLayers.size()>0)
+   { char *SubstrateDescription=0;
+     for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
+      { SubstrateDescription=vstrappend(SubstrateDescription,"%s\n",it->second);
+        free(it->second);
+      }
+     G->Substrate = CreateLayeredSubstrate(SubstrateDescription);
+     free(SubstrateDescription);
+     SubstrateLayers.clear();
+   }
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void RFSolver::SetGeometryFile(const char *_scuffgeoFile)
 {
   if (MeshFiles.size() > 0)
@@ -177,13 +208,13 @@ void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const 
   if (!ErrMsg) 
    { RWGSurface *S = new RWGSurface(MeshFile);
      if (S->ErrMsg) ErrMsg = strdup(S->ErrMsg);
-     //delete S;
+     delete S;
    }
 
   // check that transformation is valid
   if (!ErrMsg && Transformation)
    { GTransformation *GT = new GTransformation(Transformation, &ErrMsg);
-     //delete GT;
+     delete GT;
    }
 
   if (ErrMsg)
@@ -331,21 +362,14 @@ void RFSolver::InitGeometry()
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (SubstrateLayers.size()>0)
-   { char *SubstrateDescription=0;
-     for(std::map<double, char *>::iterator it = SubstrateLayers.begin(); it!=SubstrateLayers.end(); it++)
-      SubstrateDescription=vstrappend(SubstrateDescription,"%s\n",it->second);
-     SubstrateLayers.clear();
-     G->Substrate = CreateLayeredSubstrate(SubstrateDescription);
-     free(SubstrateDescription);
-   }
-
+  InitSubstrate();
+ 
   EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
  
-  //if(ownsGeoFile)
-  // unlink(scuffgeoFile);
-  //if(ownsPortFile)
-  // unlink(portFile);
+  if(ownsGeoFile)
+   unlink(scuffgeoFile);
+  if(ownsPortFile)
+   unlink(portFile);
 }
 
 
@@ -410,6 +434,8 @@ void RFSolver::UpdateSystemMatrix(cdouble Omega)
 void RFSolver::AssembleSystemMatrix(double Freq)
 { 
   if (!G) InitGeometry();
+  if (!SubstrateInitialized) InitSubstrate();
+
   if (M==0) M=G->AllocateBEMMatrix();
 
   Log("Assembling BEM matrix at f=%g GHz...",Freq);

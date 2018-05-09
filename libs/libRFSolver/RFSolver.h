@@ -174,6 +174,7 @@ public:
     // internal methods
     ////////////////////////////////////////////////////
     void InitSolver();
+    void InitSubstrate();
     void InitGeometry();
 
     void EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4]);
@@ -213,6 +214,7 @@ public:
     ////////////////////////////////////////////////////
     std::map<double, char *> SubstrateLayers;
     char *SubstrateFile;
+    bool SubstrateInitialized;
 
     sVec MeshFiles, MeshLabels, MeshTransforms;
     char *scuffgeoFile;
