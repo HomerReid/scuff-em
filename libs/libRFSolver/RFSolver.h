@@ -64,13 +64,6 @@ namespace scuff {
 #define _PF_DZPHI 6
 #define NPFC      7
 
-//
-#define CONTRIBUTION_BF   1    // basis functions
-#define CONTRIBUTION_PORT 2    // ports
-#define CONTRIBUTION_IWA  4    // iwA term in E-field
-#define CONTRIBUTION_DPHI 8    // -grad(Phi) term in E-field
-#define CONTRIBUTION_ALL  0xFF
-
 /***************************************************************/
 /* Data structures used to describe ports on RF devices        */
 /***************************************************************/
@@ -149,7 +142,7 @@ public:
     void EnableSystemBlockCache();
     void AssembleSystemMatrix(double Freq);
     void Solve(cdouble *PortCurrents);
-    void Solve(cdouble PortCurrent, int WhichPort);
+    void Solve(int WhichPort, cdouble PortCurrent);
 
     // high-level post-processing
     void ProcessEPFile(char *EPFile, char *OutFileName=0);
@@ -205,8 +198,6 @@ public:
     // optional caching of system matrix blocks (useful with geometrical transformations)
     HMatrix **TBlocks; 
     HMatrix **UBlocks;
-
-    int RetainContributions; // used to retain/exclude specific contributions to quantities for debugging
 
     ////////////////////////////////////////////////////
     // stuff to facilitate python-driven sessions by storing user-specified

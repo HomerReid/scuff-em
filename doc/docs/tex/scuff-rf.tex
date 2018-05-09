@@ -99,20 +99,80 @@ In this memo we will discuss the implementation of these features.
 
 The key extension of the \lss core library provided by {\sc scuff-rf}
 is the idea of an \texttt{RWGPort}. This is a physical region of
-a structure that interfaces with RF circuitry.
+a material body that interfaces with RF circuitry. More specifically,
+a port consists of positive and negative terminals, where each
+terminal is a small region of a surface over which flows an externally
+injected or extracted current; the fields radiated by the resulting
+spatially localized current distributions then constitute the incident
+field in a scattering problem.
 
-Figure \ref{PortFigure} depicts an \texttt{RWGPort}.
-The port consists of a positive and a negative terminal.
-[The negative terminal may be omitted, in which case
-the role of negative terminal is played by the ground plane
-in the geometry (if present) or by an implicit negative terminal
-at spatial infinity.]
-Each port terminal is comprised of one or more exterior edges
-in an \texttt{RWGSurface} (i.e. an \texttt{OBJECT} or \texttt{SURFACE}
-in a \texttt{.scuffgeo} file).
-There is no need for the two port terminals to have the same length,
-nor must they be comprised of the same number of panel edges,
-nor must they lie on the same meshed surface.
+Internally, each terminal of an RWGPort is simply a set of
+{\sc half-RWG} basis functions
+
+Figure \ref{PortFigure} shows some examples of \texttt{RWGPort} 
+terminals.
+As this figure makes clear, internally each terminal of a \texttt{RWGPort}
+is nothing but a collection of \textit{half-RWG} basis functions.
+A half-RWG function is just what it sounds like---it is defined by
+a single triangle, with a distinguished choice of vertex, and it describes
+a surface-current density supported only on that triangle,
+emanating from the vertex and flowing normally outward through the opposite edge.
+In a \textit{full}-RWG function this outflow of current is
+sunk into the adjacent panel (which, in {\sc scuff-em} parlance, would be
+the `negative panel' of the full RWG function), and thus full RWG
+functions carry no net current; half-RWG functions, on the other hand,
+have no negative panel and describe currents that appear from out of nowhere,
+as is appropriate for representing ports driven by a given current injected
+by fixed external sources.
+
+Any meshed representation of an open surface in a {\sc scuff-em} geometry 
+is automatically assigned a set of half-RWG basis functions, one 
+for each exterior panel edge; these are stored 
+within the \texttt{RWGSurface} structure for the surface
+in an array called \texttt{HalfRWGEdges}. 
+(Full RWG edges are stored separately, in the \texttt{Edges} array.)
+
+Ordinarily, the half-RWG functions assigned to exterior edges are inert
+in {\sc scuff-em} scattering problems; they are identified when the 
+geometry is read and their properties are stored in the \texttt{HalfRWGEdges} 
+array, but they are never populated with surface-current weights 
+and do not contribute to the SIE system or to post-processing quantities. 
+However, when a half-RWG function for an exterior edge is identified as 
+belonging to a port terminal, it is promoted to an active participant 
+in scattering calculations, contributing to the RHS vector and to 
+post-processing quantities like scattered fields.
+
+In addition to ports defined on boundaries of open surfaces, it is
+also possible to define ports based at individual vertices
+in the \textit{interior} of surfaces. In this case, although the panels
+that share that vertex already belong to full-RWG functions,
+we create separate new half-RWG functions for them to describe 
+their their role in supporting the port-current distribution.
+Thus, each instantiation of a point-based port results in the 
+creation of new \texttt{HalfRWGEdge} structures that are tacked on 
+to the end of the \texttt{HalfRWGEdge} array for the \texttt{RWGSurface}
+in question.
+
+The \textit{perimeter} of a port terminal is the sum of the lengths of
+all half-RWG edges it contains. This number is relevant for determining
+the weight with which each half-RWG function in a port terminal is
+populated to describe a port current $I$.
+If $L_{p}^\pm$ are the perimeters of the positive and negative ports
+of port $p$, then a port current $I_p$ is described by weighting
+each basis function in the positive terminal with weight
+$+\frac{I_p}{L_p^+}$ and 
+each basis function in the negative terminal with weight
+$-\frac{I_p}{L_p^-}$. 
+Thus, 
+\begin{align}
+\intertext{
+spatial distribution of electric surface-current density due to port $p$
+driven by current $I_p$:
+}
+\vb K(\vb x)&=
+   \frac{I_p}{L_p^+} \sum_{\alpha^+} \vb h_\alpha(\vb x)
+  -\frac{I_p}{L_p^-} \sum_{\alpha^-} \vb h_\alpha(\vb x).
+\end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

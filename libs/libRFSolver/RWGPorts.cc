@@ -535,9 +535,9 @@ void RFSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
   iwSigmaK[2] = KNX[1];
   iwSigmaK[3] = KNX[2];
 
-  if ( !(RetainContributions & CONTRIBUTION_BF) )
+  if ( CheckEnv("SCUFF_RFPSD_PORTONLY") )
    memset(iwSigmaK, 0, 4*sizeof(cdouble));
-  if ( !(RetainContributions & CONTRIBUTION_PORT) )
+  if ( CheckEnv("SCUFF_RFPSD_BFONLY") )
    return;
 
   // add port contribution, if any, by looking at the three edges of the
@@ -549,7 +549,7 @@ void RFSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
   for(int nei=0; nei<3; nei++)
    {
      int ne = P->EI[nei];
-     if (ne>=0) continue; // not an exterior edge
+     if (ne>=0) continue; // not a half-RWG edge, can't be a port edge
 
      int npe;
      RWGPortEdge *PE=0;
@@ -558,7 +558,7 @@ void RFSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
         if ( (PE->ns == ns) && (PE->ne == ne ) )
          break;
       }
-     if (npe==NumPortEdges) continue; // exterior edge, but not part of a port
+     if (npe==NumPortEdges) continue; // is a half-RWG edge, but not a port edge
 
      int nPort      = PE->nPort;
      int Pol        = PE->Pol;
@@ -590,9 +590,9 @@ HMatrix *RFSolver::GetPanelSourceDensities(HMatrix *PSDMatrix)
   cdouble Omega = G->StoredOmega;
   PSDMatrix=G->GetPanelSourceDensities(Omega, KN, PSDMatrix);
 
-  if ( !(RetainContributions & CONTRIBUTION_BF) )
+  if ( CheckEnv("SCUFF_RFPSD_PORTONLY") )
    PSDMatrix->Zero();
-  if ( !(RetainContributions & CONTRIBUTION_PORT) )
+  if ( CheckEnv("SCUFF_RFPSD_BFONLY") )
    return PSDMatrix;
 
   /***************************************************************/

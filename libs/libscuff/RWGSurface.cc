@@ -297,8 +297,18 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 /*--------------------------------------------------------------*/
 char *RWGSurface::InitRWGSurface()
 { 
+  NumVertices=NumPanels=NumEdges=NumHalfRWGEdges=NumBCs=0;
+  Vertices=0;
+  Panels=0;
+  Edges=0;
+  HalfRWGEdges=0;
+  BCEdges=0;
+  NumBCEdges=0;
+  WhichBC=0;
   ErrMsg=0;
-  kdPanels = NULL;
+  GT=0;
+  OTGT=0;
+  kdPanels = 0;
 
   /*------------------------------------------------------------*/
   /*- try to open the mesh file. we look in several places:     */

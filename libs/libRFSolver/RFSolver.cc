@@ -82,7 +82,6 @@ void RFSolver::InitSolver()
   TBlocks        = 0;
   UBlocks        = 0;
 
-  RetainContributions = CONTRIBUTION_ALL;
   SubstrateFile  = 0;
   SubstrateInitialized = false;
   scuffgeoFile   = 0;
@@ -452,7 +451,7 @@ void RFSolver::AssembleSystemMatrix(double Freq)
 
 void RFSolver::Solve(cdouble *CallerPortCurrents)
 {
-  if (M==0)
+  if (M==0 || G->StoredOmega!=OmegaSIE)
    ErrExit("RFSolver: AssembleSystemMatrix() must be called before Solve()");
 
   /*--------------------------------------------------------------*/
@@ -484,7 +483,7 @@ void RFSolver::Solve(cdouble *CallerPortCurrents)
   M->LUSolve(KN);
 }
 
-void RFSolver::Solve(cdouble PortCurrent, int WhichPort)
+void RFSolver::Solve(int WhichPort, cdouble PortCurrent)
 {
   if (PortCurrents==0) PortCurrents = new cdouble[NumPorts];
   memset(PortCurrents, 0, NumPorts*sizeof(cdouble));

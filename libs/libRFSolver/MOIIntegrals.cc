@@ -912,12 +912,14 @@ HMatrix *RFSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
 
   cdouble Omega = G->StoredOmega;
 
+  bool OmitBFTerms   = CheckEnv("SCUFF_RFFIELDS_PORTONLY");
+  bool OmitPortTerms = CheckEnv("SCUFF_RFFIELDS_BFONLY");
+
   // compute reduced potential-field matrices
   Log("Getting RPF matrices for %i points...",NX);
   HMatrix *BFRPFMatrix = 0, *PortRPFMatrix = 0;
   GetMOIRPFMatrices( G, PortList, Omega, XMatrix,
-                     (RetainContributions & CONTRIBUTION_BF)   ? &BFRPFMatrix   : 0,
-                     (RetainContributions & CONTRIBUTION_PORT) ? &PortRPFMatrix : 0
+                     OmitBFTerms ? 0 : &BFRPFMatrix, OmitPortTerms ? 0 : &PortRPFMatrix
                    );
                     
   // create output matrix
@@ -950,8 +952,11 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
 {
   int NX           = XMatrix->NC;
 
-  int NBFEdges     = ( (RetainContributions & CONTRIBUTION_BF)   ? G->TotalBFs : 0 ); 
-  int NPortEdges   = ( (RetainContributions & CONTRIBUTION_PORT) ? PortList->PortEdges.size() : 0);
+  bool OmitBFTerms   = CheckEnv("SCUFF_RFFIELDS_PORTONLY");
+  bool OmitPortTerms = CheckEnv("SCUFF_RFFIELDS_BFONLY");
+
+  int NBFEdges     = OmitBFTerms   ? 0 : G->TotalBFs;
+  int NPortEdges   = OmitPortTerms ? 0 : PortList->PortEdges.size();
   int NEdges       = NBFEdges + NPortEdges;
   
   int Order=-1; CheckEnv("SCUFF_MOIFIELDS_ORDER",&Order);
