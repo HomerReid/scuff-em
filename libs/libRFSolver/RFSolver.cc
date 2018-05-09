@@ -282,7 +282,7 @@ void RFSolver::InitGeometry()
         if (!Label)
          { Label=Buffer; snprintf(Label,100,"%s_%lu",GetFileBase(MeshFiles[n]),n); }
         fprintf(f,"OBJECT %s\n MESHFILE %s\n",Label,MeshFiles[n]);
-        if (MeshTransforms[n]) { fprintf(f," %s\n",MeshTransforms[n]); free(MeshTransforms[n]); }
+        if (MeshTransforms[n]) fprintf(f," %s\n",MeshTransforms[n]);
         fprintf(f,"ENDOBJECT\n");
         free(MeshFiles[n]);
         if (MeshLabels[n]) free(MeshLabels[n]);
