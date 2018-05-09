@@ -47,24 +47,24 @@ from C++ or python programs, or \textbf{(b)} from the command line
 via the {\sc scuff-rf} binary application code.
 
 The {\sc scuff-em} RF module extends the existing functionality of the
-{\sc scuff-em} core library in three main ways:
+{\sc scuff-em} core library in two main ways:
 
 \begin{enumerate}
-  \item It introduces the notion of a \textit{port.} This is the region
+  \item It introduces the notion of a \textit{port.} This is a region
         of your structure (be it an antenna, a coaxial cable, etc.)
-        that interfaces with RF circuitry.
-        Information on ports may be specified to {\sc scuff-em} via
-        \textbf{(a)} text-based input files (\texttt{.ports} files), or
-        \textbf{(b)} polygonal regions in GDSII files.
+        that interfaces with RF circuitry; more specifically, a port
+        consists of a positive terminal, into which a current of arbitrary
+        complex amplitude is injected,
+        and a negative terminal from which the same current is extracted.
+        The fields radiated by these currents define the incident field
+        in the SIE scattering problem solved by {\sc scuff-em}.
+
+        Ports are defined by geometric entities (points, lines, or
+        polygons) identifying regions of meshed structures.
         Information on ports is stored internally in the {\sc scuff-em}
         RF module via data structures named \texttt{RWGPort} and 
         \texttt{RWGPortEdge}.
-  \item It allows you to specify a fixed set of \textit{port currents},
-        rather than a fixed incident field configuration such as a plane wave,
-        as the excitation source for a {\sc scuff-em} scattering problem.
-        The incident field in the scattering problem is then the field radiated
-        by the currents forced into the ports.
-  \item As a new type of post-processing calculation, it provides functionality 
+  \item It introduces a new type of post-processing operation
         to compute the \textit{impedance parameters} of a multiport geometry.
         (All of the varous other types of post-processing calculations offered by
         core {\sc scuff-em}---including computation and visualization of fields,
@@ -97,7 +97,7 @@ In this memo we will discuss the implementation of these features.
 %####################################################################%
 %####################################################################%
 
-A key extension of the \lss core library provided by {\sc scuff-rf}
+The key extension of the \lss core library provided by {\sc scuff-rf}
 is the idea of an \texttt{RWGPort}. This is a physical region of
 a structure that interfaces with RF circuitry.
 

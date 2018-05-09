@@ -1,5 +1,10 @@
 [CoreLibrary]:             	/API/libscuff.md
 [libscuff]:             	/API/libscuff.md
+[MainFlowAPI]:             	/API/MainFlow.md
+[IncFieldsAPI]:             	/API/IncFieldsAPI.md
+[AncillaryAPI]:             	/API/Ancillary.md
+[UtilityAPI]:             	/API/UtilityAPI.md
+[MatrixVectorAPI]:             	/API/UtilityAPI.md#MatrixVector
 
 [applications]:			/applications/GeneralReference.md
 [GeneralReference]:		/applications/GeneralReference.md
@@ -31,7 +36,7 @@
 [scuffEMGeometries]:		/reference/Geometries.md
 [scuffEMTransformations]:	/reference/Transformations.md
 [scuffEMMaterials]:		/reference/Materials.md
-[scuffEMInstallation]:		/reference/Installation.md
+[scuffEMInstallation]:		/reference/Installing.md
 [scuffEMFAQ]:			/reference/FAQ.md
 
 [TestSuite]:            	/tests/Overview.md

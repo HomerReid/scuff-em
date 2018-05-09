@@ -120,7 +120,9 @@ public:
     // functions designed to allow python users to define microstrip
     // geometries line-by-line from python scripts
     void SetGeometryFile(const char *scuffgeoFileName);
-    void AddMetalTraceMesh(const char *MeshFile, const char *Transformation=0);
+    void AddMetalTraceMesh(const char *MeshFile, const char *Label=0,
+                           const char *Transformation=0);
+
     //void ImportGDSIILayer(const char *GDSIIFile, int Layer=-1);
 
     void SetSubstratePermittivity(cdouble Epsilon);
@@ -138,6 +140,10 @@ public:
     // the geometry specification
     void PlotGeometry(const char *PPFormat, ...);
     void PlotGeometry();
+
+    // geometric transformations of objects
+    void Transform(const char *SurfaceLabel, const char *Transformation);
+    void UnTransform();
 
     // system assembly 
     void EnableSystemBlockCache();
@@ -208,7 +214,7 @@ public:
     std::map<double, char *> SubstrateLayers;
     char *SubstrateFile;
 
-    sVec MeshFiles, MeshTransforms;
+    sVec MeshFiles, MeshLabels, MeshTransforms;
     char *scuffgeoFile;
 
     // PortTerminalVertices[2*nPort + Pol][3*nv+0, 3*nv+1, 3*nv+2] =

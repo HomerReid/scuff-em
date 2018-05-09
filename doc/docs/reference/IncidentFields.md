@@ -1,4 +1,4 @@
-# Incident fields in <span class="SC">scuff-em</span>
+<h1> Incident fields in <span class="SC">scuff-em</span> </h1>
 
 For the classical scattering problems solved by
 [<span class="SC">scuff-scatter</span>][scuffScatter]
@@ -26,10 +26,10 @@ to write an
 [incident-field file](#IFFile) describing an entire *list*
 of incident fields.
 
-[TOC]
-
 It is also easy to [define your own custom incident fields](#RollingYourOwn)
 for use in API programs.
+
+[TOC]
 
 # Built-in types of incident field 
 

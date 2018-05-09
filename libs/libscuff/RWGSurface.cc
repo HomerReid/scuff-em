@@ -322,9 +322,9 @@ char *RWGSurface::InitRWGSurface()
   if (!MeshFile)
    return vstrdup("could not open file %s",MeshFileName);
   if  (WhichDir)
-   Log(" Opened mesh file %s/%s",WhichDir,MeshFile);
+   Log(" Opened mesh file %s/%s",WhichDir,MeshFileName);
   else
-   Log(" Opened mesh file %s",MeshFile);
+   Log(" Opened mesh file %s",MeshFileName);
    
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/

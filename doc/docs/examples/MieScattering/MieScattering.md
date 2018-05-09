@@ -168,6 +168,4 @@ This produces a file named `SiCSphere.0.1.pp`, which we can open in gmsh like th
 
 ![Sphere surface currents](SphereSurfaceCurrents.png)
 
-[scuffEMGeometries]:                  ../../reference/Geometries.md
-[scuffEMMaterials]:                   ../../reference/Materials.md
-[scuffEMInstallation]:                ../../reference/Installation.md
+{!Links.md!}

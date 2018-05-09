@@ -59,10 +59,11 @@ Python code should include the line
   import scuff;
 ```
 
-
 + [1. Core Library Reference: Main flow routines][MainFlowAPI]
 + [2. Core Library Reference: Describing incident fields][IncFields]
 + [3. Core Library Reference: Ancillary routines][AncillaryAPI]
 + [4. Core Library Reference: Utility sublibraries][SublibraryAPI]
 + [5. Core Library Reference: C++ examples][CXXExamples]
 + [6. Core Library Reference: Python examples][PythonExamples]
+
+{!Links.md!}

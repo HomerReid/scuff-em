@@ -164,7 +164,7 @@ void RFSolver::SetGeometryFile(const char *_scuffgeoFile)
   scuffgeoFile = vstrdup(_scuffgeoFile);
 }
 
-void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Transformation)
+void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const char *Transformation)
 {
   char *ErrMsg=0;
 
@@ -193,6 +193,7 @@ void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Transformatio
    }
 
   MeshFiles.push_back(strdup(MeshFile));
+  MeshLabels.push_back(Label ? strdup(Label) : 0);
   MeshTransforms.push_back( Transformation ? strdup(Transformation) : 0);
 }
 
@@ -275,13 +276,20 @@ void RFSolver::InitGeometry()
 
      if (MeshFiles.size()==0) ErrExit("no metal traces specified");
      if (MeshFiles.size() != MeshTransforms.size()) ErrExit("%s:%i: internal error");
+     if (MeshFiles.size() != MeshLabels.size()) ErrExit("%s:%i: internal error");
      for(size_t n=0; n<MeshFiles.size(); n++)
-      { fprintf(f,"OBJECT %s_%lu \n MESHFILE %s \n",GetFileBase(MeshFiles[n]),n,MeshFiles[n]);
-        free(MeshFiles[n]);
+      { char Buffer[100], *Label = MeshLabels[n];
+        if (!Label)
+         { Label=Buffer; snprintf(Label,100,"%s_%lu",GetFileBase(MeshFiles[n]),n); }
+        fprintf(f,"OBJECT %s\n MESHFILE %s\n",Label,MeshFiles[n]);
         if (MeshTransforms[n]) { fprintf(f," %s\n",MeshTransforms[n]); free(MeshTransforms[n]); }
         fprintf(f,"ENDOBJECT\n");
+        free(MeshFiles[n]);
+        if (MeshLabels[n]) free(MeshLabels[n]);
+        if (MeshTransforms[n]) free(MeshTransforms[n]);
       }
      MeshFiles.clear();
+     MeshLabels.clear();
      MeshTransforms.clear();
      fclose(f);
    }
@@ -592,5 +600,21 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
 
 void RFSolver::PlotGeometry()
  { PlotGeometry(0); }
+
+void RFSolver::Transform(const char *SurfaceLabel, const char *Transformation)
+{ 
+  if (!G) InitGeometry();
+  RWGSurface *S=G->GetSurfaceByLabel(SurfaceLabel);
+  if (!S) 
+   { Warn("Transform: no surface %s found in geometry (skipping)",SurfaceLabel);
+     return;
+   }
+  S->Transform(Transformation);
+}
+
+void RFSolver::UnTransform()
+{ if (!G) return;
+  G->UnTransform();
+}
 
 } // namespace scuff

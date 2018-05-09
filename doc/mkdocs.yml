@@ -94,6 +94,8 @@ pages:
 
 - API reference:  
     - 'libscuff':              'API/libscuff.md'
+    - 'MainFlow API':          'API/MainFlow.md'
+    - 'Utility API':           'API/UtilityAPI.md'
 
 - For developers:
     - 'Implementation':                        'forDevelopers/Implementation.md'

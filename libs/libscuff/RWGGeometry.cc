@@ -464,7 +464,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
   /***************************************************************/
   /* read and process lines from input file one at a time        */
-  RWGSurface *S=0, *SP;
   char Line[MAXSTR];
   int LineNum=0; 
   while( fgets(Line,MAXSTR,f) )

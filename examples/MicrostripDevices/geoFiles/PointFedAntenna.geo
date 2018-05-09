@@ -2,6 +2,8 @@
 // GMSH .geo file for the point-fed patch antenna analyzed in Figure 2
 // of Jedlicka et al, "Measured Mutual Coupling Between Microstrip Antennas,"
 // *IEEE Trans. Ant. Prop.* **29** 147 (January 1981).
+// Note that the feed point (which lies in the interior of the
+// patch, displaced from the center) is the origin of coordinates.
 ////////////////////////////////////////////////////
 
 DefineConstant [ L      = 105.7  ]; // width of patch (X direction)

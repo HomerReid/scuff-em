@@ -17,7 +17,7 @@
 * [Geometrical transformations](reference/Transformations.md)
 * [Incident Fields](reference/IncidentFields.md)
 * [Brillouin-zone integration](reference/BrillouinZoneIntegration.md)
-* [scuffEMFAQ](reference/FAQ.md)
+* [FAQ](reference/FAQ.md)
 
 # Tutorial Examples
 

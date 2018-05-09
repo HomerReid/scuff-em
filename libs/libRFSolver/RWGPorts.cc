@@ -306,7 +306,9 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
         CurrentPortIndex++;
       }
      /*--------------------------------------------------------------*/
-     else if ( !StrCaseCmp(Tokens[0],"POSITIVE") || !StrCaseCmp(Tokens[0],"NEGATIVE") )
+     else if (   !StrCaseCmp(Tokens[0],"POSITIVE") || !StrCaseCmp(Tokens[0],"NEGATIVE")
+              || !StrCaseCmp(Tokens[0],"PPOLYGON") || !StrCaseCmp(Tokens[0],"MPOLYGON")
+             )
       { 
         if ( (NumTokens<4) || (NumTokens%3 != 1) )
          ErrExit("%s:%i: number of arguments to %s must be a multiple of 3 and >=3",PortFileName,LineNum,Tokens[0]);
@@ -315,7 +317,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
         for(int nt=1; nt<NumTokens; nt++) sscanf(Tokens[nt],"%le",&(VertexCoordinates[nt-1]));
         int NumVertices = VertexCoordinates.size() / 3;
 
-        int Pol = (toupper(Tokens[0][0])=='N') ? _MINUS : _PLUS;
+        int Pol = (toupper(Tokens[0][0])=='P') ? _PLUS : _MINUS;
         if (NumVertices==1)
          { 
            RWGPortEdgeList NewPEs=AddPointPort(G, &(VertexCoordinates[0]));
