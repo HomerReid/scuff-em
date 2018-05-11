@@ -706,11 +706,11 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
       { 
         int neaParent, nebParent;
         EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &neaParent, &nebParent);
-        cdouble ME = Block->GetEntry(OffsetA + neaParent, OffsetB + nebParent);
 
         iVec *ChildPairs = (*IEPList)[nPair].ChildPairs;
         if (!ChildPairs) continue;
 
+        cdouble ME = Block->GetEntry(OffsetA + neaParent, OffsetB + nebParent);
         for(size_t nc=0; nc<ChildPairs->size(); nc++)
          { int ChildPair = (*ChildPairs)[nc];
            double Sign = (ChildPair < 0 ? -1.0 : 1.0);

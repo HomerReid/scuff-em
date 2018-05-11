@@ -483,6 +483,11 @@ int FindEquivalentSurfacePair(RWGGeometry *G, int nsAlpha, int nsBeta,
 /***************************************************************/
 void RFSolver::EnableSystemBlockCache()
 { 
+  if (G==0)
+   { Warn("EnableSysteBlockCache() must be called after InitGeometry (skipping)");
+     return;
+   }
+
   if (TBlocks!=0) return; // already enabled
 
   int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
