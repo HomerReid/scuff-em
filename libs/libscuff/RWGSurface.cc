@@ -58,7 +58,7 @@ void RWGSurface::UpdateBoundingBox()
       RMin[0] = fmin(RMin[0], V[0] );
       RMin[1] = fmin(RMin[1], V[1] );
       RMin[2] = fmin(RMin[2], V[2] );
-    };
+    }
 }
 
 /*--------------------------------------------------------------*/
@@ -119,14 +119,14 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
       { if (NumTokens!=2)
          { ErrMsg=strdupEC("MESHFILE keyword requires one argument");
            return;
-         };
+         }
         MeshFileName=strdupEC(Tokens[1]);
       }
      else if ( !StrCaseCmp(Tokens[0],"MESHTAG") )
       { if (NumTokens!=2)
          { ErrMsg=strdupEC("MESHTAG keyword requires one argument");
            return;
-         };
+         }
         sscanf(Tokens[1],"%i",&MeshTag);
       }
      else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
@@ -134,11 +134,11 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         if (!IsObject)
          { ErrMsg=strdupEC("MATERIAL keyword may not be used in SURFACE...ENDSURFACE sections");
            return;
-         };
+         }
         if (NumTokens!=2)
          { ErrMsg=strdupEC("MATERIAL keyword requires one argument");
            return;
-         };
+         }
         MaterialName = strdupEC(Tokens[1]);
         RegionLabels[0] = strdupEC("EXTERIOR");
         RegionLabels[1] = strdupEC(Label);
@@ -153,7 +153,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         if (IsObject)
          { ErrMsg=strdupEC("REGIONS keyword may not be used in OBJECT...ENDOBJECT sections");
            return;
-         };
+         }
         if (NumTokens==3)
          { IsPEC=0;
            RegionLabels[0] = strdupEC(Tokens[1]);
@@ -197,19 +197,19 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 	 { OTGT = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
            if (ErrMsg)
             return;
-	 };
+	 }
 	 
         if (TokensConsumed!=NumTokens) 
          { ErrMsg=strdupEC("junk at end of line");
            return;
-         };
+         }
       }
      else if ( !StrCaseCmp(Tokens[0],"SURFACE_IMPEDANCE") )
       { 
         if (NumTokens<2)
          { ErrMsg=strdupEC("no argument specified for SURFACE_CONDUCTIVITY");
            return;
-         };
+         }
 
         /* try to create a cevaluator for the user's function */
         char *ZetaString=Line; 
@@ -223,7 +223,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         if (SurfaceZeta==0)
          { ErrMsg=vstrdup("invalid SURFACE_IMPEDANCE %s",ZetaString);
            return;
-         };
+         }
 
         /* these calls are required for thread safety, and they     */
         /* mandate that the w, x, y, z values be specified in that  */
@@ -241,13 +241,13 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
      else
       { ErrMsg=vstrdup("unknown keyword %s in %s section",Tokens[0],Keyword);
         return;
-      };
-   }; 
+      }
+   } 
 
   if (MeshFileName==0)
    { ErrMsg=vstrdup("%s section must include a MESHFILE specification",Keyword,Tokens[0]);
      return;
-   };
+   }
 
   if (SurfaceZeta!=0)
    Log("Surface %s has surface impedance Zeta=%s.\n",Label,cevaluator_get_string(SurfaceZeta));
@@ -259,7 +259,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
    { IsPEC=1;
      RegionLabels[0] = strdupEC("EXTERIOR");
      RegionLabels[1] = strdupEC("PEC");
-   };
+   }
 
   // ok, all checks passed, now on to the main body of the class constructor.
   ErrMsg=InitRWGSurface();
@@ -280,7 +280,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   RegionLabels[0]=RegionLabels[1]=0;
   IsPEC=1;
   tolVecClose=0.0; // to be updated once mesh is read in
-  GT=OTGT=0;
+  OTGT=0;
   ErrMsg=InitRWGSurface();
 }
 
@@ -307,8 +307,7 @@ char *RWGSurface::InitRWGSurface()
   WhichBC=0;
   ErrMsg=0;
   GT=0;
-  OTGT=0;
-  kdPanels = 0;
+  kdPanels=0;
 
   /*------------------------------------------------------------*/
   /*- try to open the mesh file. we look in several places:     */
@@ -513,7 +512,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
                             PanelVertices[3*np+1],
                             PanelVertices[3*np+2]);
      Panels[np]->Index=np;
-   };
+   }
  
   /*------------------------------------------------------------*/
   /* gather necessary edge connectivity info                   -*/
