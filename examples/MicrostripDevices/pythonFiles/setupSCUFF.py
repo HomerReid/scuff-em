@@ -22,6 +22,8 @@ import subprocess;
 import commands;
 import numpy as np;
 import time;
+import math;
+
 import scuff;
 
 ##############################################################

@@ -637,6 +637,18 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      Block->InsertBlock(Block, OffsetA, OffsetB, NBFA, NBFB, ParentOffsetA, ParentOffsetB); 
      return;
    }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+static HMatrix *RefBlock=0;
+if (EEPTables && RefBlock==0)
+ { RefBlock = new HMatrix(Block);
+printf("Reffing...\n");
+   AssembleMOIMatrixBlock(G,nsa,nsb,Omega,RefBlock,OffsetA,OffsetB,0); 
+ }
+else
+ printf("ForRealing...\n");
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions if */
@@ -718,9 +730,24 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
            int neaChild, nebChild;
            EEPTable->ResolveEdgePairIndex(ChildPair,&neaChild, &nebChild);
            Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, Sign*ME);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+SetDefaultCD2SFormat("%+.3e,%+.3e}");
+cdouble SME=Sign*ME;
+cdouble MERef = RefBlock->GetEntry(OffsetA+neaChild, OffsetB+nebChild);
+if ( abs(MERef) > 1.0e-6 && RD(SME,MERef)>1.0e-6 )
+ printf("bawonk %.1e (%i,%i)=={%s}  but (%i,%i)=%c{%s}\n",RD(SME,MERef),neaChild,nebChild,CD2S(MERef),neaParent,nebParent,Sign?'+':'-',CD2S(ME));
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
          }
       }
      Log(" ...done with equivalent pairs");
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+delete RefBlock;
+RefBlock=0;
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    }
 
   /***************************************************************/

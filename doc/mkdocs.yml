@@ -4,8 +4,9 @@ site_author: Homer Reid
 repo_url: https://github.com/homerreid/scuff-em/
 
 theme:
-    name: readthedocs
-    custom_dir: scuff-em-mkdocs-theme
+     name: 'material'
+#    name: readthedocs
+#    custom_dir: scuff-em-mkdocs-theme
 
 markdown_extensions:
     - codehilite:

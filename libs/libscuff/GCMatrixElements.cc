@@ -40,6 +40,11 @@
 #include "PanelCubature.h"
 #include "TaylorDuffy.h"
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+cdouble GCMETerms[2][10];
+int NumGCMEs=0;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 namespace scuff {
 
 #ifndef II
@@ -139,8 +144,8 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
       for(int Nu=0; Nu<3; Nu++)
        { RPA[Mu] -= ZHatA[Mu]*ZHatA[Nu]*R[Nu];
          RPB[Mu] -= ZHatB[Mu]*ZHatB[Nu]*R[Nu];
-       };
-   };
+       }
+   }
 
   /***************************************************************/
   /* compute frequency-independent contributions if that's what  */
@@ -183,10 +188,9 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
 
          Integral[ FIBBI_PMFIE_RX_RM3  + Mu ] += Weight*PMFIE*R[Mu]*rm3;
          Integral[ FIBBI_PMFIE_RX_R0   + Mu ] += Weight*PMFIE*R[Mu];
-       };
+       }
      return;
-
-   };
+   }
 
   /***************************************************************/
   /* compute wavenumber-dependent integrand quantities for all   */
@@ -216,7 +220,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
            G0 /= (4.0*M_PI*r);
            Psi = G0*(ikr-1.0)/r2;
-         };
+         }
         dG[0]   = R[0]*Psi;
         dG[1]   = R[1]*Psi;
         dG[2]   = R[2]*Psi;
@@ -236,8 +240,8 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
            ddG[3*0+1] = ddG[3*1+0] = R[0]*R[1]*Zeta;
            ddG[3*0+2] = ddG[3*2+0] = R[0]*R[2]*Zeta;
            ddG[3*1+2] = ddG[3*2+1] = R[1]*R[2]*Zeta;
-         };
-      };
+         }
+      }
 
      /***************************************************************/
      /* assemble integrands *****************************************/
@@ -251,7 +255,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
       { zIntegral[nzi++] += Weight*bdb*G0;
         zIntegral[nzi++] += Weight*DbDb*G0 / k2;
         zIntegral[nzi++] += Weight*(bxb[0]*dG[0] + bxb[1]*dG[1] + bxb[2]*dG[2]);
-      };
+      }
 
      /*- \partial_\omega G,C ----------------------------------------*/
      if (NeedDW)
@@ -267,7 +271,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          zIntegral[nzi++] += Weight*(-1.0)*k*PMFIE*exp(II*k*r)/(4.0*M_PI*r);
         else
          zIntegral[nzi++] += Weight*(-1.0)*k*PMFIE*G0;
-      };
+      }
 
      /*- \partial_i G,C ---------------------------------------------*/
      if (NeedForce)
@@ -278,7 +282,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[0*3+0] + bxb[1]*ddG[0*3 + 1] + bxb[2]*ddG[0*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[1*3+0] + bxb[1]*ddG[1*3 + 1] + bxb[2]*ddG[1*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[2*3+0] + bxb[1]*ddG[2*3 + 1] + bxb[2]*ddG[2*3+2]);
-      };
+      }
 
      /*- \tilde_i G, C ----------------------------------------------*/
      if (NeedTorque)
@@ -293,7 +297,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
                           +bxb[1]*ddG[Mu*3 + 1]
                           +bxb[2]*ddG[Mu*3 + 2];
            bADotdG += bA[Mu]*dG[Mu];
-         };
+         }
     
         cdouble CT3[3];
         CT3[0] = XT[1]*bxbDotddG[2] - XT[2]*bxbDotddG[1];
@@ -307,9 +311,9 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
         zIntegral[nzi++] += Weight*( II*imag( bADotdG*bB[1] - bdb*dG[1] + CT3[1]));
         zIntegral[nzi++] += Weight*( II*imag( bADotdG*bB[2] - bdb*dG[2] + CT3[2]));
 
-      };
+      }
 
-   }; // for(int nr=0; nr<NumRegions; nr++)
+   } // for(int nr=0; nr<NumRegions; nr++)
 }
 
 /***************************************************************/
@@ -347,6 +351,18 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
                              +C[2]*FIBBIs[ FIBBI_PEFIE2_R1 ]
                              +C[3]*FIBBIs[ FIBBI_PEFIE2_R2 ] 
                             );
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+GCMETerms[NumGCMEs][0]=FIBBIs[ FIBBI_PEFIE1_RM1];
+GCMETerms[NumGCMEs][1]=FIBBIs[ FIBBI_PEFIE1_R0 ];
+GCMETerms[NumGCMEs][2]=FIBBIs[ FIBBI_PEFIE1_R1 ];
+GCMETerms[NumGCMEs][3]=FIBBIs[ FIBBI_PEFIE1_R2 ];
+GCMETerms[NumGCMEs][4]=FIBBIs[ FIBBI_PEFIE2_RM1];
+GCMETerms[NumGCMEs][5]=FIBBIs[ FIBBI_PEFIE2_R0 ];
+GCMETerms[NumGCMEs][6]=FIBBIs[ FIBBI_PEFIE2_R1 ];
+GCMETerms[NumGCMEs][7]=FIBBIs[ FIBBI_PEFIE2_R2 ];
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      Gab[GCME_GC] -= PEFIE2;
      if (GPhiTerm)
       *GPhiTerm -= PEFIE2;
@@ -355,7 +371,7 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
                        +D[1]*FIBBIs[ FIBBI_PMFIE_RM1 ]
                        +D[2]*FIBBIs[ FIBBI_PMFIE_R0  ]
                        +D[3]*FIBBIs[ FIBBI_PMFIE_R1  ];
-   };
+   }
 
   if (NeedForce)
    { 
@@ -652,34 +668,49 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
         if (GPhiTerm)
          GPhiTerm[nr] = -1.0*PEFIE2;
         nrme+=3;
-      };
+      }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+GCMETerms[NumGCMEs][8]=PEFIE1;
+GCMETerms[NumGCMEs][9]=PEFIE2;
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      if (NeedDW)
       {   Gab[nr][GCME_DW] = RawMEs[nrme+0] + 2.0*PEFIE2/k;
         ikCab[nr][GCME_DW] = RawMEs[nrme+1];
         nrme+=2;
-      };
+      }
 
      if (NeedForce)
       { for(int Mu=0; Mu<3; Mu++)
          {   Gab[nr][GCME_FX + Mu] = RawMEs[nrme + 0 + Mu];
            ikCab[nr][GCME_FX + Mu] = RawMEs[nrme + 3 + Mu];
-         };
+         }
         nrme+=6;
-      };
+      }
 
      if (NeedTorque)
       { for(int Mu=0; Mu<3; Mu++)
          {   Gab[nr][GCME_TX + Mu] = RawMEs[nrme + 0 + Mu];
            ikCab[nr][GCME_TX + Mu] = RawMEs[nrme + 3 + Mu];
-         };
+         }
         nrme+=6;
-      };
+      }
 
      if (DeSingularize)
       AddFIBBIContributions(FIBBIs, k, NeedGC, NeedForce, Gab[nr], ikCab[nr], (GPhiTerm ? GPhiTerm+nr : 0) );
 
-   }; // for(int nr=0, nrme=0; nr<NumRegions; nr++)
+   } // for(int nr=0, nrme=0; nr<NumRegions; nr++)
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+NumGCMEs++;
+if (NumGCMEs==2)
+ { Compare(GCMETerms[0],GCMETerms[1],10,"Pair1","Pair2");
+   exit(1);
+ }
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
@@ -704,6 +735,7 @@ static int init=0;
 if (init==0)
  { init=1;
    CheckEnv("SCUFF_TDMAXEVAL",&TDMaxEval);
+   CheckEnv("SCUFF_GCMEORDER",&(Args->ForceOrder));
    if (CheckEnv("SCUFF_UNFORCE_FORCE")) ForceForce=false; 
  }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/

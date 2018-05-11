@@ -34,6 +34,7 @@
 #include <libhmat.h>
 #include <libscuff.h>
 #include <libIncField.h>
+#include <libscuffInternals.h>
 
 #include "RFSolver.h"
 
@@ -375,7 +376,7 @@ void RFSolver::InitGeometry()
      memset(EEPTables, 0, NS*NS*sizeof(EEPTables[0]));
    }
  
-  if(ownsGeoFile) unlink(scuffgeoFile);
+  if(ownsGeoFile && !CheckEnv("PYSCUFF_RETAIN_GEOFILE")) unlink(scuffgeoFile);
   if(ownsPortFile) unlink(portFile);
 }
 

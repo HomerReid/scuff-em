@@ -53,16 +53,15 @@ int AssessPanelPair(double **Va, double **Vb, double Radius)
 {
   int ncv=0;
   int CVIa[3], CVIb[3];
-  int ia, ib;
   double ThresholdDistance=fabs(CVTHRESHOLD*Radius);
-  for(ia=0; ia<3; ia++)
-   for(ib=0; ib<3; ib++)
+  for(int ia=0; ia<3; ia++)
+   for(int ib=0; ib<3; ib++)
     { if ( VecClose(Va[ia],Vb[ib],ThresholdDistance) )
        { CVIa[ncv]=ia;    
          CVIb[ncv]=ib;
          ncv++;
-       };
-    };
+       }
+    }
   
   /***************************************************************/
   /* if there were any common vertices, reorganize the Va and Vb */
@@ -97,7 +96,7 @@ int AssessPanelPair(double **Va, double **Vb, double Radius)
      Vb[0] = OVb[ CVIb[0] ];
      Vb[1] = OVb[ CVIb[1] ];
      Vb[2] = OVb[ CVIb[2] ];
-   };
+   }
 
   return ncv;
  
@@ -115,7 +114,7 @@ int AssessPanelPair(double **Va, double **Vb)
   for(Mu=0; Mu<3; Mu++)
    { CentroidA[Mu]=(Va[0][Mu] + Va[1][Mu] + Va[2][Mu])/3.0;
      CentroidB[Mu]=(Vb[0][Mu] + Vb[1][Mu] + Vb[2][Mu])/3.0;
-   };
+   }
 
   double rMax;
   rMax=VecDistance(Va[0],CentroidA);
@@ -209,7 +208,9 @@ int AssessBFPair(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, double *rRel)
              );
    };
 
-  if (Sa!=Sb) return 0;
+  // 20180511 Nope! Can't do this anymore now that I'm expanding to 
+  // allow accommodate pairs of distinct surfaces with shared boundaries.
+  //if (Sa!=Sb) return 0;
 
   int iVa[4], iVb[4]; 
 
@@ -225,10 +226,19 @@ int AssessBFPair(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, double *rRel)
   iVb[3] = Eb->iQM;
   int NVB = (Eb->iQM==-1 ? 3 : 4);
 
+/* 20180511 old method that only works if we disallow touching surfaces
+ int ncv=0;
+ for(int nva=0; nva<NVA; nva++)
+  for(int nvb=0; nvb<NVB; nvb++)
+   if ( iVa[nva]==iVb[nvb] ) ncv++;
+*/
+
+  double ThresholdDistance=fabs(CVTHRESHOLD*fmin(Ea->Radius, Eb->Radius));
   int ncv=0;
   for(int nva=0; nva<NVA; nva++)
    for(int nvb=0; nvb<NVB; nvb++)
-    if ( iVa[nva]==iVb[nvb] ) ncv++;
+    if (VecClose(Sa->Vertices + 3*iVa[nva], Sb->Vertices+3*iVb[nvb], ThresholdDistance))
+     ncv++;
   return ncv;
   
 } 
@@ -438,9 +448,9 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
       { OVb[0] = Va[iMina]; OVb[1] = Va[iMeda]; OVb[2] = Va[iMaxa]; 
         OVa[0] = Vb[iMina]; OVa[1] = Vb[iMeda]; OVa[2] = Vb[iMaxa]; 
         return 1;
-      };
+      }
 
-   }; // if ncv ... else
+   } // if ncv ... else
   
 }
 

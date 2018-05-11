@@ -384,21 +384,19 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 /* routines operate in-place.                                  */
 /***************************************************************/
 HMatrix *RFSolver::Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
-{
-  HMatrix *ZpZC=new HMatrix(Z);
-  HMatrix *ZmZC=new HMatrix(Z);
+{ 
+  HMatrix *ZpZC = new HMatrix(Z);
+  if (S==0) 
+   S = new HMatrix(Z);
+  else if (S!=Z)
+   S->InsertBlock(Z,0,0);
   for(int nr=0; nr<ZpZC->NR; nr++)
-   { ZpZC->AddEntry(nr, nr, ZCharacteristic);
-     ZmZC->AddEntry(nr, nr, -ZCharacteristic);
+   { ZpZC->AddEntry(nr, nr,  ZCharacteristic);
+        S->AddEntry(nr, nr, -ZCharacteristic);
    }
   ZpZC->LUFactorize();
-  ZpZC->LUInvert();
-
-  if (S==0) S=new HMatrix(Z);
-  ZmZC->Multiply(ZpZC, S);
-
+  ZpZC->LUSolve(S);
   delete ZpZC;
-  delete ZmZC;
   return S;
 }
 

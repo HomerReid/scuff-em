@@ -91,6 +91,22 @@ ol.TOC {
 { background-color: #CCCCCC;
 }
 
+
+/*
+.howdage ul li {
+    list-style: none;
+    margin-left: 24px;
+}
+
+.wy-plain-list-disc li li, .rst-content .section ul li li, .rst-content .toctree-wrapper ul li li, article ul li li {
+    list-style: none;
+}
+
+.wy-plain-list-disc li li li, .rst-content .section ul li li li, .rst-content .toctree-wrapper ul li li li, article ul li li li {
+    list-style: none;
+}
+*/
+
 /*
  * HR 20180424 the following makes code blocks appear 
  * in boxes with rounded corners
