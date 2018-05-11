@@ -571,6 +571,37 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
+double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
+                             int dFixed, double XdFixed, double Delta,
+                             dVec XMin, dVec XMax, bool Verbose,
+                             double *MeanRelError, double *MeanAbsError)
+{
+  int D=XMin.size();
+
+  dVec XVec(D), dXVec(D,0.0);
+  XVec[dFixed]  = XdFixed;
+  dXVec[dFixed] = Delta;
+  
+  int PointsPerDimension=5;
+  iVec NVec(D-1, PointsPerDimension);
+  
+  double MaxError=0.0;
+  LOOP_OVER_IVECS(n, nVec, NVec)
+   { 
+     for(int d=0; d<D; d++)
+      if (d!=dFixed)
+       XVec[d] = XMin[d] + nVec[d]*XMax[d]/(PointsPerDimension-1);
+
+     MaxError=fmax(MaxError,GetInterpolationError(UserFunc, UserData, NF, XVec, dXVec));
+   }
+  return MaxError;
+}
+#endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
                double XdMin, double XdMax, double DesiredMaxRE, bool Verbose)
 { 

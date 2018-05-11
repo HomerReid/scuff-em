@@ -74,7 +74,7 @@ HMatrix *GetEquivalentPairMatrix(RWGGeometry *G, HMatrix *M=0)
   if (M && ((M->NR!=NS) || (M->NC!=NS)) )
    { delete M;
      M=0;
-   };
+   }
   if (!M)
    M=new HMatrix(NS, NS);
 
@@ -136,10 +136,10 @@ HMatrix *GetEquivalentPairMatrix(RWGGeometry *G, HMatrix *M=0)
              M->SetEntry(nsAlpha, nsBeta, Sign * (double)OffDiagonalBlockIndex(NS, nsA, nsB));
              Log(" %10s<-->%-10s === %10s<-->%-10s",SAlpha->Label,SBeta->Label,SA->Label,SB->Label);
              nsA=nsAlpha; nsB=nsBeta; // to break out of inner loop
-           };
+           }
 
-        };
-    }; 
+        }
+    }
   return M;
 }
 
@@ -272,7 +272,7 @@ void ReassembleBEMMatrix(StaticSolver *SS, HMatrix **pM,
            if (PairMatrix && (PairMatrix->GetEntryD(ns,nsp)!=0.0))
             { nbEffective=(int)(fabs(PairMatrix->GetEntryD(ns,nsp)));
               Flip = (PairMatrix->GetEntryD(ns,nsp) < 0.0 );
-            };
+            }
 
            if (Flip)
             { M->InsertBlockTranspose(UBlocks[nbEffective], RowOffset, ColOffset);
@@ -281,10 +281,10 @@ void ReassembleBEMMatrix(StaticSolver *SS, HMatrix **pM,
            else
             { M->InsertBlock(UBlocks[nbEffective], RowOffset, ColOffset);
               M->InsertBlockTranspose(UBlocks[nbEffective], ColOffset, RowOffset);
-            };
-         };
-      };
-   };
+            }
+         }
+      }
+   }
 
   /*******************************************************************/
   /*******************************************************************/

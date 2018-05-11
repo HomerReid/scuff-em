@@ -47,6 +47,9 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
 
 using namespace scuff;
 
+int FindEquivalentSurfacePair(RWGGeometry *G, int nsAlpha, int nsBeta,
+                              bool *pFlipped=0, int *pnsA=0, int *pnsB=0);
+
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
@@ -623,6 +626,17 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   char *s=getenv("SCUFF_MOIME_ORDER");
   if (s && 1==sscanf(s,"%i",&Order))
    Log("Setting panel-cubature order=%i for MOI matrix elements",Order);
+
+  bool Flipped=false;
+  int nsaEquiv, nsbEquiv;
+  int nuEquivalent=FindEquivalentSurfacePair(G, nsa, nsb, &Flipped, &nsaEquiv, &nsbEquiv);
+  if (nuEquivalent!=-1 && (Block->NR==G->TotalBFs && Block->NC==G->TotalBFs) )
+   { int NBFA = G->Surfaces[nsa]->NumBFs, NBFB = G->Surfaces[nsb]->NumBFs;
+     int ParentOffsetA = Flipped ? G->BFIndexOffset[nsbEquiv] : G->BFIndexOffset[nsaEquiv];
+     int ParentOffsetB = Flipped ? G->BFIndexOffset[nsaEquiv] : G->BFIndexOffset[nsbEquiv];
+     Block->InsertBlock(Block, OffsetA, OffsetB, NBFA, NBFB, ParentOffsetA, ParentOffsetB); 
+     return;
+   }
 
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions if */

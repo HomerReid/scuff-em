@@ -365,12 +365,107 @@ void RFSolver::InitGeometry()
  
   EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
  
-  if(ownsGeoFile)
-   unlink(scuffgeoFile);
-  if(ownsPortFile)
-   unlink(portFile);
+ // if(ownsGeoFile) unlink(scuffgeoFile);
+  if(ownsPortFile) unlink(portFile);
 }
 
+/***************************************************************/
+/* Identify equivalent surface-surface pairs to allow reuse of */
+/*  off-diagonal BEM matrix blocks.                            */
+/*                                                             */
+/* (SAlpha, SBeta) is equivalent to (SA, SB) if the following  */
+/*  three conditions are all satified.                         */
+/*                                                             */
+/*  1. SAlpha and SA are both the result of geometrical        */
+/*     transformations applied to a common surface S1:         */
+/*       SAlpha = TAlpha(S1)                                   */
+/*       SA     = TA    (S1)                                   */
+/*    where TAlpha, TA are geometrical transforms (which may   */
+/*    be the identity transform)                               */
+/*                                                             */
+/*  2. SBeta and SB are both the result of geometrical         */
+/*     transformations applied to a common surface S2:         */
+/*       SBeta  = TBeta(S2)                                    */
+/*       SB     = TB    S2)                                    */
+/*                                                             */
+/*  3. We have TAlpha^{-1} * TBeta = TA^{-1} TB                */
+/*      or                                                     */
+/*             TAlpha^{-1} * TBeta * TB^{-1} * TA = identity   */
+/*                                                             */
+/* If (SAlpha, SBeta) <==> (SA, SB) then the return value is   */
+/* the index of the parent off-diagonal block (SA,B).          */
+/*                                                             */
+/*  M[SAlpha, SBeta] = index of off-diagonal block (SA,SB)     */
+/*                                                             */
+/* (with NS==number of surfaces)                               */
+/***************************************************************/
+int OffDiagonalBlockIndex(int NS, int ns, int nsp)
+{ return ns*NS - ns*(ns+1)/2 + nsp - ns - 1; }
+
+int FindEquivalentSurfacePair(RWGGeometry *G, int nsAlpha, int nsBeta,
+                              bool *pFlipped=0, int *pnsA=0, int *pnsB=0)
+{
+  if (CheckEnv("SCUFF_IGNORE_EQUIVALENT_SURFACES")) return -1;
+
+  int *Mate = G->Mate;
+
+  int nsAlphaMate = Mate[nsAlpha], nsBetaMate  = Mate[nsBeta];
+  if (nsAlphaMate==-1 && nsBetaMate==-1)
+   return -1;
+
+  if (nsAlphaMate==-1) nsAlphaMate = nsAlpha;
+  if (nsBetaMate==-1)  nsBetaMate  = nsBeta;
+
+  for(int nsA=0; nsA<=nsAlpha; nsA++)
+   for(int nsB=1; nsB<=nsBeta; nsB++)
+    {
+      if (nsA==nsAlpha && nsB==nsBeta) continue;
+
+      int nsAMate = (Mate[nsA]==-1) ? nsA: Mate[nsA];
+      int nsBMate = (Mate[nsB]==-1) ? nsB: Mate[nsB];
+
+      if (nsAlphaMate!=nsAMate || nsBetaMate!=nsBMate)
+       continue;
+
+      RWGSurface *SAlpha = G->Surfaces[nsAlpha];
+      RWGSurface *SBeta  = G->Surfaces[nsBeta];
+      RWGSurface *SA     = G->Surfaces[nsA];
+      RWGSurface *SB     = G->Surfaces[nsB];
+          
+      GTransformation T; // identity transformation
+    
+      if (SAlpha->GT)   T = T - *(SAlpha->GT);
+      if (SAlpha->OTGT) T = T - *(SAlpha->OTGT);
+    
+      if (SBeta->OTGT)  T = T + *(SBeta->OTGT);
+      if (SBeta->GT)    T = T + *(SBeta->GT);
+    
+      if (SB->GT)       T = T - *(SB->GT);
+      if (SB->OTGT)     T = T - *(SB->OTGT);
+    
+      if (SA->OTGT)     T = T + *(SA->OTGT);
+      if (SA->GT)       T = T + *(SA->GT);
+    
+      double Lengthscale = fmin( VecDistance(SA->RMax, SA->RMin),
+                                 VecDistance(SB->RMax, SB->RMin)
+                              );
+      if ( T.IsIdentity(Lengthscale) )
+       { bool Flipped=false;
+         if (nsB<nsA)
+          { int temp = nsA; nsA=nsB; nsB=temp;
+             SA=G->Surfaces[nsA];
+             SB=G->Surfaces[nsB];
+             Flipped=true;
+          }
+         Log(" %10s<-->%-10s === %10s<-->%-10s",SAlpha->Label,SBeta->Label,SA->Label,SB->Label);
+         if (*pFlipped) *pFlipped=Flipped;
+         if (*pnsA)  *pnsA=nsA;
+         if (*pnsB)  *pnsB=nsB;
+         return OffDiagonalBlockIndex(G->NumSurfaces, nsA, nsB);
+       }
+    }
+  return -1;
+}
 
 /***************************************************************/
 /***************************************************************/
@@ -381,22 +476,21 @@ void RFSolver::EnableSystemBlockCache()
 
   int NS = G->NumSurfaces, NU=(NS-1)*NS/2;
   if (NS==1)
-   { Log("Block caching not available for single-surface geometries (skipping)");
+   { Log("Block caching not meaningful for single-surface geometries (skipping)");
      return;
    }
   else 
    Log("Initializing system block cache (%i/%i diagonal/off-diagonal blocks)",NS,NU);
 
   TBlocks = new HMatrix *[NS];
-  UBlocks = new HMatrix *[NU];
-  for(int nsa=0, nu=0; nsa<NS; nsa++)
-   { int NBFA = G->Surfaces[nsa]->NumBFs, Mate=G->Mate[nsa];
-     TBlocks[nsa] = (Mate!=-1) ? TBlocks[Mate] : new HMatrix(NBFA, NBFA, LHM_COMPLEX);
-     for(int nsb=nsa+1; nsb<NS; nsb++, nu++)
-      { int NBFB = G->Surfaces[nsb]->NumBFs;
-        UBlocks[nu] = new HMatrix(NBFA, NBFB, LHM_COMPLEX);
-      }
+  for(int ns=0; ns<NS; ns++)
+   { int NBF = G->Surfaces[ns]->NumBFs, Mate=G->Mate[ns];
+     TBlocks[ns] = (Mate!=-1) ? TBlocks[Mate] : new HMatrix(NBF, NBF, LHM_COMPLEX);
    }
+
+  UBlocks = new HMatrix *[NU];
+  memset(UBlocks, 0, NU*sizeof(HMatrix *)); // allocated lazily
+
   OmegaSIE = CACHE_DIRTY;
 }
 
@@ -414,17 +508,29 @@ void RFSolver::UpdateSystemMatrix(cdouble Omega)
   // UBlocks recomputed if frequency has changed or surfaces were moved
   for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
    for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nu++)
-    if (Omega!=OmegaSIE || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
-     AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu], 0, 0, EEPTable);
+    { if (FindEquivalentSurfacePair(G, nsa, nsb)!=-1)
+       continue;
+      if (Omega!=OmegaSIE || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
+       { if (UBlocks[nu]==0) 
+          UBlocks[nu]=new HMatrix(G->Surfaces[nsa]->NumBFs, G->Surfaces[nsb]->NumBFs, LHM_COMPLEX);
+         AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu], 0, 0, EEPTable);
+       }
+    }
 
   // stamp blocks into M matrix
   for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
    { int OffsetA = G->BFIndexOffset[nsa];
      M->InsertBlock(TBlocks[nsa], OffsetA, OffsetA);
      for(int nsb=nsa+1; nsb<G->NumSurfaces; nsb++, nu++)
-      {  int OffsetB = G->BFIndexOffset[nsb];
-         M->InsertBlock(UBlocks[nu],OffsetA, OffsetB);
-         M->InsertBlockTranspose(UBlocks[nu],OffsetB, OffsetA);
+      { 
+        int OffsetB = G->BFIndexOffset[nsb];
+        bool Flipped=false;
+        int nuEquivalent=FindEquivalentSurfacePair(G, nsa, nsb, &Flipped);
+        HMatrix *UBlock = UBlocks[(nuEquivalent==-1 ? nu : nuEquivalent)];
+        int RowOffset = Flipped ? OffsetB : OffsetA;
+        int ColOffset = Flipped ? OffsetA : OffsetB;
+        M->InsertBlock(UBlock,RowOffset,ColOffset);
+        M->InsertBlockTranspose(UBlock,ColOffset,RowOffset);
       }
    }
   OmegaSIE=Omega;
