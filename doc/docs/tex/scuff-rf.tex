@@ -163,24 +163,107 @@ each basis function in the positive terminal with weight
 $+\frac{I_p}{L_p^+}$ and 
 each basis function in the negative terminal with weight
 $-\frac{I_p}{L_p^-}$. 
-Thus, 
+Thus, defining
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align}
-\intertext{
-spatial distribution of electric surface-current density due to port $p$
-driven by current $I_p$:
-}
-\vb K(\vb x)&=
-   \frac{I_p}{L_p^+} \sum_{\alpha^+} \vb h_\alpha(\vb x)
-  -\frac{I_p}{L_p^-} \sum_{\alpha^-} \vb h_\alpha(\vb x).
+\vb K_p(I_p; \vb x)
+&\equiv \left(\parbox{0.6\textwidth}
+    { spatial distribution of electric surface-current density
+      due to port $p$ driven by current $I_p$
+    }
+  \right)
+\intertext{we have}
+\vb K_p(I_p; \vb x)
+&= \frac{I_p}{L_p^+} \sum_{a_p^+} \vb h_{a_p^+}(\vb x)
+  -\frac{I_p}{L_p^-} \sum_{a_p^-} \vb h_{a_p^-}(\vb x).
+\label{KpDef}
 \end{align}
+where $a_p^\pm$ run over the indices of all half-RWG basis functions
+on the $\pm$ terminal of port $p$.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 
-\section{RF device modeling in the integral-equation framework}
-\label{RFDeviceModeling}
+\section{SIE scattering problems with port excitation}
+\label{SIEWithPortExcitationSection}
+
+Consider an $N$-port RF device geometry driven by a set of 
+$N$ complex-valued currents $\{I_p\}, p=1,\cdots,N.$
+The full surface-current distribution of all driven ports
+is given by superposing (\ref{KpDef}) for all ports:
+%====================================================================%
+\begin{align*}
+ \vb K\sups{port}(\vb x)
+&= \sum_{\sigma_p \in\pm} \sigma_p \frac{I_p}{L_p^{\sigma_p}} 
+   \sum_{a_p^\pm} \vb h_{a_p^\pm}(\vb x).
+\end{align*}
+%====================================================================%
+The electric field radiated by this current distribution, which defines
+the incident field in our scattering problem, is then a sum of
+contributions from HRWG basis functions:
+%====================================================================%
+\begin{align}
+  \vb E\sups{inc}(\vb x)
+&=\underbrace{\int \vbGamma(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) \, d\vb x^\prime
+             }_{\vbGamma\star \vb K}
+\\
+&= \sum_{\sigma_p \in\pm} \sigma_p \frac{I_p}{L_p^{\sigma_p}}
+   \sum_{a_p^\pm} \vbGamma \star \vb h_{a_p^\pm}
+\label{EInc}
+\end{align}
+%====================================================================%
+with $\vbGamma\equiv \vbGamma\supt{EE}$ the $3\times 3$ dyadic Green's function
+giving the electric field of an electric current in the medium
+of the scattering geometry.\footnote{In a homogeneous
+medium with wavevector $k$ and relative wave impedance $Z_r$ we have
+$\vbGamma\supt{EE}(\vb x, \vb x^\prime)=ik Z_0 Z_r \mb G(k; \vb x-\vb x^\prime)$
+with 
+$\mb G_{ij}(\vb r) \equiv \left(\delta_{ij} + \frac{1}{k^2}\partial_i \partial_j\right)
+ \frac{e^{ik|\vb r|}}{4\pi |\vb r|}$ the usual Helmholtz dyadic, 
+but this discussion is more general; in particular, $\vbGamma\supt{EE}$ may
+include the effect of a layered dielectric substrate.}
+
+The usual EFIE formulation of scattering from PEC bodies then 
+yields an integral equation for the unknown electric surface-current 
+density $\vb K\sups{ind}$ induced on the scatterers by the incident field:
+%====================================================================%
+\begin{align*}
+ \int \vbGamma_{\parallel}(\vb x, \vb x^\prime) \cdot \vb K\sups{ind}(\vb x^\prime) d\vb x^\prime
+&=-\vb E_\parallel\supt{inc}(\vb x)
+\intertext{Inserting (\ref{EInc}),
+           expanding $\vb K\sups{ind}$ as a linear combination of RWG basis functions
+           $\vb K\sups{ind}=\sum k_\alpha \vb b_\alpha$, and Galerkin testing yields
+           a discrete linear system for the expansion coefficients:}
+\vb M \cdot \vb k &= \vb r
+\label{Mkr}
+\end{align*}
+%====================================================================%
+where the elements of $\vb M$ are the $\vbGamma$ interactions of
+full RWG basis functions,
+%====================================================================%
+$$ \vb M_{\alpha\beta} = \Vmv{\vb b_{\alpha}}{\vbGamma}{\vb b_\beta} $$
+%====================================================================%
+and the elements of the RHS vector are $\vbGamma$ interactions 
+of full RWG functions with half RWG functions:
+%====================================================================%
+\numeq{rAlphaDef}
+{r_{\alpha} = -\sum_{a} w_a \Vmv{\vb b_{\alpha}}{\vbGamma}{\vb h_a}.}
+%====================================================================%
+In (\ref{rAlphaDef}), the sum runs over all half-RWG functions on all ports,
+and the weight $w_a=\pm \frac{I_p}{L_p^\pm}$ if half-RWG function $\vb h_a$
+lives on the $\pm$ terminal of port $p$.
+Formally solving (\ref{Mkr}), the induced surface-current density reads
+%====================================================================%
+\begin{align*} 
+ \vb K\sups{ind}(\vb x)
+&= \sum_{\alpha} k_\alpha \vb b_\alpha(\vb x)
+&= \sum_{\alpha\beta} \vb b_\alpha(\vb x) W_{\alpha\beta} r_\beta
+\end{align*} 
+%====================================================================%
+with $\vb W=\vb M^{-1}$ the inverse EFIE matrix.
 
 In RF device modeling, structures are excited by user-specified input currents
 forced into one or more ports of a structure, and the objective is to compute

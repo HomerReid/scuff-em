@@ -47,8 +47,8 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
              cdouble Omega, double *kBloch, int NQPoints,
              double ZAbove, double ZBelow, bool FromAbove,
              PlaneWave *ReflectedPW[2], PlaneWave *TransmittedPW[2],
-             double *Flux, cdouble tIntegral[2], cdouble rIntegral[2]);
-             
+             double *Flux, cdouble tIntegral[2], cdouble rIntegral[2],
+             double *nHatAbove=0, double *nHatBelow=0);
 
 // in GetAmplitudes.cc
 void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,

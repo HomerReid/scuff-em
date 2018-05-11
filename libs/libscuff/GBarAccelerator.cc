@@ -324,11 +324,15 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
      if ( str && str[0]=='1' )
      { Log("Forcing full Ewald summation.");
        GBA->ForceFullEwald=true;
-     };
-   };
+     }
+   }
   
   if (GBA->ForceFullEwald)
    return GBA;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
 
   /***************************************************************/
   /***************************************************************/
@@ -382,6 +386,12 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
        LogC("%.2e, ",RhoPoints[n]);
       LogC("%.2e)",RhoPoints[nRho-1]);
 
+      int NMax;
+      if (CheckEnv("SCUFF_GBAR_NMAX",&NMax))
+       { if (nx>NMax) nx=NMax;
+         if (nRho>NMax) nRho=NMax;
+       }
+
       GBA->I3D=0;
       GBA->I2D=new Interp2D(XPoints, nx, RhoPoints, nRho,
                             2, GBarVDPhi2D, (void *)GBA, LMDILogLevel);
@@ -431,11 +441,18 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
          if (nRho<2) nRho=2;
        };
 
+      int NMax;
+      if (CheckEnv("SCUFF_GBAR_NMAX",&NMax))
+       { if (nx>NMax) nx=NMax;
+         if (ny>NMax) ny=NMax;
+         if (nRho>NMax) nRho=NMax;
+       }
+
       GBA->I2D=0;
       GBA->I3D=new Interp3D(-0.5*Lx, 0.5*Lx, nx, -0.5*Ly, 0.5*Ly, ny,
                             RhoMin, RhoMax, nRho,
                             2, GBarVDPhi3D, (void *)GBA, LMDILogLevel);
-   };
+   }
 
   return GBA;
    

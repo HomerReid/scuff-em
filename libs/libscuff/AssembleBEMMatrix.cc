@@ -386,7 +386,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      if (nsa==nsb)
       TBlockCacheOp(TBCOP_WRITE, this, nsa, Omega, kBloch, M, RowOffset, ColOffset);
      return;
-   };
+   }
 
   /***************************************************************/
   /* The remainder of this routine is now for the PBC case only, */

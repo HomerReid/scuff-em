@@ -644,6 +644,10 @@ class InterpND
     double *CTable;          // polynomial coefficients
  };
 
+/***************************************************************/
+/* routines for automatically determining optimal grid spacing */
+/* required for given error tolerances                         */
+/***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
                              dVec XVec, dVec dXVec, bool Verbose=false,
                              double *MeanRelError=0, double *MeanAbsError=0);

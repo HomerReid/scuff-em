@@ -30,7 +30,6 @@
 #include <libhrutil.h>
 #include <libIncField.h>
 #include <libscuff.h>
-#include <scuff-transmission.h>
 
 using namespace scuff;
 
@@ -78,16 +77,19 @@ double SCR9[]={
 /* Return values: Flux[0] = upward-traveling flux at ZAbove        */
 /*                Flux[1] = downward-traveling flux at ZBelow      */
 /*                                                                 */
+/* If nHatAbove/Below are non-null, the flux in those directions   */
+/* is computed, i.e. nHatFlux \cdot E^* \times H                   */
 /*******************************************************************/
+#ifndef NUMPOLS
+#define NUMPOLS 2
+#endif
 void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
              cdouble Omega, double *kBloch, int NQPoints,
              double ZAbove, double ZBelow, bool FromAbove,
-             PlaneWave *ReflectedPW[NUMPOLS], 
+             PlaneWave *ReflectedPW[NUMPOLS],
              PlaneWave *TransmittedPW[2],
-             double *Flux,
-             cdouble tIntegral[NUMPOLS],
-             cdouble rIntegral[NUMPOLS])
-             
+             double *Flux, cdouble tIntegral[NUMPOLS], cdouble rIntegral[NUMPOLS],
+             double *nHatAbove, double *nHatBelow)
 {
   double *SCR=SCR9;
 
@@ -111,7 +113,7 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
      XMatrixBelow = new HMatrix(NCP, 3 );
      FMatrixAbove = new HMatrix(NCP, 6, LHM_COMPLEX);
      FMatrixBelow = new HMatrix(NCP, 6, LHM_COMPLEX);
-   };
+   }
 
   /***************************************************************/
   /* fill in coordinates of evaluation points.                   */
@@ -123,38 +125,35 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
    for(int nc=0; nc<3; nc++)
     LBV[nd][nc] = G->LBasis->GetEntryD(nc,nd);
   if (NQPoints==0)
-   { for(int ncp=0; ncp<NCP; ncp++)
-      { 
-        x=SCR[3*ncp+0];
-        y=SCR[3*ncp+1];
+   for(int ncp=0; ncp<NCP; ncp++)
+    { 
+      x=SCR[3*ncp+0];
+      y=SCR[3*ncp+1];
 
-        XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-        XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-        XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+      XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+      XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+      XMatrixAbove->SetEntry(ncp, 2, ZAbove);
 
-        XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-        XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-        XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+      XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+      XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+      XMatrixBelow->SetEntry(ncp, 2, ZBelow);
 
-      };
-   }
+    }
   else
-   { double Delta = 1.0 / ( (double)NQPoints );
-     for(int nqpx=0, ncp=0; nqpx<NQPoints; nqpx++)
-      for(int nqpy=0; nqpy<NQPoints; nqpy++, ncp++)
-       { 
-         x = ((double)nqpx + 0.5)*Delta;
-         y = ((double)nqpy + 0.5)*Delta;
+   for(int nqpx=0, ncp=0; nqpx<NQPoints; nqpx++)
+    for(int nqpy=0; nqpy<NQPoints; nqpy++, ncp++)
+     { 
+       x = ((double)nqpx + 0.5) / ((double)NQPoints);
+       y = ((double)nqpy + 0.5) / ((double)NQPoints);
 
-         XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-         XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-         XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+       XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+       XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+       XMatrixAbove->SetEntry(ncp, 2, ZAbove);
 
-         XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-         XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-         XMatrixBelow->SetEntry(ncp, 2, ZBelow);
-       };
-   };
+       XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+       XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+       XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+     }
 
   /***************************************************************/
   /* get scattered fields at all cubature points                 */
@@ -173,6 +172,9 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
   cdouble rDenominator[2]={0.0, 0.0};
   cdouble tDenominator[2]={0.0, 0.0};
   tIntegral[0]=tIntegral[1]=rIntegral[0]=rIntegral[1]=0.0;
+  double pzHat[3]={0,0,1.0}, mzHat[3]={0,0,-1.0};
+  if (nHatAbove==0) nHatAbove=pzHat;
+  if (nHatBelow==0) nHatBelow=mzHat;
   for(int ncp=0; ncp<NCP; ncp++)
    {
      double w;
@@ -181,18 +183,20 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
      else
       w=1.0/((double)(NCP));
 
-     cdouble Ex, Ey, Hx, Hy;
-     Ex=FMatrixAbove->GetEntry(ncp, 0);
-     Ey=FMatrixAbove->GetEntry(ncp, 1);
-     Hx=FMatrixAbove->GetEntry(ncp, 3);
-     Hy=FMatrixAbove->GetEntry(ncp, 4);
-     PAbove += 0.5*w*real( Ex*conj(Hy) - Ey*conj(Hx) );
+     cdouble *E, *H;
+     FMatrixAbove->GetEntries(ncp, "0:2", E);
+     FMatrixAbove->GetEntries(ncp, "3:5", H);
+     PAbove += 0.5*w*real(   nHatAbove[0]*(E[1]*conj(H[2]) - E[2]*conj(H[1]) )
+                           + nHatAbove[1]*(E[2]*conj(H[0]) - E[0]*conj(H[2]) )
+                           + nHatAbove[2]*(E[0]*conj(H[1]) - E[1]*conj(H[0]) )
+                         );
 
-     Ex=FMatrixBelow->GetEntry(ncp, 0);
-     Ey=FMatrixBelow->GetEntry(ncp, 1);
-     Hx=FMatrixBelow->GetEntry(ncp, 3);
-     Hy=FMatrixBelow->GetEntry(ncp, 4);
-     PBelow -= 0.5*w*real( Ex*conj(Hy) - Ey*conj(Hx) );
+     FMatrixBelow->GetEntries(ncp, "0:2", E);
+     FMatrixBelow->GetEntries(ncp, "3:5", H);
+     PBelow += 0.5*w*real(   nHatBelow[0]*(E[1]*conj(H[2]) - E[2]*conj(H[1]) )
+                           + nHatBelow[1]*(E[2]*conj(H[0]) - E[0]*conj(H[2]) )
+                           + nHatBelow[2]*(E[0]*conj(H[1]) - E[1]*conj(H[0]) )
+                         );
 
      double XSource[3],  XDest[3];
      cdouble EHSource[6], EHDest[6];
@@ -209,7 +213,7 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
         FMatrixBelow->GetEntries(ncp,"0:5",EHSource);
         XMatrixAbove->GetEntriesD(ncp,"0:2",XDest);
         FMatrixAbove->GetEntries(ncp,"0:5",EHDest);
-      };
+      }
       
      ReflectedPW[POL_TE]->GetFields(XSource, EHTE);
      ReflectedPW[POL_TM]->GetFields(XSource, EHTM);
@@ -224,8 +228,7 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
      tIntegral[POL_TM]    += w*VecHDot(EHDest,  EHTM, 3);
      tDenominator[POL_TE] += w*VecHDot(EHTE, EHTE, 3);
      tDenominator[POL_TM] += w*VecHDot(EHTM, EHTM, 3);
-
-   };
+   }
 
   /***************************************************************/
   /***************************************************************/
