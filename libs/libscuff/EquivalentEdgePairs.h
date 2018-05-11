@@ -55,11 +55,11 @@ public:
 
    IrreducibleEdgePairList *GetIrreducibleEdgePairList();
 
-   bool HasEquivalent(int ChildPair);
-   bool HasEquivalent(int neaChild, int nebChild);
+   bool HasEquivalentEdgePair(int ChildPair);
+   bool HasEquivalentEdgePair(int neaChild, int nebChild);
 
-   iVec *GetEquivalentPairs(int ParentPair);
-   iVec *GetEquivalentPairs(int neaParent, int nebParent);
+   iVec *GetEquivalentEdgePairs(int ParentPair);
+   iVec *GetEquivalentEdgePairs(int neaParent, int nebParent);
 
    int CountParentPairs();
    int CountChildPairs();
@@ -83,10 +83,10 @@ public:
    bool SameSurface;
    double DistanceQuantum;
    IrreducibleEdgePairList *IEPList;
+   bVec HasEquivalentPairFlag;
 
 /* CPLMap[ParentPair] = list of edge pairs equivalent to ParentPair */
 
-   bVec HasEquivalentFlag;
 
 #if defined(HAVE_CXX11) 
   typedef std::unordered_map<int, iVec> ChildPairListMap;
