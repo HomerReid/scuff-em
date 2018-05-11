@@ -23,6 +23,7 @@ import commands;
 import numpy as np;
 import time;
 import math;
+import argparse;
 
 import scuff;
 
@@ -76,4 +77,4 @@ except:
 ##############################################################
 scuff.SetLogFileName("pyscuff.log");
 scuff.InstallHRSignalHandler();
-os.environ["SCUFF_LOGLEVEL"]="VERBOSE2"
+#os.environ["SCUFF_LOGLEVEL"]="VERBOSE2"

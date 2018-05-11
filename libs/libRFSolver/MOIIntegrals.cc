@@ -693,7 +693,7 @@ else
 #endif
   for(int nPair=0; nPair<NumPairs; nPair++)
    { 
-     LogPercent(nPair, NumPairs);
+     if (G->LogLevel>=SCUFF_VERBOSE2) LogPercent(nPair, NumPairs);
 
      int nea, neb;
      if (IEPList)
@@ -713,7 +713,8 @@ else
   /***************************************************************/
   /***************************************************************/
   if (IEPList)
-   { Log("Filling in matrix entries for child edge pairs ...");
+   { if (G->LogLevel>=SCUFF_VERBOSE2)
+      Log("Filling in matrix entries for child edge pairs ...");
      for(int nPair=0; nPair<NumPairs; nPair++)
       { 
         int neaParent, nebParent;
@@ -730,24 +731,10 @@ else
            int neaChild, nebChild;
            EEPTable->ResolveEdgePairIndex(ChildPair,&neaChild, &nebChild);
            Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, Sign*ME);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-SetDefaultCD2SFormat("%+.3e,%+.3e}");
-cdouble SME=Sign*ME;
-cdouble MERef = RefBlock->GetEntry(OffsetA+neaChild, OffsetB+nebChild);
-if ( abs(MERef) > 1.0e-6 && RD(SME,MERef)>1.0e-6 )
- printf("bawonk %.1e (%i,%i)=={%s}  but (%i,%i)=%c{%s}\n",RD(SME,MERef),neaChild,nebChild,CD2S(MERef),neaParent,nebParent,Sign?'+':'-',CD2S(ME));
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
          }
       }
-     Log(" ...done with equivalent pairs");
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-delete RefBlock;
-RefBlock=0;
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     if (G->LogLevel>=SCUFF_VERBOSE2)
+      Log(" ...done with equivalent pairs");
    }
 
   /***************************************************************/
@@ -891,7 +878,7 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
      int nx    = nxne / NEdges;
      int nEdge = nxne % NEdges;
 
-     LogPercent(nxne, NXNE);
+     if (G->LogLevel>=SCUFF_VERBOSE2) LogPercent(nxne, NXNE);
 
      int ns, ne;
      cdouble *RPFVector;
@@ -1039,7 +1026,7 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
    {
      int nx    = nxne / NEdges;
      int nEdge = nxne % NEdges;
-     LogPercent(nxne, NXNE);
+     if (G->LogLevel>=SCUFF_VERBOSE2) LogPercent(nxne, NXNE);
 
      int ns, ne;
      cdouble Weight=0.0;
