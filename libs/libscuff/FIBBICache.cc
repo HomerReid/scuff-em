@@ -545,8 +545,7 @@ void *CreateFIBBICache(char *MeshFileName)
 
 void DestroyFIBBICache(void *pCache)
 { FIBBICache *Cache = (FIBBICache *)pCache;
-  if (Cache)
-   delete Cache;
+  if (Cache) delete Cache;
 }
 
 int GetFIBBICacheSize(void *pCache, int *pHits, int *pMisses)

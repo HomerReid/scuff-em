@@ -67,7 +67,7 @@ void RFSolver::InitSolver()
   /*--------------------------------------------------------------------------*/
   G              = 0;
   PortList       = 0;
-  EEPTable       = 0;
+  EEPTables      = 0;
   NumPorts       = 0;
   FileBase       = 0;
 
@@ -105,13 +105,19 @@ RFSolver::~RFSolver()
      delete UBlocks;
    }
 
+  if (EEPTables)
+   { int NS=G->NumSurfaces;
+     for(int nsp=0; nsp<NS*NS; nsp++)
+      if (EEPTables[nsp]) delete EEPTables[nsp];
+     delete[] EEPTables;
+   }
+
   if (PortCurrents) delete PortCurrents;
   if (KN)           delete KN;
   if (PBFIMatrix)   delete PBFIMatrix;
   if (PPIMatrix)    delete PPIMatrix;
   if (M)            delete M;
   if (FileBase)     free(FileBase);
-  if (EEPTable)     delete EEPTable;
   if (PortList)     delete PortList;
   if (G)            delete G;
 }
@@ -363,9 +369,13 @@ void RFSolver::InitGeometry()
   /*--------------------------------------------------------------*/
   InitSubstrate();
  
-  EEPTable = CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES") ? 0 : new EquivalentEdgePairTable(G);
+  if (!CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES"))
+   { int NS=G->NumSurfaces;
+     EEPTables = new EquivalentEdgePairTable* [NS*NS];
+     memset(EEPTables, 0, NS*NS*sizeof(EEPTables[0]));
+   }
  
- // if(ownsGeoFile) unlink(scuffgeoFile);
+  if(ownsGeoFile) unlink(scuffgeoFile);
   if(ownsPortFile) unlink(portFile);
 }
 
@@ -457,10 +467,11 @@ int FindEquivalentSurfacePair(RWGGeometry *G, int nsAlpha, int nsBeta,
              SB=G->Surfaces[nsB];
              Flipped=true;
           }
-         Log(" %10s<-->%-10s === %10s<-->%-10s",SAlpha->Label,SBeta->Label,SA->Label,SB->Label);
-         if (*pFlipped) *pFlipped=Flipped;
-         if (*pnsA)  *pnsA=nsA;
-         if (*pnsB)  *pnsB=nsB;
+         if (G->LogLevel>=SCUFF_VERBOSE2)
+          Log(" %10s<-->%-10s === %10s<-->%-10s",SAlpha->Label,SBeta->Label,SA->Label,SB->Label);
+         if (pFlipped) *pFlipped=Flipped;
+         if (pnsA)  *pnsA=nsA;
+         if (pnsB)  *pnsB=nsB;
          return OffDiagonalBlockIndex(G->NumSurfaces, nsA, nsB);
        }
     }
@@ -499,11 +510,16 @@ void RFSolver::EnableSystemBlockCache()
 /***************************************************************/
 void RFSolver::UpdateSystemMatrix(cdouble Omega)
 { 
+  if (TBlocks==0)
+   { Warn("EnableSystemBlockCache() must be called before UpdateSystemMatrix (skipping)");
+     return;
+   }
+
   // TBlocks recomputed only if frequency has changed
   if (Omega!=OmegaSIE)
    for(int ns=0; ns<G->NumSurfaces; ns++)
     if (G->Mate[ns]==-1)
-     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns], 0, 0, EEPTable);
+     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns], 0, 0, EEPTables);
 
   // UBlocks recomputed if frequency has changed or surfaces were moved
   for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
@@ -513,7 +529,7 @@ void RFSolver::UpdateSystemMatrix(cdouble Omega)
       if (Omega!=OmegaSIE || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
        { if (UBlocks[nu]==0) 
           UBlocks[nu]=new HMatrix(G->Surfaces[nsa]->NumBFs, G->Surfaces[nsb]->NumBFs, LHM_COMPLEX);
-         AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu], 0, 0, EEPTable);
+         AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu], 0, 0, EEPTables);
        }
     }
 
@@ -547,7 +563,7 @@ void RFSolver::AssembleSystemMatrix(double Freq)
   cdouble Omega = Freq * FREQ2OMEGA;
   G->UpdateCachedEpsMuValues(Omega);
   if (TBlocks==0)
-   AssembleMOIMatrix(G, Omega, M, EEPTable);
+   AssembleMOIMatrix(G, Omega, M, EEPTables);
   else
    UpdateSystemMatrix(Omega);
 

@@ -45,32 +45,6 @@
 namespace scuff {
 
 /***************************************************************/
-/* Compute an orthonormal basis of vectors {xHat, yHat, zHat}  */
-/* for the positive panel of an RWG edge.                      */
-/* QVVQ[0,1,2,3] = QP, V1, V2, QM / centroid                   */
-/* P = positive panel                                          */
-/***************************************************************/
-bool AdjustXYZAxes=true;
-void GetXYZSystem(double *QVVQ[4], double *Centroid, RWGPanel *P, double xyzHat[3][3])
-{
-  xyzHat[2][0] = P->ZHat[0];
-  xyzHat[2][1] = P->ZHat[1];
-  xyzHat[2][2] = P->ZHat[2];
-  double LengthScale = VecNormalize( VecSub(QVVQ[1], Centroid, xyzHat[0]) );
-  VecCross(xyzHat[2], xyzHat[0], xyzHat[1]);
-
-  // ensure that the Y axis points into the positive panel, i.e. towards QP
-  if (AdjustXYZAxes)
-   { double EP[3];
-     VecScaleAdd(Centroid, 0.1*LengthScale, xyzHat[1], EP);
-     if ( VecDistance(EP,QVVQ[0]) > VecDistance(Centroid,QVVQ[0]) )
-      { VecScale(xyzHat[0], -1.0); 
-        VecScale(xyzHat[1], -1.0); 
-      }
-   }
-}
-
-/***************************************************************/
 /* given a (full or half) RWG edge E, compute the standard     */
 /* rotation that operates on E to put it into standard position*/
 /***************************************************************/
@@ -193,7 +167,6 @@ static const char *EEResultNames[]=
 /* file (for debugging purposes).                              */
 /***************************************************************/
 #define EERELTOL 1.0e-6
-bool OldEEPMethod=false;
 int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
                         double DistanceQuantum, GTSignature *Gb2aSig, bool bInvert=false)
 { 
@@ -214,48 +187,12 @@ int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
   double Na = VecNorm(Pa), Nb = VecNorm(Pb);
   if ( fabs(Na-Nb) > EERELTOL*0.5*(Na+Nb) ) return INEQUIV_DIPOLE;
 
-  // stage-3 check: Compute the G-transformation that (a) displaces Eb
-  // until its centroid agrees with that of Ea, (b) rotates Eb so that
-  // the X,Y,Z coordinate system of its positive panel is aligned with
-  // that of Ea. Then confirm that all 4 vertices of the transformed Eb 
-  // coincide with those of Ea.
-
-static bool Init=true;
-if (Init)
- { Init=false;
-   OldEEPMethod = CheckEnv("SCUFF_OLD_EEPMETHOD");
- }
-
-GTransformation Gb2a;
-if (OldEEPMethod)
-{
-  // old method to transform Eb into Ea:
-  //  (1) translate through -1.0 * Eb->Centroid (so Eb is centered at the origin)
-  //  (2) Rotate the xyz system of Eb into that of Ea
-  //  (3) translate through +1.0 * Ea->Centroid
-  double aBasis[3][3], bBasis[3][3];
-  GetXYZSystem(Va, Ea->Centroid, Sa->Panels[Ea->iPPanel], aBasis);
-  GetXYZSystem(Vb, Eb->Centroid, Sb->Panels[Eb->iPPanel], bBasis);
-
-  GTransformation GT1(Eb->Centroid);
-  GTransformation GT2;
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    GT2.M[Mu][Nu] = aBasis[0][Mu]*bBasis[0][Nu] + aBasis[1][Mu]*bBasis[1][Nu] + aBasis[2][Mu]*bBasis[2][Nu];
-  GTransformation GT3(Ea->Centroid);
-  Gb2a = GT3 + GT2 - GT1;
-  //GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
-
-  VecSub(Ea->Centroid, Eb->Centroid, GT2.DX);
-  GetGTSignature(GT2,DistanceQuantum,Gb2aSig);
-}
-else
- { // new method
+  // stage-3 check: Compute the "standard transformations" GTa, GTb
+  // for edges Ea, Eb, then check that Ea = Ta^{-1} Tb(Eb).
    GTransformation GStandard_b = GetStandardRotation(Sb, neb, bInvert);
    GTransformation GStandard_a = GetStandardRotation(Sa, nea);
-   Gb2a = -GStandard_a + GStandard_b;
+   GTransformation Gb2a = -GStandard_a + GStandard_b;
    GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
- }
 
   // make sure {V1,V2} = {V1,V2}, possibly with twist
   double VbPrime[4][3];
@@ -289,12 +226,6 @@ else
   return QPMTwist ? EQUIV_MINUS : EQUIV_PLUS;
 }
 
-int TestEdgeEquivalence(RWGGeometry *G, int nfea, int nfeb, double DistanceQuantum, GTSignature *Gb2aSig, bool bInvert=false)
-{ int nea, nsa; RWGSurface *Sa = G->ResolveEdge(nfea, &nsa, &nea);
-  int neb, nsb; RWGSurface *Sb = G->ResolveEdge(nfeb, &nsb, &neb);
-  return TestEdgeEquivalence(Sa, nea, Sb, neb, DistanceQuantum, Gb2aSig, bInvert);
-}
-
 /******************************************************************/
 /* Given a single (full or half) RWG edge (the "parent" edge) in  */
 /* a geometry, construct a list of all "child" edges, i.e.        */
@@ -310,26 +241,26 @@ int TestEdgeEquivalence(RWGGeometry *G, int nfea, int nfeb, double DistanceQuant
 /*             in units of 1/10 the minimal panel radius          */
 /******************************************************************/
 typedef struct ChildEdgeData
- { int nfeChild;
+ { int neChild;
    int Sign;
    GTSignature GTSig;
  } ChildEdgeData;
 
 typedef vector<ChildEdgeData> ChildEdgeList;
 
-ChildEdgeList GetChildEdgeList(RWGGeometry *G, int nfeParent, double DistanceQuantum, int Results[NUMEERESULTS])
+ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, size_t Results[NUMEERESULTS])
 { 
   ChildEdgeList ChildEdges;
   ChildEdgeData CEData;
-  for(CEData.nfeChild=nfeParent+1; CEData.nfeChild<G->TotalEdges; CEData.nfeChild++)
+  for(CEData.neChild=neParent+1; CEData.neChild<S->NumEdges; CEData.neChild++)
    { 
-     int Status=TestEdgeEquivalence(G, nfeParent, CEData.nfeChild, DistanceQuantum, &(CEData.GTSig));
+     int Status=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig));
      if (Status==EQUIV_PLUS || Status==EQUIV_MINUS)
       { CEData.Sign = (Status==EQUIV_MINUS ? -1 : 1);
         ChildEdges.push_back(CEData);
       }
      else
-      { Status=TestEdgeEquivalence(G, nfeParent, CEData.nfeChild, DistanceQuantum, &(CEData.GTSig), true);
+      { Status=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true);
         if (Status==EQUIV_PLUS)
          { CEData.Sign = -1;
            ChildEdges.push_back(CEData);
@@ -344,6 +275,20 @@ printf("Got one foryaf!\n");
   return ChildEdges;
 }
 
+ChildEdgeList *GetChildren(RWGGeometry *G, int ns, double DistanceQuantum, size_t EEResults[NUMEERESULTS])
+{
+  RWGSurface *S = G->Surfaces[ns];
+  int NE = S->NumEdges;
+  ChildEdgeList *Children = new ChildEdgeList[NE];
+  int NumParents=0;
+  for(int ne=0; ne<NE; ne++)
+   { Children[ne] = GetChildEdgeList(S, ne, DistanceQuantum, EEResults);
+     if (Children[ne].size() > 0) NumParents +=1;
+   }
+  Log(" Surface %s: %i/%i edges are parents (%.0g %%)",S->Label, NumParents,NE,100.0*((double)NumParents)/((double)NE));
+  return Children;
+}
+
 /******************************************************************/
 /* General-purpose helper routines that convert back and forth    */
 /* between {edge, edge} pairs and integers indexing the list of   */
@@ -352,26 +297,26 @@ printf("Got one foryaf!\n");
 /* *full* edge indices, i.e. indices that specify both a surface  */
 /* within an RWG geometry as well as an edge on that surface.     */
 /******************************************************************/
-int EquivalentEdgePairTable::GetEdgePairIndex(int nfeParent, int nfeChild)
+int EquivalentEdgePairTable::GetEdgePairIndex(int neParent, int neChild)
 {
-  return nfeParent*NFE + nfeChild;
+  return neParent*NERadix + neChild;
 }
 
 int iabs(int x) { return (x<0 ? -x : x); }
 
-void EquivalentEdgePairTable::ResolveEdgePairIndex(int nPair, int *nfeParent, int *nfeChild)
+void EquivalentEdgePairTable::ResolveEdgePairIndex(int nPair, int *neParent, int *neChild)
 {
   int Sign = (nPair < 0 ? -1 : 1);
   nPair = iabs(nPair);
- *nfeParent =         nPair / NFE;
-  *nfeChild = Sign * (nPair % NFE);
+ *neParent =         nPair / NERadix;
+  *neChild = Sign * (nPair % NERadix);
 }
 
 /******************************************************************************/
-/* If GTSig is the signature of a GTransformation GT, then                    */ 
-/* ParentChildTable[GTSig] is a list of GT-related {parent, child} pairs,     */ 
-/* i.e. for each {parent, child} pair in the list we have parent = GT(child). */ 
-/******************************************************************************/ 
+/* If GTSig is the signature of a GTransformation GT, then                    */
+/* ParentChildTable[GTSig] is a list of GT-related {parent, child} pairs,     */
+/* i.e. for each {parent, child} pair in the list we have parent = GT(child). */
+/******************************************************************************/
 long JenkinsHash(const char *key, size_t len); // in FIBBICache.cc 
 
 struct GTSigHash 
@@ -406,6 +351,20 @@ void AddParentChildPair(ParentChildTable &PCTable, GTSignature GTSig, int PCPair
    }
 }
 
+ParentChildTable CreateParentChildTable(RWGGeometry *G, int ns, int NERadix,
+                                        ChildEdgeList *Children)
+{
+  // construct list of {parent,child=G(parent)} pairs ordered by G
+  ParentChildTable PCTable;
+  int NE = G->Surfaces[ns]->NumEdges;
+  for(int neParent=0; neParent<NE; neParent++)
+   for(size_t nc=0; nc<Children[neParent].size(); nc++)
+    { ChildEdgeData CEData = Children[neParent][nc];
+      AddParentChildPair(PCTable, CEData.GTSig, CEData.Sign*(neParent*NERadix + CEData.neChild));
+    }
+  return PCTable;
+}
+
 iVec *GetParentChildPairs(ParentChildTable &PCTable, GTSignature GTSig)
 { 
   ParentChildTable::iterator pctIterator=PCTable.find(GTSig);
@@ -425,46 +384,42 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int ParentPair, int ChildPai
                                                     bool SignFlip)
 {
   if (ChildPair <= ParentPair) return;
+
 #pragma omp critical
- { if (!HasParentFlag[ParentPair] && !HasParentFlag[ChildPair])
-    { HasParentFlag[ChildPair]=true;
+ { if (!HasEquivalentFlag[ParentPair] && !HasEquivalentFlag[ChildPair])
+    { HasEquivalentFlag[ChildPair]=true;
       if (SignFlip) ChildPair*=-1;
-      if (ChildPairListArray)
-       ChildPairListArray[ParentPair].push_back(ChildPair);
+      ChildPairListMap::iterator it=CPLMap.find(ParentPair);
+      if (it!=CPLMap.end())
+       it->second.push_back(ChildPair);
       else
-       { ChildPairListMap::iterator it=CPLMap.find(ParentPair);
-         if (it!=CPLMap.end())
-          it->second.push_back(ChildPair);
-         else
-          { iVec NewChildPairList(1,ChildPair);
-            CPLMap.insert(std::pair<int, iVec>(ParentPair,NewChildPairList));
-          }
+       { iVec NewChildPairList(1,ChildPair);
+         CPLMap.insert(std::pair<int, iVec>(ParentPair,NewChildPairList));
        }
     }
  }
 }
 
-void EquivalentEdgePairTable::AddEquivalentEdgePair(int nfeaParent, int nfebParent,
-                                                    int nfeaChild, int nfebChild,
+void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent,
+                                                    int neaChild, int nebChild,
                                                     bool SignFlip)
 { 
-  if ( (nfebParent<nfeaParent) || (nfebChild < nfeaChild) )
-   return;
+  if( SameSurface && ( (nebParent<neaParent) || (nebChild < neaChild) ) ) return;
 
-  AddEquivalentEdgePair( GetEdgePairIndex(nfeaParent, nfebParent),
-                         GetEdgePairIndex(nfeaChild, nfebChild),
+  AddEquivalentEdgePair( GetEdgePairIndex(neaParent, nebParent),
+                         GetEdgePairIndex(neaChild, nebChild),
                          SignFlip
                        );
 }
 
-void EquivalentEdgePairTable::AddEquivalentEdgePair(int nfeaParent, int nfeaChild,
-                                                    int nfebPair)
+void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int neaChild,
+                                                    int nebPair)
 { 
-  int aSign = ( (nfeaChild < 0) ? -1 : 1);
-  int bSign = ( (nfebPair  < 0) ? -1 : 1);
-  int nfebParent, nfebChild;
-  ResolveEdgePairIndex( iabs(nfebPair), &nfebParent, &nfebChild);
-  AddEquivalentEdgePair( nfeaParent, nfebParent, iabs(nfeaChild), nfebChild,
+  int aSign = ( (neaChild < 0) ? -1 : 1);
+  int bSign = ( (nebPair  < 0) ? -1 : 1);
+  int nebParent, nebChild;
+  ResolveEdgePairIndex( iabs(nebPair), &nebParent, &nebChild);
+  AddEquivalentEdgePair( neaParent, nebParent, iabs(neaChild), nebChild,
                          aSign!=bSign );
                          
 }
@@ -484,21 +439,17 @@ double GetMinPanelRadius(RWGGeometry *G)
 /******************************************************************/
 /******************************************************************/
 /******************************************************************/
-EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
+EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int nsa, int nsb)
  : G(_G)
 {
+  int NEA=G->Surfaces[nsa]->NumEdges, NEB=G->Surfaces[nsb]->NumEdges;
+  Log("Detecting edge-pair equivalences(%i,%i)...",nsa,nsb);
+
   // set some internal class data fields
   DistanceQuantum = 0.1 * GetMinPanelRadius(G);
-  NFE = G->TotalEdges;
+  NERadix = (NEA > NEB ? NEA : NEB);
+  SameSurface = (nsa==nsb);
 
-  int NFEPairs=NFE*(NFE+1)/2;
-  Log("Detecting equivalences among %i edges (%i pairs)...",NFE,NFEPairs);
-
-  ChildPairListArray=0;
-  bool UseArrays = CheckEnv("SCUFF_USE_EEPARRAYS");
-  if (UseArrays)
-   ChildPairListArray = new iVec[NFE*NFE];
-  
   /*----------------------------------------------------------------*/
   /* loops in this routine are single-threaded by default           */
   /*----------------------------------------------------------------*/
@@ -508,9 +459,9 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
   bool WriteEEPLogs = CheckEnv("SCUFF_WRITE_EEPLOGS");
  
   /*----------------------------------------------------------------*/
-  /* first pass to identify equivalent edges. If edge #nfe is       */
-  /* equivalent to edge #nfePrime>nfe, we say nfePrime is a child   */
-  /* of nfe (and nfe is a parent of nfePrime). After this loop,     */
+  /* first pass to identify equivalent edges within surfaces.       */
+  /* If edge ne is equivalent to nePrime>ne, we say nePrime is a    */
+  /* child of ne (and ne is a parent of nePrime). After this loop,  */
   /* we have e.g.                                                   */
   /*                                                                */
   /* Children[13][7] = edge index of the 7th child of edge #13      */
@@ -518,24 +469,20 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
   /*      GTs[13][7] = GTransform that operates on the 7th          */
   /*                   child of edge #13 to yield edge #13          */
   /*                                                                */
-  /* Note that the full edge index of a child is always strictly    */
-  /* greater than the edge index of any of its parents.             */
+  /* Note that the edge index of a child is always strictly greater */
+  /* than the edge index of any of its parents.                     */
   /*----------------------------------------------------------------*/
   Log("  Step 1: fetching lists of equivalent edges...");
-  ChildEdgeList *Children= new ChildEdgeList[NFE];
-  int EEResults[NUMEERESULTS]; // histogram of edge-equivalence test results
-  memset(EEResults, 0, NUMEERESULTS*sizeof(int)); 
-  int NumParentEdges=0;
-#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
-  for(int nfe=0; nfe<NFE; nfe++)
-   { Children[nfe] = GetChildEdgeList(G, nfe, DistanceQuantum, EEResults);
-     if (Children[nfe].size() > 0) NumParentEdges +=1;
-   }
-  Log("  %i/%i edges are parents (%e %%)",NumParentEdges,NFE,100.0*((double)NumParentEdges)/((double)NFE));
+  size_t EEResults[NUMEERESULTS]; // histogram of edge-equivalence test results
+  memset(EEResults, 0, NUMEERESULTS*sizeof(size_t)); 
+  ChildEdgeList *aChildren = GetChildren(G, nsa, DistanceQuantum, EEResults);
+  ChildEdgeList *bChildren = (nsa==nsb) ? aChildren : GetChildren(G, nsb, DistanceQuantum, EEResults);
+  ParentChildTable bPCTable = CreateParentChildTable(G, nsb, NERadix, bChildren);
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   if (G->LogLevel >= SCUFF_VERBOSE2)
-   { Log(" results of equivalent-edge detection:");
+   {
+     Log(" results of equivalent-edge detection:");
      int TotalResults=EEResults[EQUIV_PLUS] + EEResults[EQUIV_MINUS];
      Log("  Equivalent plus       : %6i",EEResults[EQUIV_PLUS]);
      Log("  Equivalent minus      : %6i",EEResults[EQUIV_MINUS]);
@@ -545,10 +492,11 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
          Log("Inequivalent(%10s): %6i",EEResultNames[nr],EEResults[nr]);
        }
      Log("-------------------------------------------");
-     Log("  %15s: %6i (should be %i)","Total",TotalResults,NFEPairs);
+     int TotalPairsTested = NEA*(NEA-1)/2  + (nsa==nsb ? 0 : NEB*(NEB-1)/2);
+     Log("  %15s: %6i (should be %i)","Total",TotalResults,TotalPairsTested);
    }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+#if 0
   if (WriteEEPLogs)
    { FILE *f=vfopen("/tmp/%s.ChildEdgeLists","w",GetFileBase(G->GeoFileName));
      for(int nfe=0; nfe<NFE; nfe++)
@@ -560,33 +508,28 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
       }
      fclose(f);
    }
+#endif
 
   /*----------------------------------------------------------------*/
   /* second pass to identify equivalent off-diagonal edge pairs.    */
-  /* If nfeaPrime is a child of nfea, while nfebPrime is a child of */
-  /* nfeb, then (nfeaPrime,nfebPrime) is equivalent to (nfea,nfeb)  */
-  /* if the GTransform that takes nfeaPrime to nfea is identical    */
-  /* to the GTransform that takes nfebPrime to nfeb.                */
+  /* If neaChild is a child of neaParent, while nebChild is a child */
+  /* nebParent, then (neaChild,nebChild) is equivalent to           */
+  /* (neaParent, nebParent) iff the GTransform that transforms      */
+  /* neaChild into neaParent is identical to the GTransform that    */
+  /* transforms nebChild into nebParent.                            */
   /*----------------------------------------------------------------*/
   Log("  Step 2: Identifying equivalent edge pairs...");
-  HasParentFlag.resize(NFE*NFE,false);
+  HasEquivalentFlag.resize(NERadix*NERadix,false);
 
   // handle diagonal pairs first separately
-  for(int nfeaParent=0; nfeaParent<NFE; nfeaParent++)
-   for(size_t nc=0; nc<Children[nfeaParent].size(); nc++)
-    AddEquivalentEdgePair(nfeaParent, nfeaParent,
-                          Children[nfeaParent][nc].nfeChild,
-                          Children[nfeaParent][nc].nfeChild);
+  if (nsa==nsb)
+   for(int neaParent=0; neaParent<NEA; neaParent++)
+    for(size_t nc=0; nc<aChildren[neaParent].size(); nc++)
+     AddEquivalentEdgePair(neaParent, neaParent,
+                           aChildren[neaParent][nc].neChild,
+                           aChildren[neaParent][nc].neChild);
 
-  // construct list of {parent,child=G(parent)} pairs ordered by G
-  ParentChildTable PCTable;
-  for(int nfeParent=0; nfeParent<NFE; nfeParent++)
-   for(size_t nc=0; nc<Children[nfeParent].size(); nc++)
-    AddParentChildPair(PCTable, Children[nfeParent][nc].GTSig,
-                       Children[nfeParent][nc].Sign
-                        * GetEdgePairIndex(nfeParent, Children[nfeParent][nc].nfeChild)
-                      );
-
+#if 0
   if (WriteEEPLogs)
    { FILE *f=vfopen("/tmp/%s.ParentChildPairLists","w",GetFileBase(G->GeoFileName));
      for(ParentChildTable::iterator pctIterator=PCTable.begin(); pctIterator!=PCTable.end(); pctIterator++)
@@ -604,27 +547,47 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
       }
      fclose(f);
    }
+#endif
 
-  for(int nfeaParent=0; nfeaParent<NFE; nfeaParent++)
-   for(size_t nc=0; nc<Children[nfeaParent].size(); nc++)
-    { int nfeaChild  = Children[nfeaParent][nc].Sign * Children[nfeaParent][nc].nfeChild;
-      iVec *nfebPairs = GetParentChildPairs(PCTable, Children[nfeaParent][nc].GTSig);
-      if (nfebPairs==0) continue;
-      for(size_t n=0; n<nfebPairs->size(); n++)
-       AddEquivalentEdgePair(nfeaParent, nfeaChild, (*nfebPairs)[n]);
+  /*----------------------------------------------------------------*/
+  /*----------------------------------------------------------------*/
+  /*----------------------------------------------------------------*/
+  for(int neaParent=0; neaParent<NEA; neaParent++)
+   for(size_t nc=0; nc < aChildren[neaParent].size(); nc++)
+    { int neaChild  = aChildren[neaParent][nc].Sign * aChildren[neaParent][nc].neChild;
+      iVec *bPairs = GetParentChildPairs(bPCTable, aChildren[neaParent][nc].GTSig);
+      if (bPairs==0) continue;
+      for(size_t n=0; n<bPairs->size(); n++)
+       AddEquivalentEdgePair(neaParent, neaChild, (*bPairs)[n]);
     }
 
-  DestroyParentChildTable(PCTable);
+  /*----------------------------------------------------------------*/
+  /*----------------------------------------------------------------*/
+  /*----------------------------------------------------------------*/
+  IEPList = new IrreducibleEdgePairList;
+  for(int neaParent=0; neaParent<NEA; neaParent++)
+   for(int nebParent=(nsa==nsb ? neaParent : 0); nebParent<NEB; nebParent++)
+    { 
+      int ParentPair = GetEdgePairIndex(neaParent, nebParent);
+      if (HasEquivalentFlag[ParentPair]) continue;
+      IrreducibleEdgePair IEP;
+      IEP.ParentPair = ParentPair;
+      IEP.ChildPairs = GetEquivalentPairs(ParentPair);
+      IEPList->push_back(IEP);
+    }
+
+  DestroyParentChildTable(bPCTable);
  
   /*----------------------------------------------------------------*/
   /* report some statistics on equivalent edge pairs to log file    */
   /*----------------------------------------------------------------*/
   int NumParentPairs = CountParentPairs();
   int NumChildPairs  = CountChildPairs();
-  Log(" Of %u total edge-edge pairs: ",NFEPairs);
-  Log("    %u are children (savings of %.1f %%)",NumChildPairs,100.0*((double)NumChildPairs)/((double)NFEPairs));
-  Log("    %u are parents (%.1f %%)",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NFEPairs));
-  Log("    %u are unicorns",NFEPairs - NumParentPairs - NumChildPairs);
+  int NEPairs = (nsa==nsb ? NEA*(NEA+1)/2 : NEA*NEB);
+  Log(" Of %u total edge-edge pairs: ",NEPairs);
+  Log("    %u are children (savings of %.1f %%)",NumChildPairs,100.0*((double)NumChildPairs)/((double)NEPairs));
+  Log("    %u are parents (%.1f %%)",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NEPairs));
+  Log("    %u are unicorns (should be %u)",IEPList->size(), NEPairs - NumParentPairs - NumChildPairs);
 }
 
 
@@ -633,66 +596,41 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G)
 /***************************************************************/
 EquivalentEdgePairTable::~EquivalentEdgePairTable()
 {
-  if (ChildPairListArray) delete[] ChildPairListArray;
 }
 
 /****************************************************************************/
 /* API routines              ************************************************/
 /****************************************************************************/
-bool EquivalentEdgePairTable::HasParent(int ChildPair)
-{ return HasParentFlag[ChildPair]; } 
+bool EquivalentEdgePairTable::HasEquivalent(int ChildPair)
+{ return HasEquivalentFlag[ChildPair]; } 
 
-bool EquivalentEdgePairTable::HasParent(int nfeaChild, int nfebChild)
-{ return HasParentFlag[GetEdgePairIndex(nfeaChild, nfebChild)]; }
+bool EquivalentEdgePairTable::HasEquivalent(int neaChild, int nebChild)
+{ return HasEquivalentFlag[GetEdgePairIndex(neaChild, nebChild)]; }
 
-bool EquivalentEdgePairTable::HasParent(int nsa, int neaChild, int nsb, int nebChild)
-{ return HasParentFlag[ GetEdgePairIndex( G->UnResolveEdge(nsa, neaChild),
-                                          G->UnResolveEdge(nsb, nebChild) 
-                                        )
-                      ];
-}
-
-iVec *EquivalentEdgePairTable::GetChildren(int ParentPair)
+iVec *EquivalentEdgePairTable::GetEquivalentPairs(int ParentPair)
 { 
-  if (ChildPairListArray) 
-   return &(ChildPairListArray[ParentPair]);
-
   ChildPairListMap::iterator it=CPLMap.find(ParentPair);
   return (it==CPLMap.end() ? 0 : &(it->second));
 }
 
-iVec *EquivalentEdgePairTable::GetChildren(int nfeaParent, int nfebParent)
-{ return GetChildren(nfeaParent*NFE + nfebParent); }
-
-iVec *EquivalentEdgePairTable::GetChildren(int nsa, int neaParent, int nsb, int nebParent)
-{ return GetChildren( G->UnResolveEdge(nsa, neaParent), G->UnResolveEdge(nsb, nebParent) ); }
+iVec *EquivalentEdgePairTable::GetEquivalentPairs(int neaParent, int nebParent)
+{ return GetEquivalentPairs( GetEdgePairIndex(neaParent, nebParent) ); }
 
 int EquivalentEdgePairTable::CountParentPairs()
-{ 
-  if (!ChildPairListArray) return CPLMap.size();
-
-  int NumParentPairs=0;
-  for(int n=0; n<NFE*NFE; n++)
-   if (ChildPairListArray[n].size()>0) 
-    NumParentPairs++;
-  return NumParentPairs;
+{ return CPLMap.size();
 }
 
 int EquivalentEdgePairTable::CountChildPairs()
 { 
    // first way of counting
    int NumChildPairs[2]={0,0};
-   for(int n=0; n<NFE*NFE; n++)
-    if (HasParentFlag[n])
+   for(int nePair=0; nePair<NERadix*NERadix; nePair++)
+    if (HasEquivalentFlag[nePair])
      NumChildPairs[0]++;
 
    // second way of counting
-   if (ChildPairListArray)
-    for(int n=0; n<NFE*NFE; n++)
-     NumChildPairs[1]+=(ChildPairListArray[n].size()>0 ? 1 : 0);
-   else
-    for(ChildPairListMap::iterator it=CPLMap.begin(); it!=CPLMap.end(); it++)
-     NumChildPairs[1]+=it->second.size();
+   for(ChildPairListMap::iterator it=CPLMap.begin(); it!=CPLMap.end(); it++)
+    NumChildPairs[1]+=it->second.size();
 
   if (NumChildPairs[0]!=NumChildPairs[1])
    Log("Whoops! NumChildPairs={%i,%i} by different methods",NumChildPairs[0],NumChildPairs[1]); 
@@ -701,30 +639,8 @@ int EquivalentEdgePairTable::CountChildPairs()
   return NumChildPairs[0]; 
 } 
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-IrreducibleEdgePairList *EquivalentEdgePairTable::GetIrreducibleEdgePairList(int nsa, int nsb)
-{
-  IrreducibleEdgePairList *IEPList = new IrreducibleEdgePairList;
-  RWGSurface *Sa = G->Surfaces[nsa], *Sb = G->Surfaces[nsb];
-  int NEA = Sa->NumEdges, NEB = Sb->NumEdges;
-   
-  for(int neaParent=0; neaParent<NEA; neaParent++)
-   for(int nebParent=(nsa==nsb ? neaParent : 0); nebParent<NEB; nebParent++)
-    { 
-      int nfeaParent = G->UnResolveEdge(nsa, neaParent);
-      int nfebParent = G->UnResolveEdge(nsb, nebParent);
-      int ParentPair = GetEdgePairIndex(nfeaParent, nfebParent);
-
-      if (HasParentFlag[ParentPair]) continue;
-      IrreducibleEdgePair IEP;
-      IEP.ParentPair = ParentPair;
-      IEP.ChildPairs = GetChildren(ParentPair);
-      IEPList->push_back(IEP);
-    }
-  return IEPList;
-}
+IrreducibleEdgePairList *EquivalentEdgePairTable::GetIrreducibleEdgePairList()
+{ return IEPList; }
 
 /***************************************************************/
 /***************************************************************/
@@ -739,15 +655,15 @@ void EquivalentEdgePairTable::Export(char *FileName)
   FILE *f = fopen(FileName,"w");
   if (!f) 
    { Warn("could not open file %s (skipping edge-pair table export)",FileName); return;}
-  for(int ParentPair=0; ParentPair<NFE*NFE; ParentPair++)
-   { iVec *Children = GetChildren(ParentPair);
-     if (Children==0 || Children->size()==0) continue;
+  for(int ParentPair=0; ParentPair<NERadix*NERadix; ParentPair++)
+   { iVec *ChildPairs = GetEquivalentPairs(ParentPair);
+     if (ChildPairs ==0 || ChildPairs->size()==0) continue;
      int neaParent, nebParent;
      ResolveEdgePairIndex(ParentPair, &neaParent, &nebParent);
      fprintf(f,"{%i,%i} ",neaParent, nebParent);
-     for(size_t n=0; n<Children->size(); n++)
+     for(size_t n=0; n<ChildPairs->size(); n++)
       { int neaChild, nebChild;
-        ResolveEdgePairIndex( (*Children)[n], &neaChild, &nebChild);
+        ResolveEdgePairIndex( (*ChildPairs)[n], &neaChild, &nebChild);
         fprintf(f,"{%i,%i} ",neaChild,nebChild);
       }
      fprintf(f,"\n");

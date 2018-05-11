@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
   bool WritePPFiles=0;
   bool WriteLabels=0;
   int Neighbors=0;
-  bool EEPs=false;
+  int EEPs[2]={-1,-1};
   bool RegionVolumes=false;
   double WhichRegion[3]={HUGE_VAL, HUGE_VAL, HUGE_VAL};
   char *EPFile=0;
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
      {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
      {"Neighbors",          PA_INT,    1, 1, (void *)&Neighbors,      0, "number of neighboring cells to plot"},
-     {"EEPs",               PA_BOOL,   0, 1, (void *)&EEPs,           0, "analyze equivalent edge pairs"},
+     {"EEPs",               PA_INT,    2, 1, (void *)EEPs,            0, "analyze equivalent edge pairs for surfaces xx, xx"},
      {"RegionVolumes",      PA_BOOL,   0, 1, (void *)&RegionVolumes,  0, "compute volumes of closed regions"},
      {"WhichRegion",        PA_DOUBLE, 3, 1, (void *)&WhichRegion,    0, "identify region in which the given point lives"},
      {0,0,0,0,0,0,0}
@@ -580,27 +580,30 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (EEPs)
+  if (EEPs[0]!=-1 && EEPs[0]!=-1)
    { char EEPFileName[100];
      if (MeshFile)
       { char GeoFileName[100];
         snprintf(GeoFileName,100,"MESH__%s",GetFileBase(MeshFile));
         G=new RWGGeometry(GeoFileName);
         if (!G) ErrExit("Could not open %s",GeoFileName);
-        snprintf(EEPFileName,100,"%s.EEPTable",GetFileBase(MeshFile));
+        snprintf(EEPFileName,100,"%s.%i.%i.EEPs",GetFileBase(MeshFile),EEPs[0],EEPs[1]);
       }
      else
-      snprintf(EEPFileName,100,"%s.EEPTable",GetFileBase(GeoFile));
+      snprintf(EEPFileName,100,"%s.%i.%i.EEPs",GetFileBase(GeoFile),EEPs[0],EEPs[1]);
 
-     printf("Analyzing equivalent edge pairs...\n");
-     EquivalentEdgePairTable EEPTable(G);
-     int NFEPairs = G->TotalEdges * (G->TotalEdges+1)/2;
+     RWGSurface *Sa = G->Surfaces[EEPs[0]], *Sb = G->Surfaces[EEPs[1]]; 
+     printf("Analyzing equivalent edge pairs between surfaces %i (%s) and %i (%s)...\n",
+             EEPs[0],Sa->Label,EEPs[1],Sb->Label);
+     EquivalentEdgePairTable EEPTable(G,EEPs[0],EEPs[1]);
+     int NEA = Sa->NumEdges, NEB=Sb->NumEdges;
+     int NEPairs = NEA * (Sa==Sb ? (NEA+1)/2 : NEB);
      int NumParentPairs  = EEPTable.CountParentPairs();
      int NumChildPairs  = EEPTable.CountChildPairs();
-     printf(" Of %u total edge-edge pairs:\n ",NFEPairs);
-     printf("    %u are children (savings of %.1f %%)\n",NumChildPairs,100.0*((double)NumChildPairs)/((double)NFEPairs));
-     printf("    %u are parents (%.1f %%)\n",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NFEPairs));
-     printf("    %u are unicorns\n",NFEPairs - NumParentPairs - NumChildPairs);
+     printf(" Of %u total edge-edge pairs:\n ",NEPairs);
+     printf("    %u are children (savings of %.1f %%)\n",NumChildPairs,100.0*((double)NumChildPairs)/((double)NEPairs));
+     printf("    %u are parents (%.1f %%)\n",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NEPairs));
+     printf("    %u are unicorns\n",NEPairs - NumParentPairs - NumChildPairs);
 
      EEPTable.Export(EEPFileName);
      printf("Wrote equivalent-edge pair table to %s.\n",EEPFileName);

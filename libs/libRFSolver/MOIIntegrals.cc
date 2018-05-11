@@ -620,7 +620,7 @@ void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double z
 /***************************************************************/
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
                             cdouble Omega, HMatrix *Block, int OffsetA, int OffsetB,
-                            EquivalentEdgePairTable *EEPTable)
+                            EquivalentEdgePairTable **EEPTables)
 {
   int Order=-1;
   char *s=getenv("SCUFF_MOIME_ORDER");
@@ -661,7 +661,13 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   RWGSurface *Sa = G->Surfaces[nsa], *Sb=G->Surfaces[nsb];
   int NEA=Sa->NumEdges, NEB=Sb->NumEdges;
 
-  IrreducibleEdgePairList *IEPList = EEPTable ? EEPTable->GetIrreducibleEdgePairList(nsa, nsb) : 0;
+  EquivalentEdgePairTable *EEPTable=0;
+  if (EEPTables)
+   { int NS=G->NumSurfaces;
+     if (EEPTables[nsa*NS + nsb]==0) EEPTables[nsa*NS+nsb]=new EquivalentEdgePairTable(G,nsa,nsb);
+     EEPTable = EEPTables[nsa*NS + nsb];
+   }
+  IrreducibleEdgePairList *IEPList = EEPTable ? EEPTable->GetIrreducibleEdgePairList() : 0;
   int NumPairs = IEPList ? IEPList->size() : NEA*NEB;
 
   /***************************************************************/
@@ -679,12 +685,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
 
      int nea, neb;
      if (IEPList)
-      { int nfeaParent, nfebParent, nsaParent, nsbParent;
-        EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &nfeaParent, &nfebParent);
-        G->ResolveEdge(nfeaParent, &nsaParent, &nea);
-        G->ResolveEdge(nfebParent, &nsbParent, &neb);
-        if (nsaParent!=nsa || nsbParent!=nsb) continue; // this should never happen
-      }
+      EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &nea, &neb);
      else
       { nea = nPair/NEB;
         neb = nPair%NEB;
@@ -703,12 +704,8 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
    { Log("Filling in matrix entries for child edge pairs ...");
      for(int nPair=0; nPair<NumPairs; nPair++)
       { 
-        int nfeaParent, nsaParent, neaParent, nfebParent, nsbParent, nebParent;
-        EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &nfeaParent, &nfebParent);
-        G->ResolveEdge(nfeaParent, &nsaParent, &neaParent);
-        G->ResolveEdge(nfebParent, &nsbParent, &nebParent);
-        if (nsaParent!=nsa || nsbParent!=nsb) continue; // this should never happen
-
+        int neaParent, nebParent;
+        EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &neaParent, &nebParent);
         cdouble ME = Block->GetEntry(OffsetA + neaParent, OffsetB + nebParent);
 
         iVec *ChildPairs = (*IEPList)[nPair].ChildPairs;
@@ -718,11 +715,8 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
          { int ChildPair = (*ChildPairs)[nc];
            double Sign = (ChildPair < 0 ? -1.0 : 1.0);
            if (ChildPair<0) ChildPair*=-1;
-           int nfeaChild, nfebChild;
-           EEPTable->ResolveEdgePairIndex(ChildPair,&nfeaChild, &nfebChild);
-           int nsaChild, neaChild; G->ResolveEdge(nfeaChild, &nsaChild, &neaChild);
-           int nsbChild, nebChild; G->ResolveEdge(nfebChild, &nsbChild, &nebChild);
-           if (nsaChild!=nsa || nsbChild!=nsb) continue;
+           int neaChild, nebChild;
+           EEPTable->ResolveEdgePairIndex(ChildPair,&neaChild, &nebChild);
            Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, Sign*ME);
          }
       }
@@ -742,7 +736,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable *EEPTable)
+void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable **EEPTables)
 {
   if ( !M || (M->NR != G->TotalBFs) || (M->NC != G->TotalBFs) )
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
@@ -779,7 +773,7 @@ void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdge
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
-       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb], EEPTable);
+       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb], EEPTables);
     }
 
   // fill in lower triangle

@@ -183,8 +183,8 @@ size_t InterpND::GetCTableOffset(iVec nVec, int nFun)
 /* class constructor 1: construct the class from a user-supplied*/
 /* function and uniform grids                                   */
 /****************************************************************/
-InterpND::InterpND(dVec X0Min, dVec X0Max, iVec N0Vec, int _NF,
-                   PhiVDFunc UserFunc, void *UserData, bool Verbose)
+InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
+                   dVec X0Min, dVec X0Max, iVec N0Vec, bool Verbose)
  : NF(_NF)
 { 
   D0=X0Min.size();
@@ -205,8 +205,8 @@ InterpND::InterpND(dVec X0Min, dVec X0Max, iVec N0Vec, int _NF,
 /* class constructor 2: construct the class from a user-supplied*/
 /* function and user-supplied grids for each variable           */
 /****************************************************************/
-InterpND::InterpND(vector<dVec> &X0Grids, int _NF,
-                   PhiVDFunc UserFunc, void *UserData, bool Verbose)
+InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
+                   vector<dVec> &X0Grids, bool Verbose)
   : NF(_NF)
  
 { 
@@ -220,6 +220,29 @@ InterpND::InterpND(vector<dVec> &X0Grids, int _NF,
       NVec.push_back( X0Grids[d0].size() - 1 );
     }
 
+  Initialize(UserFunc, UserData, Verbose);
+}
+
+/****************************************************************/
+/* class constructor 3: construct the class from a user-supplied*/
+/* function and a requested error tolerance; non-uniform grids  */
+/* are determined automatically                                 */
+/****************************************************************/
+InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
+                   dVec X0Min, dVec X0Max, double MaxRelError, bool Verbose)
+  : NF(_NF)
+{ 
+  D0=X0Min.size();
+
+  for(int d0=0; d0<D0; d0++)
+   if ( EqualFloat(X0Min[d0], X0Max[d0]) )
+    FixedCoordinates.push_back( X0Min[d0] );
+   else
+    { FixedCoordinates.push_back( HUGE_VAL );
+      dVec XdGrid = GetXdGrid(UserFunc, UserData, NF, X0Min, X0Max, d0, MaxRelError);
+      XGrids.push_back(XdGrid);
+      NVec.push_back( XdGrid.size() - 1 );
+    }
   Initialize(UserFunc, UserData, Verbose);
 }
 
@@ -506,7 +529,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 /* Column 2: mean absolute error in Phi at sample points        */
 /****************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec XVec, dVec dXVec, bool Verbose,
+                             dVec XVec, dVec dXVec,
                              double *MeanRelError, double *MeanAbsError)
 { 
   int D = XVec.size();
@@ -514,7 +537,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   for(int d=0; d<D; d++) XMax[d]+=2.0*dXVec[d];
   iVec NVec(D,2);
 
-  InterpND Interp(XVec, XMax, NVec, NF, UserFunc, UserData);
+  InterpND Interp(UserFunc, UserData, NF, XVec, XMax, NVec);
 
   int NVD = (1<<D);     // # function vals, derivs per grid point
 
@@ -571,12 +594,13 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#if 0
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
                              int dFixed, double XdFixed, double Delta,
-                             dVec XMin, dVec XMax, bool Verbose,
+                             dVec XMin, dVec XMax, 
                              double *MeanRelError, double *MeanAbsError)
 {
+  (void) MeanRelError;
+  (void) MeanAbsError;
   int D=XMin.size();
 
   dVec XVec(D), dXVec(D,0.0);
@@ -597,13 +621,12 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
    }
   return MaxError;
 }
-#endif
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double XdMin, double XdMax, double DesiredMaxRE, bool Verbose)
+               double XdMin, double XdMax, double DesiredMaxRE)
 { 
   bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
   Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XdMin,XdMax);
@@ -630,7 +653,7 @@ dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
      bool TooBig=false, JustRight=false;
      while(!JustRight)
       { dVec DeltaVec(X0.size(), 0.0); DeltaVec[d]=Delta;
-        double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, false);
+        double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec);
         if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
         if ( Err > 10.0*DesiredMaxRE )
          { TooBig=true; Delta *= 0.2; }
@@ -653,6 +676,57 @@ dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
       }
      Xd+=Delta;
      if (Xd>XdMax) Xd=XdMax;
+     XdGrid.push_back(Xd);
+   }
+  Log(" ...%i grid points",XdGrid.size()); 
+  return XdGrid;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax, int d,
+               double DesiredMaxRE)
+{ 
+  bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
+  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XMin[d],XMax[d]);
+
+  int NMin=2;    CheckEnv("SCUFF_INTERPOLATION_NMIN",&NMin);
+  int NMax=1000; CheckEnv("SCUFF_INTERPOLATION_NMAX",&NMax);
+  
+  double DeltaMin = (XMax[d] - XMin[d]) / NMax;
+  double DeltaMax = (XMax[d] - XMin[d]) / NMin;
+  double Delta    = (XMax[d] - XMin[d]) / 10;   // initial guess
+ 
+  double Xd = XMin[d];
+  dVec XdGrid(1,Xd);
+  while( Xd<XMax[d] )
+   { 
+     bool TooBig=false, JustRight=false;
+     while(!JustRight)
+      { double Err=GetInterpolationError(UserFunc, UserData, NF, d, Xd, Delta, XMin, XMax);
+        if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
+        if ( Err > 10.0*DesiredMaxRE )
+         { TooBig=true; Delta *= 0.2; }
+        else if ( Err > DesiredMaxRE )
+         { TooBig=true; Delta *= 0.75; }
+        else if ( Err<0.1*DesiredMaxRE )
+         { if (TooBig) 
+            JustRight=true; // prevent oscillatory behavior
+           else
+            Delta *= 2.0; 
+         }
+        else
+         JustRight = true;
+
+        if (Delta<DeltaMin || Delta>DeltaMax)
+         { Delta = (Delta<DeltaMin ? DeltaMin : DeltaMax);
+           if (ExtraVerbose) Log("   setting Delta=%f",Delta);
+           JustRight = true;
+         }
+      }
+     Xd+=Delta;
+     if (Xd>XMax[d]) Xd=XMax[d];
      XdGrid.push_back(Xd);
    }
   Log(" ...%i grid points",XdGrid.size()); 

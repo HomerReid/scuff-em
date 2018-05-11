@@ -637,12 +637,12 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   dVec RZ0Vec(1, RhoMin);
   if (Dimension>1) RZ0Vec.push_back(Z0);
 
-  dVec RhoGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance, Verbose);
+  dVec RhoGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance);
   vector<dVec> RZGrid(1,RhoGrid);
   Log("  Rho=[%g,%g] @ Z=%e: %lu points",RhoMin,RhoMax,Z0,RZGrid[0].size());
 
   if (Dimension>1)
-   { dVec ZGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance, Verbose);
+   { dVec ZGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance);
      RZGrid.push_back(ZGrid);
      Log("  Z=[%g,%g] @ Rho=%e: %lu points",ZMin,ZMax,RhoMin,RZGrid[1].size());
    }
@@ -654,7 +654,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   if (Dimension>1) GridPoints *= RZGrid[1].size();
   Log("Creating interpolation table (%lu points)",GridPoints);
   
-  ScalarGFInterpolator = new InterpND(RZGrid, NF, PhiVDFunc_ScalarGFs, (void *)&Data, Verbose);
+  ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZGrid, Verbose);
 
   /***************************************************************/
   /***************************************************************/

@@ -874,9 +874,8 @@ RWGGeometry::~RWGGeometry()
   free(GeoFileName);
 
   for(int ns=0; ns<NumSurfaces; ns++)
-   { DestroyFIBBICache(FIBBICaches[ns]);
-     FIBBICaches[ns]=0;
-   }
+   if (Mate[ns]==-1)
+    DestroyFIBBICache(FIBBICaches[ns]);
   free(FIBBICaches);
 
 }

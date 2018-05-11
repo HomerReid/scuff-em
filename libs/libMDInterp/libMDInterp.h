@@ -544,14 +544,21 @@ class InterpND
     /*--------------------------------------------------------------*/
     /*- user-supplied function, uniform grid                        */
     /*--------------------------------------------------------------*/
-    InterpND(dVec X0Min, dVec X0Max, iVec N0Vec, int NF,
-             PhiVDFunc Phi=0, void *UserData=0, bool Verbose=false);
+    InterpND(PhiVDFunc Phi, void *UserData, int NF,
+             dVec X0Min, dVec X0Max, iVec N0Vec, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
     /*- user-supplied function, user-supplied grids in each dimension*/
     /*--------------------------------------------------------------*/
-    InterpND(vector<dVec> &X0Grids, int NF,
-             PhiVDFunc UserFunc, void *UserData, bool Verbose=false);
+    InterpND(PhiVDFunc UserFunc, void *UserData, int NF, 
+             vector<dVec> &X0Grids, bool Verbose=false);
+
+    /*--------------------------------------------------------------*/
+    /*- user-supplied function with requested error tolerance       */
+    /*- (non-uniform grids determined automatically)                */
+    /*--------------------------------------------------------------*/
+    InterpND(PhiVDFunc UserFunc, void *UserData, int NF,
+             dVec XMin, dVec XMax, double MaxRelError=1.0e-4, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
     /*--------------------------------------------------------------*/
@@ -649,11 +656,19 @@ class InterpND
 /* required for given error tolerances                         */
 /***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec XVec, dVec dXVec, bool Verbose=false,
+                             dVec XVec, dVec dXVec,
                              double *MeanRelError=0, double *MeanAbsError=0);
 
+double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
+                             int dFixed, double XdFixed, double Delta,
+                             dVec XMin, dVec XMax,
+                             double *MeanRelError=0, double *MeanAbsError=0);
+
+dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax, int d,
+               double DesiredMaxRE);
+
 dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double XdMin, double XdMax, double DesiredMaxRE, bool Verbose=false);
+               double XdMin, double XdMax, double DesiredMaxRE);
 
 /***************************************************************/
 /* non-member function for binary searching                    */

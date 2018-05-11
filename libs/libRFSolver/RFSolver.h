@@ -182,7 +182,7 @@ public:
     // info on the geometry
     RWGGeometry *G;
     RWGPortList *PortList;
-    EquivalentEdgePairTable *EEPTable;
+    EquivalentEdgePairTable **EEPTables;
     int NumPorts;
     char *FileBase;
 
@@ -239,9 +239,9 @@ int GetMOIMatrixElement(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
 
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
                             cdouble Omega, HMatrix *Block, int OffsetA=0, int OffsetB=0,
-                            EquivalentEdgePairTable *EEPTable=0);
+                            EquivalentEdgePairTable **EEPTable=0);
 
-void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable *EEPTable=0);
+void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable **EEPTable=0);
 
 } // namespace scuff 
 #endif // #ifndef RFSOLVER

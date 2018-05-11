@@ -50,18 +50,16 @@ namespace scuff {
 class EquivalentEdgePairTable
 { 
 public:
-   EquivalentEdgePairTable(RWGGeometry *G);
+   EquivalentEdgePairTable(RWGGeometry *G, int nsa, int nsb);
   ~EquivalentEdgePairTable();
 
-   IrreducibleEdgePairList *GetIrreducibleEdgePairList(int nsa, int nsb);
+   IrreducibleEdgePairList *GetIrreducibleEdgePairList();
 
-   bool HasParent(int ChildPair);
-   bool HasParent(int nfeaChild, int nfebChild);
-   bool HasParent(int nsa, int neaChild, int nsb, int nebChild);
+   bool HasEquivalent(int ChildPair);
+   bool HasEquivalent(int neaChild, int nebChild);
 
-   iVec *GetChildren(int ParentPair);
-   iVec *GetChildren(int nfeaParent, int nfebParent);
-   iVec *GetChildren(int nsa, int neaParent, int nsb, int nebParent);
+   iVec *GetEquivalentPairs(int ParentPair);
+   iVec *GetEquivalentPairs(int neaParent, int nebParent);
 
    int CountParentPairs();
    int CountChildPairs();
@@ -71,24 +69,24 @@ public:
 //private:
 // private methods 
 
-   int GetEdgePairIndex(int nfeParent, int nfeChild);
-   void ResolveEdgePairIndex(int nPair, int *nfeParent, int *nfeChild);
+   int GetEdgePairIndex(int neParent, int neChild);
+   void ResolveEdgePairIndex(int nPair, int *neParent, int *neChild);
   
    void AddEquivalentEdgePair(int ParentPair, int ChildPair, bool SignFlip=false);
-   void AddEquivalentEdgePair(int nfeaParent, int nfebParent, int nfeaChild, int nfebChild, bool SignFlip=false);
-   void AddEquivalentEdgePair(int nfeaParent, int nfeaChild, int nfebPair);
+   void AddEquivalentEdgePair(int neaParent, int nebParent, int neaChild, int nebChild, bool SignFlip=false);
+   void AddEquivalentEdgePair(int neaParent, int neaChild, int nebPair);
 
 // private data fields
 
    RWGGeometry *G;
-   int NFE; // number of full edge indices
+   int NERadix;
+   bool SameSurface;
    double DistanceQuantum;
+   IrreducibleEdgePairList *IEPList;
 
-/* ChildPairLists[ParentPair] = list of edge pairs equivalent to ParentPair */
-/* ParentPair[ChildPair]      = parent edge pair for ChildPair              */
+/* CPLMap[ParentPair] = list of edge pairs equivalent to ParentPair */
 
-   iVec *ChildPairListArray;
-   bVec HasParentFlag;
+   bVec HasEquivalentFlag;
 
 #if defined(HAVE_CXX11) 
   typedef std::unordered_map<int, iVec> ChildPairListMap;
