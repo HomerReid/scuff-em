@@ -361,6 +361,33 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
   ZMatrix->Add(ZTerms[1]);
   ZMatrix->Add(ZTerms[2]);
 
+  if (CheckEnv("SCUFF_ZMATRIX_TERMS"))
+   { 
+     HMatrix *ZSTerms[8];
+     ZSTerms[0]=ZMatrix;
+     ZSTerms[1]=ZTerms[0];
+     ZSTerms[2]=ZTerms[1];
+     ZSTerms[3]=ZTerms[2];
+     ZSTerms[4]=Z2S(ZMatrix);
+     ZSTerms[5]=Z2S(ZTerms[0]);
+     ZSTerms[6]=Z2S(ZTerms[1]);
+     ZSTerms[7]=Z2S(ZTerms[1]);
+
+     static char Mode[2]="w";
+     FILE *f=vfopen("/tmp/%s.ZSMatrix",Mode,FileBase);
+     Mode[0]='a';
+     fprintf(f,"%e ",real(G->StoredOmega*OMEGA2FREQ));
+     for(int nt=0; nt<8; nt++)
+      for(int npp=0; npp<NumPorts*NumPorts; npp++)
+       fprintf(f,"%e %e ",abs(ZSTerms[nt]->ZM[npp]), arg(ZSTerms[nt]->ZM[npp]));
+     fprintf(f,"\n");
+     fclose(f);
+     delete ZSTerms[4];
+     delete ZSTerms[5];
+     delete ZSTerms[6];
+     delete ZSTerms[7];
+   }
+
   if (!pZTerms)
    { delete ZTerms[0];
      delete ZTerms[1];
