@@ -361,7 +361,8 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
   ZMatrix->Add(ZTerms[1]);
   ZMatrix->Add(ZTerms[2]);
 
-  if (CheckEnv("SCUFF_ZMATRIX_TERMS"))
+  char *TermFile=0;
+  if (CheckEnv("SCUFF_ZMATRIX_TERMFILE",&TermFile))
    { 
      HMatrix *ZSTerms[8];
      ZSTerms[0]=ZMatrix;
@@ -374,7 +375,7 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
      ZSTerms[7]=Z2S(ZTerms[1]);
 
      static char Mode[2]="w";
-     FILE *f=vfopen("/tmp/%s.ZSMatrix",Mode,FileBase);
+     FILE *f=vfopen(TermFile,Mode,FileBase);
      Mode[0]='a';
      fprintf(f,"%e ",real(G->StoredOmega*OMEGA2FREQ));
      for(int nt=0; nt<8; nt++)
