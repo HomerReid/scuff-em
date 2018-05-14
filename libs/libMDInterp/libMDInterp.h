@@ -530,6 +530,9 @@ class Interp4D
 #ifndef dVec
   typedef std::vector<double> dVec;
 #endif
+#ifndef bVec
+  typedef std::vector<bool> bVec;
+#endif
 bool Increment(iVec &n, iVec &N);
 double Monomial(dVec xVec, iVec pVec);
 #define LOOP_OVER_IVECS(np, nVec, NVec)     \
@@ -538,7 +541,7 @@ double Monomial(dVec xVec, iVec pVec);
    for(bool np ## _Done=false; !np ## _Done; np++, np ## _Done=Increment(nVec,NVec))
 #define MAXDIM 4
 
-typedef void (*PhiVDFunc)(double *X, void *UserData, double *PhiVD);
+typedef void (*PhiVDFunc)(dVec X, void *UserData, double *PhiVD, iVec dXMax);
 
 class InterpND
  { 

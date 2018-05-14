@@ -1081,8 +1081,17 @@ bool CheckEnv(const char *Name, double *Destination, bool LogSuccess)
 { return CheckEnv(Name, "%le", (void *)Destination, LogSuccess); }
 bool CheckEnv(const char *Name, int *Destination, bool LogSuccess)
 { return CheckEnv(Name, "%i", (void *)Destination, LogSuccess); }
-bool CheckEnv(const char *Name, char *Destination, bool LogSuccess)
-{ return CheckEnv(Name, "%s", (void *)Destination, LogSuccess); }
+
+bool CheckEnv(const char *Name, char **Destination, bool LogSuccess)
+{ char *Value = getenv(Name);
+  if (Value)
+   { *Destination = strdup(Value);
+     if (LogSuccess) Log("Set %s to %s",Name,Value);
+     return true;
+   }
+  return false;
+}
+
 bool CheckEnv(const char *Name, bool LogSuccess)
 { char *s=getenv(Name);
   bool Status = (s && s[0]=='1');

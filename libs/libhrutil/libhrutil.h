@@ -76,6 +76,9 @@ using namespace std;
 #ifndef strVec
   typedef vector<string> strVec;
 #endif
+#ifndef bVec
+  typedef vector<bool> bVec;
+#endif
 
 /***************************************************************/
 /* Timing functions  *******************************************/
@@ -247,7 +250,7 @@ void KeyPause();
 bool CheckEnv(const char *Name, const char *fmt, void *Destination, bool LogSuccess=true);
 bool CheckEnv(const char *Name, double *Destination, bool LogSuccess=true);
 bool CheckEnv(const char *Name, int *Destination, bool LogSuccess=true);
-bool CheckEnv(const char *Name, char *Destination, bool LogSuccess=true);
+bool CheckEnv(const char *Name, char **Destination, bool LogSuccess=true);
 bool CheckEnv(const char *Name, bool LogSuccess=true);
 
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage, char *FileName);

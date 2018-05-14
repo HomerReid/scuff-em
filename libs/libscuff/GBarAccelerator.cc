@@ -353,18 +353,20 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
      bool Verbose = (LMDILogLevel==LMDI_LOGLEVEL_VERBOSE);
      if (LDim==1)
       { double L0 = GBA->LBV[0][0];
+        if (EqualFloat(RhoMax,RhoMin)) RhoMax=RhoMin+0.01*L0; // FIXME
         dVec XMin(2), XMax(2);
         XMin[0] = -0.5*L0; XMax[0] = +0.5*L0;
         XMin[1] = RhoMin;  XMax[1] = RhoMax;
-        GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+        //GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
       }
      else
       { double Lx = GBA->LBV[0][0], Ly=GBA->LBV[1][1];
+        if (EqualFloat(RhoMax,RhoMin)) RhoMax=RhoMin+0.01*fmax(Lx,Ly); // FIXME
         dVec XMin(3), XMax(3);
         XMin[0] = -0.5*Lx; XMax[0] = +0.5*Lx;
-        XMin[1] = -0.5*Lx; XMax[1] = +0.5*Ly;
+        XMin[1] = -0.5*Ly; XMax[1] = +0.5*Ly;
         XMin[2] = RhoMin;  XMax[2] = RhoMax;
-        GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+        //GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
       }
      return GBA;
    }
@@ -626,8 +628,8 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   /* the interpolation step                                       */
   /*--------------------------------------------------------------*/
   double Rho2 = R[1]*R[1] + R[2]*R[2];
-  double Rho = sqrt(Rho2);
-  if (GBA->I2D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax)
+  double Rho=sqrt(Rho2);
+  if ( (GBA->I2D==0 && GBA->Interp==0) || Rho<GBA->RhoMin || Rho>GBA->RhoMax)
    return GetGBarFullEwald(R, GBA, dGBar, ddGBar);
 
   /*--------------------------------------------------------------*/
@@ -782,7 +784,7 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
   /* the interpolation step                                       */
   /*--------------------------------------------------------------*/
   double Rho = fabs(R[2]);
-  if (GBA->I3D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax)
+  if ( (GBA->I3D==0 && GBA->Interp==0) || Rho<GBA->RhoMin || Rho>GBA->RhoMax)
    return GetGBarFullEwald(R, GBA, dGBar, ddGBar);
  
   /*--------------------------------------------------------------*/

@@ -18,9 +18,10 @@
 /***************************************************************/
 /***************************************************************/
 #define NFUN 3
-void Phi(double *X, void *UserData, double *PhiVD)
+void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
 {
-  int D = *((int *)UserData);
+  (void)UserData;
+  int D = X.size();
   static double Alpha[4]={0.2,0.3,0.4,0.5};
   static double X0[4]={-0.1,0.2,0.35,0.5};
   double XBar[4];
@@ -30,25 +31,28 @@ void Phi(double *X, void *UserData, double *PhiVD)
    { XBar[d]=X[d]-X0[d];
      ExpArg[0] += Alpha[d]*XBar[d];
      ExpArg[1] += Alpha[d]*XBar[d]*XBar[d];
-   };
-
-  int NVD=(1<<D);
-
+   }
+  
   double ExpFac[2];
   ExpFac[0] = exp(-ExpArg[0]);
   ExpFac[1] = exp(-ExpArg[1]);
 
-  iVec Twos(D,2);
-  LOOP_OVER_IVECS(nVD, sigmaVec, Twos)
+  int NVD=1;
+  for(int d=0; d<D; d++)
+   NVD*=dXMax[d];
+
+ {
+  LOOP_OVER_IVECS(nVD, dX, dXMax)
    { double Factor[2]={1.0, 1.0};
      for(int d=0; d<D; d++)
-      if (sigmaVec[d]==1)
+      if (dX[d])
        { Factor[0]*=-1.0*Alpha[d];
          Factor[1]*=-2.0*Alpha[d]*XBar[d];
-       };
+       }
      PhiVD[0*NVD + nVD] = Factor[0]*ExpFac[0];
      PhiVD[1*NVD + nVD] = Factor[1]*ExpFac[1];
    }
+ }
 
   int nf=2;
   static double C[4][4][4];
@@ -81,16 +85,11 @@ void Phi(double *X, void *UserData, double *PhiVD)
        Phi2VD[6] += n1*n2==0 ? 0.0 : n2*n1*C[n2][n1][n0] * pow(XF[2],n2-1) * pow(XF[1],n1-1) * pow(XF[0],n0);
        Phi2VD[7] += n0*n1*n2==0 ? 0.0 : n2*n0*n1*C[n2][n1][n0] * pow(XF[2],n2-1) * pow(XF[1],n1-1) * pow(XF[0],n0-1);
      }
-  PhiVD[2*NVD + 0]=Phi2VD[0];
-  PhiVD[2*NVD + 1]=Phi2VD[1];
-  if (D==1) return;
-  PhiVD[2*NVD + 2]=Phi2VD[2];
-  PhiVD[2*NVD + 3]=Phi2VD[3];
-  if (D==2) return;
-  PhiVD[2*NVD + 4]=Phi2VD[4];
-  PhiVD[2*NVD + 5]=Phi2VD[5];
-  PhiVD[2*NVD + 6]=Phi2VD[6];
-  PhiVD[2*NVD + 7]=Phi2VD[7];
+
+  {
+    LOOP_OVER_IVECS(nVD, dX, dXMax)
+     PhiVD[2*NVD + nVD] = Phi2VD[dX[2]*4 + dX[1]*2 + dX[0]];
+  }
 
 }
 
@@ -142,7 +141,8 @@ int main(int argc, char *argv[])
    { 
      int NFVD=NFUN*Interp->NVD;
      double *PhiVDExact = new double[NFVD], *PhiVDInterp = new double[NFVD];
-     Phi(&(X0[0]), (void *)&D, PhiVDExact);
+     iVec dXMax(D,2);
+     Phi(X0, (void *)&D, PhiVDExact, dXMax);
      Interp->EvaluateVD(&(X0[0]),PhiVDInterp);
      Compare(PhiVDExact, PhiVDInterp, NFVD, "Exact", "Interp");
    }

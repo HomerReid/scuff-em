@@ -136,7 +136,7 @@ dVec InterpND::n2X0(iVec nVec)
 /*  Phi values, derivatives for function #1  at point #1        */
 /****************************************************************/
 size_t InterpND::GetPhiVDTableOffset(int nPoint, int nFun)
-{ return nPoint*NF*NVD0 + nFun*NVD0; }
+{ return nPoint*NF*NVD + nFun*NVD; }
 
 size_t InterpND::GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun)
 {
@@ -144,19 +144,6 @@ size_t InterpND::GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun)
   for(int d=0; d<D; d++)
    npVec[d]=nVec[d] + tauVec[d];
   return GetPhiVDTableOffset(GetPointIndex(npVec),nFun);
-}
-
-void InterpND::FillPhiVDBuffer(double *PhiVD, double *PhiVD0)
-{
-  int nvd=0;
-  iVec Twos(D0,2);
-  LOOP_OVER_IVECS(nvd0, dx0Vec, Twos)
-   { bool Skip=false;
-     for(int d0=0; d0<D0; d0++)
-      if ( !isinf(FixedCoordinates[d0]) && dx0Vec[d0]!=0 ) Skip=true;
-     if (Skip) continue;
-     PhiVD[ nvd++ ] = PhiVD0[ nvd0 ];
-   }
 }
 
 /****************************************************************/
@@ -287,6 +274,10 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    if (!PhiVDTable || !CTable)
     ErrExit("%s:%i:out of memory",__FILE__,__LINE__);
 
+   iVec dxMax(D0);
+   for(int d0=0; d0<D0; d0++)
+    dxMax[d0] = (isinf(FixedCoordinates[d0]) ? 2 : 1);
+
    /*--------------------------------------------------------------*/
    /*- call user's function to populate table of function values   */
    /*- and derivatives at grid points                              */
@@ -303,7 +294,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
       if (Verbose) LogPercent(nPoint,NPoint);
       size_t Offset = GetPhiVDTableOffset(nPoint,0);
       dVec X0Vec  = n2X0(GetPoint(nPoint));
-      UserFunc(&(X0Vec[0]), UserData, PhiVDTable + Offset);
+      UserFunc(X0Vec, UserData, PhiVDTable + Offset, dxMax);
     }
 
    /*--------------------------------------------------------------*/
@@ -344,7 +335,6 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- and derivatives at the grid-cell corners, then solve linear */
    /*- system to compute polynomial coefficients for this grid cell*/
    /*--------------------------------------------------------------*/
-   double *PhiVDBuffer = (D==D0 ? 0 : (double *)mallocEC(NVD*sizeof(double)) );
    LOOP_OVER_IVECS(nCell, nVec, NVec)
     for(int nf=0; nf<NF; nf++)
      { 
@@ -367,10 +357,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
        HVector RHS(NCoeff, LHM_REAL, CTable + GetCTableOffset(nCell,nf));
        LOOP_OVER_IVECS(nTau, tauVec, Twos)
         { 
-          double *PhiVD0 = PhiVDTable + GetPhiVDTableOffset(nVec, tauVec, nf);
-          double *PhiVD  = (D==D0) ? PhiVD0 : PhiVDBuffer;
-          if (D!=D0)
-           FillPhiVDBuffer(PhiVD, PhiVD0);
+          double *PhiVD = PhiVDTable + GetPhiVDTableOffset(nVec, tauVec, nf);
 
           LOOP_OVER_IVECS(nSigma, sigmaVec, Twos)
            RHS.SetEntry(nTau*NVD + nSigma, Monomial(D2Vec, sigmaVec)*PhiVD[nSigma]);
@@ -381,7 +368,6 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
      }
 
    free(PhiVDTable);
-   if (PhiVDBuffer) free(PhiVDBuffer);
    delete M;
 }
 
@@ -626,11 +612,12 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
             d++;
           }
 
-        UserFunc(&(X0[0]), UserData, PhiExact);
+        iVec dXMax(D0,1);
+        UserFunc(X0, UserData, PhiExact, dXMax);
         Evaluate(&(X0[0]), PhiInterp);
 
         for(int nf=0; nf<NF; nf++)
-         { double Exact  = PhiExact[nf*NVD0+0];
+         { double Exact  = PhiExact[nf];
            double Interp = PhiInterp[nf];
            if (fabs(Exact) > 0.0)
             MaxRelErr=fmax(MaxRelErr, fabs(Exact-Interp)/fabs(Exact));
@@ -638,7 +625,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 
         fprintVec(f,&(X0[0]),D0);
         for(int nf=0; nf<NF; nf++)
-         fprintf(f,"%e ",PhiExact[nf*NVD0+0]);
+         fprintf(f,"%e ",PhiExact[nf]);
         fprintVecCR(f,PhiInterp,NF);
       }
    }
@@ -683,23 +670,24 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
      for(int d0=0; d0<D0; d0++)
       XSample[d0] += 0.4999*tauVec[d0]*DeltaVec[d0]; // EXPLAIN OR FIX ME
 
-     UserFunc(&(XSample[0]), UserData, PhiExact);
+     iVec dXMax(D0,1);
+     UserFunc(XSample, UserData, PhiExact, dXMax);
      bool Status=Interp.Evaluate(&(XSample[0]), PhiInterp);
      if (!Status) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
    
      double ThisMaxRelError=0.0;
 
      for(int nf=0; nf<NF; nf++)  
-      { double AbsError = fabs(PhiExact[nf*NVD+0] - PhiInterp[nf]);
+      { double AbsError = fabs(PhiExact[nf] - PhiInterp[nf]);
         if (AbsError<AbsTol) continue;
-        double RelError = AbsError / ( fabs(PhiExact[nf*NVD+0])==0.0 ? 1.0 : fabs(PhiExact[nf*NVD+0]));
+        double RelError = AbsError / ( fabs(PhiExact[nf])==0.0 ? 1.0 : fabs(PhiExact[nf]));
         ThisMaxRelError = fmax(ThisMaxRelError, RelError);
       }
 
      if(LogFile) 
       { fprintVec(LogFile,&(XSample[0]),D0);
         for(int nf=0; nf<NF; nf++)
-         fprintf(LogFile,"%e %e ",fabs(PhiExact[nf*NVD+0]),fabs(PhiExact[nf*NVD+0]-PhiInterp[nf]));
+         fprintf(LogFile,"%e %e ",fabs(PhiExact[nf]),fabs(PhiExact[nf]-PhiInterp[nf]));
         fprintf(LogFile,"%e\n",ThisMaxRelError);
       }
 

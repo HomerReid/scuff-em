@@ -561,43 +561,48 @@ typedef struct PhiVDFuncData
 
  } PhiVDFuncData;
 
-void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD)
+void PhiVDFunc_ScalarGFs(dVec RhoZ, void *UserData, double *PhiVD, iVec dRhoZMax)
 {
   PhiVDFuncData *Data      = (PhiVDFuncData *)UserData;
   LayeredSubstrate *S      = Data->S;
   cdouble Omega            = Data->Omega;
   int Dimension            = Data->Dimension;
-  ScalarGFOptions *Options = &(Data->Options);
- 
-  double Rho = RhoZ[0];
-  double z   = (Dimension>1 ? RhoZ[1] : Data->zFixed);
 
+  ScalarGFOptions Options;
+  memcpy(&Options, &(Data->Options), sizeof(ScalarGFOptions));
+  Options.NeedDerivatives = (dRhoZMax[0]==2 ? NEED_DRHO : 0) | (dRhoZMax[1]==2 ? NEED_DZ : 0);
+  int NVD = dRhoZMax[0] * dRhoZMax[1];
+ 
   cdouble V[4*NUMSGFS_MOI];
-  S->GetScalarGFs_MOI(Omega, Rho, z, V, Options);
+  S->GetScalarGFs_MOI(Omega, RhoZ[0], RhoZ[1], V, &Options);
 
   // reorder the data in the order expected by libMDInterp, which is:
-  //  PhiVD[ nPhi * NumVD + nVD ] = value/deriv #nVD for function #nPhi
+  //  PhiVD[ nPhi*NumVD + nVD ] = value/deriv #nVD for function #nPhi
   // where nPhi = 2*nSGF + 0,1 for real,imag part of scalar GF #nSGF
-  int NumSGFs = (Options->PPIsOnly ? 2 : NUMSGFS_MOI);
-  int NumVDs  = 2*Dimension;
-  for(int nSGF=0; nSGF<NumSGFs; nSGF++)
-   for(int nVD=0; nVD<NumVDs; nVD++)
-    { PhiVD[ (2*nSGF + 0)*NumVDs + nVD] = real( V[nVD*NumSGFs + nSGF] );
-      PhiVD[ (2*nSGF + 1)*NumVDs + nVD] = imag( V[nVD*NumSGFs + nSGF] );
-    }
+  int NumSGFs = (Options.PPIsOnly ? 2 : NUMSGFS_MOI);
+  for(int nSGF=0, nPhi=0; nSGF<NumSGFs; nSGF++, nPhi++)
+   { 
+     LOOP_OVER_IVECS(nVD, dRhoZ, dRhoZMax)
+      { PhiVD[ nPhi*NVD + nVD] = real( V[nVD*NumSGFs + nSGF] );
+        PhiVD[ nPhi*NVD + nVD] = imag( V[nVD*NumSGFs + nSGF] );
+      }
+   }
 
   //FIXME
-  if (Rho==0.0 && z==0.0)
+  if (RhoZ[0]==0.0 && RhoZ[1]==0.0)
    { 
      cdouble V2[4*NUMSGFS_MOI], V1[4*NUMSGFS_MOI];
-     S->GetScalarGFs_MOI(Omega, 2.0e-4, 2.0e-4*(Dimension==1 ? 0.0:1.0), V2, Options);
-     S->GetScalarGFs_MOI(Omega, 1.0e-4, 1.0e-4*(Dimension==1 ? 0.0:1.0), V1, Options);
+     S->GetScalarGFs_MOI(Omega, 2.0e-4, 2.0e-4*(Dimension==1 ? 0.0:1.0), V2, &Options);
+     S->GetScalarGFs_MOI(Omega, 1.0e-4, 1.0e-4*(Dimension==1 ? 0.0:1.0), V1, &Options);
      for(int nSGF=0; nSGF<NumSGFs; nSGF++)
-      for(int nVD=1; nVD<NumVDs; nVD+=2)
-       { int m=nVD*NumSGFs + nSGF;
-         PhiVD[ (2*nSGF + 0)*NumVDs + nVD] = real( -V2[m] + 2.0*V1[m] );
-         PhiVD[ (2*nSGF + 1)*NumVDs + nVD] = imag( -V2[m] + 2.0*V1[m] );
-       }
+      { 
+        LOOP_OVER_IVECS(nVD, dRhoZ, dRhoZMax)
+         if (dRhoZ[0]==1)
+          { int m=nVD*NumSGFs + nSGF;
+            PhiVD[ (2*nSGF + 0)*NVD + nVD] = real( -V2[m] + 2.0*V1[m] );
+            PhiVD[ (2*nSGF + 1)*NVD + nVD] = imag( -V2[m] + 2.0*V1[m] );
+          }
+      }
    }
 }
 
@@ -656,8 +661,6 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   /***************************************************************/
   /***************************************************************/
   int Dimension = ( EqualFloat(ZMin,ZMax) ? 1 : 2 );
-
-  double Z0     = fmin( fabs(ZMin), fabs(ZMax) );
 
   PhiVDFuncData Data;
   Data.S         = this;
