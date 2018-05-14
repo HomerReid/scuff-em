@@ -655,10 +655,11 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   //Log("Creating interpolation table (%lu points)",GridPoints);
   
   //ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZGrid, Verbose);
-  dVec RZMin(2), RZMax(2);
+  dVec RZMin(1), RZMax(1);
   RZMin[0] = RhoMin;   RZMax[0] = RhoMax;
-  RZMin[1] =   ZMin;   RZMax[1] =   ZMax;
-  ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZMin, RZMax, 
+  if (!EqualFloat(ZMin, ZMax))
+   { RZMin.push_back(ZMin); RZMax.push_back(ZMax); }
+  ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZMin, RZMax,
                                       Tolerance, Verbose);
 
   /***************************************************************/

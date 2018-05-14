@@ -155,8 +155,10 @@ int main(int argc, char *argv[])
        printf("%e ",Interp->xPoints[1][n]);
    }
 */
-  printf("}\n");
-  printf("Max error = %e \n",MaxError);
+  printf("{%lu",Interp->XGrids[0].size());
+  if (Interp->XGrids.size()>1)
+   printf(",%lu",Interp->XGrids[1].size());
+  printf("} points: Max error = %e \n",MaxError);
   printf("Wrote error data to /tmp/tInterpolationError.out.\n");
   printf("Thank you for your support.\n");
 
