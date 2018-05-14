@@ -245,11 +245,14 @@ InterpND::~InterpND()
 /****************************************************************/
 void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 {
+   D0 = FixedCoordinates.size();
+   D  = NPoints.size();
+   if (D==0)  // TODO maybe implement this as a degenerate case for convenience?
+    ErrExit("%s:%i: all dimensions empty in interpolator",__FILE__,__LINE__);
+
    /*--------------------------------------------------------------*/
    /*- compute some statistics ------------------------------------*/
    /*--------------------------------------------------------------*/
-   D0 = FixedCoordinates.size();
-   D  = NPoints.size();
    CellStride.reserve(D);
    PointStride.reserve(D);
    CellStride[0]=PointStride[0]=1;
