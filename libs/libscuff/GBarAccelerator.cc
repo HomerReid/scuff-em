@@ -344,7 +344,7 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (CheckEnv("SCUFF_GBAR_INTERPND"))
+  if (CheckEnv("SCUFF_GBAR_NDINTERP"))
    { 
      bool Verbose = (LMDILogLevel==LMDI_LOGLEVEL_VERBOSE);
      if (LDim==1)
@@ -357,8 +357,8 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
      else
       { double Lx = GBA->LBV[0][0], Ly=GBA->LBV[1][1];
         dVec XMin(3), XMax(3);
-        XMin[0] = -0.5*Lx; XMax[0] = 0.5*Lx;
-        XMin[1] = -0.5*Lx; XMax[1] = 0.5*Ly;
+        XMin[0] = -0.5*Lx; XMax[0] = +0.5*Lx;
+        XMin[1] = -0.5*Lx; XMax[1] = +0.5*Ly;
         XMin[2] = RhoMin;  XMax[2] = RhoMax;
         GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
       }
@@ -470,7 +470,7 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
       else
        { nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
          if (nRho<2) nRho=2;
-       };
+       }
 
       int NMax;
       if (CheckEnv("SCUFF_GBAR_NMAX",&NMax))
@@ -650,13 +650,19 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   if (ddGBar)
    { 
      double PhiVDD[12];
-     GBA->I2D->EvaluatePlusPlus(xBar, Rho, PhiVDD);
-     G         = cdouble(PhiVDD[0], PhiVDD[ 6]);
-     dGdx      = cdouble(PhiVDD[1], PhiVDD[ 7]);
-     dGdRho    = cdouble(PhiVDD[2], PhiVDD[ 8]);
-     d2Gdx2    = cdouble(PhiVDD[3], PhiVDD[ 9]);
-     d2GdxdRho = cdouble(PhiVDD[4], PhiVDD[10]);
-     d2GdRho2  = cdouble(PhiVDD[5], PhiVDD[11]);
+     if (GBA->Interp)
+      {
+        GBA->Interp->EvaluateVDD(xBarRho, PhiVDD);
+      }
+     else
+      { GBA->I2D->EvaluatePlusPlus(xBar, Rho, PhiVDD);
+        G         = cdouble(PhiVDD[0], PhiVDD[ 6]);
+        dGdx      = cdouble(PhiVDD[1], PhiVDD[ 7]);
+        dGdRho    = cdouble(PhiVDD[2], PhiVDD[ 8]);
+        d2Gdx2    = cdouble(PhiVDD[3], PhiVDD[ 9]);
+        d2GdxdRho = cdouble(PhiVDD[4], PhiVDD[10]);
+        d2GdRho2  = cdouble(PhiVDD[5], PhiVDD[11]);
+      }
    }
   else if (dGBar)
    { 
@@ -670,11 +676,10 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
      dGdRho    = cdouble(PhiVD[2], PhiVD[6]);
    }
   else
-   { if (GBA->Interp)
-      GBA->Interp->Evaluate(xBarRho, (double *)&G);
-     else
-      GBA->I2D->Evaluate(xBar, Rho, (double *)&G);
-   }
+   if (GBA->Interp)
+    GBA->Interp->Evaluate(xBarRho, (double *)&G);
+   else
+    GBA->I2D->Evaluate(xBar, Rho, (double *)&G);
 
   /*--------------------------------------------------------------*/
   /* correct for the fact that we may have needed to              */
@@ -801,32 +806,54 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
   /* get GBar(RBar, Rho) and as many derivatives as necessary     */
   /*--------------------------------------------------------------*/
   cdouble GBar;
+  double xyRho[3];
+  xyRho[0]=xBar;
+  xyRho[1]=yBar;
+  xyRho[2]=Rho;
   if (ddGBar)
    { 
-     double Phi[20];
-     GBA->I3D->EvaluatePlusPlus(xBar, yBar, Rho, Phi);
-     GBar            = cdouble(Phi[0], Phi[10]);
-     dGBar[0]        = cdouble(Phi[1], Phi[11]);
-     dGBar[1]        = cdouble(Phi[2], Phi[12]);
-     dGBar[2]        = cdouble(Phi[3], Phi[13]);
-     ddGBar[3*0 + 0] = cdouble(Phi[4], Phi[14]);
-     ddGBar[3*0 + 1] = cdouble(Phi[5], Phi[15]);
-     ddGBar[3*0 + 2] = cdouble(Phi[6], Phi[16]);
-     ddGBar[3*1 + 1] = cdouble(Phi[7], Phi[17]);
-     ddGBar[3*1 + 2] = cdouble(Phi[8], Phi[18]);
-     ddGBar[3*2 + 2] = cdouble(Phi[9], Phi[19]);
+     double PhiVDD[20];
+     if (GBA->Interp)
+      { 
+        GBA->Interp->EvaluateVDD(xyRho, PhiVDD);
+      }
+     else
+      { GBA->I3D->EvaluatePlusPlus(xBar, yBar, Rho, PhiVDD);
+        GBar            = cdouble(PhiVDD[0], PhiVDD[10]);
+        dGBar[0]        = cdouble(PhiVDD[1], PhiVDD[11]);
+        dGBar[1]        = cdouble(PhiVDD[2], PhiVDD[12]);
+        dGBar[2]        = cdouble(PhiVDD[3], PhiVDD[13]);
+        ddGBar[3*0 + 0] = cdouble(PhiVDD[4], PhiVDD[14]);
+        ddGBar[3*0 + 1] = cdouble(PhiVDD[5], PhiVDD[15]);
+        ddGBar[3*0 + 2] = cdouble(PhiVDD[6], PhiVDD[16]);
+        ddGBar[3*1 + 1] = cdouble(PhiVDD[7], PhiVDD[17]);
+        ddGBar[3*1 + 2] = cdouble(PhiVDD[8], PhiVDD[18]);
+        ddGBar[3*2 + 2] = cdouble(PhiVDD[9], PhiVDD[19]);
+      }
    }
   else if (dGBar)
    { 
-     double Phi[16];
-     GBA->I3D->EvaluatePlus(xBar, yBar, Rho, Phi);
-     GBar      = cdouble(Phi[0], Phi[8]);
-     dGBar[0]  = cdouble(Phi[1], Phi[9]);
-     dGBar[1]  = cdouble(Phi[2], Phi[10]);
-     dGBar[2]  = cdouble(Phi[3], Phi[11]);
+     double PhiVD[16];
+     if (GBA->Interp)
+      { GBA->Interp->EvaluateVD(xyRho, PhiVD);
+        GBar      = cdouble(PhiVD[0], PhiVD[8]);
+        dGBar[0]  = cdouble(PhiVD[1], PhiVD[9]);
+        dGBar[1]  = cdouble(PhiVD[2], PhiVD[10]);
+        dGBar[2]  = cdouble(PhiVD[4], PhiVD[12]);
+      }
+     else
+      { GBA->I3D->EvaluatePlus(xBar, yBar, Rho, PhiVD);
+        GBar      = cdouble(PhiVD[0], PhiVD[8]);
+        dGBar[0]  = cdouble(PhiVD[1], PhiVD[9]);
+        dGBar[1]  = cdouble(PhiVD[2], PhiVD[10]);
+        dGBar[2]  = cdouble(PhiVD[3], PhiVD[11]);
+      }
    }
   else
-   GBA->I3D->Evaluate(xBar, yBar, Rho, (double *)&GBar);
+   if (GBA->Interp)
+    GBA->Interp->Evaluate(xyRho, (double *)&GBar);
+   else 
+    GBA->I3D->Evaluate(xBar, yBar, Rho, (double *)&GBar);
 
   /*--------------------------------------------------------------*/
   /* correct for the fact that we may have needed to              */

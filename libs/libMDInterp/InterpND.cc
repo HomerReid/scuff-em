@@ -480,8 +480,8 @@ bool InterpND::EvaluateVD(double *X0, double *PhiVD)
    { double LO2 = 0.5*( XGrids[d].size()==0 ? DX[d] : (XGrids[d][nVec[d]+1]-XGrids[d][nVec[d]]));
      dXBarPowers[d][0]=0.0;
      dXBarPowers[d][1]=1.0/LO2;
-     dXBarPowers[d][2]=2.0*dXBarPowers[d][1]*XBarVec[d]/LO2;
-     dXBarPowers[d][3]=3.0*dXBarPowers[d][2]*XBarVec[d]/LO2;
+     dXBarPowers[d][2]=2.0*XBarVec[d]/LO2;
+     dXBarPowers[d][3]=3.0*XBarVec[d]*XBarVec[d]/LO2;
    }
 
   /****************************************************************/
@@ -501,6 +501,83 @@ bool InterpND::EvaluateVD(double *X0, double *PhiVD)
          PhiVD[nf*NVD + nVD] += CTable[GetCTableOffset(nVec,nf) + nCoeff]*Monomial;
       }
    }
+  return true;
+}
+
+/****************************************************************/
+/****************************************************************/
+/****************************************************************/
+bool InterpND::EvaluateVDD(double *X0, double *PhiVD)
+{
+(void) X0; 
+(void) PhiVD;
+ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+#if 0
+  /****************************************************************/
+  /****************************************************************/
+  /****************************************************************/
+  iVec nVec(D);
+  dVec XBarVec(D);
+  if ( !PointInGrid(X0, &(nVec[0]), &(XBarVec[0])) ) return false;
+  
+  /****************************************************************/
+  /* tabulate powers of the scaled/shifted coordinates            */
+  /****************************************************************/
+  double XBarPowers[MAXDIM][4]; 
+  for(int d=0; d<D; d++)
+   { XBarPowers[d][0]=1.0;
+     XBarPowers[d][1]=XBarVec[d];
+     XBarPowers[d][2]=XBarPowers[d][1]*XBarVec[d];
+     XBarPowers[d][3]=XBarPowers[d][2]*XBarVec[d];
+   }
+
+  // sizes of grid cells in all dimensions
+  dVec LO2(D);
+  for(int d=0; d<D; d++)
+   LO2[d] = 0.5*( XGrids[d].size()==0 ? DX[d] : (XGrids[d][nVec[d]+1]-XGrids[d][nVec[d]]));
+
+  // number of values and derivatives per function:
+  //  1 value, D first derivatives, D*(D+1)/2 second derivatives.
+  int NumVDD = 1 + D + D*(D+1)/2;
+
+  // MonomialV
+  double MonomialFactors[NumVDD][D][4];
+  for(int d=0; d<D; d++)
+   for(int p=0; p<4; p++)
+    { 
+      int nmf=0;
+      MonomialFactors[nmf++][d][p] = XBarPowers[d][p];
+
+      for(int dd=0; dd<D; dd++)
+       MonomialFactors[nmf++][d][p] = (dd==d ? (p==0 ? 0.0 : XBarPowers[d][p-1]/L02[d]) : XBarPowers[dp][p]);
+
+      for(int dd=0; dd<D; dd++)
+       for(int ddd=dd; ddd<D; ddd++)
+        MonomialFactors[nmf++][d][p] = (dd=ddd ? (p<=1 ? 0.0 : p*(p-1)*
+ 
+     dXBarPowers[d][0]=0.0;
+     dXBarPowers[d][1]=1.0/LO2;
+     dXBarPowers[d][2]=2.0*XBarVec[d]/LO2;
+     dXBarPowers[d][3]=3.0*XBarVec[d]*XBarVec[d]/LO2;
+   }
+
+  /****************************************************************/
+  /* construct the NCOEFF-element vector of monomial values that  */
+  /* I dot with the NCOEFF-element vector of coefficients to get  */
+  /* the value of the interpolating polynomial                    */
+  /****************************************************************/
+  memset(PhiVD, 0, NumVDD*NF*sizeof(double));
+  iVec Fours(D,4);
+  LOOP_OVER_IVECS(nCoeff,pVec,Fours)
+   { for(int nvdd=0; nvdd<NumVDD; nvdd++)
+      { double Monomial=1.0;
+        for(int d=0; d<D; d++)
+         Monomial *= MonomialFactors[nvdd][d][pVec[d]];
+        for(int nf=0; nf<NF; nf++)
+         PhiVD[nf*NVD + nVD] += CTable[GetCTableOffset(nVec,nf) + nCoeff]*Monomial;
+      }
+   }
+#endif
   return true;
 }
 

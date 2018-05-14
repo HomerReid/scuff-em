@@ -227,7 +227,8 @@ class Interp1D
     bool Evaluate(double X, double *Phi);
     double Evaluate(double X);             // returns Phi[0]
 
-    bool EvaluateVD(double *X0, double *PhiVD);
+    bool EvaluateVD(double *X0, double *PhiVD);  // get values and 1st derivatives
+    bool EvaluateVDD(double *X0, double *PhiVD); // get values and 1st,2nd derivatives
 
     bool PointInGrid(double X);
 
