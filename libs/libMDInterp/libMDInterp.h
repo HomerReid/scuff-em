@@ -227,6 +227,8 @@ class Interp1D
     bool Evaluate(double X, double *Phi);
     double Evaluate(double X);             // returns Phi[0]
 
+    bool EvaluateVD(double *X0, double *PhiVD);
+
     bool PointInGrid(double X);
 
     /*--------------------------------------------------------------*/
@@ -576,8 +578,8 @@ class InterpND
     /*- interpolated functions at the given eval point             -*/
     /*--------------------------------------------------------------*/
     bool Evaluate(double *X0, double *Phi);
-    void EvaluateVD(double *X0, double *PhiVD);
-    void EvaluateVDD(double *X0, double *PhiVD);
+    bool EvaluateVD(double *X0, double *PhiVD);
+    bool EvaluateVDD(double *X0, double *PhiVD);
 
     double PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly=false);
 

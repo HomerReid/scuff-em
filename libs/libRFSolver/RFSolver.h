@@ -243,5 +243,8 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
 
 void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable **EEPTable=0);
 
+void GetRhoMinMax(RWGGeometry *G, int nsa, int nsb, double RhoMinMax[2]);
+void GetRhoMinMax(RWGGeometry *G, double RhoMinMax[2]);
+
 } // namespace scuff 
 #endif // #ifndef RFSOLVER

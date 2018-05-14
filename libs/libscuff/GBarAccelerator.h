@@ -56,6 +56,7 @@ typedef struct GBarAccelerator
 
    Interp2D *I2D;
    Interp3D *I3D;
+   InterpND *Interp;
 
  } GBarAccelerator;
 

@@ -426,7 +426,7 @@ bool InterpND::Evaluate(double *X0, double *Phi)
   /****************************************************************/
   /* tabulate powers of the scaled/shifted coordinates            */
   /****************************************************************/
-  double XBarPowers[MAXDIM][4];
+  double XBarPowers[MAXDIM][4]; 
   for(int d=0; d<D; d++)
    { XBarPowers[d][0]=1.0;
      XBarPowers[d][1]=XBarVec[d];
@@ -442,12 +442,65 @@ bool InterpND::Evaluate(double *X0, double *Phi)
   memset(Phi, 0, NF*sizeof(double));
   iVec Fours(D,4);
   LOOP_OVER_IVECS(nCoeff,pVec,Fours)
-   { double XFactor=1.0;
+   { 
+     double Monomial=1.0;
      for(int d=0; d<D; d++)
-      XFactor*=XBarPowers[d][pVec[d]];
+      Monomial*= XBarPowers[d][pVec[d]];
      for(int nf=0; nf<NF; nf++)
       { double *C = CTable + GetCTableOffset(nVec, nf);
-        Phi[nf] += C[nCoeff]*XFactor;
+        Phi[NVD*nf + 0] += C[nCoeff]*Monomial;
+      }
+   }
+  return true;
+}
+
+/****************************************************************/
+/****************************************************************/
+/****************************************************************/
+bool InterpND::EvaluateVD(double *X0, double *PhiVD)
+{
+  /****************************************************************/
+  /****************************************************************/
+  /****************************************************************/
+  iVec nVec(D);
+  dVec XBarVec(D);
+  if ( !PointInGrid(X0, &(nVec[0]), &(XBarVec[0])) ) return false;
+  
+  /****************************************************************/
+  /* tabulate powers of the scaled/shifted coordinates            */
+  /****************************************************************/
+  double XBarPowers[MAXDIM][4]; 
+  for(int d=0; d<D; d++)
+   { XBarPowers[d][0]=1.0;
+     XBarPowers[d][1]=XBarVec[d];
+     XBarPowers[d][2]=XBarPowers[d][1]*XBarVec[d];
+     XBarPowers[d][3]=XBarPowers[d][2]*XBarVec[d];
+   }
+
+  double dXBarPowers[MAXDIM][4];
+  for(int d=0; d<D; d++)
+   { double LO2 = 0.5*( XGrids[d].size()==0 ? DX[d] : (XGrids[d][nVec[d]+1]-XGrids[d][nVec[d]]));
+     dXBarPowers[d][0]=0.0;
+     dXBarPowers[d][1]=1.0/LO2;
+     dXBarPowers[d][2]=2.0*dXBarPowers[d][1]*XBarVec[d]/LO2;
+     dXBarPowers[d][3]=3.0*dXBarPowers[d][2]*XBarVec[d]/LO2;
+   }
+
+  /****************************************************************/
+  /* construct the NCOEFF-element vector of monomial values that  */
+  /* I dot with the NCOEFF-element vector of coefficients to get  */
+  /* the value of the interpolating polynomial                    */
+  /****************************************************************/
+  memset(PhiVD, 0, NVD*NF*sizeof(double));
+  iVec Fours(D,4), Twos(D,2);
+  LOOP_OVER_IVECS(nCoeff,pVec,Fours)
+   { LOOP_OVER_IVECS(nVD, tauVec, Twos)
+      { 
+        double Monomial=1.0;
+        for(int d=0; d<D; d++)
+         Monomial *= (tauVec[d] ? dXBarPowers[d][pVec[d]] : XBarPowers[d][pVec[d]]);
+        for(int nf=0; nf<NF; nf++)
+         PhiVD[nf*NVD + nVD] += CTable[GetCTableOffset(nVec,nf) + nCoeff]*Monomial;
       }
    }
   return true;
@@ -466,7 +519,9 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 
   iVec Threes(D, 3);
   double MaxRelErr=0.0;
-  LOOP_OVER_IVECS(nCell, nVec, NVec)
+  iVec Nm1Vec(D);
+  for(size_t d=0; d<NVec.size(); d++) Nm1Vec[d]=NVec[d]-1;
+  LOOP_OVER_IVECS(nCell, nVec, Nm1Vec)
    { LOOP_OVER_IVECS(nTau, tauVec, Threes)
       {
         //
@@ -483,7 +538,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
         for(int d0=0, d=0; d0<D0; d0++)
          if (isinf(X0[d0]))
           { if (XGrids.size() == 0 )
-             X0[d0] = XMin[d] + (nVec[d] + 0.5*tauVec[d])*DX[d]; 
+             X0[d0] = XMin[d] + (nVec[d] + 0.4999*tauVec[d])*DX[d]; //EXPLAIN OR FIX ME
             else
              { size_t n = nVec[d], np1=n+1;
                if (np1 >= XGrids[d].size() )
@@ -491,7 +546,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
                   np1 = XGrids[d].size() - 1;
                 }
                double Delta = XGrids[d][np1] - XGrids[d][n];
-               X0[d0] = XGrids[d][n] + 0.5*tauVec[d]*Delta;
+               X0[d0] = XGrids[d][n] + 0.4999*tauVec[d]*Delta; //EXPLAIN OR FIX ME
              }
             d++;
           }
@@ -551,12 +606,14 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
    {
      dVec XSample=X0Vec;
      for(int d0=0; d0<D0; d0++)
-      XSample[d0] += 0.5*tauVec[d0]*DeltaVec[d0];
+      XSample[d0] += 0.4999*tauVec[d0]*DeltaVec[d0]; // EXPLAIN OR FIX ME
 
      UserFunc(&(XSample[0]), UserData, PhiExact);
-     Interp.Evaluate(&(XSample[0]), PhiInterp);
+     bool Status=Interp.Evaluate(&(XSample[0]), PhiInterp);
+     if (!Status) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
    
      double ThisMaxRelError=0.0;
+
      for(int nf=0; nf<NF; nf++)  
       { double AbsError = fabs(PhiExact[nf*NVD+0] - PhiInterp[nf]);
         if (AbsError<AbsTol) continue;
@@ -573,7 +630,6 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 
      MaxRelError=fmax(MaxRelError,ThisMaxRelError);
    }
-
   if(LogFile) { fprintf(LogFile,"\n\n"); fclose(LogFile); }
 
   delete[] PhiExact;
@@ -685,7 +741,7 @@ dVec GetXGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0Min, dVec X0Max
   Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d0,X0Min[d0],X0Max[d0]);
 
   int NMin=2;    CheckEnv("SCUFF_INTERPOLATION_NMIN",&NMin);
-  int NMax=1000; CheckEnv("SCUFF_INTERPOLATION_NMAX",&NMax);
+  int NMax=100;  CheckEnv("SCUFF_INTERPOLATION_NMAX",&NMax);
   
   double DeltaMin = (X0Max[d0] - X0Min[d0]) / NMax;
   double DeltaMax = (X0Max[d0] - X0Min[d0]) / NMin;

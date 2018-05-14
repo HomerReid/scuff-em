@@ -133,17 +133,43 @@ int main(int argc, char *argv[])
   S->InitScalarGFInterpolator(Omega, RhoMin, RhoMax, ZMin, ZMax,
                               PPIsOnly, Subtract, RetainSingularTerms);
   InterpND *Interp = S->ScalarGFInterpolator;
-  printf("{%lu,%lu} points\n",Interp->XGrids[0].size(),Interp->XGrids[1].size());
+  printf("{%lu",Interp->XGrids[0].size());
+  if (Interp->XGrids.size() > 1 )
+   printf(",%lu",Interp->XGrids[1].size());
+  printf("}: max error ");
 
   PhiVDFuncData Data;
   Data.S         = S;
   Data.Omega     = Omega;
-  Data.Dimension = 2; //Interp->xPoints.size();
+  Data.Dimension = EqualFloat(ZMin,ZMax) ? 1 : 2;
   Data.zFixed    = S->zSGFI;
   memcpy(&(Data.Options), &(S->SGFIOptions), sizeof(ScalarGFOptions));
 
+#if 0
+  FILE *f=fopen("/tmp/doom","w");
+//int NN=Interp->XGrids[0].size();
+  for(int n=0; n<100; n++)
+   { //double Rho = Interp->XGrids[0][NN-3] + ((double)n)*(Interp->XGrids[0][NN-1]-Interp->XGrids[0][NN-3])/100.0;
+     double Rho = Interp->XGrids[0][0] + ((double)n)*(Interp->XGrids[0][2]-Interp->XGrids[0][0])/100.0;
+     double Z   = 0.0;
+     double RhoZ[2];
+     RhoZ[0]=Rho;
+     RhoZ[1]=Z;
+     double PhiExact[8], PhiInterp[4];
+     PhiVDFunc_ScalarGFs(&Rho, (void *)&Data, PhiExact);
+     Interp->Evaluate(RhoZ,PhiInterp);
+     fprintf(f,"%e ",Rho);
+     fprintf(f,"%e %e %e ",PhiExact[0],PhiExact[1],PhiInterp[0]);
+     fprintf(f,"%e %e %e ",PhiExact[2],PhiExact[3],PhiInterp[1]);
+     fprintf(f,"%e %e %e ",PhiExact[4],PhiExact[5],PhiInterp[2]);
+     fprintf(f,"%e %e %e ",PhiExact[6],PhiExact[7],PhiInterp[3]);
+     fprintf(f,"\n");
+   }
+#endif
+
   double MaxError = Interp->PlotInterpolationError(PhiVDFunc_ScalarGFs, (void *)&Data,
                                                    const_cast<char *>("/tmp/tInterpolationError.out"));
+  printf("%e \n",MaxError);
 /*
   printf("Rho points (%lu) = { ",Interp->xPoints[0].size());
   for(size_t n=0; n<Interp->xPoints[0].size(); n++)
@@ -155,10 +181,6 @@ int main(int argc, char *argv[])
        printf("%e ",Interp->xPoints[1][n]);
    }
 */
-  printf("{%lu",Interp->XGrids[0].size());
-  if (Interp->XGrids.size()>1)
-   printf(",%lu",Interp->XGrids[1].size());
-  printf("} points: Max error = %e \n",MaxError);
   printf("Wrote error data to /tmp/tInterpolationError.out.\n");
   printf("Thank you for your support.\n");
 

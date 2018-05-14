@@ -585,7 +585,54 @@ void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD)
     { PhiVD[ (2*nSGF + 0)*NumVDs + nVD] = real( V[nVD*NumSGFs + nSGF] );
       PhiVD[ (2*nSGF + 1)*NumVDs + nVD] = imag( V[nVD*NumSGFs + nSGF] );
     }
+
+  //FIXME
+  if (Rho==0.0 && z==0.0)
+   { 
+     cdouble V2[4*NUMSGFS_MOI], V1[4*NUMSGFS_MOI];
+     S->GetScalarGFs_MOI(Omega, 2.0e-4, 2.0e-4*(Dimension==1 ? 0.0:1.0), V2, Options);
+     S->GetScalarGFs_MOI(Omega, 1.0e-4, 1.0e-4*(Dimension==1 ? 0.0:1.0), V1, Options);
+     for(int nSGF=0; nSGF<NumSGFs; nSGF++)
+      for(int nVD=1; nVD<NumVDs; nVD+=2)
+       { int m=nVD*NumSGFs + nSGF;
+         PhiVD[ (2*nSGF + 0)*NumVDs + nVD] = real( -V2[m] + 2.0*V1[m] );
+         PhiVD[ (2*nSGF + 1)*NumVDs + nVD] = imag( -V2[m] + 2.0*V1[m] );
+       }
+   }
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool LayeredSubstrate::CheckScalarGFInterpolator(cdouble Omega,
+                                                 double RhoMin, double RhoMax,
+                                                 double ZMin, double ZMax,
+                                                 bool PPIsOnly, bool Subtract,
+                                                 bool RetainSingularTerms)
+{
+  if (!ScalarGFInterpolator)          return false;
+  if (!EqualFloat(OmegaSGFI,Omega))   return false;
+  if (PPIsOnly!=SGFIOptions.PPIsOnly) return false;
+  if (Subtract!=SGFIOptions.Subtract) return false;
+  if (RetainSingularTerms!=SGFIOptions.RetainSingularTerms) return false;
+
+  if (ZMin==ZMax)
+   { if (ScalarGFInterpolator->XGrids.size() != 1) return false;
+     if (!ScalarGFInterpolator->PointInGrid(&RhoMin)) return false;
+     if (!ScalarGFInterpolator->PointInGrid(&RhoMax)) return false;
+     if (!EqualFloat(ZMin,zSGFI)) return false;
+   }
+  else
+   { if (ScalarGFInterpolator->XGrids.size() != 2) return false;
+     double RZ[2];
+     RZ[0]=RhoMin; RZ[1]=ZMin;
+     if (!ScalarGFInterpolator->PointInGrid(RZ)) return false;
+     RZ[0]=RhoMax; RZ[1]=ZMax;
+     if (!ScalarGFInterpolator->PointInGrid(RZ)) return false;
+   }
+  return true;
+}
+  
 
 /***************************************************************/
 /***************************************************************/
@@ -599,6 +646,10 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
 {
   UpdateCachedEpsMu(Omega);
   if (EpsLayer[1]==1.0 && isinf(zGP)) return 0; // substrate is trivial
+
+  if (CheckScalarGFInterpolator(Omega,RhoMin,RhoMax,ZMin,ZMax,PPIsOnly,Subtract,RetainSingularTerms))
+   return ScalarGFInterpolator;
+
   DestroyScalarGFInterpolator();
 
   /***************************************************************/
@@ -606,13 +657,13 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   /***************************************************************/
   int Dimension = ( EqualFloat(ZMin,ZMax) ? 1 : 2 );
 
-  double Z0 = fmin( fabs(ZMin), fabs(ZMax) );
+  double Z0     = fmin( fabs(ZMin), fabs(ZMax) );
 
   PhiVDFuncData Data;
   Data.S         = this;
   Data.Omega     = Omega;
   Data.Dimension = Dimension;
-  Data.zFixed    = Z0;
+  Data.zFixed    = fmin( fabs(ZMin), fabs(ZMax) );
    
   ScalarGFOptions *Options = &(Data.Options);
   InitScalarGFOptions(Options);
@@ -634,8 +685,8 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   if (Tolerance==0.0) return 0;
   Verbose &= CheckEnv("SCUFF_SUBSTRATE_INTERPOLATION_VERBOSE");
 
-  dVec RZ0Vec(1, RhoMin);
-  if (Dimension>1) RZ0Vec.push_back(Z0);
+ // dVec RZ0Vec(1, RhoMin);
+ // if (Dimension>1) RZ0Vec.push_back(Z0);
 
   //dVec RhoGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance);
   //vector<dVec> RZGrid(1,RhoGrid);
@@ -657,16 +708,29 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   //ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZGrid, Verbose);
   dVec RZMin(1), RZMax(1);
   RZMin[0] = RhoMin;   RZMax[0] = RhoMax;
-  if (!EqualFloat(ZMin, ZMax))
-   { RZMin.push_back(ZMin); RZMax.push_back(ZMax); }
+  if (Dimension>1)
+   { Log("Initializing ScalarGF interpolator for Rho=(%e,%e) Z=(%e,%e)",RhoMin,RhoMax,ZMin,ZMax);
+     RZMin.push_back(ZMin); 
+     RZMax.push_back(ZMax);
+   }
+  else
+   Log("Initializing ScalarGF interpolator for Rho=(%e,%e)",RhoMin,RhoMax);
+
   ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZMin, RZMax,
                                       Tolerance, Verbose);
+
+  if (Dimension>1)
+   Log("Rho,Z grid: %i x %i points",ScalarGFInterpolator->XGrids[0].size(),
+                                    ScalarGFInterpolator->XGrids[1].size());
+  else 
+   Log("Rho grid: %i points",ScalarGFInterpolator->XGrids[0].size());
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   memcpy(&SGFIOptions, Options, sizeof(ScalarGFOptions));
-  if (Dimension==1) zSGFI=Z0;
+  if (Dimension==1) zSGFI=ZMin;
+  OmegaSGFI=Omega;
   return ScalarGFInterpolator;
 }
 

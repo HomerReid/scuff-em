@@ -637,18 +637,6 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      Block->InsertBlock(Block, OffsetA, OffsetB, NBFA, NBFB, ParentOffsetA, ParentOffsetB); 
      return;
    }
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-static HMatrix *RefBlock=0;
-if (EEPTables && RefBlock==0)
- { RefBlock = new HMatrix(Block);
-printf("Reffing...\n");
-   AssembleMOIMatrixBlock(G,nsa,nsb,Omega,RefBlock,OffsetA,OffsetB,0); 
- }
-else
- printf("ForRealing...\n");
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* pre-allocate interpolator for subtrate green's functions if */
@@ -662,7 +650,6 @@ else
      bool Subtract = true;
      bool RetainSingularTerms = false;
      bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
-     Log("Initializing ScalarGF interpolator for Rho range (%e,%e)",RhoMinMax[0],RhoMinMax[1]);
      G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
                                             PPIsOnly, Subtract, RetainSingularTerms, Verbose);
    }

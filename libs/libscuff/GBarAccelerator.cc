@@ -101,6 +101,14 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 
 } 
 
+void GBarVDPhi2DND(double *X, void *UserData, double *PhiVD)
+{ GBarVDPhi2D(X[0],X[1],UserData,PhiVD);
+}
+
+void GBarVDPhi3DND(double *X, void *UserData, double *PhiVD)
+{ GBarVDPhi3D(X[0],X[1],X[2],UserData,PhiVD);
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -294,11 +302,14 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
   GBA->RhoMax             = RhoMax;
   GBA->I2D                = 0;
   GBA->I3D                = 0;
+  GBA->Interp             = 0;
 
   int LDim = GBA->LDim = LBasis->NC;
   for(int nd=0; nd<LDim; nd++)
    for(int j=0; j<3; j++)
     GBA->LBV[nd][j] = LBasis->GetEntryD(j,nd);
+
+  int NF = 2;
 
   /***************************************************************/
   /* If the wavenumber has an imaginary component, LMax is the   */
@@ -333,6 +344,26 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  if (CheckEnv("SCUFF_GBAR_INTERPND"))
+   { 
+     bool Verbose = (LMDILogLevel==LMDI_LOGLEVEL_VERBOSE);
+     if (LDim==1)
+      { double L0 = GBA->LBV[0][0];
+        dVec XMin(2), XMax(2);
+        XMin[0] = -0.5*L0; XMax[0] = +0.5*L0;
+        XMin[1] = RhoMin;  XMax[1] = RhoMax;
+        GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+      }
+     else
+      { double Lx = GBA->LBV[0][0], Ly=GBA->LBV[1][1];
+        dVec XMin(3), XMax(3);
+        XMin[0] = -0.5*Lx; XMax[0] = 0.5*Lx;
+        XMin[1] = -0.5*Lx; XMax[1] = 0.5*Ly;
+        XMin[2] = RhoMin;  XMax[2] = RhoMax;
+        GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+      }
+     return GBA;
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -607,33 +638,43 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
    { if (dGBar) memset(dGBar, 0, 3*sizeof(cdouble));
      if (ddGBar) memset(ddGBar, 0, 9*sizeof(cdouble));
      return 0.0;
-   };
+   }
 
   /*--------------------------------------------------------------*/
   /* get GBar(xBar, Rho) and as many derivatives as necessary     */
   /*--------------------------------------------------------------*/
   cdouble G, dGdx=0, dGdRho=0.0, d2Gdx2=0.0, d2GdxdRho=0.0, d2GdRho2=0.0;
+  double xBarRho[2];
+  xBarRho[0] = xBar;
+  xBarRho[1] = Rho;
   if (ddGBar)
    { 
-     double Phi[12];
-     GBA->I2D->EvaluatePlusPlus(xBar, Rho, Phi);
-     G         = cdouble(Phi[0], Phi[ 6]);
-     dGdx      = cdouble(Phi[1], Phi[ 7]);
-     dGdRho    = cdouble(Phi[2], Phi[ 8]);
-     d2Gdx2    = cdouble(Phi[3], Phi[ 9]);
-     d2GdxdRho = cdouble(Phi[4], Phi[10]);
-     d2GdRho2  = cdouble(Phi[5], Phi[11]);
+     double PhiVDD[12];
+     GBA->I2D->EvaluatePlusPlus(xBar, Rho, PhiVDD);
+     G         = cdouble(PhiVDD[0], PhiVDD[ 6]);
+     dGdx      = cdouble(PhiVDD[1], PhiVDD[ 7]);
+     dGdRho    = cdouble(PhiVDD[2], PhiVDD[ 8]);
+     d2Gdx2    = cdouble(PhiVDD[3], PhiVDD[ 9]);
+     d2GdxdRho = cdouble(PhiVDD[4], PhiVDD[10]);
+     d2GdRho2  = cdouble(PhiVDD[5], PhiVDD[11]);
    }
   else if (dGBar)
    { 
-     double Phi[8];
-     GBA->I2D->EvaluatePlus(xBar, Rho, Phi);
-     G         = cdouble(Phi[0], Phi[4]);
-     dGdx      = cdouble(Phi[1], Phi[5]);
-     dGdRho    = cdouble(Phi[2], Phi[6]);
+     double PhiVD[8];
+     if (GBA->Interp)
+      GBA->Interp->EvaluateVD(xBarRho, PhiVD);
+     else
+      GBA->I2D->EvaluatePlus(xBar, Rho, PhiVD);
+     G         = cdouble(PhiVD[0], PhiVD[4]);
+     dGdx      = cdouble(PhiVD[1], PhiVD[5]);
+     dGdRho    = cdouble(PhiVD[2], PhiVD[6]);
    }
   else
-   GBA->I2D->Evaluate(xBar, Rho, (double *)&G);
+   { if (GBA->Interp)
+      GBA->Interp->Evaluate(xBarRho, (double *)&G);
+     else
+      GBA->I2D->Evaluate(xBar, Rho, (double *)&G);
+   }
 
   /*--------------------------------------------------------------*/
   /* correct for the fact that we may have needed to              */
@@ -657,7 +698,7 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
             AddGFullTerm(RBar, k, kBloch, n*L0, 0.0, TP);
            if ( !InM101(n-m) )
             AddGFullTerm(RBar, k, kBloch, (n-m)*L0, 0.0, TM);
-         };
+         }
 
         G         += TP[0]-TM[0];
         dGdx      += TP[1]-TM[1];
@@ -666,7 +707,7 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
         d2GdxdRho += TP[5]-TM[5];
         d2GdRho2  += TP[7]-TM[7];
 
-      }; // if (ExcludeInnerCells)
+      } // if (ExcludeInnerCells)
 
      G         *= PhaseFactor;
      dGdx      *= PhaseFactor;
@@ -675,7 +716,7 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
      d2GdxdRho *= PhaseFactor;
      d2GdRho2  *= PhaseFactor;
         
-   }; // if (m!=0)
+   } // if (m!=0)
 
   /*--------------------------------------------------------------*/
   /*- convert derivatives from the (x,Rho) system to the (x,y,z) system  */
@@ -683,13 +724,13 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   if (Rho==0.0)
    { dGdRho=d2GdxdRho=0.0;
      Rho=1.0; // avoid division-by-zero
-   };
+   }
 
   if (dGBar)
    { dGBar[0]  = dGdx;
      dGBar[1]  = (R[1]/Rho) * dGdRho;  // dG/dy = (y/Rho) dG/dRho
      dGBar[2]  = (R[2]/Rho) * dGdRho;  // dG/dz = (z/Rho) dG/dRho
-   };
+   }
 
   if (ddGBar) 
    { 
@@ -704,11 +745,11 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
         ddGBar[ 3*1 + 1 ] = (R[2]*R[2]*dGdRho + R[1]*R[1]*Rho*d2GdRho2)/Rho3;
         ddGBar[ 3*2 + 2 ] = (R[1]*R[1]*dGdRho + R[2]*R[2]*Rho*d2GdRho2)/Rho3;
         ddGBar[ 3*1 + 2 ] = ddGBar[ 3*2 + 1 ] = R[1]*R[2]*(-dGdRho + Rho*d2GdRho2)/Rho3;
-      };
+      }
 
      ddGBar[ 3*0 + 1 ] = ddGBar[ 3*1 + 0 ] = (R[1]/Rho) * d2GdxdRho;
      ddGBar[ 3*0 + 2 ] = ddGBar[ 3*2 + 0 ] = (R[2]/Rho) * d2GdxdRho;
-   };
+   }
 
   return G;
   

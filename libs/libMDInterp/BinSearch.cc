@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <libhrutil.h> // needed for EqualFloat()
 
 /***************************************************************/
 /* given an array of N points, which is ordered (i.e. for all  */
@@ -48,15 +49,13 @@ int BinSearch(double X, double *XPoints, int N)
       int nHalf=(nMin + nMax)/2;
 
       if ( X>=XPoints[nHalf] )
-       { 
-         if ( X<XPoints[nHalf+1] ) 
+       { if ( X<XPoints[nHalf+1] ) 
           return nHalf;
          nMin=nHalf;
        }
       else
        nMax=nHalf;
-    };
-   
+    }
 }
 
 /***************************************************************/
@@ -99,35 +98,35 @@ bool FindInterval(double X, double *XPoints, int N, double XMin, double DX,
   bool Inside=true; // true if point lies within interval
 
   if ( XPoints )  // nonuniform grid
-   { if ( X<XPoints[0] )
-     { X=XPoints[0]; 
-       n=0;
-       XBar=0.0;
-       Inside=false;
-     }
+   { if ( X<=XPoints[0] )
+      { n=0;
+        XBar=0.0;
+        Inside=EqualFloat(X,XPoints[0]);
+        X=XPoints[0]; 
+      }
     else if ( X>=XPoints[N-1] )
-     { Inside = (X==XPoints[N-1]);
-       X=XPoints[N-1]; 
-       n=N-2;
-       XBar=1.0;
-     }
+      { n=N-2;
+        XBar=1.0;
+        Inside = EqualFloat(X,XPoints[N-1]);
+        X=XPoints[N-1]; 
+      }
     else
-     { n=BinSearch(X,XPoints,N);
-       XBar = (X - XPoints[n]) / (XPoints[n+1]-XPoints[n]);
-     }
+      { n=BinSearch(X,XPoints,N);
+        XBar = (X - XPoints[n]) / (XPoints[n+1]-XPoints[n]);
+      }
    }
   else // uniform grid
    { if ( X <= XMin )
-      { X=XMin;
-        n=0;
+      { n=0;
         XBar=0.0;
-        Inside = (X==XMin);
+        Inside = EqualFloat(X,XMin);
+        X=XMin;
       }
      else if ( X >= (XMin + ((double)(N-1))*DX) )
-      { X=XMin + ((double)(N-1))*DX;
-        n=N-2;
+      { n=N-2;
         XBar=1.0;
-        Inside = ( X == (XMin + ((double)N-1))*DX); 
+        Inside = EqualFloat(X, (XMin + ((double)N-1))*DX);
+        X=XMin + ((double)(N-1))*DX;
       }
      else
       { 
@@ -139,10 +138,9 @@ bool FindInterval(double X, double *XPoints, int N, double XMin, double DX,
         if ( n==(N-1) )
          { n=N-2;
            XBar=1.0;
-         };
-
-      };
-   };
+         }
+      }
+   }
 
   *pn=n;
   *pXBar=XBar;

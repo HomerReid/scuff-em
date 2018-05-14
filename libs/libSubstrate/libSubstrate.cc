@@ -244,6 +244,8 @@ void LayeredSubstrate::Initialize(FILE *f, const char *FileName, int *pLineNum)
   if (qMaxEvalB==0) qMaxEvalB=qMaxEval;
 
   ScalarGFInterpolator=0;
+  zSGFI=0.0;
+  OmegaSGFI=0.0;
 
   ForceMethod=AUTO;
   ForceFreeSpace=StaticLimit=false;

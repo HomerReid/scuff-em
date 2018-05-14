@@ -229,8 +229,10 @@ public:
    InterpND *InitScalarGFInterpolator(cdouble Omega, double RhoMin, double RhoMax,
                                       double zMin, double zMax, bool PPIsOnly, bool Subtract,
                                       bool RetainSingularTerms, bool Verbose=false);
+   bool CheckScalarGFInterpolator(cdouble Omega, double RhoMin, double RhoMax,
+                                  double ZMin, double ZMax, bool PPIsOnly, bool Subtract,
+                                  bool RetainSingularTerms);
    void DestroyScalarGFInterpolator();
-
 // private:
 
 // internal ("private") class methods
@@ -335,6 +337,7 @@ public:
    InterpND *ScalarGFInterpolator;
    ScalarGFOptions SGFIOptions;
    double zSGFI;
+   cdouble OmegaSGFI;
 
    // flags to help in debugging
    DGFMethod ForceMethod;

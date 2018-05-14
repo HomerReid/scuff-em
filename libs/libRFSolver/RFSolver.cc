@@ -567,6 +567,19 @@ void RFSolver::AssembleSystemMatrix(double Freq)
 
   Log("Assembling BEM matrix at f=%g GHz...",Freq);
   cdouble Omega = Freq * FREQ2OMEGA;
+
+  // update interpolator
+  if (G->Substrate)
+   { double RhoMinMax[2];
+     GetRhoMinMax(G, RhoMinMax);
+     bool PPIsOnly = true;
+     bool Subtract = true;
+     bool RetainSingularTerms = false;
+     bool Verbose = (G->LogLevel == SCUFF_VERBOSE2);
+     G->Substrate->InitScalarGFInterpolator(Omega, RhoMinMax[0], RhoMinMax[1], 0.0, 0.0,
+                                            PPIsOnly, Subtract, RetainSingularTerms, Verbose);
+   }
+
   G->UpdateCachedEpsMuValues(Omega);
   if (TBlocks==0)
    AssembleMOIMatrix(G, Omega, M, EEPTables);
