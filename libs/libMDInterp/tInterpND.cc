@@ -17,6 +17,19 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void printiVec(iVec v, char *s)
+{ printf("%s: {",s);
+  for(size_t d=0; d<v.size(); d++) printf("%i ",v[d]);
+  printf("} ");
+}
+void printdVec(dVec v, char *s)
+{ printf("%s: {",s);
+  for(size_t d=0; d<v.size(); d++) printf("%g ",v[d]);
+  printf("} ");
+}
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 #define NFUN 3
 void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
 {
@@ -40,6 +53,7 @@ void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
   int NVD=1;
   for(int d=0; d<D; d++)
    NVD*=dXMax[d];
+  //printf("NVD=%i\n",NVD);
 
  {
   LOOP_OVER_IVECS(nVD, dX, dXMax)
@@ -88,7 +102,14 @@ void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
 
   {
     LOOP_OVER_IVECS(nVD, dX, dXMax)
-     PhiVD[2*NVD + nVD] = Phi2VD[dX[2]*4 + dX[1]*2 + dX[0]];
+     { int Index = dX[0];
+       if (dX.size() > 1 ) Index+=dX[1]*2;
+       if (dX.size() > 2 ) Index+=dX[2]*4;
+       PhiVD[2*NVD + nVD] = Phi2VD[Index];
+//printiVec(dX,"dX");
+//printiVec(dXMax,"dXMax");
+//printf("%i %i %e\n ",NVD,nVD,PhiVD[2*NVD+nVD]);
+     }
   }
 
 }
@@ -104,7 +125,7 @@ int main(int argc, char *argv[])
   int D=3;
   dVec XMin(3);  XMin[0]=-1.0;  XMin[1]=-2.0; XMin[2]=-3.0;
   dVec XMax(3);  XMax[0]=+2.0;  XMax[1]=+3.0; XMax[2]=+4.0;
-  dVec X0(2);    X0[0]=X0[1]=X0[2]=HUGE_VAL;
+  dVec X0(3);    X0[0]=X0[1]=X0[2]=HUGE_VAL;
   double RelTol=1.0e-4;
   bool Verbose=false;
   /* name               type    #args  max_instances  storage           count         description*/
@@ -136,19 +157,27 @@ int main(int argc, char *argv[])
   if (D>=2) printf(" %lu ",Interp->XGrids[1].size());
   if (D>=3) printf(" %lu ",Interp->XGrids[2].size());
   printf(" } points\n");
+for(int dd=0; dd<Interp->XGrids.size(); dd++)
+ { printdVec(Interp->XGrids[dd],"Interp->XGrids[dd]");
+   printf("\n");
+}
 
   if (!isinf(X0[0]))
    { 
      int NFVD=NFUN*Interp->NVD;
      double *PhiVDExact = new double[NFVD], *PhiVDInterp = new double[NFVD];
-     iVec dXMax(D,2);
-     Phi(X0, (void *)&D, PhiVDExact, dXMax);
-     Interp->EvaluateVD(&(X0[0]),PhiVDInterp);
-     Compare(PhiVDExact, PhiVDInterp, NFVD, "Exact", "Interp");
+     iVec dXMax(D,1);
+     dVec x0(D,X0[0]);
+     if (D>1) x0[1]=X0[1];
+     if (D>2) x0[2]=X0[2];
+     Phi(x0, (void *)&D, PhiVDExact, dXMax);
+     //Interp->EvaluateVD(&(X0[0]),PhiVDInterp);
+     bool Status=Interp->Evaluate(&(X0[0]),PhiVDInterp);
+     printf("point %s grid\n",Status ? "inside" : "outside");
+     Compare(PhiVDExact, PhiVDInterp, NFUN, "Exact", "Interp");
    }
 
-  double Error=Interp->PlotInterpolationError(Phi, (void *)&D, "/tmp/tInterpND.out");
-
-  printf("MaxError = %e\n",Error);
+ // double Error=Interp->PlotInterpolationError(Phi, (void *)&D, "/tmp/tInterpND.out");
+ //printf("MaxError = %e\n",Error);
 
 }
