@@ -101,17 +101,49 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 
 } 
 
-void GBarVDPhi2DND(double *X, void *UserData, double *PhiVD)
-{ GBarVDPhi2D(X[0],X[1],UserData,PhiVD); 
+void GBarVDPhi2DND(dVec X, void *UserData, double *PhiVD, iVec dXMax)
+{  
+  GBarAccelerator *GBA = (GBarAccelerator *)UserData;
+  double R[3];
+  R[0]=X[0];
+  R[1]=X[1];
+  R[2]=0.0;
+  cdouble GBarVD[8];
+  GBarVDEwald(R, GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim, -1.0, GBA->ExcludeInnerCells, GBarVD);
+  cdouble temp=GBarVD[3]; GBarVD[3]=GBarVD[4]; GBarVD[4]=temp;
+
+  int NumVDs = 1;
+  for(size_t d=0; d<dXMax.size(); d++) NumVDs*=dXMax[d];
+  LOOP_OVER_IVECS(nVD,dX,dXMax)
+   {
+     int GBarVDIndex = dXMax[0];
+     if (dXMax.size() >= 2) GBarVDIndex+=dXMax[1]*2;
+
+     PhiVD[0*NumVDs + nVD] = real(GBarVD[GBarVDIndex]);
+     PhiVD[1*NumVDs + nVD] = imag(GBarVD[GBarVDIndex]);
+   }
 }
 
-void GBarVDPhi3DND(double *X, void *UserData, double *PhiVD)
+void GBarVDPhi3DND(dVec X, void *UserData, double *PhiVD, iVec dXMax)
 { 
-  GBarVDPhi3D(X[0],X[1],X[2],UserData,PhiVD);
-  double temp;
-  temp=PhiVD[3];  PhiVD[3]=PhiVD[4];   PhiVD[4]=temp;
-  temp=PhiVD[11]; PhiVD[11]=PhiVD[12]; PhiVD[12]=temp;
+  GBarAccelerator *GBA = (GBarAccelerator *)UserData;
+  cdouble GBarVD[8];
+  GBarVDEwald(&(X[0]), GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim, -1.0, GBA->ExcludeInnerCells, GBarVD);
+  cdouble temp=GBarVD[3]; GBarVD[3]=GBarVD[4]; GBarVD[4]=temp;
+
+  int NumVDs = 1;
+  for(size_t d=0; d<dXMax.size(); d++) NumVDs*=dXMax[d];
+  LOOP_OVER_IVECS(nVD,dX,dXMax)
+   {
+     int GBarVDIndex = dXMax[0];
+     if (dXMax.size() >= 2) GBarVDIndex+=dXMax[1]*2;
+     if (dXMax.size() >= 3) GBarVDIndex+=dXMax[2]*4;
+
+     PhiVD[0*NumVDs + nVD] = real(GBarVD[GBarVDIndex]);
+     PhiVD[1*NumVDs + nVD] = imag(GBarVD[GBarVDIndex]);
+   }
 }
+
 
 /***************************************************************/
 /***************************************************************/
@@ -357,7 +389,7 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
         dVec XMin(2), XMax(2);
         XMin[0] = -0.5*L0; XMax[0] = +0.5*L0;
         XMin[1] = RhoMin;  XMax[1] = RhoMax;
-        //GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+        GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
       }
      else
       { double Lx = GBA->LBV[0][0], Ly=GBA->LBV[1][1];
@@ -366,7 +398,7 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
         XMin[0] = -0.5*Lx; XMax[0] = +0.5*Lx;
         XMin[1] = -0.5*Ly; XMax[1] = +0.5*Ly;
         XMin[2] = RhoMin;  XMax[2] = RhoMax;
-        //GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+        GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
       }
      return GBA;
    }
