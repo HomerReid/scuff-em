@@ -69,8 +69,8 @@ size_t InterpND::GetPointIndex(iVec nPoint)
 iVec InterpND::GetPoint(size_t PointIndex)
 { iVec nPoint(D);
   for(int d=0; d<D; d++)
-   { nPoint[d] = PointIndex % (NPoints[d]+1);
-     PointIndex /= (NPoints[d]+1);
+   { nPoint[d] = PointIndex % NPoints[d];
+     PointIndex /= NPoints[d];
    }
   return nPoint;
 }
@@ -85,8 +85,8 @@ size_t InterpND::GetCellIndex(iVec nCell)
 iVec InterpND::GetCell(size_t CellIndex)
 { iVec nCell(D);
   for(int d=0; d<D; d++)
-   { nCell[d] = CellIndex % NPoints[d];
-     CellIndex /= NPoints[d];
+   { nCell[d] = CellIndex % (NPoints[d]-1);
+     CellIndex /= (NPoints[d]-1);
    }
   return nCell;
 }
