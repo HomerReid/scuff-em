@@ -386,9 +386,11 @@ bool InterpND::PointInGrid(double *X0Vec, int *nCell, double *XBarVec)
    else
     { 
       double *XGrid = (XGrids.size() > 0 ? &(XGrids[d][0]) : 0);
+      double xMin   = (XGrids.size() > 0 ? 0.0: XMin[d]);
+      double Delta  = (XGrids.size() > 0 ? 0.0: DX[d]);
       int nc;
       double XBar;
-      if (!FindInterval(X0Vec[d0], XGrid, NPoints[d], XMin[d], DX[d], &nc, &XBar))
+      if (!FindInterval(X0Vec[d0], XGrid, NPoints[d], xMin, Delta, &nc, &XBar))
        return false;
       if (nCell) nCell[d]=nc;
       if (XBarVec) XBarVec[d] = 2.0*(XBar-0.5);
