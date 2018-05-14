@@ -253,13 +253,13 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    CellStride.reserve(D);
    PointStride.reserve(D);
    CellStride[0]=PointStride[0]=1;
-   size_t NumCells  = NPoints[0];        // # grid cells
-   size_t NumPoints = NPoints[0]+1;      // # grid points
+   size_t NumCells  = NPoints[0]-1;   // # grid cells
+   size_t NumPoints = NPoints[0];     // # grid points
    for(int d=1; d<D; d++)
     { CellStride[d] = NumCells;
       PointStride[d] = NumPoints;
-      NumCells  *= NPoints[d];
-      NumPoints *= NPoints[d]+1;
+      NumCells  *= NPoints[d]-1;
+      NumPoints *= NPoints[d];
       if (NPoints[d]<1) 
        ErrExit("%s:%i: invalid number of points (%i) in dimension %i",__FILE__,__LINE__,NPoints[d],d);
     }
