@@ -594,7 +594,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   DeltaVec[d0] = Delta;
   
   int PointsPerDimension=5;
-  iVec N0Vec(D0-1, PointsPerDimension);
+  iVec N0Vec(D0, PointsPerDimension);
   N0Vec[d0]=1;
   for(int d0Prime=0; d0Prime<D0; d0Prime++)
    if (EqualFloat(X0Min[d0Prime],X0Max[d0Prime]))

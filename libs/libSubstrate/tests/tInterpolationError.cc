@@ -71,6 +71,8 @@ int main(int argc, char *argv[])
   double RhoMin=0.0, RhoMax=2.0;
   double ZMin=0.0,     ZMax=0.0;
 //
+  double RelTol=1.0e-3;
+//
   bool PPIsOnly=true;
   bool NoSubtract=false;
 //
@@ -87,6 +89,8 @@ int main(int argc, char *argv[])
      {"RhoMax",         PA_DOUBLE,  1, 1, (void *)&RhoMax,         0, ""},
      {"ZMin",           PA_DOUBLE,  1, 1, (void *)&ZMin,           0, ""},
      {"ZMax",           PA_DOUBLE,  1, 1, (void *)&ZMax,           0, ""},
+//
+     {"RelTol",         PA_DOUBLE,  1, 1, (void *)&RelTol,         0, ""},
 //
      {"PPIsOnly",       PA_BOOL,    0, 1, (void *)&PPIsOnly,       0, ""},
      {"NoSubtract",     PA_BOOL,    0, 1, (void *)&NoSubtract,       0, ""},
@@ -129,17 +133,18 @@ int main(int argc, char *argv[])
   S->InitScalarGFInterpolator(Omega, RhoMin, RhoMax, ZMin, ZMax,
                               PPIsOnly, Subtract, RetainSingularTerms);
   InterpND *Interp = S->ScalarGFInterpolator;
+  printf("{%lu,%lu} points\n",Interp->XGrids[0].size(),Interp->XGrids[1].size());
 
   PhiVDFuncData Data;
   Data.S         = S;
   Data.Omega     = Omega;
-  Data.Dimension = Interp->xPoints.size();
+  Data.Dimension = 2; //Interp->xPoints.size();
   Data.zFixed    = S->zSGFI;
   memcpy(&(Data.Options), &(S->SGFIOptions), sizeof(ScalarGFOptions));
 
   double MaxError = Interp->PlotInterpolationError(PhiVDFunc_ScalarGFs, (void *)&Data,
                                                    const_cast<char *>("/tmp/tInterpolationError.out"));
-
+/*
   printf("Rho points (%lu) = { ",Interp->xPoints[0].size());
   for(size_t n=0; n<Interp->xPoints[0].size(); n++)
    printf("%e ",Interp->xPoints[0][n]);
@@ -149,6 +154,7 @@ int main(int argc, char *argv[])
      for(size_t n=0; n<Interp->xPoints[1].size(); n++)
        printf("%e ",Interp->xPoints[1][n]);
    }
+*/
   printf("}\n");
   printf("Max error = %e \n",MaxError);
   printf("Wrote error data to /tmp/tInterpolationError.out.\n");
