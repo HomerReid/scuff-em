@@ -718,7 +718,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   dVec Fraction(SAMPLES_PER_DIMENSION);
   for(int ns=0; ns<SAMPLES_PER_DIMENSION; ns++)
    Fraction[ns] = ((double)ns) / (SAMPLES_PER_DIMENSION - 1);
-  Fraction[SAMPLES_PER_DIMENSION]*=(1.0 - 1.0e-6);
+  Fraction[SAMPLES_PER_DIMENSION-1]*=(1.0 - 1.0e-6);
   
   double MaxError=0.0;
   LOOP_OVER_IVECS(SampleIndex, nSample, NSample)
