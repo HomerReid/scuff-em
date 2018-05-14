@@ -57,8 +57,9 @@ void Phi(double *X, void *UserData, double *PhiVD)
      srandom(0);
      for(int n0=0; n0<4; n0++)
       for(int n1=0; n1<4; n1++)
-       C[n0][n1]=randU(-2.0,2.0);
+       C[n0][n1]=0.0*randU(-2.0,2.0);
    }
+C[0][0]=1.0;
   int nf=2;
   memset(PhiVD + nf*NVD, 0, NVD*sizeof(double));
   for(int n0=0; n0<4; n0++)

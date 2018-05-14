@@ -447,9 +447,7 @@ bool InterpND::Evaluate(double *X0, double *Phi)
      for(int d=0; d<D; d++)
       Monomial*= XBarPowers[d][pVec[d]];
      for(int nf=0; nf<NF; nf++)
-      { double *C = CTable + GetCTableOffset(nVec, nf);
-        Phi[NVD*nf + 0] += C[nCoeff]*Monomial;
-      }
+      Phi[nf] += CTable[ GetCTableOffset(nVec,nf) + nCoeff ]*Monomial;
    }
   return true;
 }
