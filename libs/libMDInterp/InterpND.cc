@@ -59,36 +59,36 @@ double Monomial(dVec XVec, iVec pVec)
   return Value;
 }
 
-size_t InterpND::GetPointIndex(iVec nVec)
-{ size_t Index=0;
+size_t InterpND::GetPointIndex(iVec nPoint)
+{ size_t PointIndex=0;
   for(int d=0; d<D; d++) 
-   Index += nVec[d]*PointStride[d];
-  return Index;
+   PointIndex += nPoint[d]*PointStride[d];
+  return PointIndex;
 }
 
-iVec InterpND::GetPoint(size_t Index)
-{ iVec nVec(D);
+iVec InterpND::GetPoint(size_t PointIndex)
+{ iVec nPoint(D);
   for(int d=0; d<D; d++)
-   { nVec[d] = Index % (NVec[d]+1);
-     Index /= (NVec[d]+1);
+   { nPoint[d] = PointIndex % (NPoints[d]+1);
+     PointIndex /= (NPoints[d]+1);
    }
-  return nVec;
+  return nPoint;
 }
 
-size_t InterpND::GetCellIndex(iVec nVec)
-{ size_t Index=0;
+size_t InterpND::GetCellIndex(iVec nCell)
+{ size_t CellIndex=0;
   for(int d=0; d<D; d++) 
-   Index += nVec[d]*CellStride[d];
-  return Index;
+   CellIndex += nCell[d]*CellStride[d];
+  return CellIndex;
 }
 
-iVec InterpND::GetCell(size_t Index)
-{ iVec nVec(D);
+iVec InterpND::GetCell(size_t CellIndex)
+{ iVec nCell(D);
   for(int d=0; d<D; d++)
-   { nVec[d] = Index % NVec[d];
-     Index /= NVec[d];
+   { nCell[d] = CellIndex % NPoints[d];
+     CellIndex /= NPoints[d];
    }
-  return nVec;
+  return nCell;
 }
 
 dVec InterpND::X2X0(dVec XVec)
@@ -110,11 +110,13 @@ dVec InterpND::X02X(dVec X0Vec)
   return XVec;
 }
 
-dVec InterpND::n2X(iVec nVec)
+dVec InterpND::n2X(iVec nPoint)
 { dVec XVec(D);
   for(int d=0; d<D; d++)
-   { int n=nVec[d];
-     XVec[d] = (XGrids.size()>0 ? XGrids[d][n] : XMin[d] + n*DX[d]);
+   { int np=nPoint[d];
+     if (np<0 || np>=NPoints[d]) 
+      ErrExit("%s:%i: invalid point index[%i]=%i/%i",__FILE__,__LINE__,d,np,NPoints[d]);
+     XVec[d] = (XGrids.size()>0 ? XGrids[d][np] : XMin[d] + np*DX[d]);
    }
   return XVec;
 }
@@ -135,8 +137,8 @@ dVec InterpND::n2X0(iVec nVec)
 /* layout of PhiVDTable:                                        */
 /*  Phi values, derivatives for function #1  at point #1        */
 /****************************************************************/
-size_t InterpND::GetPhiVDTableOffset(int nPoint, int nFun)
-{ return nPoint*NF*NVD + nFun*NVD; }
+size_t InterpND::GetPhiVDTableOffset(int PointIndex, int nFun)
+{ return PointIndex*NF*NumVDs + nFun*NumVDs; }
 
 size_t InterpND::GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun)
 {
@@ -156,29 +158,29 @@ size_t InterpND::GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun)
 /*  ...                                                         */
 /*  Coefficients for function #NF in grid cell #NCell           */
 /****************************************************************/
-size_t InterpND::GetCTableOffset(int nCell, int nFun)
-{ return nCell*NF*NCoeff+ nFun*NCoeff; }
+size_t InterpND::GetCTableOffset(int CellIndex, int nFun)
+{ return CellIndex*NF*NumCoeffs + nFun*NumCoeffs ; }
 
-size_t InterpND::GetCTableOffset(iVec nVec, int nFun)
-{ return GetCTableOffset(GetCellIndex(nVec),nFun); }
+size_t InterpND::GetCTableOffset(iVec nCell, int nFun)
+{ return GetCTableOffset(GetCellIndex(nCell),nFun); }
 
 /****************************************************************/
 /* class constructor 1: construct the class from a user-supplied*/
 /* function and uniform grids                                   */
 /****************************************************************/
 InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
-                   dVec X0Min, dVec X0Max, iVec N0Vec, bool Verbose)
+                   dVec X0Min, dVec X0Max, iVec N0Points, bool Verbose)
  : NF(_NF)
 { 
   D0=X0Min.size();
   for(int d0=0; d0<D0; d0++)
-   if (N0Vec[d0] < 2 || EqualFloat(X0Min[d0],X0Max[d0]) )
+   if (N0Points[d0] < 2 || EqualFloat(X0Min[d0],X0Max[d0]) )
     FixedCoordinates.push_back( X0Min[d0] );
    else
     { FixedCoordinates.push_back( HUGE_VAL );
-      NVec.push_back( N0Vec[d0] );
+      NPoints.push_back( N0Points[d0] );
       XMin.push_back( X0Min[d0] );
-      DX.push_back(  (X0Max[d0] - X0Min[d0]) / N0Vec[d0] );
+      DX.push_back(  (X0Max[d0] - X0Min[d0]) / N0Points[d0] );
     }
 
   Initialize(UserFunc, UserData, Verbose);
@@ -200,7 +202,7 @@ InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
    else
     { FixedCoordinates.push_back( HUGE_VAL );
       XGrids.push_back(X0Grids[d0]);
-      NVec.push_back( X0Grids[d0].size() - 1 );
+      NPoints.push_back( X0Grids[d0].size() );
     }
 
   Initialize(UserFunc, UserData, Verbose);
@@ -224,7 +226,7 @@ InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
     { FixedCoordinates.push_back( HUGE_VAL );
       dVec XGrid = GetXGrid(UserFunc, UserData, NF, X0Min, X0Max, d0, MaxRelError);
       XGrids.push_back(XGrid);
-      NVec.push_back( XGrid.size() - 1 );
+      NPoints.push_back( XGrid.size() );
     }
   Initialize(UserFunc, UserData, Verbose);
 }
@@ -246,30 +248,28 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*--------------------------------------------------------------*/
    /*- compute some statistics ------------------------------------*/
    /*--------------------------------------------------------------*/
-   D = NVec.size();
+   D0 = FixedCoordinates.size();
+   D  = NPoints.size();
    CellStride.reserve(D);
    PointStride.reserve(D);
    CellStride[0]=PointStride[0]=1;
-   size_t NCell  = NVec[0];        // # grid cells
-   size_t NPoint = NVec[0]+1;      // # grid points
+   size_t NumCells  = NPoints[0];        // # grid cells
+   size_t NumPoints = NPoints[0]+1;      // # grid points
    for(int d=1; d<D; d++)
-    { CellStride[d] = NCell;
-      PointStride[d] = NPoint;
-      NCell  *= NVec[d];
-      NPoint *= NVec[d]+1;
-      if (NVec[d]<1) 
-       ErrExit("%s:%i: invalid number of points (%i) in dimension %i",__FILE__,__LINE__,NVec[d],d);
+    { CellStride[d] = NumCells;
+      PointStride[d] = NumPoints;
+      NumCells  *= NPoints[d];
+      NumPoints *= NPoints[d]+1;
+      if (NPoints[d]<1) 
+       ErrExit("%s:%i: invalid number of points (%i) in dimension %i",__FILE__,__LINE__,NPoints[d],d);
     }
 
-   NVD    = (1<<D);     // # function vals, derivs per grid point
-   NCoeff = NVD*NVD;    // # polynomial coefficients per grid cell
+   NumVDs    = (1<<D);         // # function vals, derivs per grid point
+   NumCoeffs = NumVDs*NumVDs;  // # polynomial coefficients per grid cell
 
-   D0     = FixedCoordinates.size();
-   NVD0   = (1<<D0);
-
-   size_t PhiVDTableSize = (NPoint * NF * NVD0) * sizeof(double);
+   size_t PhiVDTableSize = (NumPoints * NF * NumVDs) * sizeof(double);
    double *PhiVDTable = (double *)mallocEC(PhiVDTableSize);
-   size_t CTableSize = (NCell * NF * NCoeff) * sizeof(double);
+   size_t CTableSize = (NumCells* NF * NumCoeffs) * sizeof(double);
    CTable=(double *)mallocEC(CTableSize);
    if (!PhiVDTable || !CTable)
     ErrExit("%s:%i:out of memory",__FILE__,__LINE__);
@@ -283,17 +283,17 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- and derivatives at grid points                              */
    /*--------------------------------------------------------------*/
    int ThreadTaskThreshold = 16; CheckEnv("SCUFF_INTERP_MIN_TASKS",&ThreadTaskThreshold);
-   int NumThreads = ( ((int)NPoint) <= ThreadTaskThreshold ? 1 :  GetNumThreads() );
+   int NumThreads = ( ((int)NumPoints) <= ThreadTaskThreshold ? 1 :  GetNumThreads() );
    if (Verbose)
-    Log("Evaluating interpolation function at %i points (%i threads)",NPoint,NumThreads);
+    Log("Evaluating interpolation function at %i points (%i threads)",NumPoints,NumThreads);
 #ifdef USE_OPENMP
 #pragma omp parallel for num_threads(NumThreads)
 #endif
-   for(size_t nPoint=0; nPoint<NPoint; nPoint++)
+   for(size_t PointIndex=0; PointIndex<NumPoints; PointIndex++)
     {
-      if (Verbose) LogPercent(nPoint,NPoint);
-      size_t Offset = GetPhiVDTableOffset(nPoint,0);
-      dVec X0Vec  = n2X0(GetPoint(nPoint));
+      if (Verbose) LogPercent(PointIndex,NumPoints);
+      size_t Offset = GetPhiVDTableOffset(PointIndex,0);
+      dVec X0Vec  = n2X0(GetPoint(PointIndex));
       UserFunc(X0Vec, UserData, PhiVDTable + Offset, dxMax);
     }
 
@@ -303,8 +303,8 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- function values and derivatives at grid points bounding     */
    /*- a single grid cell                                          */
    /*--------------------------------------------------------------*/
-   int NEq    = NCoeff;     // # matching equations per grid cell
-   HMatrix *M = new HMatrix(NEq, NCoeff);
+   int NumEQs = NumCoeffs;     // # matching equations per grid cell
+   HMatrix *M = new HMatrix(NumEQs, NumCoeffs);
    M->Zero();
    iVec Twos(D,2), Fours(D,4);
    // yPowers[0,1][p] = (\pm 1)^p
@@ -312,8 +312,8 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
   {
    LOOP_OVER_IVECS(nTau, tauVec, Twos)
     { LOOP_OVER_IVECS(nVD, sigmaVec, Twos)
-       { int nEq = nTau*NVD + nVD; // index of equation [0,4^D-1]
-         LOOP_OVER_IVECS(nCoeff, pVec, Fours)
+       { int EqIndex = nTau*NumVDs + nVD; // index of equation [0,4^D-1]
+         LOOP_OVER_IVECS(CoeffIndex, pVec, Fours)
           { double Entry=1.0;
             for(int d=0; d<D; d++)
              { int tau=tauVec[d], sigma=sigmaVec[d], p=pVec[d];
@@ -322,7 +322,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
                else
                 Entry *= yPowers[tau][p];
              }
-            M->SetEntry(nEq, nCoeff, Entry);
+            M->SetEntry(EqIndex, CoeffIndex, Entry);
           }
        }
     }
@@ -335,7 +335,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- and derivatives at the grid-cell corners, then solve linear */
    /*- system to compute polynomial coefficients for this grid cell*/
    /*--------------------------------------------------------------*/
-   LOOP_OVER_IVECS(nCell, nVec, NVec)
+   LOOP_OVER_IVECS(CellIndex, nCell, NPoints)
     for(int nf=0; nf<NF; nf++)
      { 
        // vector of scaling factors to accomodate grid-cell dimensions
@@ -344,7 +344,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
         if (XGrids.size()==0)
          D2Vec[d] = 0.5*DX[d];
         else 
-         { size_t n=nVec[d], np1=n+1;
+         { size_t n=nCell[d], np1=n+1;
            if (np1 >= XGrids[d].size() )
             { np1 = XGrids[d].size() - 1;
               n   = np1-1;
@@ -354,13 +354,13 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 
        // populate RHS vector with function values and derivatives
        // at all corners of grid cell
-       HVector RHS(NCoeff, LHM_REAL, CTable + GetCTableOffset(nCell,nf));
+       HVector RHS(NumCoeffs, LHM_REAL, CTable + GetCTableOffset(CellIndex,nf));
        LOOP_OVER_IVECS(nTau, tauVec, Twos)
         { 
-          double *PhiVD = PhiVDTable + GetPhiVDTableOffset(nVec, tauVec, nf);
+          double *PhiVD = PhiVDTable + GetPhiVDTableOffset(nCell, tauVec, nf);
 
           LOOP_OVER_IVECS(nSigma, sigmaVec, Twos)
-           RHS.SetEntry(nTau*NVD + nSigma, Monomial(D2Vec, sigmaVec)*PhiVD[nSigma]);
+           RHS.SetEntry(nTau*NumVDs + nSigma, Monomial(D2Vec, sigmaVec)*PhiVD[nSigma]);
         }
 
        // operate with inverse M matrix to yield C coefficients
@@ -374,7 +374,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
-bool InterpND::PointInGrid(double *X0Vec, int *nVec, double *XBarVec)
+bool InterpND::PointInGrid(double *X0Vec, int *nCell, double *XBarVec)
 { 
   for(int d0=0, d=0; d0<D0; d0++)
    if ( !isinf(FixedCoordinates[d0]) )
@@ -383,15 +383,13 @@ bool InterpND::PointInGrid(double *X0Vec, int *nVec, double *XBarVec)
     }
    else
     { 
-      double *XdGrid = (XGrids.size() > 0 ? &(XGrids[d][0]) : 0);
-      double XdMin   = (XGrids.size() > 0 ? 0.0              : XMin[d] );
-      double DXd     = (XGrids.size() > 0 ? 0.0              : DX[d] );
-      int nd;
-      double XdBar;
-      if (!FindInterval(X0Vec[d0], XdGrid, NVec[d], XdMin, DXd, &nd, &XdBar))
+      double *XGrid = (XGrids.size() > 0 ? &(XGrids[d][0]) : 0);
+      int nc;
+      double XBar;
+      if (!FindInterval(X0Vec[d0], XGrid, NPoints[d], XMin[d], DX[d], &nc, &XBar))
        return false;
-      if (nVec) nVec[d]=nd;
-      if (XBarVec) XBarVec[d] = 2.0*(XdBar-0.5);
+      if (nCell) nCell[d]=nc;
+      if (XBarVec) XBarVec[d] = 2.0*(XBar-0.5);
       d++;
     }
   return true;
@@ -405,9 +403,9 @@ bool InterpND::Evaluate(double *X0, double *Phi)
   /****************************************************************/
   /****************************************************************/
   /****************************************************************/
-  iVec nVec(D);
+  iVec nCell(D);
   dVec XBarVec(D);
-  if ( !PointInGrid(X0, &(nVec[0]), &(XBarVec[0])) ) return false;
+  if ( !PointInGrid(X0, &(nCell[0]), &(XBarVec[0])) ) return false;
   
   /****************************************************************/
   /* tabulate powers of the scaled/shifted coordinates            */
@@ -433,7 +431,7 @@ bool InterpND::Evaluate(double *X0, double *Phi)
      for(int d=0; d<D; d++)
       Monomial*= XBarPowers[d][pVec[d]];
      for(int nf=0; nf<NF; nf++)
-      Phi[nf] += CTable[ GetCTableOffset(nVec,nf) + nCoeff ]*Monomial;
+      Phi[nf] += CTable[ GetCTableOffset(nCell,nf) + nCoeff ]*Monomial;
    }
   return true;
 }
@@ -446,9 +444,9 @@ bool InterpND::EvaluateVD(double *X0, double *PhiVD)
   /****************************************************************/
   /****************************************************************/
   /****************************************************************/
-  iVec nVec(D);
+  iVec nCell(D);
   dVec XBarVec(D);
-  if ( !PointInGrid(X0, &(nVec[0]), &(XBarVec[0])) ) return false;
+  if ( !PointInGrid(X0, &(nCell[0]), &(XBarVec[0])) ) return false;
   
   /****************************************************************/
   /* tabulate powers of the scaled/shifted coordinates            */
@@ -463,7 +461,7 @@ bool InterpND::EvaluateVD(double *X0, double *PhiVD)
 
   double dXBarPowers[MAXDIM][4];
   for(int d=0; d<D; d++)
-   { double LO2 = 0.5*( XGrids[d].size()==0 ? DX[d] : (XGrids[d][nVec[d]+1]-XGrids[d][nVec[d]]));
+   { double LO2 = 0.5*( XGrids[d].size()==0 ? DX[d] : (XGrids[d][nCell[d]+1]-XGrids[d][nCell[d]]));
      dXBarPowers[d][0]=0.0;
      dXBarPowers[d][1]=1.0/LO2;
      dXBarPowers[d][2]=2.0*XBarVec[d]/LO2;
@@ -475,7 +473,7 @@ bool InterpND::EvaluateVD(double *X0, double *PhiVD)
   /* I dot with the NCOEFF-element vector of coefficients to get  */
   /* the value of the interpolating polynomial                    */
   /****************************************************************/
-  memset(PhiVD, 0, NVD*NF*sizeof(double));
+  memset(PhiVD, 0, NumVDs*NF*sizeof(double));
   iVec Fours(D,4), Twos(D,2);
   LOOP_OVER_IVECS(nCoeff,pVec,Fours)
    { LOOP_OVER_IVECS(nVD, tauVec, Twos)
@@ -484,7 +482,7 @@ bool InterpND::EvaluateVD(double *X0, double *PhiVD)
         for(int d=0; d<D; d++)
          Monomial *= (tauVec[d] ? dXBarPowers[d][pVec[d]] : XBarPowers[d][pVec[d]]);
         for(int nf=0; nf<NF; nf++)
-         PhiVD[nf*NVD + nVD] += CTable[GetCTableOffset(nVec,nf) + nCoeff]*Monomial;
+         PhiVD[nf*NumVDs + nVD] += CTable[GetCTableOffset(nCell,nf) + nCoeff]*Monomial;
       }
    }
   return true;
@@ -575,14 +573,12 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
   FILE *f=fopen(OutFileName,"w");
   if (!f) return 0.0;
 
-  double *PhiExact  = new double[NVD0*NF];
+  double *PhiExact  = new double[NF*NumVDs];
   double *PhiInterp = new double[NF];
 
   iVec Threes(D, 3);
   double MaxRelErr=0.0;
-  iVec Nm1Vec(D);
-  for(size_t d=0; d<NVec.size(); d++) Nm1Vec[d]=NVec[d]-1;
-  LOOP_OVER_IVECS(nCell, nVec, Nm1Vec)
+  LOOP_OVER_IVECS(CellIndex, nCell, NPoints)
    { LOOP_OVER_IVECS(nTau, tauVec, Threes)
       {
         //
@@ -591,7 +587,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
          for(int d=0; !Skip && d<D; d++)
           if (tauVec[d]!=1) Skip=true;
         for(int d=0; !Skip && d<D; d++)
-         if (tauVec[d]==2 && nVec[d]!=(NVec[d]-1) )
+         if (tauVec[d]==2 && nCell[d]!=(NPoints[d]-1) )
           Skip=true;
         if (Skip) continue;
 
@@ -599,9 +595,9 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
         for(int d0=0, d=0; d0<D0; d0++)
          if (isinf(X0[d0]))
           { if (XGrids.size() == 0 )
-             X0[d0] = XMin[d] + (nVec[d] + 0.4999*tauVec[d])*DX[d]; //EXPLAIN OR FIX ME
+             X0[d0] = XMin[d] + (nCell[d] + 0.4999*tauVec[d])*DX[d]; //EXPLAIN OR FIX ME
             else
-             { size_t n = nVec[d], np1=n+1;
+             { size_t n = nCell[d], np1=n+1;
                if (np1 >= XGrids[d].size() )
                 { n   = XGrids[d].size() - 2;
                   np1 = XGrids[d].size() - 1;
@@ -644,25 +640,25 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 { 
   int D0 = X0Vec.size();
   dVec X0Max = X0Vec;
-  iVec N0Vec(D0,1);
+  iVec N0Points(D0,1);
   for(int d0=0; d0<D0; d0++) 
    if (DeltaVec[d0]!=0.0)
-    { N0Vec[d0]=2;
+    { N0Points[d0]=2;
       X0Max[d0]+=2.0*DeltaVec[d0];
     }
 
-  InterpND Interp(UserFunc, UserData, NF, X0Vec, X0Max, N0Vec);
+  InterpND Interp(UserFunc, UserData, NF, X0Vec, X0Max, N0Points);
 
-  int NVD = (1<<D0);     // # function vals, derivs per grid point
+  int NumVDs = (1<<D0);     // # function vals, derivs per grid point
 
-  double *PhiExact  = new double[NVD*NF];
+  double *PhiExact  = new double[NumVDs*NF];
   double *PhiInterp = new double[NF];
 
   FILE *LogFile = LogFileName ? fopen(LogFileName,"a") : 0;
 
   iVec TauMax(D0);
   for(int d0=0; d0<D0; d0++)
-   TauMax[d0] = (N0Vec[d0]==1 ? 1 : 3);
+   TauMax[d0] = (N0Points[d0]==1 ? 1 : 3);
   double MaxRelError=0.0;
   LOOP_OVER_IVECS(nTau, tauVec, TauMax)
    {
@@ -712,20 +708,25 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   X0Vec[d0]    = X;
   DeltaVec[d0] = Delta;
   
-  int PointsPerDimension=5;
-  iVec N0Vec(D0, PointsPerDimension);
-  N0Vec[d0]=1;
+#define SAMPLES_PER_DIMENSION 5
+  iVec NSample(D0, SAMPLES_PER_DIMENSION);
+  NSample[d0]=1;
   for(int d0Prime=0; d0Prime<D0; d0Prime++)
    if (EqualFloat(X0Min[d0Prime],X0Max[d0Prime]))
-    N0Vec[d0Prime]=1;
+    NSample[d0Prime]=1;
+
+  dVec Fraction(SAMPLES_PER_DIMENSION);
+  for(int ns=0; ns<SAMPLES_PER_DIMENSION; ns++)
+   Fraction[ns] = ((double)ns) / (SAMPLES_PER_DIMENSION - 1);
+  Fraction[SAMPLES_PER_DIMENSION]*=(1.0 - 1.0e-6);
   
   double MaxError=0.0;
-  LOOP_OVER_IVECS(n, n0Vec, N0Vec)
+  LOOP_OVER_IVECS(SampleIndex, nSample, NSample)
    { 
      for(int d0Prime=0; d0Prime<D0; d0Prime++)
-      if (d0Prime!=d0)
-       X0Vec[d0Prime] 
-       = X0Min[d0Prime] + n0Vec[d0Prime]*(X0Max[d0Prime]-X0Min[d0Prime])/(PointsPerDimension-1);
+      X0Vec[d0Prime] 
+       = (d0==d0Prime) ? X
+                       : X0Vec[d0Prime] + Fraction[nSample[d0Prime]]*(X0Max[d0Prime]-X0Min[d0Prime]);
 
      MaxError=fmax(MaxError,GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, AbsTol, LogFileName));
    }

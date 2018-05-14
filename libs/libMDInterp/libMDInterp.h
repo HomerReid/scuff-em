@@ -548,10 +548,14 @@ class InterpND
    public:
 
     /*--------------------------------------------------------------*/
-    /*- user-supplied function, uniform grid                        */
+    /*- user-supplied function, uniform grid.                       */
+    /*- N0Points[d] is the number of grid *points* in dimension d,  */
+    /*- including the end points, so the minimum value of N0Points[d]*/
+    /*- for a non-degenerate dimension is 2, and N0Points[d]-1 is the*/
+    /*- number of grid *cells*.                                     */
     /*--------------------------------------------------------------*/
     InterpND(PhiVDFunc Phi, void *UserData, int NF,
-             dVec X0Min, dVec X0Max, iVec N0Vec, bool Verbose=false);
+             dVec X0Min, dVec X0Max, iVec N0Points, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
     /*- user-supplied function, user-supplied grids in each dimension*/
@@ -573,7 +577,12 @@ class InterpND
     ~InterpND();
 
     /*--------------------------------------------------------------*/
-    /*- return true/false if X0 does/does not lie within the grid   */
+    /*- return true/false if X0 does/does not lie within the grid.  */
+    /*- If the return value is true, then on return nVec[d] is the  */
+    /*- index of the grid cell in dimension #d and XBarVec[d] is    */
+    /*- the coordinate X0[d] in a coordinate system in which the    */
+    /*- grid cell has length 2 and is centered at the origin (so    */
+    /*- -1 \le XBarVec[d] \le +1.                                   */
     /*--------------------------------------------------------------*/
     bool PointInGrid(double *X0, int *nVec=0, double *XBarVec=0);
 
@@ -588,15 +597,6 @@ class InterpND
     double PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly=false);
 
     /*--------------------------------------------------------------*/
-    /*- return true if point lies in the interior or on the boundary*/
-    /*- of the interpolation grid; false otherwise.                 */
-    /*- on return, pn (if non-null) has the indices of the grid cell*/
-    /*- and pxBar (if non-null) has the normalized point coordinates*/
-    /*- within that cell (0<=pXbar[i]<=1).                          */
-    /*--------------------------------------------------------------*/
-    //bool PointInGrid(double *X, int *pn=0, double *pxBar=0);
-
-    /*--------------------------------------------------------------*/
     /*- class method that writes all internal data to a binary file */
     /*- that may be subsequently used to reconstruct the class     -*/
     /*--------------------------------------------------------------*/
@@ -609,28 +609,28 @@ class InterpND
 
     // convert back and forth between the index of a grid
     // point (0...NumPoints-1) and its integer coordinates
-    iVec GetPoint(size_t nPoint);
-    size_t GetPointIndex(iVec nVec);
+    iVec GetPoint(size_t PointIndex);
+    size_t GetPointIndex(iVec nPoint);
 
     // convert back and forth between the index of a grid
-    // cell (0...NumCell-1) and the integer coordinates
+    // cell (0...NumCells-1) and the integer coordinates
     // of its lower-left corner
-    iVec GetCell(size_t nVec);
-    size_t GetCellIndex(iVec nVec);
+    iVec GetCell(size_t CellIndex);
+    size_t GetCellIndex(iVec nCell);
 
     // convert grid-point indices to cartesian coordinates
-    dVec n2X(iVec nVec);
-    dVec n2X0(iVec nVec);
+    dVec n2X(iVec nPoint);
+    dVec n2X0(iVec nPoint);
 
     // convert between reduced and full coordinates of an evaluation point
     dVec X02X(dVec X0Vec);
     dVec X2X0(dVec XVec);
 
     // utility methods for handling internal storage tables
-    size_t GetCTableOffset(int nCell, int nFun);
-    size_t GetCTableOffset(iVec nVec, int nFun);
-    size_t GetPhiVDTableOffset(int nPoint, int nFun);
-    size_t GetPhiVDTableOffset(iVec nVec, iVec tauVec, int nFun);
+    size_t GetCTableOffset(int CellIndex, int nFun);
+    size_t GetCTableOffset(iVec nCell, int nFun);
+    size_t GetPhiVDTableOffset(int PointIndex, int nFun);
+    size_t GetPhiVDTableOffset(iVec nPoint, iVec tauVec, int nFun);
     void FillPhiVDBuffer(double *PhiVD, double *PhiVD0);
 
     // constructor helper method
@@ -640,15 +640,15 @@ class InterpND
     /*- internal class data that should be private but i don't bother */
     /*----------------------------------------------------------------*/
     int D;                   // number of dimensions
-    iVec NVec;               // # grid points in each dimension
+    iVec NPoints;            // # grid points in each dimension
     int NF;                  // number of functions
     dVec XMin, DX;           // grid points (uniform spacing)
     vector<dVec> XGrids;     // grid points (non-uniform spacing)
 
     iVec CellStride;         // strides for computing grid-cell index
     iVec PointStride;        // strides for computing grid-point index
-    int NVD;                 // # function values, derivatives per grid point
-    int NCoeff;              // # coefficients per grid cell
+    int NumVDs;              // # function values, derivatives per grid point
+    int NumCoeffs;           // # coefficients per grid cell
 
     dVec FixedCoordinates;
     int D0;

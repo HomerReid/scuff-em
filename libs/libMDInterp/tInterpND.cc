@@ -50,9 +50,9 @@ void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
   ExpFac[0] = exp(-ExpArg[0]);
   ExpFac[1] = exp(-ExpArg[1]);
 
-  int NVD=1;
+  int NumVDs=1;
   for(int d=0; d<D; d++)
-   NVD*=dXMax[d];
+   NumVDs*=dXMax[d];
   //printf("NVD=%i\n",NVD);
 
  {
@@ -63,8 +63,8 @@ void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
        { Factor[0]*=-1.0*Alpha[d];
          Factor[1]*=-2.0*Alpha[d]*XBar[d];
        }
-     PhiVD[0*NVD + nVD] = Factor[0]*ExpFac[0];
-     PhiVD[1*NVD + nVD] = Factor[1]*ExpFac[1];
+     PhiVD[0*NumVDs + nVD] = Factor[0]*ExpFac[0];
+     PhiVD[1*NumVDs + nVD] = Factor[1]*ExpFac[1];
    }
  }
 
@@ -79,7 +79,7 @@ void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
        for(int n0=0; n0<4; n0++)
         C[n2][n1][n0]=randU(-2.0,2.0);
    }
-  memset(PhiVD + nf*NVD, 0, NVD*sizeof(double));
+  memset(PhiVD + nf*NumVDs, 0, NumVDs*sizeof(double));
   double Phi2VD[8]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
   int n2Max = (D>=3 ? 4 : 1);
   int n1Max = (D>=2 ? 4 : 1);
@@ -105,10 +105,7 @@ void Phi(dVec X, void *UserData, double *PhiVD, iVec dXMax)
      { int Index = dX[0];
        if (dX.size() > 1 ) Index+=dX[1]*2;
        if (dX.size() > 2 ) Index+=dX[2]*4;
-       PhiVD[2*NVD + nVD] = Phi2VD[Index];
-//printiVec(dX,"dX");
-//printiVec(dXMax,"dXMax");
-//printf("%i %i %e\n ",NVD,nVD,PhiVD[2*NVD+nVD]);
+       PhiVD[2*NumVDs + nVD] = Phi2VD[Index];
      }
   }
 
@@ -164,7 +161,7 @@ for(int dd=0; dd<Interp->XGrids.size(); dd++)
 
   if (!isinf(X0[0]))
    { 
-     int NFVD=NFUN*Interp->NVD;
+     int NFVD=NFUN*Interp->NumVDs;
      double *PhiVDExact = new double[NFVD], *PhiVDInterp = new double[NFVD];
      iVec dXMax(D,1);
      dVec x0(D,X0[0]);

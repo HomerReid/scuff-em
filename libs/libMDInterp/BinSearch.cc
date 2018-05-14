@@ -90,59 +90,57 @@ int BinSearch(double X, double *XPoints, int N)
 /* 20140812 the return value is true if the point lies in      */
 /* the interval, false otherwise.                              */
 /***************************************************************/
-bool FindInterval(double X, double *XPoints, int N, double XMin, double DX,
-                  int *pn, double *pXBar)
+bool FindInterval(double X, double *XPoints, int NumPoints, double XMin, double DX,
+                  int *pnCell, double *pXBar)
 {
-  int n;
+  int nCell;
   double XBar;
-  bool Inside=true; // true if point lies within interval
+  bool Inside=false;
 
   if ( XPoints )  // nonuniform grid
    { if ( X<=XPoints[0] )
-      { n=0;
+      { nCell=0;
         XBar=0.0;
         Inside=EqualFloat(X,XPoints[0]);
-        X=XPoints[0]; 
       }
-    else if ( X>=XPoints[N-1] )
-      { n=N-2;
+    else if ( X>=XPoints[NumPoints-1] )
+      { nCell=NumPoints-2;
         XBar=1.0;
-        Inside = EqualFloat(X,XPoints[N-1]);
-        X=XPoints[N-1]; 
+        Inside = EqualFloat(X,XPoints[NumPoints-1]);
       }
     else
-      { n=BinSearch(X,XPoints,N);
-        XBar = (X - XPoints[n]) / (XPoints[n+1]-XPoints[n]);
+      { nCell=BinSearch(X,XPoints,NumPoints);
+        XBar = (X - XPoints[nCell]) / (XPoints[nCell+1]-XPoints[nCell]);
+        Inside = true;
       }
    }
   else // uniform grid
    { if ( X <= XMin )
-      { n=0;
+      { nCell=0;
         XBar=0.0;
         Inside = EqualFloat(X,XMin);
-        X=XMin;
       }
-     else if ( X >= (XMin + ((double)(N-1))*DX) )
-      { n=N-2;
+     else if ( X >= (XMin + ((double)(NumPoints-1))*DX) )
+      { nCell=NumPoints-2;
         XBar=1.0;
-        Inside = EqualFloat(X, (XMin + ((double)N-1))*DX);
-        X=XMin + ((double)(N-1))*DX;
+        Inside = EqualFloat(X, (XMin + ((double)NumPoints-1))*DX);
       }
      else
       { 
         XBar=(X-XMin)/DX;
-        n=(int)trunc(XBar);
-        XBar -= (double)n;
+        nCell=(int)trunc(XBar);
+        XBar -= (double)nCell;
+        Inside = true;
 
         // see NOTE above
-        if ( n==(N-1) )
-         { n=N-2;
+        if ( nCell==(NumPoints-1) )
+         { nCell=NumPoints-2;
            XBar=1.0;
          }
       }
    }
 
-  *pn=n;
+  *pnCell=nCell;
   *pXBar=XBar;
   return Inside;
 
