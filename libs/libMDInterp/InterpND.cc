@@ -176,10 +176,6 @@ size_t InterpND::GetCTableOffset(iVec nVec, int nFun)
 { return GetCTableOffset(GetCellIndex(nVec),nFun); }
 
 /****************************************************************/
-/* **************************************************************/
-/****************************************************************/
-
-/****************************************************************/
 /* class constructor 1: construct the class from a user-supplied*/
 /* function and uniform grids                                   */
 /****************************************************************/
@@ -225,8 +221,8 @@ InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
 
 /****************************************************************/
 /* class constructor 3: construct the class from a user-supplied*/
-/* function and a requested error tolerance; non-uniform grids  */
-/* are determined automatically                                 */
+/* function, ranges for the variables, and an error tolerance;  */
+/* in this case, non-uniform grids are determined automatically */
 /****************************************************************/
 InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
                    dVec X0Min, dVec X0Max, double MaxRelError, bool Verbose)
@@ -239,9 +235,9 @@ InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
     FixedCoordinates.push_back( X0Min[d0] );
    else
     { FixedCoordinates.push_back( HUGE_VAL );
-      dVec XdGrid = GetXdGrid(UserFunc, UserData, NF, X0Min, X0Max, d0, MaxRelError);
-      XGrids.push_back(XdGrid);
-      NVec.push_back( XdGrid.size() - 1 );
+      dVec XGrid = GetXGrid(UserFunc, UserData, NF, X0Min, X0Max, d0, MaxRelError);
+      XGrids.push_back(XGrid);
+      NVec.push_back( XGrid.size() - 1 );
     }
   Initialize(UserFunc, UserData, Verbose);
 }
@@ -523,101 +519,96 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 }
 
 /****************************************************************/
-/* If PhiVEMatrix is non-null, it should be an NFx2 matrix      */
-/* which will be filled in as follows on return:                */
-/* Column 1: mean value of Phi at sample points                 */
-/* Column 2: mean absolute error in Phi at sample points        */
+/****************************************************************/
 /****************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec XVec, dVec dXVec,
-                             double *MeanRelError, double *MeanAbsError)
+                             dVec X0Vec, dVec DeltaVec,
+                             double AbsTol, char *LogFileName)
 { 
-  int D = XVec.size();
-  dVec XMax = XVec;
-  for(int d=0; d<D; d++) XMax[d]+=2.0*dXVec[d];
-  iVec NVec(D,2);
+  int D0 = X0Vec.size();
+  dVec X0Max = X0Vec;
+  iVec N0Vec(D0,1);
+  for(int d0=0; d0<D0; d0++) 
+   if (DeltaVec[d0]!=0.0)
+    { N0Vec[d0]=2;
+      X0Max[d0]+=2.0*DeltaVec[d0];
+    }
 
-  InterpND Interp(UserFunc, UserData, NF, XVec, XMax, NVec);
+  InterpND Interp(UserFunc, UserData, NF, X0Vec, X0Max, N0Vec);
 
-  int NVD = (1<<D);     // # function vals, derivs per grid point
+  int NVD = (1<<D0);     // # function vals, derivs per grid point
 
   double *PhiExact  = new double[NVD*NF];
   double *PhiInterp = new double[NF];
 
-  bool OwnBuffers=false;
-  if (MeanRelError==0 || MeanAbsError==0)
-   { MeanRelError = new double[D*NF];
-     MeanAbsError = new double[D*NF];
-     OwnBuffers=true;
-   }
-  memset(MeanRelError, 0, D*NF*sizeof(double));
-  memset(MeanAbsError, 0, D*NF*sizeof(double));
+  FILE *LogFile = LogFileName ? fopen(LogFileName,"a") : 0;
 
-  double NumSamples = (double)(1<<(D-1));
-  iVec Twos(D,2);
-  for(int d=0; d<D; d++)
+  iVec TauMax(D0);
+  for(int d0=0; d0<D0; d0++)
+   TauMax[d0] = (N0Vec[d0]==1 ? 1 : 3);
+  double MaxRelError=0.0;
+  LOOP_OVER_IVECS(nTau, tauVec, TauMax)
    {
-     LOOP_OVER_IVECS(nTau, tauVec, Twos)
-      {
-        if (tauVec[d]!=0) continue;
+     dVec XSample=X0Vec;
+     for(int d0=0; d0<D0; d0++)
+      XSample[d0] += 0.5*tauVec[d0]*DeltaVec[d0];
 
-        dVec XSample(D);
-        for(int dd=0; dd<D; dd++)
-         XSample[dd] = XVec[dd] + (dd==d ? 0.5 : tauVec[dd])*dXVec[dd];
-
-        UserFunc(&(XSample[0]), UserData, PhiExact);
-        Interp.Evaluate(&(XSample[0]), PhiInterp);
-
-        for(int nf=0; nf<NF; nf++)
-         { double Error = fabs(PhiExact[nf*NVD+0] - PhiInterp[nf])/NumSamples;
-           MeanAbsError[d*NF + nf] += Error;
-           if ( fabs(PhiExact[nf*NVD+0])!=0.0 )
-            MeanRelError[d*NF + nf] += Error/fabs(PhiExact[nf*NVD+0]);
-         }
+     UserFunc(&(XSample[0]), UserData, PhiExact);
+     Interp.Evaluate(&(XSample[0]), PhiInterp);
+   
+     double ThisMaxRelError=0.0;
+     for(int nf=0; nf<NF; nf++)  
+      { double AbsError = fabs(PhiExact[nf*NVD+0] - PhiInterp[nf]);
+        if (AbsError<AbsTol) continue;
+        double RelError = AbsError / ( fabs(PhiExact[nf*NVD+0])==0.0 ? 1.0 : fabs(PhiExact[nf*NVD+0]));
+        ThisMaxRelError = fmax(ThisMaxRelError, RelError);
       }
+
+     if(LogFile) 
+      { fprintVec(LogFile,&(XSample[0]),D0);
+        for(int nf=0; nf<NF; nf++)
+         fprintf(LogFile,"%e %e ",fabs(PhiExact[nf*NVD+0]),fabs(PhiExact[nf*NVD+0]-PhiInterp[nf]));
+        fprintf(LogFile,"%e\n",ThisMaxRelError);
+      }
+
+     MaxRelError=fmax(MaxRelError,ThisMaxRelError);
    }
 
-  double MaxRE = 0.0;
-  for(int nfd=0; nfd<NF*D; nfd++)
-   MaxRE = fmax(MaxRE, MeanRelError[nfd]);
+  if(LogFile) { fprintf(LogFile,"\n\n"); fclose(LogFile); }
 
   delete[] PhiExact;
   delete[] PhiInterp;
-  if (OwnBuffers)
-   { delete[] MeanAbsError;
-     delete[] MeanRelError;
-   }
-
-  return MaxRE;
+  return MaxRelError;
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             int dFixed, double XdFixed, double Delta,
-                             dVec XMin, dVec XMax, 
-                             double *MeanRelError, double *MeanAbsError)
+                             int d0, double X, double Delta, dVec X0Min, dVec X0Max, 
+                             double AbsTol, char *LogFileName)
 {
-  (void) MeanRelError;
-  (void) MeanAbsError;
-  int D=XMin.size();
-
-  dVec XVec(D), dXVec(D,0.0);
-  XVec[dFixed]  = XdFixed;
-  dXVec[dFixed] = Delta;
+  int D0=X0Min.size();
+  dVec X0Vec(D0), DeltaVec(D0,0.0);
+  X0Vec[d0]    = X;
+  DeltaVec[d0] = Delta;
   
   int PointsPerDimension=5;
-  iVec NVec(D-1, PointsPerDimension);
+  iVec N0Vec(D0-1, PointsPerDimension);
+  N0Vec[d0]=1;
+  for(int d0Prime=0; d0Prime<D0; d0Prime++)
+   if (EqualFloat(X0Min[d0Prime],X0Max[d0Prime]))
+    N0Vec[d0Prime]=1;
   
   double MaxError=0.0;
-  LOOP_OVER_IVECS(n, nVec, NVec)
+  LOOP_OVER_IVECS(n, n0Vec, N0Vec)
    { 
-     for(int d=0; d<D; d++)
-      if (d!=dFixed)
-       XVec[d] = XMin[d] + nVec[d]*XMax[d]/(PointsPerDimension-1);
+     for(int d0Prime=0; d0Prime<D0; d0Prime++)
+      if (d0Prime!=d0)
+       X0Vec[d0Prime] 
+       = X0Min[d0Prime] + n0Vec[d0Prime]*(X0Max[d0Prime]-X0Min[d0Prime])/(PointsPerDimension-1);
 
-     MaxError=fmax(MaxError,GetInterpolationError(UserFunc, UserData, NF, XVec, dXVec));
+     MaxError=fmax(MaxError,GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, AbsTol, LogFileName));
    }
   return MaxError;
 }
@@ -625,6 +616,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
                double XdMin, double XdMax, double DesiredMaxRE)
 { 
@@ -681,31 +673,32 @@ dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
   Log(" ...%i grid points",XdGrid.size()); 
   return XdGrid;
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax, int d,
-               double DesiredMaxRE)
+dVec GetXGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0Min, dVec X0Max, int d0,
+              double DesiredMaxRE)
 { 
   bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
-  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XMin[d],XMax[d]);
+  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d0,X0Min[d0],X0Max[d0]);
 
   int NMin=2;    CheckEnv("SCUFF_INTERPOLATION_NMIN",&NMin);
   int NMax=1000; CheckEnv("SCUFF_INTERPOLATION_NMAX",&NMax);
   
-  double DeltaMin = (XMax[d] - XMin[d]) / NMax;
-  double DeltaMax = (XMax[d] - XMin[d]) / NMin;
-  double Delta    = (XMax[d] - XMin[d]) / 10;   // initial guess
+  double DeltaMin = (X0Max[d0] - X0Min[d0]) / NMax;
+  double DeltaMax = (X0Max[d0] - X0Min[d0]) / NMin;
+  double Delta    = (X0Max[d0] - X0Min[d0]) / 10;   // initial guess
  
-  double Xd = XMin[d];
-  dVec XdGrid(1,Xd);
-  while( Xd<XMax[d] )
+  double X = X0Min[d0];
+  dVec XGrid(1,X);
+  while( X<X0Max[d0] )
    { 
      bool TooBig=false, JustRight=false;
      while(!JustRight)
-      { double Err=GetInterpolationError(UserFunc, UserData, NF, d, Xd, Delta, XMin, XMax);
-        if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
+      { double Err=GetInterpolationError(UserFunc, UserData, NF, d0, X, Delta, X0Min, X0Max);
+        if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d0,X,Delta,Err);
         if ( Err > 10.0*DesiredMaxRE )
          { TooBig=true; Delta *= 0.2; }
         else if ( Err > DesiredMaxRE )
@@ -725,10 +718,10 @@ dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax,
            JustRight = true;
          }
       }
-     Xd+=Delta;
-     if (Xd>XMax[d]) Xd=XMax[d];
-     XdGrid.push_back(Xd);
+     X+=Delta;
+     if (X>X0Max[d0]) X=X0Max[d0];
+     XGrid.push_back(X);
    }
-  Log(" ...%i grid points",XdGrid.size()); 
-  return XdGrid;
+  Log(" ...%i grid points",XGrid.size()); 
+  return XGrid;
 }

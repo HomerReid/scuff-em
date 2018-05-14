@@ -656,19 +656,14 @@ class InterpND
 /* required for given error tolerances                         */
 /***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec XVec, dVec dXVec,
-                             double *MeanRelError=0, double *MeanAbsError=0);
+                             dVec X0Vec, dVec DeltaVec, double AbsTol=1.0e-8, char *LogFile=0);
 
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             int dFixed, double XdFixed, double Delta,
-                             dVec XMin, dVec XMax,
-                             double *MeanRelError=0, double *MeanAbsError=0);
+                             int d0, double X, double Delta,
+                             dVec X0Vec, dVec dX0Vec, double AbsTol=1.0e-8, char *LogFile=0);
 
-dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax, int d,
-               double DesiredMaxRE);
-
-dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double XdMin, double XdMax, double DesiredMaxRE);
+dVec GetXGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax, int d,
+              double DesiredMaxRE);
 
 /***************************************************************/
 /* non-member function for binary searching                    */

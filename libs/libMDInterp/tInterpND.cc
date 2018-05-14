@@ -60,106 +60,14 @@ void Phi(double *X, void *UserData, double *PhiVD)
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-  /*--------------------------------------------------------------*/
-  /*- process command-line arguments -----------------------------*/
-  /*--------------------------------------------------------------*/
-  char *XXNFile=0;
-  bool Console=false;
-  /* name, type, #args, max_instances, storage, count, description*/
-  OptStruct OSArray[]=
-   { {"XXNFile",  PA_STRING,  1, 1, (void *)&XXNFile,  0,  ""},
-     {"console",  PA_BOOL,    0, 1, (void *)&Console,  0,  ""},
-     {0,0,0,0,0,0,0}
-   };
-  ProcessOptions(argc, argv, OSArray);
-
-  // default grid
   int D=2;
-  dVec XMin(D), XMax(D);
-  iVec NVec(D);
-  XMin[0] =  0.0;  XMax[0] = 2.0;  NVec[0] = 5;
-  XMin[1] = -1.0;  XMax[1] = 3.0;  NVec[1] = 3;
-
-  // if XXNFile is specified, it should have the format
-  //  x1Min x1Max N1
-  //  x2Min x2Max N2
-  //  ...
-  if (XXNFile)
-   { HMatrix *M=new HMatrix(XXNFile);
-     D=M->NR;
-     XMin.resize(D);
-     XMax.resize(D);
-     NVec.resize(D);
-     for(int d=0; d<D; d++)
-      { XMin[d] = M->GetEntryD(d,0);
-        XMax[d] = M->GetEntryD(d,1);
-        NVec[d] = (int)(M->GetEntryD(d,2));
-      };
-   };
-
-  double *MeanRelError = new double[D*NFUN];
-  double *MeanAbsError = new double[D*NFUN];
-  FILE *f=fopen("/tmp/InterpError.out","w");
-  for(double dx=1.0; dx>=1.0e-3; dx*=0.5)
-   for(double dy=1.0; dy>=1.0e-3; dy*=0.5)
-    { dVec DX(D);
-      DX[0]=dx;
-      DX[1]=dy;
-      HMatrix PhiVEMatrix(NFUN,2);
-      double Err = GetInterpolationError(Phi, (void *)&D, NFUN, XMin, DX,
-                                         MeanRelError, MeanAbsError);
-      
-      fprintf(f,"%e %e %e ",dx,dy,Err);
-      for(int nfd=0; nfd<D*NFUN; nfd++)
-       fprintf(f,"%e %e ",MeanRelError[nfd], MeanAbsError[nfd]);
-      
-      fprintf(f,"\n");
-    }
-  fclose(f);
-
-  InterpND Interp(Phi, (void *)&D, XMin, XMax, NVec, NFUN);
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (Console)
-   { srand48(time(0));
-     char *p;
-     do
-      { 
-        p=readline("xVec: "); 
-      } while(!p);
-     add_history(p);
-     write_history(0);
-     D=Interp.D;
-     dVec xVec(D);
-     for(int d=0; d<D; d++)
-      xVec[d] = XMin[d] + drand48()*(XMax[d]-XMin[d]);
-
-     switch(D)
-      { case 1: sscanf(p,"%le",&(xVec[0])); 
-                break;
-        case 2: sscanf(p,"%le %le",&(xVec[0]), &(xVec[1])); 
-                break;
-        case 3: sscanf(p,"%le %le %le",&(xVec[0]), &(xVec[1]), &(xVec[2]));
-                break;
-      };
-
-     printf("at x={");
-     for(int d=0; d<D; d++)
-      printf("%g ",xVec[d]);
-     printf("}: \n");
-     //printf("Grid cell %i ",Interp->GetCellIndex(
-
-     int NVD = Interp.NVD;
-     double PhiExact[NFUN], PhiHR[NFUN];
-     double *PhiVDExact = new double[NFUN*NVD]; 
-     Phi(&(xVec[0]), (void *)&D, PhiVDExact);
-     for(int nf=0; nf<NFUN; nf++)
-      PhiExact[nf]=PhiVDExact[nf*NVD];
-     delete [] PhiVDExact;
-     
-     Interp.Evaluate(&(xVec[0]),PhiHR);
-     Compare(PhiExact, PhiHR, NFUN, "Exact", "Interp");
-   }
-
+  int NF=2;
+  dVec X0Min(2), X0Max(2);
+  X0Min[0] = -1.0;  X0Max[0] = 2.0;
+  X0Min[1] = -5.0;  X0Max[1] = 5.0;
+  double Error;
+  Error=GetInterpolationError(Phi, (void *) &D, NF, 0, 0.1, 0.1, X0Min, X0Max, 1.0e-8, "/tmp/tInterpND.log");
+  printf("d=0: Error=%e\n",Error);
+  Error=GetInterpolationError(Phi, (void *)&D, NF,  1, 1.1, 0.1, X0Min, X0Max, 1.0e-8, "/tmp/tInterpND.log");
+  printf("d=1: Error=%e\n",Error);
 }

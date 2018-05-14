@@ -637,24 +637,29 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
   dVec RZ0Vec(1, RhoMin);
   if (Dimension>1) RZ0Vec.push_back(Z0);
 
-  dVec RhoGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance);
-  vector<dVec> RZGrid(1,RhoGrid);
-  Log("  Rho=[%g,%g] @ Z=%e: %lu points",RhoMin,RhoMax,Z0,RZGrid[0].size());
+  //dVec RhoGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 0, RhoMin, RhoMax, Tolerance);
+  //vector<dVec> RZGrid(1,RhoGrid);
+  //Log("  Rho=[%g,%g] @ Z=%e: %lu points",RhoMin,RhoMax,Z0,RZGrid[0].size());
 
-  if (Dimension>1)
-   { dVec ZGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance);
-     RZGrid.push_back(ZGrid);
-     Log("  Z=[%g,%g] @ Rho=%e: %lu points",ZMin,ZMax,RhoMin,RZGrid[1].size());
-   }
+  //if (Dimension>1)
+  // { dVec ZGrid=GetXdGrid(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZ0Vec, 1, ZMin, ZMax, Tolerance);
+  //   RZGrid.push_back(ZGrid);
+  //   Log("  Z=[%g,%g] @ Rho=%e: %lu points",ZMin,ZMax,RhoMin,RZGrid[1].size());
+  // }
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  size_t GridPoints = RZGrid[0].size();
-  if (Dimension>1) GridPoints *= RZGrid[1].size();
-  Log("Creating interpolation table (%lu points)",GridPoints);
+  //size_t GridPoints = RZGrid[0].size();
+  //if (Dimension>1) GridPoints *= RZGrid[1].size();
+  //Log("Creating interpolation table (%lu points)",GridPoints);
   
-  ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZGrid, Verbose);
+  //ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZGrid, Verbose);
+  dVec RZMin(2), RZMax(2);
+  RZMin[0] = RhoMin;   RZMax[0] = RhoMax;
+  RZMin[1] =   ZMin;   RZMax[1] =   ZMax;
+  ScalarGFInterpolator = new InterpND(PhiVDFunc_ScalarGFs, (void *)&Data, NF, RZMin, RZMax, 
+                                      Tolerance, Verbose);
 
   /***************************************************************/
   /***************************************************************/

@@ -367,7 +367,7 @@ char *AddMaterialToMatPropDataBase(FILE *f, char *FileName,
 /***************************************************************/
 void MatProp::GetEpsMu_Parsed(cdouble Omega, cdouble *pEps, cdouble *pMu)
 {
-  static char *OmegaVar= "w";
+  static char *OmegaVar=const_cast<char *>("w");
   Omega *= FreqUnit;
 
   // Note that this is thread-safe since "w" is an indexed variable,
