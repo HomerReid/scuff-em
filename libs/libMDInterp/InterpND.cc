@@ -335,7 +335,9 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
    /*- and derivatives at the grid-cell corners, then solve linear */
    /*- system to compute polynomial coefficients for this grid cell*/
    /*--------------------------------------------------------------*/
-   LOOP_OVER_IVECS(CellIndex, nCell, NPoints)
+   iVec NCells(D);
+   for(int d=0; d<D; d++) NCells[d] = NPoints[d]-1;
+   LOOP_OVER_IVECS(CellIndex, nCell, NCells)
     for(int nf=0; nf<NF; nf++)
      { 
        // vector of scaling factors to accomodate grid-cell dimensions
