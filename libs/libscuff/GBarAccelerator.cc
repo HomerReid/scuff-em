@@ -102,11 +102,15 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 } 
 
 void GBarVDPhi2DND(double *X, void *UserData, double *PhiVD)
-{ GBarVDPhi2D(X[0],X[1],UserData,PhiVD);
+{ GBarVDPhi2D(X[0],X[1],UserData,PhiVD); 
 }
 
 void GBarVDPhi3DND(double *X, void *UserData, double *PhiVD)
-{ GBarVDPhi3D(X[0],X[1],X[2],UserData,PhiVD);
+{ 
+  GBarVDPhi3D(X[0],X[1],X[2],UserData,PhiVD);
+  double temp;
+  temp=PhiVD[3];  PhiVD[3]=PhiVD[4];   PhiVD[4]=temp;
+  temp=PhiVD[11]; PhiVD[11]=PhiVD[12]; PhiVD[12]=temp;
 }
 
 /***************************************************************/
