@@ -754,7 +754,9 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   dVec MaxErrorX0(D0);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 FILE *f=vfopen("/tmp/GIE.%i.%g","a",d0,X);
+setlinebuf(f);
 fprintf(f," %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
+printf(" %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   LOOP_OVER_IVECS(SampleIndex, nSample, NSample)
    { 
@@ -770,11 +772,13 @@ fprintf(f," %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
       }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 fprintf(f,"  %s %e\n",vec2str("X0Vec",X0Vec),ThisError);
+printf("  %s %e\n",vec2str("X0Vec",X0Vec),ThisError);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
    }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 fprintf(f,"  max %e %s \n",MaxError,vec2str(0,X0Vec));
+printf("  max %e %s \n",MaxError,vec2str(0,X0Vec));
 fclose(f);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   return MaxError;
