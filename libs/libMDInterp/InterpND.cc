@@ -585,7 +585,9 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 
   iVec Threes(D, 3);
   double MaxRelErr=0.0;
-  LOOP_OVER_IVECS(CellIndex, nCell, NPoints)
+  iVec NCells(D);
+  for(int d=0; d<D; d++) NCells[d]=NPoints[d]-1;
+  LOOP_OVER_IVECS(CellIndex, nCell, NCells)
    { LOOP_OVER_IVECS(nTau, tauVec, Threes)
       {
         //

@@ -58,7 +58,7 @@ cdouble ExpInt_CF(cdouble z, double RelTol, int *nIters)
   cdouble Delta;
   int j;
   for(j=1; j<1000; j++)
-   {   
+ i  {   
      if (j==1)
       { aj=exp(-z); bj=z; }
      else
