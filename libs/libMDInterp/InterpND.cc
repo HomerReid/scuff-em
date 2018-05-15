@@ -706,6 +706,29 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+char *vec2str(const char *Label, dVec V)
+{
+#define NUMBUFS 10
+#define BUFLEN  1000
+  static char buffers[NUMBUFS][BUFLEN];
+  static int bufHead=0;
+ 
+  bufHead = (bufHead+1) % NUMBUFS;
+  char *buffer=buffers[bufHead];
+
+  int L=BUFLEN;
+  char *p=buffer;
+  int n;
+  snprintf(p,L,"%s {%n",Label ? Label : "",&n);  p+=n; L-=n;
+  for(size_t d=0; d<V.size(); d++)
+   { snprintf(p,L,"%g %n",V[d],&n); p+=n; L-=n; }
+  snprintf(p,L,"}");
+  return buffer;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
                              int d0, double X, double Delta, dVec X0Min, dVec X0Max, 
                              double AbsTol, char *LogFileName)
@@ -728,6 +751,11 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   Fraction[SAMPLES_PER_DIMENSION-1]*=(1.0 - 1.0e-6);
   
   double MaxError=0.0;
+  dVec MaxErrorX0(D0);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+FILE *f=vfopen("/tmp/GIE.%i.%g","a",d0,X);
+fprintf(f," %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   LOOP_OVER_IVECS(SampleIndex, nSample, NSample)
    { 
      for(int d0Prime=0; d0Prime<D0; d0Prime++)
@@ -735,8 +763,20 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
        = (d0==d0Prime) ? X
                        : X0Vec[d0Prime] + Fraction[nSample[d0Prime]]*(X0Max[d0Prime]-X0Min[d0Prime]);
 
-     MaxError=fmax(MaxError,GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, AbsTol, LogFileName));
+     double ThisError=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, AbsTol, LogFileName);
+     if (ThisError>MaxError)
+      { MaxError=ThisError;
+        MaxErrorX0=X0Vec;
+      }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+fprintf(f,"  %s %e\n",vec2str("X0Vec",X0Vec),ThisError);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
    }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+fprintf(f,"  max %e %s \n",MaxError,vec2str(0,X0Vec));
+fclose(f);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   return MaxError;
 }
 
