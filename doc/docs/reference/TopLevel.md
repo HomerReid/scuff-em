@@ -36,7 +36,9 @@ may be downloaded from the
 **The GitHub page is also the right place for questions, 
 bug reports, feature requests, and other discussion of [[scuff-em]].**
 
-## Interfaces to [[scuff-em]]
+[TOC]
+
+# Interfaces to [[scuff-em]]
 
 Access to the [[scuff-em]] computational engine is available
 via multiple interfaces.
@@ -53,7 +55,7 @@ that allow access to internal [[scuff-em]] data structures
 and methods for maximal flexibility in implementing your
 own custom-designed physics codes.
 
-## Inputs to [[scuff-em]] calculations
+# Inputs to [[scuff-em]] calculations
 
 Typical inputs to [[scuff-em]] calculations include
 
@@ -74,7 +76,7 @@ Typical inputs to [[scuff-em]] calculations include
   information, Casimir quantities, heat-transfer rates, impedance 
   parameters, capacitances, polarizabilities, etc.
 
-## Outputs from [[scuff-em]] calculations
+# Outputs from [[scuff-em]] calculations
 
 Typical outputs from [[scuff-em]] calculations include
 
@@ -85,12 +87,14 @@ Typical outputs from [[scuff-em]] calculations include
   format.
 
 <a name="AvailableApplications"></a>
-## Command-line Applications
+# Command-line Applications
 
-### Nanophotonics / electromagnetic scattering 
+## Nanophotonics / electromagnetic scattering 
 
- + [<span class="SC">scuff-scatter</span>][scuff-scatter]
-> A general-purpose solver forproblems involving
++ [<span class="SC">scuff-scatter</span>][scuff-scatter]
+
+> A general-purpose solver for problems involving scattering of
+> known user-specified incident fields from material geometries.
 > Available outputs include: scattered and total fields
 > at arbitrary points in space; visualization of fields 
 > and surface currents; absorbed and scattered power;
@@ -108,7 +112,7 @@ Typical outputs from [[scuff-em]] calculations include
 > [T-matrices](http://en.wikipedia.org/wiki/T-matrix_method)
 > of arbitrary compact scatterers.
 
-### Fluctuation-induced interactions
+## Fluctuation-induced interactions
 
  + [<span class="SC">scuff-cas3D</span>][scuff-cas3D]
 > An implementation of the 
@@ -130,7 +134,7 @@ Typical outputs from [[scuff-em]] calculations include
 > forces; self-propulsion and self-rotation of 
 > isolated bodies.
 
-### RF / microwave engineering
+## RF / microwave engineering
 
  + [<span class="SC">scuff-rf</span>][scuff-rf]
 > A tool for modeling the electromagnetic properties of 
@@ -140,7 +144,7 @@ Typical outputs from [[scuff-em]] calculations include
 > radiated field patterns for antennas or other objects
 > driven by user-specified currents.
 
-### Electrostatics
+## Electrostatics
 
  + [<span class="SC">scuff-static</span>][scuff-static]
 > An electrostatic solver. 
@@ -150,7 +154,7 @@ Typical outputs from [[scuff-em]] calculations include
 > (at user-specified evaluation points) in the presence 
 > of conducting surfaces held at user-specified potentials.
 
-##Citing [[scuff-em]]
+# Citing [[scuff-em]]
 
 If you find [[scuff-em]] useful for generating
 results included in publications, please consider citing both 

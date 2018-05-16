@@ -640,6 +640,29 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
   return MaxRelErr;
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+char *vec2str(const char *Label, dVec V)
+{
+#define NUMBUFS 10
+#define BUFLEN  1000
+  static char buffers[NUMBUFS][BUFLEN];
+  static int bufHead=0;
+ 
+  bufHead = (bufHead+1) % NUMBUFS;
+  char *buffer=buffers[bufHead];
+
+  int L=BUFLEN;
+  char *p=buffer;
+  int n;
+  snprintf(p,L,"%s {%n",Label ? Label : "",&n);  p+=n; L-=n;
+  for(size_t d=0; d<V.size(); d++)
+   { snprintf(p,L,"%g %n",V[d],&n); p+=n; L-=n; }
+  snprintf(p,L,"}");
+  return buffer;
+}
+
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
@@ -660,7 +683,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 
   int NumVDs = (1<<D0);     // # function vals, derivs per grid point
 
-  double *PhiExact  = new double[NumVDs*NF];
+  double *PhiExact  = new double[NF];
   double *PhiInterp = new double[NF];
 
   FILE *LogFile = LogFileName ? fopen(LogFileName,"a") : 0;
@@ -687,6 +710,7 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
         if (AbsError<AbsTol) continue;
         double RelError = AbsError / ( fabs(PhiExact[nf])==0.0 ? 1.0 : fabs(PhiExact[nf]));
         ThisMaxRelError = fmax(ThisMaxRelError, RelError);
+Log("      %s(%i)   %e  %e",vec2str("",XSample),nf,PhiExact[nf],PhiInterp[nf]);
       }
 
      if(LogFile) 
@@ -703,29 +727,6 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   delete[] PhiExact;
   delete[] PhiInterp;
   return MaxRelError;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-char *vec2str(const char *Label, dVec V)
-{
-#define NUMBUFS 10
-#define BUFLEN  1000
-  static char buffers[NUMBUFS][BUFLEN];
-  static int bufHead=0;
- 
-  bufHead = (bufHead+1) % NUMBUFS;
-  char *buffer=buffers[bufHead];
-
-  int L=BUFLEN;
-  char *p=buffer;
-  int n;
-  snprintf(p,L,"%s {%n",Label ? Label : "",&n);  p+=n; L-=n;
-  for(size_t d=0; d<V.size(); d++)
-   { snprintf(p,L,"%g %n",V[d],&n); p+=n; L-=n; }
-  snprintf(p,L,"}");
-  return buffer;
 }
 
 /***************************************************************/
@@ -751,15 +752,10 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
   for(int ns=0; ns<SAMPLES_PER_DIMENSION; ns++)
    Fraction[ns] = ((double)ns) / (SAMPLES_PER_DIMENSION - 1);
   Fraction[SAMPLES_PER_DIMENSION-1]*=(1.0 - 1.0e-6);
+
+  bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
   
   double MaxError=0.0;
-  dVec MaxErrorX0(D0);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-FILE *f=vfopen("/tmp/GIE.%i.%g","a",d0,X);
-setlinebuf(f);
-fprintf(f," %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
-printf(" %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   LOOP_OVER_IVECS(SampleIndex, nSample, NSample)
    { 
      for(int d0Prime=0; d0Prime<D0; d0Prime++)
@@ -768,21 +764,12 @@ printf(" %s   %s\n",vec2str("X0Min",X0Min),vec2str("X0Max",X0Max));
                        : X0Vec[d0Prime] + Fraction[nSample[d0Prime]]*(X0Max[d0Prime]-X0Min[d0Prime]);
 
      double ThisError=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, AbsTol, LogFileName);
-     if (ThisError>MaxError)
-      { MaxError=ThisError;
-        MaxErrorX0=X0Vec;
-      }
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-fprintf(f,"  %s %e\n",vec2str("X0Vec",X0Vec),ThisError);
-printf("  %s %e\n",vec2str("X0Vec",X0Vec),ThisError);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+     MaxError=fmax(MaxError,ThisError);
+     if (ExtraVerbose)
+      Log("     GIE(%s)=%e",vec2str("",X0Vec),ThisError);
    }
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-fprintf(f,"  max %e %s \n",MaxError,vec2str(0,X0Vec));
-printf("  max %e %s \n",MaxError,vec2str(0,X0Vec));
-fclose(f);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  if (ExtraVerbose)
+   Log("  GIE[%i,%s,%s] = %e",d0,vec2str("",X0Min),vec2str("",X0Max),MaxError);
   return MaxError;
 }
 

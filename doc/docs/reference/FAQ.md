@@ -1,9 +1,13 @@
-# Frequently asked questions about [[scuff-em]]
+<h1> Frequently asked questions about <span class=SC>scuff-em</span></h1>
+
+[TOC]
 
 <a name="Units">
-## What units does [[scuff-em]] use for physical quantities like length, frequency, field strengths, power, force, torque, etc?
+# Units
 
-### Length and frequency 
++ What units does [[scuff-em]] use for physical quantities like length, frequency, field strengths, power, force, torque, etc?
+
+## Length and frequency 
 
 Short answer: The default units are $L_0=1\, \mu\text{m}$ for length
 and $\omega_0=3\cdot 10^{14}$ rad/sec (=$c/L_0)$ for angular frequency.
@@ -74,7 +78,7 @@ length and frequency units more appropriate for RF modeling;
 this is discussed in the 
 [<span class=SC>scuff-rf</span> documentation][scuff-rf].)
 
-### Electric and magnetic field strengths
+## Electric and magnetic field strengths
 
 The only code in the [[scuff-em]] suite that directly outputs
 numerical values of electric and magnetic field components is
@@ -99,7 +103,7 @@ amplitude 1 volt/meter, use the same command-line options,
 but now interprety the output numbers in units of 
 volts/meter (amps/meter).
 
-### Power, force, torque
+## Power, force, torque
 
 The units in which numerical values of power, force, and torque are
 reported differ slightly for different codes in the [[scuff-em]] suite:
@@ -127,7 +131,9 @@ over angular frequencies to yield heat-transfer rates, forces, and torques;
 this is discussed in more detail in the 
 [<span class=SC>scuff-neq</span>][scuff-neq] documentation.
 
-## I'm working on a big project involving multiple calculations on a geometry with various different values of geometric parameters, material properties, and meshing fineness. It's getting unwieldy to have all of these `.geo` and `.msh` and `.scuffgeo` files cluttering up my project directory. How would you suggest organizing things?
+# Organizing working directories
+
++ I'm working on a big project involving multiple calculations on a geometry with various different values of geometric parameters, material properties, and meshing fineness. It's getting unwieldy to have all of these `.geo` and `.msh` and `.scuffgeo` files cluttering up my project directory. How would you suggest organizing things?
 
 Here is what I typically do:
 
@@ -138,10 +144,11 @@ Here is what I typically do:
     + `~/myProject/scuffgeoFiles` (for [<span class="SC">scuff-em</span> geometry files][Geometries]).
 
 + Before running any [[scuff-em]] calculations, set the
-    environment variable `SCUFF_MESH_PATH` to the directory
-    you created for mesh files:
+    environment variables `SCUFF_GEO_PATH`, `SCUFF_MESH_PATH` to the directories
+    you created for `.scuffgeo` and `.msh` files:
 
 ````bash
+% export SCUFF_GEO_PATH=~/myProject/scuffgeoFiles
 % export SCUFF_MESH_PATH=~/myProject/mshFiles
 ````
 
@@ -154,8 +161,8 @@ Here is what I typically do:
     `PEC_Coarse`, `PEC_Fine`, `Gold_Coarse`, and `Gold_Fine.`
 
 + Assuming you want to look at the same frequencies, evaluation points,
-    incident fields, geometrical transformations, etc. in each case, 
-    put files like `OmegaFile`, `EPFile`, `IFFile`, and `TransFile` 
+    incident fields, geometrical transformations, etc. in each case,
+    put files like `OmegaFile`, `EPFile`, `IFFile`, and `TransFile`
     in the top-level directory (`~/myProject/`).
 
 + Within e.g. the `PEC_Fine` subdirectory, create a run script
@@ -170,10 +177,10 @@ export SCUFF_MESH_PATH=${FILEBASE}/mshFiles
 export SCUFF_GEO_PATH=${FILEBASE}/scuffgeoFiles
 
 ARGS=""
-ARGS="${ARGS} --geometry  ${SCUFF_GEO_PATH}/PEC_Fine.scuffgeo"
+ARGS="${ARGS} --geometry  PEC_Fine.scuffgeo"
 ARGS="${ARGS} --OmegaFile ${FILEBASE}/OmegaFile"
 ARGS="${ARGS} --EPFile    ${FILEBASE}/EPFile"
-ARGS="${ARGS} --IFFile    ${FILEBASE}/IFFile"  
+ARGS="${ARGS} --IFFile    ${FILEBASE}/IFFile"
 
 scuff-scatter ${ARGS}
 
@@ -225,6 +232,18 @@ are running, you can use
 or similar utilities to double check that each 
 job is running on its own set of 8 cores and 
 not interfering with the other jobs.
+
+# Compiling C++ API codes
+
+I think I need to write a standalone program that uses
+the *libscuff* API to setup and solve a scattering
+problem. Where can I find a simple example of such
+a program to get me started?
+
+A. Look in the directory
+   ``share/scuff-em/examples/PlateWithHole`` within your <span class=SC>scuff-em</span> installation.
+   There you will find a simple API code and a reference makefile (`Makefile.manual`)
+   that you can customize for your system.
 
 [GMSH]:                        http://www.geuz.org/gmsh
 [scuff-scatter]:               ../applications/scuff-scatter/scuff-scatter.md

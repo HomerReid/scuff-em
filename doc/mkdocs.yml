@@ -1,12 +1,23 @@
 site_name: SCUFF-EM documentation
 site_author: Homer Reid
+site_url: http://homerreid.github.io/scuff-em-documentation
 
+repo_name: scuff-em
 repo_url: https://github.com/homerreid/scuff-em/
 
 theme:
-     name: 'material'
-#    name: readthedocs
-#    custom_dir: scuff-em-mkdocs-theme
+     name:        'material'
+     custom_dir:  'scuff-em-material-theme'
+     language:    'en'
+     logo:        'reference/scuffEMLogo.png'
+     palette:
+       primary:   'indigo'
+       accent:    'indigo'
+     font:
+       text:      'Noto Sans'
+       accent:    'Source Code Pro'
+     feature:
+       tabs:       true
 
 markdown_extensions:
     - codehilite:
@@ -26,11 +37,19 @@ markdown_extensions:
         base_path: docs
 
 extra_javascript:
-  - 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'
-  - mathjaxhelper.js
+#    - 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'
+    - 'javascripts/MathJax.js?config=TeX-AMS_HTML'
+    - 'javascripts/mathjaxhelper.js'
 
 extra_css:
     - css/scuff-em.css
+
+extra:
+    disqus: 'homerreid-github-io-scuff-em-documentation.disqus.com'
+
+google_analytics:
+    - 'UA-119340518-1'
+    - 'auto'
 
 pages:
 

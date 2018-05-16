@@ -1,4 +1,4 @@
-<h1> Input impedance, mutual coupling, and radiated fields of microstrip RF devices </h1>
+<h1> Input impedance, mutual coupling, and radiated fields of microstrip RF devices</h1>
 
 In this example, we use the
 [<span class=SC>scuff-em</span> RF module][scuff-rf]
@@ -28,8 +28,7 @@ is taken into account
 $x$ and $y$ directions; do not be misled by the apparently finite transverse size of
 the substrates in the pictures above.)
 
-The input files for all of these examples may be found in
-the `share/scuff-em/examples/MicrostripDevices`
+The input files for all of these examples may be found in the `share/scuff-em/examples/MicrostripDevices`
 subdirectory of your `scuff-em` installation.
 
 [TOC]
@@ -167,9 +166,9 @@ and say `Solver.SetSubstrateFile("EFAntenna.substrate")` (in python) or
 command line). (Or we could include the content of the file
 in a `SUBSTRATE...ENDSUBSTRATE` clause in a `.scuffgeo` file.)
 
-### Python calculation:
+### Python calculation
 
-### Command-line solution
+### Command-line calculation
 
 Here's how the same calculation is run from the command line using `scuff-rf`:
 

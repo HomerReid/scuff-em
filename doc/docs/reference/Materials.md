@@ -50,7 +50,7 @@ with values of 1 in vacuum.
  <li> <a href="#Tabulated">Materials specified using tabulated data</a>
  <li> <a href="#Parsed">User-defined materials</a>
  <li> <a href="#scuff-plotEpsMu">
-       <span class="SmallCaps">scuff-plotepseu:</span> A command-line 
+       <span class="SmallCaps">scuff-plotepsmu:</span> A command-line 
        utility for verifying material properties</a>
 </ol>
 

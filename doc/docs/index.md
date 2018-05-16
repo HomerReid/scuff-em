@@ -1,14 +1,13 @@
-<p align="center"><img align="center" src="img/scuffEMLogo.png"></p>
+<p align="center"> <img src="reference/scuffEMLogo.png" style='height: 100%; width: 100%; object-fit: contain'/></p> 
 
-<p align="center"><h1 align="center">
- <span class="SmallCaps">scuff-em</span> documentation: Table of contents
-</h1> 
+<p align="center">
+<h1> <span class=SC>scuff-em</span> documentation: Table of contents </h1> 
 </p>
 
 **If you find any inconsistencies or missing bits in the documentation, please
   [file an issue on the <span class="SC">scuff-em</span> GitHub page][GitHub].**
 
-# General reference
+## General reference
 
 * [Top-level overview](reference/TopLevel.md)
 * [Installation](reference/Installing.md)
@@ -19,7 +18,7 @@
 * [Brillouin-zone integration](reference/BrillouinZoneIntegration.md)
 * [FAQ](reference/FAQ.md)
 
-# Tutorial Examples
+## Tutorial Examples
 
 ### Photonics, plasmonics, transmission, imaging
 
@@ -59,7 +58,7 @@
 * [BU Symposium on Open-Source CAD tools: <span class=SC>scuff-em</span> for photonics](http://homerreid.github.io/SCUFFEMTutorialSymposium/)
 
 <a name="ApplicationSuite"></a>
-# Command-line application reference
+## Command-line application reference
 
 * [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
 
@@ -117,10 +116,6 @@
 * [DataStructures][DataStructures]        - data structures and methods inside the [[scuff-em]] core library
 * [Documentation][Documentation]          - about the [[scuff-em]] documentation
 * [Singular integrals][SingularIntegrals] - [[scuff-em]]'s code for computing singular triangle-product integrals
-
-## FAQ
-
-* [FAQ][FAQ] - frequently asked questions about [[scuff-em]]
 
 ## Technical memos
 
