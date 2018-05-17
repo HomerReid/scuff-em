@@ -571,37 +571,38 @@ void PhiVDFunc_ScalarGFs(dVec RhoZ, void *UserData, double *PhiVD, iVec dRhoZMax
   ScalarGFOptions Options;
   memcpy(&Options, &(Data->Options), sizeof(ScalarGFOptions));
   Options.NeedDerivatives = (dRhoZMax[0]==2 ? NEED_DRHO : 0) | (dRhoZMax[1]==2 ? NEED_DZ : 0);
-  int NVD = dRhoZMax[0] * dRhoZMax[1];
  
   cdouble V[4*NUMSGFS_MOI];
   S->GetScalarGFs_MOI(Omega, RhoZ[0], RhoZ[1], V, &Options);
 
-  // reorder the data in the order expected by libMDInterp, which is:
-  //  PhiVD[ nPhi*NumVD + nVD ] = value/deriv #nVD for function #nPhi
-  // where nPhi = 2*nSGF + 0,1 for real,imag part of scalar GF #nSGF
-  int NumSGFs = (Options.PPIsOnly ? 2 : NUMSGFS_MOI);
-  for(int nSGF=0, nPhi=0; nSGF<NumSGFs; nSGF++, nPhi++)
-   { 
-     LOOP_OVER_IVECS(nVD, dRhoZ, dRhoZMax)
-      { PhiVD[ nPhi*NVD + nVD] = real( V[nVD*NumSGFs + nSGF] );
-        PhiVD[ nPhi*NVD + nVD] = imag( V[nVD*NumSGFs + nSGF] );
-      }
-   }
-
   //FIXME
+  int NumSGFs = (Options.PPIsOnly ? 2 : NUMSGFS_MOI);
+  int NumVDs  = dRhoZMax[0] * dRhoZMax[1];
   if (RhoZ[0]==0.0 && RhoZ[1]==0.0)
    { 
      cdouble V2[4*NUMSGFS_MOI], V1[4*NUMSGFS_MOI];
      S->GetScalarGFs_MOI(Omega, 2.0e-4, 2.0e-4*(Dimension==1 ? 0.0:1.0), V2, &Options);
      S->GetScalarGFs_MOI(Omega, 1.0e-4, 1.0e-4*(Dimension==1 ? 0.0:1.0), V1, &Options);
      for(int nSGF=0; nSGF<NumSGFs; nSGF++)
-      { 
-        LOOP_OVER_IVECS(nVD, dRhoZ, dRhoZMax)
-         if (dRhoZ[0]==1)
-          { int m=nVD*NumSGFs + nSGF;
-            PhiVD[ (2*nSGF + 0)*NVD + nVD] = real( -V2[m] + 2.0*V1[m] );
-            PhiVD[ (2*nSGF + 1)*NVD + nVD] = imag( -V2[m] + 2.0*V1[m] );
-          }
+      {
+       LOOP_OVER_IVECS(nVD, dRhoZ, dRhoZMax)
+        { if (nVD==0) continue; 
+          int Index=nVD*NumSGFs + nSGF;
+          V[Index]=-V2[Index] + 2.0*V1[Index];
+        }
+      }
+   }
+
+  // reorder the data in the order expected by libMDInterp, which is:
+  //  PhiVD[ nPhi*NumVD + nVD ] = value/deriv #nVD for function #nPhi
+  // where nPhi = 2*nSGF + 0,1 for real,imag part of scalar GF #nSGF
+  for(int nSGF=0; nSGF<NumSGFs; nSGF++)
+   {
+     LOOP_OVER_IVECS(nVD, dRhoZ, dRhoZMax)
+      { int nPhiRe = 2*nSGF+0;
+        int nPhiIm = 2*nSGF+1;
+        PhiVD[nPhiRe*NumVDs + nVD] = real( V[nVD*NumSGFs + nSGF] );
+        PhiVD[nPhiIm*NumVDs + nVD] = imag( V[nVD*NumSGFs + nSGF] );
       }
    }
 }

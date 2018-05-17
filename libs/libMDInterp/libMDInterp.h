@@ -568,7 +568,8 @@ class InterpND
     /*- (non-uniform grids determined automatically)                */
     /*--------------------------------------------------------------*/
     InterpND(PhiVDFunc UserFunc, void *UserData, int NF,
-             dVec XMin, dVec XMax, double MaxRelError=1.0e-4, bool Verbose=false);
+             dVec XMin, dVec XMax, double MaxRelError=1.0e-4, 
+             bool ComplexData=false, bool Verbose=false);
 
     /*--------------------------------------------------------------*/
     /*--------------------------------------------------------------*/
@@ -594,7 +595,8 @@ class InterpND
     bool EvaluateVD(double *X0, double *PhiVD);
     bool EvaluateVDD(double *X0, double *PhiVD);
 
-    double PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly=false);
+    double PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, 
+                                  char *OutFileName, bool ComplexData=false, bool CentersOnly=false);
 
     /*--------------------------------------------------------------*/
     /*- class method that writes all internal data to a binary file */
@@ -662,14 +664,15 @@ class InterpND
 /* required for given error tolerances                         */
 /***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec X0Vec, dVec DeltaVec, double AbsTol=1.0e-8, char *LogFile=0);
+                             dVec X0Vec, dVec DeltaVec, bool ComplexData=false,
+                             double AbsTol=1.0e-8, char *LogFile=0);
 
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             int d0, double X, double Delta,
-                             dVec X0Vec, dVec dX0Vec, double AbsTol=1.0e-8, char *LogFile=0);
+                             int d0, double X, double Delta, dVec X0Min, dVec X0Max,
+                             bool ComplexData=false, double AbsTol=1.0e-8, char *LogFile=0);
 
 dVec GetXGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec XMin, dVec XMax, int d,
-              double DesiredMaxRE);
+              double DesiredMaxRE, bool ComplexData=false);
 
 /***************************************************************/
 /* non-member function for binary searching                    */

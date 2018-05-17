@@ -48,7 +48,7 @@ typedef struct PhiVDFuncData
 
  } PhiVDFuncData;
 
-void PhiVDFunc_ScalarGFs(double *RhoZ, void *UserData, double *PhiVD);
+void PhiVDFunc_ScalarGFs(dVec RhoZ, void *UserData, double *PhiVD, iVec dRZMax);
 
 /***************************************************************/
 /***************************************************************/

@@ -116,8 +116,8 @@ void GBarVDPhi2DND(dVec X, void *UserData, double *PhiVD, iVec dXMax)
   for(size_t d=0; d<dXMax.size(); d++) NumVDs*=dXMax[d];
   LOOP_OVER_IVECS(nVD,dX,dXMax)
    {
-     int GBarVDIndex = dXMax[0];
-     if (dXMax.size() >= 2) GBarVDIndex+=dXMax[1]*2;
+     int GBarVDIndex = dX[0];
+     if (dXMax.size() >= 2) GBarVDIndex+=dX[1]*2;
 
      PhiVD[0*NumVDs + nVD] = real(GBarVD[GBarVDIndex]);
      PhiVD[1*NumVDs + nVD] = imag(GBarVD[GBarVDIndex]);
@@ -125,19 +125,37 @@ void GBarVDPhi2DND(dVec X, void *UserData, double *PhiVD, iVec dXMax)
 }
 
 void GBarVDPhi3DND(dVec X, void *UserData, double *PhiVD, iVec dXMax)
-{ 
+{   
   GBarAccelerator *GBA = (GBarAccelerator *)UserData;
   cdouble GBarVD[8];
-  GBarVDEwald(&(X[0]), GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim, -1.0, GBA->ExcludeInnerCells, GBarVD);
+  double XX[3];
+  XX[0]=X[0];
+  XX[1]=X[1];
+  XX[2]=X[2];
+  //if (XX[0]==0.0) XX[0] = 1.0e-4*fmax(GBA->LBV[0][0], GBA->LBV[1][1]);
+  //if (XX[1]==0.0) XX[1] = 1.0e-4*fmax(GBA->LBV[0][0], GBA->LBV[1][1]);
+  
+  if (XX[2]==0.0) 
+   { 
+     XX[2] = 1.0e-4*fmax(GBA->LBV[0][0], GBA->LBV[1][1]);
+     GBarVDEwald(XX, GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim, -1.0, GBA->ExcludeInnerCells, GBarVD);
+     cdouble GBarVDP[8];
+     XX[2] = -1.0e-4*fmax(GBA->LBV[0][0], GBA->LBV[1][1]);
+     GBarVDEwald(XX, GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim, -1.0, GBA->ExcludeInnerCells, GBarVDP);
+     VecPlusEquals(GBarVD, 1.0, GBarVDP, 8);
+   }
+  else
+   GBarVDEwald(XX, GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim, -1.0, GBA->ExcludeInnerCells, GBarVD);
+ 
   cdouble temp=GBarVD[3]; GBarVD[3]=GBarVD[4]; GBarVD[4]=temp;
 
   int NumVDs = 1;
   for(size_t d=0; d<dXMax.size(); d++) NumVDs*=dXMax[d];
   LOOP_OVER_IVECS(nVD,dX,dXMax)
    {
-     int GBarVDIndex = dXMax[0];
-     if (dXMax.size() >= 2) GBarVDIndex+=dXMax[1]*2;
-     if (dXMax.size() >= 3) GBarVDIndex+=dXMax[2]*4;
+     int GBarVDIndex = dX[0];
+     if (dXMax.size() >= 2) GBarVDIndex+=dX[1]*2;
+     if (dXMax.size() >= 3) GBarVDIndex+=dX[2]*4;
 
      PhiVD[0*NumVDs + nVD] = real(GBarVD[GBarVDIndex]);
      PhiVD[1*NumVDs + nVD] = imag(GBarVD[GBarVDIndex]);
@@ -382,14 +400,15 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
   /***************************************************************/
   if (CheckEnv("SCUFF_GBAR_NDINTERP"))
    { 
-     bool Verbose = (LMDILogLevel==LMDI_LOGLEVEL_VERBOSE);
+     bool Verbose     = (LMDILogLevel==LMDI_LOGLEVEL_VERBOSE);
+     bool ComplexData = true;
      if (LDim==1)
       { double L0 = GBA->LBV[0][0];
         if (EqualFloat(RhoMax,RhoMin)) RhoMax=RhoMin+0.01*L0; // FIXME
         dVec XMin(2), XMax(2);
         XMin[0] = -0.5*L0; XMax[0] = +0.5*L0;
         XMin[1] = RhoMin;  XMax[1] = RhoMax;
-        GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+        GBA->Interp=new InterpND(GBarVDPhi2DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose, ComplexData);
       }
      else
       { double Lx = GBA->LBV[0][0], Ly=GBA->LBV[1][1];
@@ -398,7 +417,7 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
         XMin[0] = -0.5*Lx; XMax[0] = +0.5*Lx;
         XMin[1] = -0.5*Ly; XMax[1] = +0.5*Ly;
         XMin[2] = RhoMin;  XMax[2] = RhoMax;
-        GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose);
+        GBA->Interp=new InterpND(GBarVDPhi3DND, (void *)GBA, NF, XMin, XMax, RelTol, Verbose, ComplexData);
       }
      return GBA;
    }

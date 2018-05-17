@@ -214,7 +214,7 @@ InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
 /* in this case, non-uniform grids are determined automatically */
 /****************************************************************/
 InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
-                   dVec X0Min, dVec X0Max, double MaxRelError, bool Verbose)
+                   dVec X0Min, dVec X0Max, double MaxRelError, bool ComplexData, bool Verbose)
   : NF(_NF)
 { 
   D0=X0Min.size();
@@ -224,7 +224,7 @@ InterpND::InterpND(PhiVDFunc UserFunc, void *UserData, int _NF,
     FixedCoordinates.push_back( X0Min[d0] );
    else
     { FixedCoordinates.push_back( HUGE_VAL );
-      dVec XGrid = GetXGrid(UserFunc, UserData, NF, X0Min, X0Max, d0, MaxRelError);
+      dVec XGrid = GetXGrid(UserFunc, UserData, NF, X0Min, X0Max, d0, MaxRelError, ComplexData);
       XGrids.push_back(XGrid);
       NPoints.push_back( XGrid.size() );
     }
@@ -572,10 +572,30 @@ ErrExit("%s:%i: internal error",__FILE__,__LINE__);
   return true;
 }
 
+double GetMaxRelError(double *PhiExact, double *PhiInterp, int N, bool ComplexData)
+{
+  double MaxRelError=0.0;
+  if (ComplexData)
+   for(int nf=0; nf<N/2; nf++)
+    { cdouble Exact  ( PhiExact[2*nf+0],  PhiExact[2*nf+1]);
+      cdouble Interp ( PhiInterp[2*nf+0], PhiInterp[2*nf+1]);
+      if (abs(Exact)>0.0)
+       MaxRelError = fmax(MaxRelError, abs(Exact-Interp)/abs(Exact));
+    }
+  else
+   for(int nf=0; nf<N; nf++)
+    { double Exact=PhiExact[nf];
+      double Interp=PhiInterp[nf];
+      if (fabs(Exact)>0.0)
+       MaxRelError = fmax(MaxRelError, fabs(Exact-Interp)/fabs(Exact));
+    }
+ return MaxRelError;
+}
+
 /****************************************************************/
 /****************************************************************/
 /****************************************************************/
-double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly)
+double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char *OutFileName, bool CentersOnly, bool ComplexData)
 {
   FILE *f=fopen(OutFileName,"w");
   if (!f) return 0.0;
@@ -621,12 +641,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
         UserFunc(X0, UserData, PhiExact, dXMax);
         Evaluate(&(X0[0]), PhiInterp);
 
-        for(int nf=0; nf<NF; nf++)
-         { double Exact  = PhiExact[nf];
-           double Interp = PhiInterp[nf];
-           if (fabs(Exact) > 0.0)
-            MaxRelErr=fmax(MaxRelErr, fabs(Exact-Interp)/fabs(Exact));
-         }
+        MaxRelErr=fmax(MaxRelErr, GetMaxRelError(PhiExact, PhiInterp, NF, ComplexData));
 
         fprintVec(f,&(X0[0]),D0);
         for(int nf=0; nf<NF; nf++)
@@ -667,7 +682,7 @@ char *vec2str(const char *Label, dVec V)
 /****************************************************************/
 /****************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
-                             dVec X0Vec, dVec DeltaVec,
+                             dVec X0Vec, dVec DeltaVec, bool ComplexData,
                              double AbsTol, char *LogFileName)
 { 
   int D0 = X0Vec.size();
@@ -680,8 +695,6 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
     }
 
   InterpND Interp(UserFunc, UserData, NF, X0Vec, X0Max, N0Points);
-
-  int NumVDs = (1<<D0);     // # function vals, derivs per grid point
 
   double *PhiExact  = new double[NF];
   double *PhiInterp = new double[NF];
@@ -703,24 +716,21 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
      bool Status=Interp.Evaluate(&(XSample[0]), PhiInterp);
      if (!Status) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
    
-     double ThisMaxRelError=0.0;
+     double ThisRelError=GetMaxRelError(PhiExact, PhiInterp, NF, ComplexData);
 
-     for(int nf=0; nf<NF; nf++)  
-      { double AbsError = fabs(PhiExact[nf] - PhiInterp[nf]);
-        if (AbsError<AbsTol) continue;
-        double RelError = AbsError / ( fabs(PhiExact[nf])==0.0 ? 1.0 : fabs(PhiExact[nf]));
-        ThisMaxRelError = fmax(ThisMaxRelError, RelError);
-Log("      %s(%i)   %e  %e",vec2str("",XSample),nf,PhiExact[nf],PhiInterp[nf]);
-      }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+for(int nf=0; nf<NF; nf++)  
+ Log("      %s(%i)   %e  %e",vec2str("",XSample),nf,PhiExact[nf],PhiInterp[nf]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      if(LogFile) 
       { fprintVec(LogFile,&(XSample[0]),D0);
         for(int nf=0; nf<NF; nf++)
          fprintf(LogFile,"%e %e ",fabs(PhiExact[nf]),fabs(PhiExact[nf]-PhiInterp[nf]));
-        fprintf(LogFile,"%e\n",ThisMaxRelError);
+        fprintf(LogFile,"%e\n",ThisRelError);
       }
+     MaxRelError=fmax(MaxRelError, ThisRelError);
 
-     MaxRelError=fmax(MaxRelError,ThisMaxRelError);
    }
   if(LogFile) { fprintf(LogFile,"\n\n"); fclose(LogFile); }
 
@@ -734,7 +744,7 @@ Log("      %s(%i)   %e  %e",vec2str("",XSample),nf,PhiExact[nf],PhiInterp[nf]);
 /***************************************************************/
 double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
                              int d0, double X, double Delta, dVec X0Min, dVec X0Max, 
-                             double AbsTol, char *LogFileName)
+                             bool ComplexData, double AbsTol, char *LogFileName)
 {
   int D0=X0Min.size();
   dVec X0Vec(D0), DeltaVec(D0,0.0);
@@ -761,9 +771,9 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
      for(int d0Prime=0; d0Prime<D0; d0Prime++)
       X0Vec[d0Prime] 
        = (d0==d0Prime) ? X
-                       : X0Vec[d0Prime] + Fraction[nSample[d0Prime]]*(X0Max[d0Prime]-X0Min[d0Prime]);
+                       : X0Min[d0Prime] + Fraction[nSample[d0Prime]]*(X0Max[d0Prime]-X0Min[d0Prime]);
 
-     double ThisError=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, AbsTol, LogFileName);
+     double ThisError=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec, ComplexData, AbsTol, LogFileName);
      MaxError=fmax(MaxError,ThisError);
      if (ExtraVerbose)
       Log("     GIE(%s)=%e",vec2str("",X0Vec),ThisError);
@@ -776,70 +786,8 @@ double GetInterpolationError(PhiVDFunc UserFunc, void *UserData, int NF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#if 0
-dVec GetXdGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0, int d,
-               double XdMin, double XdMax, double DesiredMaxRE)
-{ 
-  bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
-  Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d,XdMin,XdMax);
-  if (X0.size() != 1)
-   { Log(" X0 = { ");
-     for(size_t d0=0; d0<X0.size(); d0++)
-      { if ( ((int)d0) == d ) 
-         LogC("xx");
-        else 
-         LogC("%e",X0[d0]);
-        LogC("%c",d0==X0.size()-1 ? '}' : ',');
-      }
-   }
-  
-  double DeltaMin = (XdMax - XdMin) / (1000.0);
-  double DeltaMax = (XdMax - XdMin) / 2.0;
-  double Delta    = (XdMax - XdMin) / (10.0); // initial guess
- 
-  double Xd = XdMin;
-  dVec XdGrid(1,Xd);
-  while( Xd<XdMax )
-   { 
-     dVec X0Vec = X0;  X0Vec[d] = Xd;
-     bool TooBig=false, JustRight=false;
-     while(!JustRight)
-      { dVec DeltaVec(X0.size(), 0.0); DeltaVec[d]=Delta;
-        double Err=GetInterpolationError(UserFunc, UserData, NF, X0Vec, DeltaVec);
-        if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d,Xd,Delta,Err);
-        if ( Err > 10.0*DesiredMaxRE )
-         { TooBig=true; Delta *= 0.2; }
-        else if ( Err > DesiredMaxRE )
-         { TooBig=true; Delta *= 0.75; }
-        else if ( Err<0.1*DesiredMaxRE )
-         { if (TooBig) 
-            JustRight=true; // prevent oscillatory behavior
-           else
-            Delta *= 2.0; 
-         }
-        else
-         JustRight = true;
-
-        if (Delta<DeltaMin || Delta>DeltaMax)
-         { Delta = (Delta<DeltaMin ? DeltaMin : DeltaMax);
-           if (ExtraVerbose) Log("   setting Delta=%f",Delta);
-           JustRight = true;
-         }
-      }
-     Xd+=Delta;
-     if (Xd>XdMax) Xd=XdMax;
-     XdGrid.push_back(Xd);
-   }
-  Log(" ...%i grid points",XdGrid.size()); 
-  return XdGrid;
-}
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 dVec GetXGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0Min, dVec X0Max, int d0,
-              double DesiredMaxRE)
+              double DesiredMaxRE, bool ComplexData)
 { 
   bool ExtraVerbose = CheckEnv("SCUFF_INTERPOLATION_EXTRA_VERBOSE");
   Log("Autotuning interpolation grid for coordinate %i, range {%e,%e}",d0,X0Min[d0],X0Max[d0]);
@@ -857,7 +805,7 @@ dVec GetXGrid(PhiVDFunc UserFunc, void *UserData, int NF, dVec X0Min, dVec X0Max
    { 
      bool TooBig=false, JustRight=false;
      while(!JustRight)
-      { double Err=GetInterpolationError(UserFunc, UserData, NF, d0, X, Delta, X0Min, X0Max);
+      { double Err=GetInterpolationError(UserFunc, UserData, NF, d0, X, Delta, X0Min, X0Max, ComplexData);
         if (ExtraVerbose) Log("   x%i=%+f, Delta=%f: MRE %.2e",d0,X,Delta,Err);
         if ( Err > 10.0*DesiredMaxRE )
          { TooBig=true; Delta *= 0.2; }
