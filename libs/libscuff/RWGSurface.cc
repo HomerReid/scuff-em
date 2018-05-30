@@ -253,7 +253,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
    Log("Surface %s has surface impedance Zeta=%s.\n",Label,cevaluator_get_string(SurfaceZeta));
 
   // if we are an OBJECT and there was no MATERIAL specification,
-  // or we are a SURFACE and there was no REGIONS specification, then 
+  // or we are a SURFACE and there was no REGIONS specification, then
   // we consider ourselves to be a PEC surface in the exterior medium.
   if ( RegionLabels[0]==0 )
    { IsPEC=1;

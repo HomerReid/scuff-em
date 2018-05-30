@@ -287,7 +287,7 @@ with extension `.log.` You can monitor these
 files to follow the progress of your calculations.
 
 For example, after launching 
-[this sample <span class="SC">scuff-cas3d</span> run][SiliconSlabs],
+[this sample <span class="SC">scuff-cas3d</span> run][SiliconSlabExample],
 type the following at a terminal window:
 
 ````bash
@@ -435,8 +435,4 @@ affect the behavior of [[scuff-em]].
 > 8 available (as opposed to, say, the second set of 8
 > available cores on a 16-core machine).
 
-[scuff-cas3D]:  scuff-cas3D/scuff-cas3D.md
-[scuff-caspol]: scuff-caspol/scuff-caspol.md
-[SiliconSlabs]: ../examples/SiliconSlabs/SiliconSlabs.md
-[ExtendedGeometries]: ../reference/Geometries.md#Extended
-[GitHub]:       https://github.com/HomerReid/scuff-em.git
+{!Links.md!}

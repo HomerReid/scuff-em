@@ -83,7 +83,7 @@ int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb,
    { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[1];
      Signs[NumCommonRegions]=+1.0;
      NumCommonRegions++;
-   };
+   }
 
   return NumCommonRegions;
 

@@ -34,7 +34,7 @@ quantities such as the Poynting flux or Maxwell stress tensor at
 individual points in space. [[scuff-neq]] outputs data files
 giving values of generalized fluxes at various frequencies you specify;
 these data may then be integrated by the separate utility 
-code [<span class=SC>scuff-integrate</span>][scuffIntegrate]
+code [<span class=SC>scuff-integrate</span>][scuff-integrate]
 to compute full thermally-averaged values of SI and SR quantities
 for various body temperatures.
 
@@ -53,7 +53,7 @@ below.
 
 
 When requesting spatially-resolved quantities, you will
-specify a [list of evaluation points][EPFile], and you
+specify a [list of evaluation points][EPFiles], and you
 will get back a data file giving (generalized fluxes for)
 the Poynting vector and Maxwell stress tensor at each point.
 
@@ -62,7 +62,7 @@ files showing the spatial distribution of energy and momentum
 absorption by bodies.
 
 As in [[scuff-cas3d]], you can specify an optional list of 
-[geometrical transformations](../../reference/Transformations.md) 
+[geometrical transformations][scuffEMTransformations]
 describing various displacements and rotations of the bodies 
 in your geometry; in this case you will get back multiple 
 copies of all output quantities, one for each transformation
@@ -217,11 +217,11 @@ power, force, and torque quantities at various temperatures.
 {.toc}
 
 The mandatory `--geometry` option specifies the
-[<span class=SC>scuff-em</span> geometry file][Geometries]
+[<span class=SC>scuff-em</span> geometry file][scuffEMGeometries]
 describing your geometry.
 
 The optional `--TransFile` option specifies a
-[list of geometrical transformations][Transformations]
+[list of geometrical transformations][scuffEMTransformations]
 to be applied to your geometry. Each output quantity you
 request will be separately computed and reported for 
 each transform you request.
@@ -271,7 +271,7 @@ algorithm; see below.
 --EPFile MyEPFile
 ````
 
-Specifies a file containing a [list of evaluation points][EPFile],
+Specifies a file containing a [list of evaluation points][EPFiles],
 one per line (three Cartesian coordinates),
 at which values of the Poynting vector and Maxwell stress tensor
 are to be computed.
@@ -423,7 +423,7 @@ as noted, above, they are multiplied by temperature-dependent
 Bose-Einstein factors and integrated over frequency to yield
 full thermally and temporally-averaged data. This integration
 operation is carried out by the utility
-code [<span class=SC>scuff-integrate</span>][scuffIntegrate],
+code [<span class=SC>scuff-integrate</span>][scuff-integrate],
 as described [below](scuff-neq.md/#scuffIntegrate).
 
 ### Output files for spatially-resolved PFTs: The `.SRFlux` file
@@ -665,16 +665,7 @@ The various algorithms for computing spatially-integrated data
 (DSI, EMT, etc.) are described in Ref. 3 here; see also [this paper][SIEPFTPaper].
 
 
-[Geometries]:       ../../reference/Geometries.md
-[Transformations]:  ../../reference/Transformations.md
-[Units]:            ../../reference/FAQ.md/#Units
-[scuff-cas3D]:      ../scuff-cas3D/scuff-cas3D.md
-[scuffIntegrate]:   ../scuff-integrate/scuff-integrate.md
-[EPFile]:           ../../applications/GeneralReference.md#EvaluationPoints
 [FSCPaper]:         scuff-neq.md#bibliography
 [SIEPFTPaper]:	    http://dx.doi.org/10.1109/TAP.2015.2438393
-[LogFiles]:        ../GeneralReference.md#LogFiles
-[SiO2Sphere]:      ../../examples/SiO2Spheres/SiO2Spheres.md
-[SiO2Spheres]:     ../../examples/SiO2Spheres/SiO2Spheres.md
-[TipSubstrate]:    ../../examples/TipSubstrate/TipSubstrate.md
-[CommonOptions]:   ../GeneralReference.md#CommonOptions
+
+{!Links.md!}

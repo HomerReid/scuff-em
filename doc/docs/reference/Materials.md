@@ -25,7 +25,7 @@ MATERIAL MyMaterialName
 ````
 
 in the 
-[``.scuffgeo`` file](Geometries.md);
+[``.scuffgeo`` file][scuffEMGeometries];
 here ``MyMaterialName`` is a string constructed in different
 ways depending on which of the above types of material specification
 you have in mind, as detailed below.
@@ -201,7 +201,7 @@ your material, and then referring back to that entry in
 specify a material property designation. (Alternatively, 
 you can define the material on-the-fly inside a 
 ``MATERIAL...ENDMATERIAL`` section in your ``.scuffgeo`` file. 
-See [here][Geometries] for more details.
+See [here][scuffEMGeometries] for more details.
 
 <a name="Database"></a>
 ### The location of the database file
@@ -362,5 +362,4 @@ This will pop up four graphs, of which one looks something like this:
 
 ![SiliconCarbideEps.png](SiliconCarbideEps.png)
 
-[ComplexNumbers]: ../applications/GeneralReference.md#Complex
-[Geometries]: Geometries.md
+{!Links.md!}

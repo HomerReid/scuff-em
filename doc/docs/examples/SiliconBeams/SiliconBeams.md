@@ -308,8 +308,7 @@ gnuplot> plot 'SiliconBeams_192.out' u 1:3 w lp pt 7 ps 1.5
 
 --------------------------------------------------
 
-[scuffEMGeometries]: reference/Geometries
-[scuffEMTransformations]: reference/Transformations
 [RoundedBeamUnitCellGeo]: RoundedBeamUnitCell.geo
 [SiliconBeamsScuffgeo]: SiliconBeams_192.scuffgeo
-[id2]: /path/to/image "alt text"
+
+{!Links.md!}

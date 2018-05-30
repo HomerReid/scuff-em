@@ -658,7 +658,9 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   RWGSurface *Sa = G->Surfaces[nsa], *Sb=G->Surfaces[nsb];
-  int NEA=Sa->NumEdges, NEB=Sb->NumEdges;
+  int NEA=Sa->NumEdges, NBFPEA = Sa->IsPEC ? 1 : 2;
+  int NEB=Sb->NumEdges, NBFPEB = Sb->IsPEC ? 1 : 2;
+  int NumPairs=NEA*NEB;
 
   EquivalentEdgePairTable *EEPTable=0;
   if (EEPTables)
@@ -666,15 +668,12 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      if (EEPTables[nsa*NS + nsb]==0) EEPTables[nsa*NS+nsb]=new EquivalentEdgePairTable(G,nsa,nsb);
      EEPTable = EEPTables[nsa*NS + nsb];
    }
-  IrreducibleEdgePairList *IEPList = EEPTable ? EEPTable->GetIrreducibleEdgePairList() : 0;
-  int NumPairs = IEPList ? IEPList->size() : NEA*NEB;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   int NumThreads=GetNumThreads();
-  int FullNumPairs = (nsa==nsb ? NEA*(NEA+1)/2 : NEA*NEB);
-  Log("Computing MOI matrix block (%i,%i) (%i/%i entries) (%i threads)",nsa,nsb,NumPairs,FullNumPairs,NumThreads);
+  Log("Computing MOI matrix block (%i,%i) (%i pairs) (%i threads)",nsa,nsb,NumPairs,NumThreads);
 #ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
@@ -682,46 +681,40 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
    { 
      if (G->LogLevel>=SCUFF_VERBOSE2) LogPercent(nPair, NumPairs);
 
-     int nea, neb;
-     if (IEPList)
-      EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &nea, &neb);
-     else
-      { nea = nPair/NEB;
-        neb = nPair%NEB;
-        if (nsa==nsb && neb<nea) continue;
-      }
+     int nea = nPair/NEB;
+     int neb = nPair%NEB;
+     if (nsa==nsb && neb<nea) continue;
+
+     if (EEPTable && EEPTable->IsReduced[EEPTable->GetEdgePair(nea, neb)]) continue;
 
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
      Block->SetEntry(OffsetA + nea, OffsetB + neb, ME);
+   
    }
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (IEPList)
-   { if (G->LogLevel>=SCUFF_VERBOSE2)
+  if (EEPTable)
+   { 
+     if (G->LogLevel>=SCUFF_VERBOSE2)
       Log("Filling in matrix entries for child edge pairs ...");
-     for(int nPair=0; nPair<NumPairs; nPair++)
-      { 
-        int neaParent, nebParent;
-        EEPTable->ResolveEdgePairIndex( (*IEPList)[nPair].ParentPair, &neaParent, &nebParent);
-
-        iVec *ChildPairs = (*IEPList)[nPair].ChildPairs;
-        if (!ChildPairs) continue;
-
-        cdouble ME = Block->GetEntry(OffsetA + neaParent, OffsetB + nebParent);
-        for(size_t nc=0; nc<ChildPairs->size(); nc++)
-         { int ChildPair = (*ChildPairs)[nc];
-           double Sign = (ChildPair < 0 ? -1.0 : 1.0);
-           if (ChildPair<0) ChildPair*=-1;
-           int neaChild, nebChild;
-           EEPTable->ResolveEdgePairIndex(ChildPair,&neaChild, &nebChild);
-           Block->SetEntry(OffsetA + neaChild, OffsetB + nebChild, Sign*ME);
+     for(IrreducibleEdgePairMap::iterator it=EEPTable->IEPMap.begin(); it!=EEPTable->IEPMap.end(); it++)
+      { int neaParent, nebParent;
+        EEPTable->ResolveEdgePair(it->first, &neaParent, &nebParent);
+        cdouble ME[2][2];
+        for(int a=0; a<NBFPEA; a++)
+         for(int b=0; b<NBFPEB; b++)
+          ME[a][b]=Block->GetEntry(OffsetA+NBFPEA*neaParent+a, OffsetB+NBFPEB*nebParent+b);
+        for(size_t nREP=0; nREP<it->second.size(); nREP++)
+         { int neaChild, nebChild;
+           EEPTable->ResolveEdgePair(it->second[nREP], &neaChild, &nebChild);
+           for(int a=0; a<NBFPEA; a++)
+            for(int b=0; b<NBFPEB; b++)
+             Block->SetEntry(OffsetA+NBFPEA*neaChild+a, OffsetB+NBFPEB*nebChild+b, ME[a][b]);
          }
       }
-     if (G->LogLevel>=SCUFF_VERBOSE2)
-      Log(" ...done with equivalent pairs");
    }
 
   /***************************************************************/
@@ -729,9 +722,9 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /* upper triangle, so go back and fill in the lower part now   */
   /***************************************************************/
   if (nsa==nsb)
-   for(int nea=1, Offset=OffsetA; nea<NEA; nea++)
-    for(int neb=0; neb<nea; neb++)
-     Block->SetEntry(Offset+nea, Offset+neb, Block->GetEntry(Offset+neb, Offset+nea) );
+   for(int nr=1, Offset=OffsetA; nr<NEA; nr++)
+    for(int nc=0; nc<nr; nc++)
+     Block->SetEntry(Offset+nr, Offset+nc, Block->GetEntry(Offset+nc, Offset+nr) );
 }
 
 /***************************************************************/

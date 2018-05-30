@@ -16,7 +16,7 @@ configuration.
 Of course, one way to handle this situation would be simply to
 create 25 different ``.scuffgeo`` files, each describing
 the nanoparticles at different separation distances, and then run 
-[<span class="SmallCaps">scuff-cas3d</span>](../applications/scuff-cas3D/scuff-cas3D.md) 
+[<span class="SmallCaps">scuff-cas3d</span>][scuff-cas3d]
 25 separate times. However, such a procedure would not only be a major
 hassle, but would also fail to exploit some significant 
 computational redundancies.
@@ -68,7 +68,7 @@ You will list your geometrical transformations in a file
 whose name conventionally has file extension ``.trans``.
 This is the file you will specify using the 
 ``--transfile`` option to 
-[<span class="SmallCaps">scuff-cas3d</span>](../applications/scuff-cas3d) 
+[<span class="SmallCaps">scuff-cas3d</span>][scuff-cas3d]
 and other codes.
 
 The ``.trans`` file may contain any number of 
@@ -349,4 +349,5 @@ of course, subsequently rotate or displace them further to your
 heart's content using geometrical transformations.
 
 [SphereCube]: SphereCube.scuffgeo
-[scuff-analyze]: ../applications/scuff-analyze/scuff-analyze.md
+
+{!Links.md!}

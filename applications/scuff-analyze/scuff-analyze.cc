@@ -598,8 +598,10 @@ int main(int argc, char *argv[])
      EquivalentEdgePairTable EEPTable(G,EEPs[0],EEPs[1]);
      int NEA = Sa->NumEdges, NEB=Sb->NumEdges;
      int NEPairs = NEA * (Sa==Sb ? (NEA+1)/2 : NEB);
-     int NumParentPairs  = EEPTable.CountParentPairs();
-     int NumChildPairs  = EEPTable.CountChildPairs();
+     int NumParentPairs = EEPTable.IEPMap.size();
+     int NumChildPairs=0;
+     for(int n=0; n<EEPTable.NERadix*EEPTable.NERadix; n++)
+      if (EEPTable.IsReduced[n]) NumChildPairs++;
      printf(" Of %u total edge-edge pairs:\n ",NEPairs);
      printf("    %u are children (savings of %.1f %%)\n",NumChildPairs,100.0*((double)NumChildPairs)/((double)NEPairs));
      printf("    %u are parents (%.1f %%)\n",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NEPairs));

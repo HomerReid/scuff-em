@@ -398,8 +398,4 @@ In contrast, if your data file looks instead like this:
 
 you would want to say `--freqColumn 2 --dataColumn 3.`
 
-[scuff-cas3D]:                 ../scuff-cas3D/scuff-cas3D.md
-[scuff-caspol]:                ../scuff-caspol/scuff-caspol.md
-[scuff-neq]:                   ../scuff-neq/scuff-neq.md
-[scuff-ldos]:                  ../scuff-ldos/scuff-ldos.md
-[ExtendedGeometries]:            ../../reference/Geometries.md#Extended
+{!Links.md!}

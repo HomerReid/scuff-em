@@ -577,8 +577,8 @@ void PhiVDFunc_ScalarGFs(dVec RhoZ, void *UserData, double *PhiVD, iVec dRhoZMax
 
   //FIXME
   int NumSGFs = (Options.PPIsOnly ? 2 : NUMSGFS_MOI);
-  int NumVDs  = dRhoZMax[0] * dRhoZMax[1];
-  if (RhoZ[0]==0.0 && RhoZ[1]==0.0)
+  int NumVDs  = dRhoZMax[0] * (dRhoZMax.size() > 1 ? dRhoZMax[1] : 1);
+  if (RhoZ[0]==0.0 && (RhoZ.size()==1 || RhoZ[1]==0.0))
    { 
      cdouble V2[4*NUMSGFS_MOI], V1[4*NUMSGFS_MOI];
      S->GetScalarGFs_MOI(Omega, 2.0e-4, 2.0e-4*(Dimension==1 ? 0.0:1.0), V2, &Options);

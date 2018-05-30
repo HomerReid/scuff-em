@@ -1,6 +1,6 @@
 # Equilibrium Casimir forces between spheres
 
-This test validates the [[scuff-cas3d]] application module
+This test validates the [<span class=SC>scuff-cas3d</span>][scuff-cas3d]
 of the [[scuff-em]] code suite by using it to compute
 the equilibrium Casimir force between identical spheres
 at various separation distances. We consider both
@@ -62,8 +62,6 @@ yields good agreement:
 Here's the [[gnuplot]] script I used to produce this 
 plot: [`Plotter.gp`](Plotter.gp).
 
-[scuffEMGeometries]:                  ../../reference/Geometries.md
-[scuffEMTransformations]:             ../../reference/Transformations.md
-[scuffEMMaterials]:                   ../../reference/Materials.md
-[scuffEMInstallation]:                ../../reference/Installation.md
 [EmigPaper]:                          http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.99.170403
+
+{!Links.md!}

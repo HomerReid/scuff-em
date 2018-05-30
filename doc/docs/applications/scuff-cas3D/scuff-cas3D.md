@@ -23,11 +23,11 @@ exterior medium) computed with [[scuff-cas3d]].
 
 The basic flow of a typical [[scuff-cas3d]] run goes something like this:
 
-+ You create a [<span class="SC">scuff-em</span> geometry file][Geometries]
++ You create a [<span class="SC">scuff-em</span> geometry file][scuffEMGeometries]
 describing the interacting objects or surfaces in your geometry.
 
 + Optionally, you define a 
-[list of geometric transformations][Transformations] 
+[list of geometric transformations][scuffEMTransformations] 
 to be applied to the geometry for Casimir computations.
 For example, if your geometry consists of two nanoparticles, you
 might ask for the Casimir force between the particles at 10 different
@@ -315,9 +315,6 @@ named `FILEBASE.byXikBloch`.
 
 [EarlierVersion]: http://homerreid.com/scuff-em/scuff-cas3d
 [FSCPaper]: http://dx.doi.org/10.1103/PhysRevA.88.022514
-[Geometries]: ../../reference/Geometries.md
-[Transformations]: ../../reference/Transformations.md
 [CubeTorus]: http://homerreid.dyndns.org/scuff-EM/scuff-cas3D/scuff-cas3D-Tutorial.shtml
-[SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md
-[SiliconSlabs]: ../../examples/SiliconSlabs/SiliconSlabs.md
-[LogFiles]:     ../GeneralReference.md#LogFiles
+
+{!Links.md!}

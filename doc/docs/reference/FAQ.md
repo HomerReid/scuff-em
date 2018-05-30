@@ -32,7 +32,7 @@ which could alternatively be specified by saying
 
 Longer answer: 
 For a problem involving only bodies with
-[frequency-independent material properties][Materials]
+[frequency-independent material properties][scuffEMMaterials]
 (permeability $\epsilon$ and permittivity $\mu$),
 including perfectly-conducting (`PEC`) bodies and
 frequency-independent dielectrics
@@ -141,7 +141,7 @@ Here is what I typically do:
       `~/myProject/`), create the following subdirectories:
     + `~/myProject/geoFiles` (for [<span class="SC">gmsh</span>][gmsh] geometry files)
     + `~/myProject/mshFiles` (for surface mesh files)
-    + `~/myProject/scuffgeoFiles` (for [<span class="SC">scuff-em</span> geometry files][Geometries]).
+    + `~/myProject/scuffgeoFiles` (for [<span class="SC">scuff-em</span> geometry files][scuffEMGeometries]).
 
 + Before running any [[scuff-em]] calculations, set the
     environment variables `SCUFF_GEO_PATH`, `SCUFF_MESH_PATH` to the directories
@@ -245,11 +245,6 @@ A. Look in the directory
    There you will find a simple API code and a reference makefile (`Makefile.manual`)
    that you can customize for your system.
 
-[GMSH]:                        http://www.geuz.org/gmsh
-[scuff-scatter]:               ../applications/scuff-scatter/scuff-scatter.md
-[scuff-neq]:                   ../applications/scuff-neq/scuff-neq.md
-[scuff-cas3D]:                 ../applications/scuff-cas3D/scuff-cas3D.md
-[Geometries]:                  ../reference/Geometries.md
-[Materials]:                   ../reference/Materials.md
-[MaterialUnits]:               ../reference/Materials.md#Parsed
-[SiliconSlabs]:                ../examples/SiliconSlabs/SiliconSlabs.md
+[MaterialUnits]:               /reference/Materials.md#Parsed
+
+{!Links.md!}
