@@ -473,6 +473,8 @@ int main(int argc, char *argv[])
    {
      RWGGeometry::UseHRWGFunctions=false;
      S=new RWGSurface(MeshFile, PhysicalRegion);
+     if (S->ErrMsg)
+      ErrExit(S->ErrMsg);
      AnalyzeSurface(S);
 
      if (WriteGPFiles)

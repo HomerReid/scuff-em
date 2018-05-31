@@ -81,7 +81,7 @@ public:
 
    // conversion between pairs of edge indices and indices of edge pairs
    EdgePair GetEdgePair(int neParent, int neChild);
-   void ResolveEdgePair(EdgePair nPair, int *neParent, int *neChild);
+   bool ResolveEdgePair(EdgePair nPair, int *neParent, int *neChild);
   
    // helper methods for constructing the table
    void AddEquivalentEdgePair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip=false);

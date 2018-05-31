@@ -246,11 +246,11 @@ bool ProcessSpecialSCUFFGeoFileName(const char *GeoFileName)
   if (MatStr)
    { *MatStr=0;
      MatStr+=7;
-   };
+   }
   if (MedStr)
    { *MedStr=0;
      MedStr+=7;
-   };
+   }
 
   Log("Processing special file name: mesh=%s",MeshStr);
   if (MatStr)

@@ -52,15 +52,19 @@ long JenkinsHash(const char *key, size_t len); // in FIBBICache.cc
 /* its centroid at the origin and its positive panel lying in  */
 /* the XY plane with Q1.x > 0.                                 */
 /***************************************************************/
-GTransformation GetStandardRotation(RWGSurface *S, int ne, bool Invert=false)
+GTransformation GetStandardRotation(RWGSurface *S, int ne, bool FlipQPM=false, bool FlipV12=false)
 {
   RWGEdge *E = S->Edges[ne];
   double *QP = S->Vertices + 3*E->iQP;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (Invert && E->iQM!=-1) QP = S->Vertices + 3*E->iQM;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  if (FlipQPM && E->iQM!=-1) QP=S->Vertices + 3*E->iQM;
   double *V1 = S->Vertices + 3*E->iV1;
+  double *V2 = S->Vertices + 3*E->iV2;
   double *X0 = E->Centroid;
+
+  if (FlipV12)
+   { double *Temp=V1; V1=V2; V2=Temp; }
+  if (VecDistance(QP,V2) < VecDistance(QP,V1))
+   { double *Temp=V1; V1=V2; V2=Temp; }
   
   double MX0[3];
   MX0[0]=-X0[0];
@@ -91,45 +95,41 @@ if (Invert && E->iQM!=-1) QP = S->Vertices + 3*E->iQM;
 /* This vector is proportional to the dipole moment of the RWG */
 /* basis function, which is why I call it 'P.'                 */
 /***************************************************************/
-void GetPVector(RWGSurface *S, RWGEdge *E, double *V[4], double P[3])
+void GetPVector(RWGSurface *S, RWGEdge *E, double *V[4], double P[3], bool FlipQPM=false, bool FlipV12=false)
 { 
   V[0] = S->Vertices + 3*E->iQP;
   V[1] = S->Vertices + 3*E->iV1;
   V[2] = S->Vertices + 3*E->iV2;
   V[3] = (E->iQM==-1) ? E->Centroid : S->Vertices + 3*E->iQM;
+  if (FlipV12)
+   { double *Temp=V[1]; V[1]=V[2]; V[2]=Temp; }
+  if (FlipQPM && E->iQM!=-1)
+   { double *Temp=V[0]; V[0]=V[3]; V[3]=Temp; }
   VecSub(V[0], V[3], P);
   VecScale(P, E->Length);
 }
 
-#define EDGESIGLEN 5
+#define EDGESIGLEN 3
 typedef struct { int Signature[EDGESIGLEN]; } EdgeSignature;
 void GetEdgeSignature(RWGSurface *S, int ne, double DistanceQuantum, EdgeSignature &ES)
  { 
    RWGEdge *E = S->Edges[ne];
-   double *X0 = E->Centroid;
    double *QP = S->Vertices + 3*E->iQP;
    double *V1 = S->Vertices + 3*E->iV1;
    double *V2 = S->Vertices + 3*E->iV2;
-   double *QM = (E->iQM==-1 ? X0 : S->Vertices + 3*E->iQM);
 
-   if (VecDistance(V1,QP) > VecDistance(V2,QP))
-    { double *Temp=V1; V1=V2; V2=Temp; }
+   double Length    = E->Length;
+   double Perimeter = VecDistance(QP, V1) + VecDistance(QP, V2);
+   double Area      = S->Panels[E->iPPanel]->Area;
+   if ( E->iQM!=-1 )
+    { double *QM = S->Vertices + 3*E->iQM;
+      Perimeter += VecDistance(QM, V1) + VecDistance(QM, V2);
+      Area += S->Panels[E->iMPanel]->Area;
+    }
 
-   double L1[3], L2[3], L3[3];
-   VecSub(QP, X0, L1);
-   VecSub(QM, X0, L2);
-   VecSub(V1, X0, L3);
-   double l1 = VecNorm(L1);
-   double l2 = VecNorm(L2);
-   double l3 = VecNorm(L3);
-   double CosTheta1 = VecDot(L1, L3) / (l1*l3);
-   double CosTheta2 = VecDot(L2, L3) / (l2*l3);
-
-   ES.Signature[0] = round( l1 / DistanceQuantum );
-   ES.Signature[1] = round( l2 / DistanceQuantum );
-   ES.Signature[2] = round( l3 / DistanceQuantum );
-   ES.Signature[3] = round( CosTheta1 / 1000.0 );
-   ES.Signature[4] = round( CosTheta2 / 1000.0 );
+   ES.Signature[0] = round( Length     / DistanceQuantum );
+   ES.Signature[1] = round( Perimeter  / DistanceQuantum );
+   ES.Signature[2] = round( sqrt(Area) / DistanceQuantum );
 }
 
 struct EdgeSigHash 
@@ -231,23 +231,23 @@ void GetGTSignature(GTransformation GT, double DistanceQuantum, GTSignature *GTS
 // edges are equivalent as is or after a sign flip, or else    */
 // one of several possible criteria identify them as ineqvlnt. */
 /***************************************************************/
-#define EQUIV_PLUS        0
-#define EQUIV_MINUS       1
-#define INEQUIV_LENGTH    2
-#define INEQUIV_RADIUS    3
-#define INEQUIV_FULLHALF  4
-#define INEQUIV_DIPOLE    5
-#define INEQUIV_V12       6
-#define INEQUIV_QPM       7
+#define EQUIV             0
+#define INEQUIV_LENGTH    1
+#define INEQUIV_RADIUS    2
+#define INEQUIV_FULLHALF  3
+#define INEQUIV_DIPOLE    4
+#define INEQUIV_V12       5
+#define INEQUIV_QPM       6
 static const char *EEResultNames[]=
-{ "Equivalent+", "Equivalent-", 
-  "length", "radius", "full/half", "dipole", "V12", "QPM" };
+{ "Equivalent", "length", "radius", "full/half", "dipole", "V12", "QPM" };
 #define NUMEERESULTS (sizeof(EEResultNames)/sizeof(EEResultNames[0]))
 int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
-                        double DistanceQuantum, GTSignature *Gb2aSig, bool bInvert=false)
+                        double DistanceQuantum, GTSignature *Gb2aSig, bool FlipQPM=false, bool FlipV12=false)
 { 
   RWGEdge *Ea = Sa->GetEdgeByIndex(nea);
   RWGEdge *Eb = Sb->GetEdgeByIndex(neb);
+
+  if (FlipQPM && Eb->iMPanel==-1) return INEQUIV_FULLHALF;
 
 #define EERELTOL 1.0e-6
   double LengthTol = EERELTOL*Ea->Length;
@@ -260,22 +260,23 @@ int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
   // stage-2 check: magnitudes of dipole moments must match
   double *Va[4], Pa[3], *Vb[4], Pb[3];
   GetPVector(Sa, Ea, Va, Pa);
-  GetPVector(Sb, Eb, Vb, Pb);
+  GetPVector(Sb, Eb, Vb, Pb, FlipQPM, FlipV12);
   double Na = VecNorm(Pa), Nb = VecNorm(Pb);
   if ( fabs(Na-Nb) > EERELTOL*0.5*(Na+Nb) ) return INEQUIV_DIPOLE;
 
   // stage-3 check: Compute the "standard transformations" GTa, GTb
   // for edges Ea, Eb, then check that Ea = Ta^{-1} Tb(Eb).
-   GTransformation GStandard_b = GetStandardRotation(Sb, neb, bInvert);
+   GTransformation GStandard_b = GetStandardRotation(Sb, neb, FlipQPM, FlipV12);
    GTransformation GStandard_a = GetStandardRotation(Sa, nea);
    GTransformation Gb2a = -GStandard_a + GStandard_b;
    GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
 
-  // FIXME this leaves some equivalences undetected....
-  // make sure {V1,V2} = {V1,V2}, possibly with twist
+  // make sure {V1a,V2a} = {V1bPrime,V2bPrime} as sets
   double VbPrime[4][3];
   Gb2a.Apply(Vb[1], VbPrime[1]);
   Gb2a.Apply(Vb[2], VbPrime[2]);
+printf("VA1={%+g,%+g,%+g} , VA2={%+g,%+g,%+g}\n",Va[1][0],Va[1][1],Va[1][2],Va[2][0],Va[2][1],Va[2][2]);
+printf("VB1={%+g,%+g,%+g} , VB2={%+g,%+g,%+g}\n",VbPrime[1][0],VbPrime[1][1],VbPrime[1][2],VbPrime[2][0],VbPrime[2][1],VbPrime[2][2]);
   bool V12Direct = (    VecDistance(VbPrime[1], Va[1])<=LengthTol
                     &&  VecDistance(VbPrime[2], Va[2])<=LengthTol
                    );
@@ -284,41 +285,22 @@ int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
                    );
   if (!V12Direct && !V12Twist) return INEQUIV_V12;
  
-  // make sure {QP,QM} = {QP,QM}, possibly with twist
-  bool QPMDirect=true, QPMTwist=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+Gb2a.Apply(Vb[0], VbPrime[0]);
+Gb2a.Apply(Vb[3], VbPrime[3]);
+printf("VAP={%+g,%+g,%+g} , VAM={%+g,%+g,%+g}\n",Va[0][0],Va[0][1],Va[0][2],Va[3][0],Va[3][1],Va[3][2]);
+printf("VBP={%+g,%+g,%+g} , VBM={%+g,%+g,%+g}\n",VbPrime[0][0],VbPrime[0][1],VbPrime[0][2],VbPrime[3][0],VbPrime[3][1],VbPrime[3][2]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+  // make sure QPa==QPb, QMa==QMb
   Gb2a.Apply(Vb[0], VbPrime[0]);
-  if (Ea->iMPanel==-1)
-   QPMDirect = ( VecDistance(VbPrime[0], Va[0]) < LengthTol );
-  else
+  if ( VecDistance(VbPrime[0], Va[0]) > LengthTol ) return INEQUIV_QPM;
+  if (Ea->iMPanel!=-1)
    { Gb2a.Apply(Vb[3], VbPrime[3]);
-     QPMDirect = (     VecDistance(VbPrime[0], Va[0])<=LengthTol
-                   &&  VecDistance(VbPrime[3], Va[3])<=LengthTol
-                 );
-     QPMTwist  = (     VecDistance(VbPrime[0], Va[3])<=LengthTol
-                   &&  VecDistance(VbPrime[3], Va[0])<=LengthTol
-                 );
+     if ( VecDistance(VbPrime[3], Va[3]) > LengthTol ) return INEQUIV_QPM;
    }
-printf("Va:\n");
-printf(" {%+g,%+g,%+g}\n",Va[0][0],Va[0][1],Va[0][2]);
-printf(" {%+g,%+g,%+g}\n",Va[1][0],Va[1][1],Va[1][2]);
-printf(" {%+g,%+g,%+g}\n",Va[2][0],Va[2][1],Va[2][2]);
-printf(" {%+g,%+g,%+g}\n",Va[3][0],Va[3][1],Va[3][2]);
-printf("Vb:\n");
-printf(" {%+g,%+g,%+g}\n",Vb[0][0],Vb[0][1],Vb[0][2]);
-printf(" {%+g,%+g,%+g}\n",Vb[1][0],Vb[1][1],Vb[1][2]);
-printf(" {%+g,%+g,%+g}\n",Vb[2][0],Vb[2][1],Vb[2][2]);
-printf(" {%+g,%+g,%+g}\n",Vb[3][0],Vb[3][1],Vb[3][2]);
-printf("VbPrime:\n");
-printf(" {%+g,%+g,%+g}\n",VbPrime[0][0],VbPrime[0][1],VbPrime[0][2]);
-printf(" {%+g,%+g,%+g}\n",VbPrime[1][0],VbPrime[1][1],VbPrime[1][2]);
-printf(" {%+g,%+g,%+g}\n",VbPrime[2][0],VbPrime[2][1],VbPrime[2][2]);
-printf(" {%+g,%+g,%+g}\n",VbPrime[3][0],VbPrime[3][1],VbPrime[3][2]);
-printf("\n");
 
-
-  if (!QPMDirect && !QPMTwist) return INEQUIV_QPM;
-
-  return QPMTwist ? EQUIV_MINUS : EQUIV_PLUS;
+  return EQUIV;
 }
 
 /******************************************************************/
@@ -344,28 +326,50 @@ typedef vector<ChildEdgeData> ChildEdgeList;
 ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, SimilarEdgeTable &SETable, size_t Results[NUMEERESULTS])
 { 
   ChildEdgeList ChildEdges;
+  ChildEdgeData CEData;
+  if (TestEdgeEquivalence(S, neParent, S, neParent, DistanceQuantum, &(CEData.GTSig), true))
+   { CEData.neChild=neParent;
+     CEData.Sign=-1;
+     ChildEdges.push_back(CEData);
+   }
   int NE = S->NumEdges;
 
   iVec *neChildCandidates=GetSimilarEdges(SETable, S, neParent, DistanceQuantum);
-  int ncMax = neChildCandidates ? neChildCandidates->size() : NE-neParent;
-  for(int nc=1; nc<ncMax; nc++)
-   { ChildEdgeData CEData;
-     CEData.neChild = neChildCandidates ? (*neChildCandidates)[nc] : neParent+nc;
-     if (CEData.neChild<=neParent) continue;
-     int Status=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig));
-     if (Status==EQUIV_PLUS || Status==EQUIV_MINUS)
-      { CEData.Sign = (Status==EQUIV_MINUS ? -1 : 1);
+  int ncMax = neChildCandidates ? neChildCandidates->size() : NE;
+  for(int nc=0; nc<ncMax; nc++)
+   { 
+     CEData.neChild = neChildCandidates ? (*neChildCandidates)[nc] : nc;
+     if (CEData.neChild==neParent) continue;
+
+     int Status1=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false);
+     if (Status1==EQUIV)
+      { CEData.Sign=1;
         ChildEdges.push_back(CEData);
       }
-     else
-      { Status=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true);
-        if (Status==EQUIV_PLUS)
-         { CEData.Sign = -1;
-           ChildEdges.push_back(CEData);
-         }
+     int Status2=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true);
+     if (Status2==EQUIV)
+      { CEData.Sign=-1;
+        ChildEdges.push_back(CEData);
       }
+
+     int Status3=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false, true);
+     if (Status3==EQUIV)
+      { CEData.Sign=1;
+        ChildEdges.push_back(CEData);
+      }
+     int Status4=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true, true);
+     if (Status4==EQUIV)
+      { CEData.Sign=-1;
+        ChildEdges.push_back(CEData);
+      }
+
 #pragma omp critical
-     Results[Status]++;
+{
+     Results[Status1]++;
+     Results[Status2]++;
+     Results[Status3]++;
+     Results[Status4]++;
+}
    }
   return ChildEdges;
 }
@@ -409,23 +413,19 @@ ChildEdgeList *GetChildren(RWGGeometry *G, int ns, double DistanceQuantum)
 
   if (G->LogLevel>=SCUFF_VERBOSE2)
    { 
-     int NumParents=0;
+     int NumParents=0, NumChildren[2]={0,0};
      for(int ne=0; ne<NE; ne++)
-      NumParents += (Children[ne].size() > 0 ? 1 : 0);
+      { NumParents += (Children[ne].size() > 0 ? 1 : 0);
+        for(size_t nc=0; nc<Children[ne].size(); nc++)
+         NumChildren[Children[ne][nc].Sign==1 ? 0 : 1]++;
+      }
 
      Log(" Surface %s: %i/%i edges are parents (%.0g %%)",S->Label, NumParents,NE,100.0*((double)NumParents)/((double)NE));
      Log(" results of equivalent-edge detection:");
-     int TotalResults=EEResults[EQUIV_PLUS] + EEResults[EQUIV_MINUS];
-     Log("  Equivalent            : %6i",EEResults[EQUIV_PLUS]);
-     Log("  Equivalent with flip  : %6i",EEResults[EQUIV_MINUS]);
-     for(size_t nr=2; nr<NUMEERESULTS; nr++)
+     Log("  Equivalent            : %6i (%i,%i)",EEResults[EQUIV],NumChildren[0],NumChildren[1]);
+     for(size_t nr=EQUIV+1; nr<NUMEERESULTS; nr++)
       if (EEResults[nr]) 
-       { TotalResults+=EEResults[nr];
-         Log("Inequivalent(%10s): %6i",EEResultNames[nr],EEResults[nr]);
-       }
-     Log("-------------------------------------------");
-     int TotalPairsTested = NE*(NE-1)/2;
-     Log("  %15s: %6i (should be %i)","Total",TotalResults,TotalPairsTested);
+       Log("Inequivalent(%10s): %6i",EEResultNames[nr],EEResults[nr]);
    }
 
   return Children;
@@ -448,12 +448,13 @@ EdgePair EquivalentEdgePairTable::GetEdgePair(int neParent, int neChild)
 
 int iabs(int x) { return (x<0 ? -x : x); }
 
-void EquivalentEdgePairTable::ResolveEdgePair(EdgePair Pair, int *neParent, int *neChild)
+bool EquivalentEdgePairTable::ResolveEdgePair(EdgePair Pair, int *neParent, int *neChild)
 {
-  int Sign = (Pair < 0 ? -1 : 1);
-  Pair = iabs(Pair);
-  *neParent =         Pair / NERadix;
-  *neChild = Sign * (Pair % NERadix);
+  bool SignFlip = Pair<0;
+  if (SignFlip) Pair*=-1;
+  *neParent = Pair / NERadix;
+  *neChild =  Pair % NERadix;
+  return SignFlip;
 }
 
 /******************************************************************************/
@@ -503,7 +504,7 @@ EdgePairList *GetParentChildPairs(ParentChildTable &PCTable, GTSignature GTSig)
 void EquivalentEdgePairTable::AddEquivalentEdgePair(EdgePair ParentPair, EdgePair ChildPair,
                                                     bool SignFlip)
 {
-  if (ChildPair <= ParentPair) return;
+  if (ChildPair == ParentPair) return;
 
 #pragma omp critical
  { if (!IsReduced[ParentPair] && !IsReduced[ChildPair])
@@ -522,7 +523,12 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent
                                                     int neaChild, int nebChild,
                                                     bool SignFlip)
 { 
-  if( (nsa==nsb) && ( (nebParent<neaParent) || (nebChild < neaChild) ) ) return;
+  if(nsa==nsb)
+   { if (nebParent<neaParent)
+      { int temp=nebParent; nebParent=neaParent; neaParent=temp; }
+     if (nebChild<neaChild)
+      { int temp=nebChild; nebChild=neaChild; neaChild=temp; }
+   }
 
   AddEquivalentEdgePair( GetEdgePair(neaParent, nebParent),
                          GetEdgePair(neaChild, nebChild),
@@ -533,12 +539,11 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent
 void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int neaChild,
                                                     EdgePair nebPair)
 { 
-  int aSign = ( (neaChild < 0) ? -1 : 1);
-  int bSign = ( (nebPair  < 0) ? -1 : 1);
+  bool aFlipped = (neaChild < 0);
   int nebParent, nebChild;
-  ResolveEdgePair( iabs(nebPair), &nebParent, &nebChild);
+  bool bFlipped = ResolveEdgePair( iabs(nebPair), &nebParent, &nebChild);
   AddEquivalentEdgePair( neaParent, nebParent, iabs(neaChild), nebChild,
-                         aSign!=bSign );
+                         aFlipped!=bFlipped );
 }
 
 /******************************************************************/
@@ -613,7 +618,7 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   ParentChildTable bPCTable;
   for(int nebParent=0; nebParent<NEB; nebParent++)
    for(size_t nc=0; nc<bChildren[nebParent].size(); nc++)
-    AddParentChildPair(bPCTable, bChildren[nebParent][nc].GTSig, 
+    AddParentChildPair(bPCTable, bChildren[nebParent][nc].GTSig,
                        bChildren[nebParent][nc].Sign * GetEdgePair(nebParent,bChildren[nebParent][nc].neChild));
 
   /*----------------------------------------------------------------*/
@@ -696,8 +701,8 @@ void EquivalentEdgePairTable::Export(char *FileName)
      fprintf(f,"{%i,%i}",neaParent,nebParent);
      for(size_t nREP=0; nREP<it->second.size(); nREP++)
       { int neaChild, nebChild;
-        ResolveEdgePair(it->second[nREP], &neaChild, &nebChild);
-        fprintf(f," {%i,%i}",neaChild,nebChild);
+        bool SignFlip = ResolveEdgePair(it->second[nREP], &neaChild, &nebChild);
+        fprintf(f," %c{%i,%i}",SignFlip ? '-' : '+',neaChild,nebChild);
       }
      fprintf(f,"\n");
    }

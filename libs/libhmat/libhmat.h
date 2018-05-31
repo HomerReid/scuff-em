@@ -262,12 +262,12 @@ class HMatrix
    void Transpose(); // non-conjugate transpose
 
    // routines for inserting a smaller HMatrix into a larger one
-   void InsertBlock(HMatrix *B, int RowOffset, int ColOffset);
-   void InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset);
-   void InsertBlockTranspose(HMatrix *B, int RowOffset, int ColOffset);
+   void InsertBlock(HMatrix *B, int RowOffset, int ColOffset, double ScaleFactor=1.0);
+   void InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset, double ScaleFactor=1.0);
+   void InsertBlockTranspose(HMatrix *B, int RowOffset, int ColOffset, double ScaleFactor=1.0);
    // insert a subblock of B
    void InsertBlock(HMatrix *B, int RowOffset, int ColOffset,
-                    int NRB, int NCB, int BRowOffset, int BColOffset);
+                    int NRB, int NCB, int BRowOffset, int BColOffset, double ScaleFactor=1.0);
 
    // like InsertBlock, but addition rather than replacement
    void AddBlock(HMatrix *B, int RowOffset, int ColOffset, cdouble ScaleFactor=1.0);

@@ -599,14 +599,14 @@ void HMatrix::Transpose()
 /* stamp the full matrix B into this matrix in such a way that */
 /* the upper-left entry of B goes into slot (RowOffset,ColOffset). */
 /***************************************************************/
-void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset)
+void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset, double Scale)
 { 
   if ( ((RowOffset + B->NR) > NR) || ((ColOffset + B->NC) > NC) )
    ErrExit("InsertBlock(): block insertion exceeds matrix size");
 
   for (int nr=0; nr<B->NR; nr++)
    for (int nc=0; nc<B->NC; nc++)
-    SetEntry(RowOffset+nr, ColOffset+nc, B->GetEntry(nr,nc) );
+    SetEntry(RowOffset+nr, ColOffset+nc, Scale * B->GetEntry(nr,nc) );
 }
 
 /****************************************************************/
@@ -614,7 +614,7 @@ void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset)
 /* subblock of B starting at (BRowOffset, BColOffsets)          */
 /****************************************************************/
 void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset,
-                          int NRB, int NCB, int BRowOffset, int BColOffset)
+                          int NRB, int NCB, int BRowOffset, int BColOffset, double Scale)
 {
   if ( ((RowOffset + NRB) > NR) || ((ColOffset + NCB) > NC) )
    ErrExit("InsertBlock(): block insertion exceeds matrix size");
@@ -623,7 +623,7 @@ void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset,
 
   for (int nr=0; nr<NRB; nr++)
    for (int nc=0; nc<NCB; nc++)
-    SetEntry(RowOffset+nr, ColOffset+nc, B->GetEntry(BRowOffset+nr,BColOffset+nc) );
+    SetEntry(RowOffset+nr, ColOffset+nc, Scale * B->GetEntry(BRowOffset+nr,BColOffset+nc) );
 
 }
 
@@ -635,7 +635,7 @@ void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset,
 /* B(1,0) goes into slot (RowOffset,   ColOffset+1)            */
 /* etc.                                                        */
 /***************************************************************/
-void HMatrix::InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
+void HMatrix::InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset, double Scale)
 { 
   if ( ((RowOffset + B->NC) > NR) || ((ColOffset + B->NR) > NC) )
    ErrExit("InsertBlockAdjoint(): block insertion exceeds matrix size");
@@ -643,12 +643,12 @@ void HMatrix::InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
   if (B->RealComplex==LHM_COMPLEX)
    { for (int nr=0; nr<B->NR; nr++)
       for (int nc=0; nc<B->NC; nc++)
-       SetEntry(RowOffset+nc, ColOffset+nr, conj(B->GetEntry(nr,nc)) );
+       SetEntry(RowOffset+nc, ColOffset+nr, Scale*conj(B->GetEntry(nr,nc)) );
    }
   else
    { for (int nr=0; nr<B->NR; nr++)
       for (int nc=0; nc<B->NC; nc++)
-       SetEntry(RowOffset+nc, ColOffset+nr, B->GetEntryD(nr,nc) );
+       SetEntry(RowOffset+nc, ColOffset+nr, Scale*B->GetEntryD(nr,nc) );
    };
 }
 
@@ -660,7 +660,7 @@ void HMatrix::InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
 /* B(1,0) goes into slot (RowOffset,   ColOffset+1)            */
 /* etc.                                                        */
 /***************************************************************/
-void HMatrix::InsertBlockTranspose(HMatrix *B, int RowOffset, int ColOffset)
+void HMatrix::InsertBlockTranspose(HMatrix *B, int RowOffset, int ColOffset, double Scale)
 { 
   if ( ((RowOffset + B->NC) > NR) || ((ColOffset + B->NR) > NC) )
    ErrExit("InsertBlockTranspose(): block insertion exceeds matrix size");
@@ -668,12 +668,12 @@ void HMatrix::InsertBlockTranspose(HMatrix *B, int RowOffset, int ColOffset)
   if (B->RealComplex==LHM_COMPLEX)
    { for (int nr=0; nr<B->NR; nr++)
       for (int nc=0; nc<B->NC; nc++)
-       SetEntry(RowOffset+nc, ColOffset+nr, B->GetEntry(nr,nc));
+       SetEntry(RowOffset+nc, ColOffset+nr, Scale*B->GetEntry(nr,nc));
    }
   else
    { for (int nr=0; nr<B->NR; nr++)
       for (int nc=0; nc<B->NC; nc++)
-       SetEntry(RowOffset+nc, ColOffset+nr, B->GetEntryD(nr,nc) );
+       SetEntry(RowOffset+nc, ColOffset+nr, Scale*B->GetEntryD(nr,nc) );
    }
 }
 
