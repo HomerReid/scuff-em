@@ -275,8 +275,6 @@ int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
   double VbPrime[4][3];
   Gb2a.Apply(Vb[1], VbPrime[1]);
   Gb2a.Apply(Vb[2], VbPrime[2]);
-printf("VA1={%+g,%+g,%+g} , VA2={%+g,%+g,%+g}\n",Va[1][0],Va[1][1],Va[1][2],Va[2][0],Va[2][1],Va[2][2]);
-printf("VB1={%+g,%+g,%+g} , VB2={%+g,%+g,%+g}\n",VbPrime[1][0],VbPrime[1][1],VbPrime[1][2],VbPrime[2][0],VbPrime[2][1],VbPrime[2][2]);
   bool V12Direct = (    VecDistance(VbPrime[1], Va[1])<=LengthTol
                     &&  VecDistance(VbPrime[2], Va[2])<=LengthTol
                    );
@@ -285,13 +283,6 @@ printf("VB1={%+g,%+g,%+g} , VB2={%+g,%+g,%+g}\n",VbPrime[1][0],VbPrime[1][1],VbP
                    );
   if (!V12Direct && !V12Twist) return INEQUIV_V12;
  
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-Gb2a.Apply(Vb[0], VbPrime[0]);
-Gb2a.Apply(Vb[3], VbPrime[3]);
-printf("VAP={%+g,%+g,%+g} , VAM={%+g,%+g,%+g}\n",Va[0][0],Va[0][1],Va[0][2],Va[3][0],Va[3][1],Va[3][2]);
-printf("VBP={%+g,%+g,%+g} , VBM={%+g,%+g,%+g}\n",VbPrime[0][0],VbPrime[0][1],VbPrime[0][2],VbPrime[3][0],VbPrime[3][1],VbPrime[3][2]);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   // make sure QPa==QPb, QMa==QMb
   Gb2a.Apply(Vb[0], VbPrime[0]);
   if ( VecDistance(VbPrime[0], Va[0]) > LengthTol ) return INEQUIV_QPM;
@@ -327,11 +318,11 @@ ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuant
 { 
   ChildEdgeList ChildEdges;
   ChildEdgeData CEData;
-  if (TestEdgeEquivalence(S, neParent, S, neParent, DistanceQuantum, &(CEData.GTSig), true))
-   { CEData.neChild=neParent;
-     CEData.Sign=-1;
-     ChildEdges.push_back(CEData);
-   }
+//  if (TestEdgeEquivalence(S, neParent, S, neParent, DistanceQuantum, &(CEData.GTSig), true))
+//   { CEData.neChild=neParent;
+//     CEData.Sign=-1;
+//     ChildEdges.push_back(CEData);
+//   }
   int NE = S->NumEdges;
 
   iVec *neChildCandidates=GetSimilarEdges(SETable, S, neParent, DistanceQuantum);
@@ -339,14 +330,14 @@ ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuant
   for(int nc=0; nc<ncMax; nc++)
    { 
      CEData.neChild = neChildCandidates ? (*neChildCandidates)[nc] : nc;
-     if (CEData.neChild==neParent) continue;
+     //if (CEData.neChild==neParent) continue;
 
-     int Status1=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false);
+     int Status1=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false, false);
      if (Status1==EQUIV)
       { CEData.Sign=1;
         ChildEdges.push_back(CEData);
       }
-     int Status2=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true);
+     int Status2=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true, false);
      if (Status2==EQUIV)
       { CEData.Sign=-1;
         ChildEdges.push_back(CEData);
