@@ -318,11 +318,6 @@ ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuant
 { 
   ChildEdgeList ChildEdges;
   ChildEdgeData CEData;
-//  if (TestEdgeEquivalence(S, neParent, S, neParent, DistanceQuantum, &(CEData.GTSig), true))
-//   { CEData.neChild=neParent;
-//     CEData.Sign=-1;
-//     ChildEdges.push_back(CEData);
-//   }
   int NE = S->NumEdges;
 
   iVec *neChildCandidates=GetSimilarEdges(SETable, S, neParent, DistanceQuantum);
@@ -343,23 +338,31 @@ ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuant
         ChildEdges.push_back(CEData);
       }
 
-     int Status3=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false, true);
-     if (Status3==EQUIV)
-      { CEData.Sign=1;
-        ChildEdges.push_back(CEData);
-      }
-     int Status4=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true, true);
-     if (Status4==EQUIV)
-      { CEData.Sign=-1;
-        ChildEdges.push_back(CEData);
+     RWGEdge *E=S->Edges[neParent];
+     double *QP = S->Vertices + 3*E->iQP;
+     double *V1 = S->Vertices + 3*E->iV1;
+     double *V2 = S->Vertices + 3*E->iV2;
+     int Status3=-1, Status4=-1;
+     if ( EqualFloat(VecDistance(QP,V1), VecDistance(QP, V2) ) )
+      { 
+        Status3=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false, true);
+        if (Status3==EQUIV)
+         { CEData.Sign=1;
+           ChildEdges.push_back(CEData);
+         }
+        Status4=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true, true);
+        if (Status4==EQUIV)
+         { CEData.Sign=-1;
+           ChildEdges.push_back(CEData);
+         }
       }
 
 #pragma omp critical
 {
      Results[Status1]++;
      Results[Status2]++;
-     Results[Status3]++;
-     Results[Status4]++;
+     if (Status3!=-1) Results[Status3]++;
+     if (Status4!=-1) Results[Status4]++;
 }
    }
   return ChildEdges;
@@ -497,7 +500,7 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(EdgePair ParentPair, EdgePai
 {
   if (ChildPair == ParentPair) return;
 
-#pragma omp critical
+//#pragma omp critical
  { if (!IsReduced[ParentPair] && !IsReduced[ChildPair])
     { IsReduced[ChildPair]=true;
       if (SignFlip) ChildPair*=-1;
@@ -515,8 +518,8 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent
                                                     bool SignFlip)
 { 
   if(nsa==nsb)
-   { if (nebParent<neaParent)
-      { int temp=nebParent; nebParent=neaParent; neaParent=temp; }
+   { //if (nebParent<neaParent)
+    //  { int temp=nebParent; nebParent=neaParent; neaParent=temp; }
      if (nebChild<neaChild)
       { int temp=nebChild; nebChild=neaChild; neaChild=temp; }
    }
@@ -532,7 +535,7 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int neaChild,
 { 
   bool aFlipped = (neaChild < 0);
   int nebParent, nebChild;
-  bool bFlipped = ResolveEdgePair( iabs(nebPair), &nebParent, &nebChild);
+  bool bFlipped = ResolveEdgePair( nebPair, &nebParent, &nebChild);
   AddEquivalentEdgePair( neaParent, nebParent, iabs(neaChild), nebChild,
                          aFlipped!=bFlipped );
 }
@@ -606,11 +609,20 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   /*         edge pairs on surface #nsb.                            */
   /*         A pair is "GT-related" if GT(Child) = Parent.          */
   /*----------------------------------------------------------------*/
-  ParentChildTable bPCTable;
-  for(int nebParent=0; nebParent<NEB; nebParent++)
-   for(size_t nc=0; nc<bChildren[nebParent].size(); nc++)
-    AddParentChildPair(bPCTable, bChildren[nebParent][nc].GTSig,
-                       bChildren[nebParent][nc].Sign * GetEdgePair(nebParent,bChildren[nebParent][nc].neChild));
+  ParentChildTable aPCTable;
+  for(int neaParent=0; neaParent<NEA; neaParent++)
+   for(size_t nc=0; nc<aChildren[neaParent].size(); nc++)
+    AddParentChildPair(aPCTable, aChildren[neaParent][nc].GTSig,
+                       aChildren[neaParent][nc].Sign * GetEdgePair(neaParent,aChildren[neaParent][nc].neChild));
+
+  ParentChildTable bPCTBuffer;
+  if (nsa!=nsb)
+   for(int nebParent=0; nebParent<NEB; nebParent++)
+    for(size_t nc=0; nc<bChildren[nebParent].size(); nc++)
+     AddParentChildPair(bPCTBuffer, bChildren[nebParent][nc].GTSig,
+                        bChildren[nebParent][nc].Sign * GetEdgePair(nebParent,bChildren[nebParent][nc].neChild));
+
+  ParentChildTable *bPCTable = (nsa==nsb ? &aPCTable : &bPCTBuffer);
 
   /*----------------------------------------------------------------*/
   /* second pass to identify equivalent off-diagonal edge pairs.    */
@@ -636,6 +648,23 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   /*----------------------------------------------------------------*/
   if (G->LogLevel>=SCUFF_VERBOSE2) 
    Log("  Step 2: Identifying equivalent edge pairs (%i threads)",NumThreads);
+  for(ParentChildTable::iterator ita=aPCTable.begin(); ita!=aPCTable.end(); ita++)
+   { if (ita->second.size()==0) continue;
+     ParentChildTable::iterator itb=bPCTable->find(ita->first);
+     if (itb==bPCTable->end() || itb->second.size()==0) continue;
+     int neaParent = ita->second[0], nebParent = itb->second[0];
+if (neaParent<0 || nebParent<0) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+     for(size_t nca=1; nca<ita->second.size(); nca++)
+      for(size_t ncb=1; ncb<itb->second.size(); ncb++)
+       { int neaChild  = ita->second[nca];
+         int nebChild  = itb->second[ncb];
+         bool SignFlip = ( (neaChild<0) != (nebChild<0) );
+         AddEquivalentEdgePair(neaParent, nebParent, neaChild, nebChild, SignFlip);
+       }
+   }
+
+
+#if 0
 #ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
@@ -647,6 +676,7 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
       for(size_t n=0; n<bPairs->size(); n++)
        AddEquivalentEdgePair(neaParent, neaChild, (*bPairs)[n]);
     }
+#endif
 
   /*----------------------------------------------------------------*/
   /* report some statistics on equivalent edge pairs to log file    */
