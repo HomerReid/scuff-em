@@ -32,8 +32,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <map>
 
 namespace scuff {
+
+#define ISWAP(a,b) { int temp=a; a=b; b=temp; }
+#define VSWAP(a,b) { double *temp=a; a=b; b=temp; }
 
 long JenkinsHash(const char *key, size_t len); // in FIBBICache.cc 
 
@@ -62,9 +66,9 @@ GTransformation GetStandardRotation(RWGSurface *S, int ne, bool FlipQPM=false, b
   double *X0 = E->Centroid;
 
   if (FlipV12)
-   { double *Temp=V1; V1=V2; V2=Temp; }
+   VSWAP(V1,V2);
   if (VecDistance(QP,V2) < VecDistance(QP,V1))
-   { double *Temp=V1; V1=V2; V2=Temp; }
+   VSWAP(V1,V2);
   
   double MX0[3];
   MX0[0]=-X0[0];
@@ -101,10 +105,8 @@ void GetPVector(RWGSurface *S, RWGEdge *E, double *V[4], double P[3], bool FlipQ
   V[1] = S->Vertices + 3*E->iV1;
   V[2] = S->Vertices + 3*E->iV2;
   V[3] = (E->iQM==-1) ? E->Centroid : S->Vertices + 3*E->iQM;
-  if (FlipV12)
-   { double *Temp=V[1]; V[1]=V[2]; V[2]=Temp; }
-  if (FlipQPM && E->iQM!=-1)
-   { double *Temp=V[0]; V[0]=V[3]; V[3]=Temp; }
+  if (FlipV12) VSWAP(V[1],V[2]);
+  if (FlipQPM && E->iQM!=-1) VSWAP(V[0],V[3]);
   VecSub(V[0], V[3], P);
   VecScale(P, E->Length);
 }
@@ -184,6 +186,27 @@ iVec *GetSimilarEdges(SimilarEdgeTable &SETable, RWGSurface *S, int ne, double D
 /***************************************************************/
 #define GTSIGLEN 9
 typedef struct { int Signature[GTSIGLEN]; } GTSignature;
+
+struct GTSigHash 
+ { long operator() (const GTSignature &GTSig) const 
+    { return scuff::JenkinsHash( (const char *)GTSig.Signature, sizeof(GTSignature)); } 
+ };
+
+typedef struct 
+ { bool operator()(const GTSignature &GTSig1, const GTSignature &GTSig2) const  
+     { return !memcmp( (const void *)GTSig1.Signature,
+                       (const void *)GTSig2.Signature,
+                       sizeof(GTSignature)); 
+     } 
+ } GTSigCmp; 
+
+typedef struct 
+ { bool operator()(const GTSignature &GTSig1, const GTSignature &GTSig2) const  
+    { for(int n=0; n<GTSIGLEN; n++)
+       if (GTSig1.Signature[n]<GTSig2.Signature[n]) return true;
+      return false;
+    }
+ } GTSigCmp2;
 
 #define ANGLEQUANTUM (1.0/(1000.0*2.0*M_PI))
 void GetGTSignature(GTransformation GT, double DistanceQuantum, GTSignature *GTSig)
@@ -310,10 +333,11 @@ typedef struct ChildEdgeData
  { int neChild;
    int Sign;
    GTSignature GTSig;
+   ChildEdgeData(int _neChild, int _Sign, GTSignature _GTSig): neChild(_neChild), Sign(_Sign), GTSig(_GTSig){};
  } ChildEdgeData;
 
 typedef vector<ChildEdgeData> ChildEdgeList;
-
+#if 0
 ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, SimilarEdgeTable &SETable, size_t Results[NUMEERESULTS])
 { 
   ChildEdgeList ChildEdges;
@@ -364,6 +388,52 @@ ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuant
      if (Status3!=-1) Results[Status3]++;
      if (Status4!=-1) Results[Status4]++;
 }
+   }
+  return ChildEdges;
+}
+#endif
+
+typedef std::map<GTSignature, ChildEdgeData, GTSigCmp2> SortedGTList;
+
+ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, SimilarEdgeTable &SETable, size_t Results[NUMEERESULTS])
+{ 
+  ChildEdgeList ChildEdges;
+
+  iVec *neChildCandidates=GetSimilarEdges(SETable, S, neParent, DistanceQuantum);
+  int ncMax = neChildCandidates ? neChildCandidates->size() : S->NumEdges;
+  for(int nc=0; nc<ncMax; nc++)
+   { 
+     int neChild = neChildCandidates ? (*neChildCandidates)[nc] : nc;
+
+     RWGEdge *E=S->Edges[neChild];
+     double *QP = S->Vertices + 3*E->iQP;
+     double *V1 = S->Vertices + 3*E->iV1;
+     double *V2 = S->Vertices + 3*E->iV2;
+     bool V12Symmetric = EqualFloat(VecDistance(QP,V1), VecDistance(QP, V2));
+
+     SortedGTList GTs;
+     GTSignature GTSig;
+     for(int FlipV12=0; FlipV12 < (V12Symmetric ? 2 : 1); FlipV12++)
+      for(int FlipQPM=0; FlipQPM<2; FlipQPM++)
+       { int Status=TestEdgeEquivalence(S, neParent, S, neChild, DistanceQuantum, &GTSig, FlipQPM==1, FlipV12==1);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (neParent==0)
+{ EdgeSignature ES1, ES2;
+  GetEdgeSignature(S, neParent, DistanceQuantum, ES1);
+  GetEdgeSignature(S, neChild,  DistanceQuantum, ES2);
+         printf("{%i,%i} (%i,%i,%i)(%i,%i,%i) %i%i: {%e,%e} %s\n",
+neParent,neChild,
+ES1.Signature[0],ES1.Signature[1],ES1.Signature[2],
+ES2.Signature[0],ES2.Signature[1],ES2.Signature[2],
+FlipV12,FlipQPM,
+S->Edges[neParent]->Length,S->Edges[neChild]->Length, EEResultNames[Status]);
+}
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+        GTs.insert(std::pair<GTSignature,ChildEdgeData>(GTSig, ChildEdgeData(neChild, 1-2*FlipQPM, GTSig) ) );
+       }
+
+     for(SortedGTList::iterator it=GTs.begin(); it!=GTs.end(); it++)
+      ChildEdges.push_back(it->second);
    }
   return ChildEdges;
 }
@@ -456,19 +526,6 @@ bool EquivalentEdgePairTable::ResolveEdgePair(EdgePair Pair, int *neParent, int 
 /* ParentChildTable[GTSig] is a list of GT-related {parent, child} pairs,     */
 /* i.e. for each {parent, child} pair in the list we have parent = GT(child). */
 /******************************************************************************/
-struct GTSigHash 
- { long operator() (const GTSignature &GTSig) const 
-    { return scuff::JenkinsHash( (const char *)GTSig.Signature, sizeof(GTSignature)); } 
- };
-
-typedef struct 
- { bool operator()(const GTSignature &GTSig1, const GTSignature &GTSig2) const  
-     { return !memcmp( (const void *)GTSig1.Signature, 
-                       (const void *)GTSig2.Signature, 
-                       sizeof(GTSignature)); 
-     } 
- } GTSigCmp; 
-
 #ifdef HAVE_CXX11 
  typedef unordered_map<GTSignature, EdgePairList, GTSigHash, GTSigCmp> ParentChildTable; 
 #elif defined(HAVE_TR1) 
@@ -499,6 +556,7 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(EdgePair ParentPair, EdgePai
                                                     bool SignFlip)
 {
   if (ChildPair == ParentPair) return;
+  if (ChildPair < ParentPair) ISWAP(ChildPair, ParentPair);
 
 //#pragma omp critical
  { if (!IsReduced[ParentPair] && !IsReduced[ChildPair])
@@ -518,11 +576,11 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent
                                                     bool SignFlip)
 { 
   if(nsa==nsb)
-   { //if (nebParent<neaParent)
-    //  { int temp=nebParent; nebParent=neaParent; neaParent=temp; }
-     if (nebChild<neaChild)
-      { int temp=nebChild; nebChild=neaChild; neaChild=temp; }
+   { if (nebParent<neaParent) ISWAP(nebParent, neaParent);
+     if (nebChild<neaChild) ISWAP(nebChild, neaChild);
    }
+
+  if (nsa==nsb && (neaParent==nebChild && neaChild==nebParent)) return;
 
   AddEquivalentEdgePair( GetEdgePair(neaParent, nebParent),
                          GetEdgePair(neaChild, nebChild),
@@ -623,6 +681,22 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
                         bChildren[nebParent][nc].Sign * GetEdgePair(nebParent,bChildren[nebParent][nc].neChild));
 
   ParentChildTable *bPCTable = (nsa==nsb ? &aPCTable : &bPCTBuffer);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+for(int nc=0; nc<aChildren[0].size(); nc++)
+ { printf("{0,%i} GTSig={%i,%i,%i}{%i,%i,%i,%i,%i,%i}\n",
+   aChildren[0][nc].Sign * aChildren[0][nc].neChild,
+   aChildren[0][nc].GTSig.Signature[0],
+   aChildren[0][nc].GTSig.Signature[1],
+   aChildren[0][nc].GTSig.Signature[2],
+   aChildren[0][nc].GTSig.Signature[3],
+   aChildren[0][nc].GTSig.Signature[4],
+   aChildren[0][nc].GTSig.Signature[5],
+   aChildren[0][nc].GTSig.Signature[6],
+   aChildren[0][nc].GTSig.Signature[7],
+   aChildren[0][nc].GTSig.Signature[8]);
+ }
+ 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*----------------------------------------------------------------*/
   /* second pass to identify equivalent off-diagonal edge pairs.    */
@@ -648,35 +722,44 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   /*----------------------------------------------------------------*/
   if (G->LogLevel>=SCUFF_VERBOSE2) 
    Log("  Step 2: Identifying equivalent edge pairs (%i threads)",NumThreads);
+if(CheckEnv("SCUFF_NEW_EEPS"))
+{
   for(ParentChildTable::iterator ita=aPCTable.begin(); ita!=aPCTable.end(); ita++)
    { if (ita->second.size()==0) continue;
      ParentChildTable::iterator itb=bPCTable->find(ita->first);
      if (itb==bPCTable->end() || itb->second.size()==0) continue;
-     int neaParent = ita->second[0], nebParent = itb->second[0];
-if (neaParent<0 || nebParent<0) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-     for(size_t nca=1; nca<ita->second.size(); nca++)
-      for(size_t ncb=1; ncb<itb->second.size(); ncb++)
-       { int neaChild  = ita->second[nca];
-         int nebChild  = itb->second[ncb];
-         bool SignFlip = ( (neaChild<0) != (nebChild<0) );
-         AddEquivalentEdgePair(neaParent, nebParent, neaChild, nebChild, SignFlip);
+     for(size_t nca=0; nca<ita->second.size(); nca++)
+      for(size_t ncb=0; ncb<itb->second.size(); ncb++)
+       { 
+         int neaParent, nebParent, neaChild, nebChild;
+         bool aFlipped = ResolveEdgePair(ita->second[nca], &neaParent, &neaChild);
+         bool bFlipped = ResolveEdgePair(itb->second[ncb], &nebParent, &nebChild);
+if (neaParent>neaChild)
+ { int temp=neaParent; neaParent=neaChild; neaChild=temp; }
+if (nebParent>nebChild)
+ { int temp=nebParent; nebParent=nebChild; nebChild=temp; }
+if (neaParent>nebParent)
+ { int temp=neaParent; neaParent=nebParent; nebParent=temp;
+       temp=neaChild;  neaChild=nebChild;   nebChild=temp;
+ }
+         AddEquivalentEdgePair(neaParent, nebParent, neaChild, nebChild, aFlipped!=bFlipped);
        }
    }
-
-
-#if 0
+}
+else
+{
 #ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int neaParent=0; neaParent<NEA; neaParent++)
    for(size_t nc=0; nc<aChildren[neaParent].size(); nc++)
     { int neaChild  = aChildren[neaParent][nc].Sign * aChildren[neaParent][nc].neChild;
-      EdgePairList *bPairs = GetParentChildPairs(bPCTable, aChildren[neaParent][nc].GTSig);
+      EdgePairList *bPairs = GetParentChildPairs(*bPCTable, aChildren[neaParent][nc].GTSig);
       if (bPairs==0) continue;
       for(size_t n=0; n<bPairs->size(); n++)
        AddEquivalentEdgePair(neaParent, neaChild, (*bPairs)[n]);
     }
-#endif
+}
 
   /*----------------------------------------------------------------*/
   /* report some statistics on equivalent edge pairs to log file    */
