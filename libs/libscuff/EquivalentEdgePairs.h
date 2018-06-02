@@ -81,10 +81,10 @@ public:
    bool ResolveEdgePair(EdgePair nPair, int *neParent, int *neChild);
   
    // helper methods for constructing the table
-   void AddReducedPair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip=false);
-   void AddReducedPair(int neaParent, int nebParent, int neaChild, int nebChild, bool SignFlip=false);
-   void AddReducedPair(int neaParent, int neaChild, EdgePair nebPair);
-   void EvaluatePairPair(struct EdgePairData *aPair, struct EdgePairData *bPair);
+   bool AddReducedPair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip=false);
+   bool AddReducedPair(int neaParent, int nebParent, int neaChild, int nebChild, bool SignFlip=false);
+   bool AddReducedPair(int neaParent, int neaChild, EdgePair nebPair);
+   bool EvaluatePairPair(struct EdgePairData *aPair, struct EdgePairData *bPair);
 
 // private data fields
 
