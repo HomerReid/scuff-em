@@ -18,7 +18,7 @@
  */
 
 /* 
- * EquivalentEdgePairs.h 
+ * EquivalentEdges.h 
  */
 
 #ifndef EQUIVALENT_EDGE_PAIRS_H
@@ -40,34 +40,31 @@
 
 namespace scuff {
 
-/****************************************************************************/
-/* An EdgePair is simply a pair of edge indices.                            */
-/* An EdgePairList is simply a list of EdgePairs.                           */
-/* An IrreducibleEdgePair is an EdgePair (the "parent" pair) together with  */
-/*  a list of EdgePairs (the "children" pairs) with the property that the   */
-/*  matrix elements between the elements of any child pair are equal to the */
-/*  matrix element between the elements of the parent pair.                 */
-/****************************************************************************/
+/*********************************************************************************/
+/* An EdgePair is a pair of edge indices.                                        */
+/* An EdgePairList is a list of EdgePairs.                                       */
+/* A ReducedEdgePairMap is a set of (Key=EdgePair, Value=EdgePairList) pairs,    */
+/* where the key is a single pair of RWG edges (the parent pair) and the value   */
+/* is a list of edge pairs (the children) where each child pair has matrix       */
+/* elements equal to those of the parent pair.                                   */
+/*********************************************************************************/
 typedef int EdgePair;
 typedef vector<EdgePair> EdgePairList;
-typedef struct IrreducibleEdgePair
- { EdgePair ParentPair;
-   EdgePairList *ChildPairs;
- } IrreducibleEdgePair;
-typedef vector <IrreducibleEdgePair> IrreducibleEdgePairList;
 
 #if defined(HAVE_CXX11) 
-  typedef std::unordered_map<EdgePair, EdgePairList> IrreducibleEdgePairMap;
+  typedef std::unordered_map<EdgePair, EdgePairList> ReducedEdgePairMap;
 #elif defined(HAVE_TR1) 
-  typedef std::tr1::unordered_map<EdgePair, EdgePairList> IrreducibleEdgePairMap;
+  typedef std::tr1::unordered_map<EdgePair, EdgePairList> ReducedEdgePairMap;
 #else
-  typedef std::map<EdgePair, EdgePairList> IrreducibleEdgePairMap;
+  typedef std::map<EdgePair, EdgePairList> ReducedEdgePairMap;
 #endif
 
 /****************************************************************************/
 /* an EquivalentEdgePairTable is a table of matrix-element redundancies for */
 /* a given pair of RWG surfaces.                                            */
 /****************************************************************************/
+struct EdgePairData; // defined in EquivalentEdges.cc
+
 class EquivalentEdgePairTable
 { 
 public:
@@ -84,9 +81,10 @@ public:
    bool ResolveEdgePair(EdgePair nPair, int *neParent, int *neChild);
   
    // helper methods for constructing the table
-   void AddEquivalentEdgePair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip=false);
-   void AddEquivalentEdgePair(int neaParent, int nebParent, int neaChild, int nebChild, bool SignFlip=false);
-   void AddEquivalentEdgePair(int neaParent, int neaChild, EdgePair nebPair);
+   void AddReducedPair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip=false);
+   void AddReducedPair(int neaParent, int nebParent, int neaChild, int nebChild, bool SignFlip=false);
+   void AddReducedPair(int neaParent, int neaChild, EdgePair nebPair);
+   void EvaluatePairPair(struct EdgePairData *aPair, struct EdgePairData *bPair);
 
 // private data fields
 
@@ -96,8 +94,8 @@ public:
 
    bVec IsReduced;
 
-   /* IrreducibleEdgePairMap[ParentPair] = list of edge pairs equivalent to ParentPair */
-   IrreducibleEdgePairMap IEPMap;
+   /* REPMap[ParentPair] = list of edge pairs equivalent to ParentPair */
+   ReducedEdgePairMap REPMap;
 };
 
 } // namespace scuff

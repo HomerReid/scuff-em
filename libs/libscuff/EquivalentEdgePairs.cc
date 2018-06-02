@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
+/*
  *
  * This file is part of SCUFF-EM.
  *
@@ -21,6 +21,7 @@
  * EquivalentEdgePairs.cc -- automatic detection of "equivalent edge pairs," i.e.
  *                        -- pairs of RWG basis functions with identical SIE matrix
  *                        -- elements
+ * Homer Reid `           -- 4/2018
  */
 
 #include "EquivalentEdgePairs.h"
@@ -43,20 +44,95 @@ long JenkinsHash(const char *key, size_t len); // in FIBBICache.cc
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/* The first portion of this file contains routines for         */
-/* analyzing equivalences between pairs of RWG functions, i.e.  */
+/* Part 1 of this file contains routines for analyzing          */
+/* equivalences between pairs of RWG functions, i.e.            */
 /* relationships of the form (neParent<-->neChild).             */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 
 /***************************************************************/
-/* given a (full or half) RWG edge E, compute the standard     */
-/* rotation that operates on E to put it in standard position. */
-/* Standard position means the edge lies on the $x$ axis with  */
-/* its centroid at the origin and its positive panel lying in  */
-/* the XY plane with Q1.x > 0.                                 */
+/* Part 1A: Routines for handling similar edges.               */
+/*  "Similarity" of edges is a coarse version of "equivalence".*/
+/*  Two edges are similar if they have identical "signatures", */
+/*  where the signature of an edge is a geometric statistic    */
+/*  that is fast to compute and which yields a useful key for  */
+/*  organizing tables of similar edges. Similarity is a        */
+/*  necessary but not sufficient condition for equivalence.    */
+/*  A SignedEdgeTable is a list of edges sorted by signature.  */
 /***************************************************************/
-GTransformation GetStandardRotation(RWGSurface *S, int ne, bool FlipQPM=false, bool FlipV12=false)
+#define EDGESIGLEN 3
+typedef struct { float Signature[EDGESIGLEN]; } EdgeSignature;
+EdgeSignature GetEdgeSignature(RWGSurface *S, int ne)
+ { 
+   RWGEdge *E = S->Edges[ne];
+   double *QP = S->Vertices + 3*E->iQP;
+   double *V1 = S->Vertices + 3*E->iV1;
+   double *V2 = S->Vertices + 3*E->iV2;
+   double *QM = E->iQM==-1 ? E->Centroid : S->Vertices + 3*E->iQM;
+   
+   double QmQ[3];   VecSub(QP, QM, QmQ);
+   double VmV[3];   VecSub(V1, V2, VmV);
+   double Cross[3]; VecCross(QmQ, VmV, Cross);
+   
+   EdgeSignature ES;
+   ES.Signature[0] = (float) VecNorm(QmQ);
+   ES.Signature[1] = (float) VecNorm(VmV);
+   ES.Signature[2] = (float) VecNorm(Cross);
+   return ES;
+}
+
+struct EdgeSigHash 
+ { long operator() (const EdgeSignature &EdgeSig) const 
+    { return scuff::JenkinsHash( (const char *)EdgeSig.Signature, sizeof(EdgeSignature)); }
+ };
+
+typedef struct
+ { bool operator()(const EdgeSignature &EdgeSig1, const EdgeSignature &EdgeSig2) const  
+     { return !memcmp( (const void *)EdgeSig1.Signature, 
+                       (const void *)EdgeSig2.Signature, 
+                       sizeof(EdgeSignature)); 
+     }
+ } EdgeSigCmp; 
+
+#ifdef HAVE_CXX11 
+ typedef unordered_map<EdgeSignature, iVec, EdgeSigHash, EdgeSigCmp> SignedEdgeTable;
+#elif defined(HAVE_TR1) 
+ typedef tr1::unordered_map<EdgeSignature, iVec, EdgeSigHash, EdgeSigCmp> SignedEdgeTable;
+#else 
+ typedef map<EdgeSignature, iVec, EdgeSigCmp> SignedEdgeTable;
+#endif
+
+void AddSignedEdge(SignedEdgeTable &SETable, int ne, EdgeSignature EdgeSig)
+{ 
+  SignedEdgeTable::iterator it = SETable.find(EdgeSig);
+  if (it!=SETable.end())
+   it->second.push_back(ne);
+  else
+   SETable.insert( std::pair<EdgeSignature, iVec>(EdgeSig, iVec(1,ne)));
+}
+
+iVec *GetSimilarEdges(SignedEdgeTable &SETable, EdgeSignature EdgeSig)
+{
+  SignedEdgeTable::iterator it=SETable.find(EdgeSig);
+  return (it==SETable.end() ? 0 : &(it->second));
+}
+
+iVec *GetSimilarEdges(SignedEdgeTable &SETable, RWGSurface *S, int ne)
+{ return GetSimilarEdges(SETable, GetEdgeSignature(S,ne));
+}
+
+/***************************************************************/
+/* Part 1B: Routines for detecting equivalent edges.           */
+/***************************************************************/
+
+/*--------------------------------------------------------------*/
+/* Given a (full or half) RWG edge E, return the rigid          */
+/* transformation (rotation+displacement) that operates on E to */
+/* put it in "standard position." Standard position means the   */
+/* edge lies on the $x$ axis with centroid at the origin and    */
+/* positive panel lying in the XY plane with Q1.x > 0.          */
+/*--------------------------------------------------------------*/
+GTransformation GetStandardTransformation(RWGSurface *S, int ne, bool FlipQPM=false, bool FlipV12=false)
 {
   RWGEdge *E = S->Edges[ne];
   double *QP = S->Vertices + 3*E->iQP;
@@ -93,375 +169,114 @@ GTransformation GetStandardRotation(RWGSurface *S, int ne, bool FlipQPM=false, b
   return GTD + GT;
 }
 
-/***************************************************************/
-/* compute a vector associated with an RWG edge that helps to  */
-/* determine when two edges are equivalent.                    */
-/* This vector is proportional to the dipole moment of the RWG */
-/* basis function, which is why I call it 'P.'                 */
-/***************************************************************/
-void GetPVector(RWGSurface *S, RWGEdge *E, double *V[4], double P[3], bool FlipQPM=false, bool FlipV12=false)
-{ 
-  V[0] = S->Vertices + 3*E->iQP;
-  V[1] = S->Vertices + 3*E->iV1;
-  V[2] = S->Vertices + 3*E->iV2;
-  V[3] = (E->iQM==-1) ? E->Centroid : S->Vertices + 3*E->iQM;
-  if (FlipV12) 
-   { VSWAP(V[1],V[2]); };
-  if (FlipQPM && E->iQM!=-1) 
-   { VSWAP(V[0],V[3]); };
-  VecSub(V[0], V[3], P);
-  VecScale(P, E->Length);
-}
+/*--------------------------------------------------------------*/
+/* TestEdgeMatch applies a GTransformation to edge #ne2 and asks*/
+/* if the transformed edge is equivalent to edge #ne1, possibly */
+/* with a sign flip.                                            */
+/*--------------------------------------------------------------*/
+bool Nearby(double *X, double *Y, double Tolerance)
+{ return VecDistance(X,Y) <= Tolerance; }
 
-#define EDGESIGLEN 3
-typedef struct { int Signature[EDGESIGLEN]; } EdgeSignature;
-void GetEdgeSignature(RWGSurface *S, int ne, double DistanceQuantum, EdgeSignature &ES)
- { 
-   RWGEdge *E = S->Edges[ne];
-   double *QP = S->Vertices + 3*E->iQP;
-   double *V1 = S->Vertices + 3*E->iV1;
-   double *V2 = S->Vertices + 3*E->iV2;
+#define EQUIV_PLUS       0
+#define EQUIV_MINUS      1
+#define INEQUIV_FULLHALF 2
+#define INEQUIV_V12      3
+#define INEQUIV_QPM      4
+const char *EdgeMatchResults[]={"Equiv+", "Equiv-", "FullHalf", "V12", "QPM"};
 
-   double Length    = E->Length;
-   double Perimeter = VecDistance(QP, V1) + VecDistance(QP, V2);
-   double Area      = S->Panels[E->iPPanel]->Area;
-   if ( E->iQM!=-1 )
-    { double *QM = S->Vertices + 3*E->iQM;
-      Perimeter += VecDistance(QM, V1) + VecDistance(QM, V2);
-      Area += S->Panels[E->iMPanel]->Area;
-    }
-
-   ES.Signature[0] = round( Length     / DistanceQuantum );
-   ES.Signature[1] = round( Perimeter  / DistanceQuantum );
-   ES.Signature[2] = round( sqrt(Area) / DistanceQuantum );
-}
-
-struct EdgeSigHash 
- { long operator() (const EdgeSignature &EdgeSig) const 
-    { return scuff::JenkinsHash( (const char *)EdgeSig.Signature, sizeof(EdgeSignature)); }
- };
-
-typedef struct
- { bool operator()(const EdgeSignature &EdgeSig1, const EdgeSignature &EdgeSig2) const  
-     { return !memcmp( (const void *)EdgeSig1.Signature, 
-                       (const void *)EdgeSig2.Signature, 
-                       sizeof(EdgeSignature)); 
-     } 
- } EdgeSigCmp; 
-
-#ifdef HAVE_CXX11 
- typedef unordered_map<EdgeSignature, iVec, EdgeSigHash, EdgeSigCmp> SimilarEdgeTable;
-#elif defined(HAVE_TR1) 
- typedef tr1::unordered_map<EdgeSignature, iVec, EdgeSigHash, EdgeSigCmp> SimilarEdgeTable;
-#else 
- typedef map<EdgeSignature, iVec, EdgeSigCmp> SimilarEdgeTable;
-#endif
-
-void AddSimilarEdge(SimilarEdgeTable &SETable, EdgeSignature EdgeSig, int ne)
-{ 
-  SimilarEdgeTable::iterator it = SETable.find(EdgeSig);
-  if (it!=SETable.end())
-   it->second.push_back(ne);
-  else
-   SETable.insert( std::pair<EdgeSignature, iVec>(EdgeSig, iVec(1,ne)));
-}
-
-iVec *GetSimilarEdges(SimilarEdgeTable &SETable, EdgeSignature EdgeSig)
+int TestEdgeMatch(RWGSurface *S1, int ne1, RWGSurface *S2, int ne2, GTransformation T, double *Distance=0)
 {
-  SimilarEdgeTable::iterator it=SETable.find(EdgeSig);
-  return (it==SETable.end() ? 0 : &(it->second));
-}
+  RWGEdge *E1=S1->Edges[ne1], *E2=S2->Edges[ne2];
+  if (Distance) *Distance = VecDistance(E1->Centroid, E2->Centroid);
 
-iVec *GetSimilarEdges(SimilarEdgeTable &SETable, RWGSurface *S, int ne, double DistanceQuantum)
-{ EdgeSignature ES;
-  GetEdgeSignature(S, ne, DistanceQuantum, ES);
-  return GetSimilarEdges(SETable, ES);
-}
+  if ( (E1->iQM==-1) != (E2->iQM==-1)) return INEQUIV_FULLHALF;
 
-/***************************************************************/
-/* 9-integer "signature" of a G-transformation, useful for     */
-/* comparing transformations.                                  */
-/* Actually only 6 numbers of needed to specify a G-transform  */
-/* (displacement and Euler angles) but I kept getting tripped  */
-/* up by the signs of the Euler angles in degenerate cases so  */
-/* we'll just be a little wasteful.                            */
-/***************************************************************/
-#define GTSIGLEN 9
-typedef struct { int Signature[GTSIGLEN]; } GTSignature;
+  double *V1[4], *V2[4], V2P[4][3];
+  V1[0] = S1->Vertices + 3*E1->iQP;
+  V1[1] = S1->Vertices + 3*E1->iV1;
+  V1[2] = S1->Vertices + 3*E1->iV2;
+  V1[3] = (E1->iQM==-1 ? 0 : S1->Vertices + 3*E1->iQM);
+  V2[0] = S2->Vertices + 3*E2->iQP;
+  V2[1] = S2->Vertices + 3*E2->iV1;
+  V2[2] = S2->Vertices + 3*E2->iV2;
+  V2[3] = (E2->iQM==-1 ? 0 : S2->Vertices + 3*E2->iQM);
 
-struct GTSigHash 
- { long operator() (const GTSignature &GTSig) const 
-    { return scuff::JenkinsHash( (const char *)GTSig.Signature, sizeof(GTSignature)); } 
- };
+  for(int nv=0; nv<4; nv++)
+   if (V2[nv])
+    T.Apply(V2[nv], V2P[nv]);
 
-typedef struct 
- { bool operator()(const GTSignature &GTSig1, const GTSignature &GTSig2) const  
-     { return !memcmp( (const void *)GTSig1.Signature,
-                       (const void *)GTSig2.Signature,
-                       sizeof(GTSignature)); 
-     } 
- } GTSigCmp; 
+  double Tolerance = 1.0e-4*fmin(E1->Radius, E2->Radius);
 
-typedef struct 
- { bool operator()(const GTSignature &GTSig1, const GTSignature &GTSig2) const  
-    { for(int n=0; n<GTSIGLEN; n++)
-       if (GTSig1.Signature[n]<GTSig2.Signature[n]) return true;
-      return false;
-    }
- } GTSigCmp2;
-
-#define ANGLEQUANTUM (1.0/(1000.0*2.0*M_PI))
-void GetGTSignature(GTransformation GT, double DistanceQuantum, GTSignature *GTSig)
-{ 
-/*
-  // euler angles, defined by M=R_z(ThetaZ) * R_y(ThetaY) * R_x(Theta_x)
-  double ThetaX=0.0, ThetaY=0.0, ThetaZ=0.0;
-  if ( EqualFloat( GT.M[0][0], 1.0 ) )
-   ThetaX = atan2( GT.M[2][1], GT.M[1][1] );
-  else if ( EqualFloat( GT.M[1][1], 1.0 ) )
-   ThetaY = -atan2( GT.M[2][0], GT.M[0][0] );
-  else if ( EqualFloat( GT.M[2][2], 1.0 ) )
-   ThetaZ = atan2( GT.M[0][1], GT.M[0][0] );
-  else
-   { ThetaX = atan2(-1.0*GT.M[1][2], GT.M[1][1]);
-     ThetaY = -asin(GT.M[2][0]);
-     ThetaZ = atan2( GT.M[1][0], GT.M[0][0]);
-   }
-*/
-  double AbsQuantum=1.0e-4;
-  GTSig->Signature[0] = (int)lround(GT.DX[0]/DistanceQuantum);
-  GTSig->Signature[1] = (int)lround(GT.DX[1]/DistanceQuantum);
-  GTSig->Signature[2] = (int)lround(GT.DX[2]/DistanceQuantum);
-  GTSig->Signature[3] = (int)lround(GT.M[0][0]/AbsQuantum);
-  GTSig->Signature[4] = (int)lround(GT.M[0][1]/AbsQuantum);
-  GTSig->Signature[5] = (int)lround(GT.M[0][2]/AbsQuantum);
-  GTSig->Signature[6] = (int)lround(GT.M[1][1]/AbsQuantum);
-  GTSig->Signature[7] = (int)lround(GT.M[1][2]/AbsQuantum);
-  GTSig->Signature[8] = (int)lround(GT.M[2][2]/AbsQuantum);
-}
-
-
-/***************************************************************/
-/* Given two (full or half) RWG edges {Ea, Eb}, determine      */
-/* whether or not they are equivalent, i.e Ea is the result    */
-/* of applying a rigid geometric transformation (displacement+ */
-/* rotation) to Eb.                                            */
-/* If the edges are equivalent, return 0 and set Gb2a = the    */
-/* transform, i.e. Ea = Gb2a(Eb).                              */
-/* if the edges are inequivalent, return a non-zero size_teger */
-/* code indicating how we determined this.                     */
-/* If PPFileName is non-null, write visualization data to      */
-/* file (for debugging purposes).                              */
-// possible results of a call to TestEdgeEquivalence: either   */
-// edges are equivalent as is or after a sign flip, or else    */
-// one of several possible criteria identify them as ineqvlnt. */
-/***************************************************************/
-#define EQUIV             0
-#define INEQUIV_LENGTH    1
-#define INEQUIV_RADIUS    2
-#define INEQUIV_FULLHALF  3
-#define INEQUIV_DIPOLE    4
-#define INEQUIV_V12       5
-#define INEQUIV_QPM       6
-static const char *EEResultNames[]=
-{ "Equivalent", "length", "radius", "full/half", "dipole", "V12", "QPM" };
-#define NUMEERESULTS (sizeof(EEResultNames)/sizeof(EEResultNames[0]))
-int TestEdgeEquivalence(RWGSurface *Sa, size_t nea, RWGSurface *Sb, size_t neb,
-                        double DistanceQuantum, GTSignature *Gb2aSig, bool FlipQPM=false, bool FlipV12=false)
-{ 
-  RWGEdge *Ea = Sa->GetEdgeByIndex(nea);
-  RWGEdge *Eb = Sb->GetEdgeByIndex(neb);
-
-  if (FlipQPM && Eb->iMPanel==-1) return INEQUIV_FULLHALF;
-
-#define EERELTOL 1.0e-6
-  double LengthTol = EERELTOL*Ea->Length;
-
-  // stage-1 check: gross statistics must match
-  if ( fabs(Ea->Length - Eb->Length) > LengthTol ) return INEQUIV_LENGTH;
-  if ( fabs(Ea->Radius - Eb->Radius) > LengthTol ) return INEQUIV_RADIUS;
-  if ( (Ea->iMPanel==-1) != (Eb->iMPanel==-1) )    return INEQUIV_FULLHALF;
-
-  // stage-2 check: magnitudes of dipole moments must match
-  double *Va[4], Pa[3], *Vb[4], Pb[3];
-  GetPVector(Sa, Ea, Va, Pa);
-  GetPVector(Sb, Eb, Vb, Pb, FlipQPM, FlipV12);
-  double Na = VecNorm(Pa), Nb = VecNorm(Pb);
-  if ( fabs(Na-Nb) > EERELTOL*0.5*(Na+Nb) ) return INEQUIV_DIPOLE;
-
-  // stage-3 check: Compute the "standard transformations" GTa, GTb
-  // for edges Ea, Eb, then check that Ea = Ta^{-1} Tb(Eb).
-   GTransformation GStandard_b = GetStandardRotation(Sb, neb, FlipQPM, FlipV12);
-   GTransformation GStandard_a = GetStandardRotation(Sa, nea);
-   GTransformation Gb2a = -GStandard_a + GStandard_b;
-   GetGTSignature(Gb2a,DistanceQuantum,Gb2aSig);
-
-  // make sure {V1a,V2a} = {V1bPrime,V2bPrime} as sets
-  double VbPrime[4][3];
-  Gb2a.Apply(Vb[1], VbPrime[1]);
-  Gb2a.Apply(Vb[2], VbPrime[2]);
-  bool V12Direct = (    VecDistance(VbPrime[1], Va[1])<=LengthTol
-                    &&  VecDistance(VbPrime[2], Va[2])<=LengthTol
-                   );
-  bool V12Twist  = (    VecDistance(VbPrime[1], Va[2])<=LengthTol
-                    &&  VecDistance(VbPrime[2], Va[1])<=LengthTol
-                   );
+  bool V12Direct = ( Nearby(V1[1], V2P[1], Tolerance) && Nearby(V1[2], V2P[2], Tolerance) );
+  bool V12Twist  = ( Nearby(V1[1], V2P[2], Tolerance) && Nearby(V1[2], V2P[1], Tolerance) );
   if (!V12Direct && !V12Twist) return INEQUIV_V12;
- 
-  // make sure QPa==QPb, QMa==QMb
-  Gb2a.Apply(Vb[0], VbPrime[0]);
-  if ( VecDistance(VbPrime[0], Va[0]) > LengthTol ) return INEQUIV_QPM;
-  if (Ea->iMPanel!=-1)
-   { Gb2a.Apply(Vb[3], VbPrime[3]);
-     if ( VecDistance(VbPrime[3], Va[3]) > LengthTol ) return INEQUIV_QPM;
-   }
 
-  return EQUIV;
+  bool QPMatch = Nearby(V1[0], V2P[0], Tolerance);
+  bool QMMatch = (E1->iQM==-1 ? true : Nearby(V1[3], V2P[3], Tolerance));
+
+  if (QPMatch && QMMatch) return EQUIV_PLUS;
+
+  if ( E1->iQM!=-1 && Nearby(V1[0],V2P[3],Tolerance) && Nearby(V1[3],V2P[0],Tolerance) )
+   return EQUIV_MINUS;
+
+  return INEQUIV_QPM;
 }
 
-/******************************************************************/
-/* Given a single (full or half) RWG edge (the "parent" edge) in  */
-/* a geometry, construct a list of all "child" edges, i.e.        */
-/* edges equivalent to the parent with strictly greater index.    */
-/*                                                                */
-/* On entry, neParent is the edge index of the parent edge.       */
-/* Returns a list of tuples {neChild, Sign, GTSig}, where         */
-/*  neChild  = index of child edge                                */
-/*  Sign:    = edges are equivalent with a sign flip              */
-/*  GTSig    = transform that operates on child edge to yield     */
-/*             parent edge                                        */
-/******************************************************************/
-typedef struct ChildEdgeData
- { int neChild;
-   int Sign;
-   GTSignature GTSig;
-   ChildEdgeData(int _neChild, int _Sign, GTSignature _GTSig): neChild(_neChild), Sign(_Sign), GTSig(_GTSig){};
- } ChildEdgeData;
+int TestEdgeMatch(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2, GTransformation T, double *Distance=0)
+{ return TestEdgeMatch(G->Surfaces[ns1], ne1, G->Surfaces[ns2],ne2,T,Distance); }
 
-typedef vector<ChildEdgeData> ChildEdgeList;
-#if 0
-ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, SimilarEdgeTable &SETable, size_t Results[NUMEERESULTS])
-{ 
-  ChildEdgeList ChildEdges;
-  ChildEdgeData CEData;
-  int NE = S->NumEdges;
+/***************************************************************/
+/* Part 1C: Data structures for pairs of equivalent edges.     */
+/*  An "EdgePairData" describes a single pair of equivalent    */
+/*  edges. An "EdgePairList" is an unsorted list of            */
+/*  EdgePairData structures.                                   */
+/*  There are two types of data structures for storing all     */
+/*  pairs of equivalent edges in an RWGSurface:                */
+/***************************************************************/
+typedef struct EdgePairData
+ { int neParent, neChild;
+   int QDistance;
+   GTransformation T;
+   bool Flipped;
+   EdgePairData(int _neParent, int _neChild, int _QDistance, GTransformation _T, bool _Flipped):
+    neParent(_neParent), neChild(_neChild), QDistance(_QDistance), T(_T), Flipped(_Flipped) {}
+ } EdgePairData;
 
-  iVec *neChildCandidates=GetSimilarEdges(SETable, S, neParent, DistanceQuantum);
-  int ncMax = neChildCandidates ? neChildCandidates->size() : NE;
-  for(int nc=0; nc<ncMax; nc++)
-   { 
-     CEData.neChild = neChildCandidates ? (*neChildCandidates)[nc] : nc;
-     //if (CEData.neChild==neParent) continue;
+typedef vector< vector<EdgePairData> > EdgePairTable;
 
-     int Status1=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false, false);
-     if (Status1==EQUIV)
-      { CEData.Sign=1;
-        ChildEdges.push_back(CEData);
-      }
-     int Status2=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true, false);
-     if (Status2==EQUIV)
-      { CEData.Sign=-1;
-        ChildEdges.push_back(CEData);
-      }
-
-     RWGEdge *E=S->Edges[neParent];
-     double *QP = S->Vertices + 3*E->iQP;
-     double *V1 = S->Vertices + 3*E->iV1;
-     double *V2 = S->Vertices + 3*E->iV2;
-     int Status3=-1, Status4=-1;
-     if ( EqualFloat(VecDistance(QP,V1), VecDistance(QP, V2) ) )
-      { 
-        Status3=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), false, true);
-        if (Status3==EQUIV)
-         { CEData.Sign=1;
-           ChildEdges.push_back(CEData);
-         }
-        Status4=TestEdgeEquivalence(S, neParent, S, CEData.neChild, DistanceQuantum, &(CEData.GTSig), true, true);
-        if (Status4==EQUIV)
-         { CEData.Sign=-1;
-           ChildEdges.push_back(CEData);
-         }
-      }
-
-#pragma omp critical
-{
-     Results[Status1]++;
-     Results[Status2]++;
-     if (Status3!=-1) Results[Status3]++;
-     if (Status4!=-1) Results[Status4]++;
-}
-   }
-  return ChildEdges;
-}
-#endif
-
-typedef std::map<GTSignature, ChildEdgeData, GTSigCmp2> SortedGTList;
-
-ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, SimilarEdgeTable &SETable, size_t Results[NUMEERESULTS])
-{ 
-  ChildEdgeList ChildEdges;
-
-  iVec *neChildCandidates=GetSimilarEdges(SETable, S, neParent, DistanceQuantum);
-  int ncMax = neChildCandidates ? neChildCandidates->size() : S->NumEdges;
-  for(int nc=0; nc<ncMax; nc++)
-   { 
-     int neChild = neChildCandidates ? (*neChildCandidates)[nc] : nc;
-
-     RWGEdge *E=S->Edges[neChild];
-     double *QP = S->Vertices + 3*E->iQP;
-     double *V1 = S->Vertices + 3*E->iV1;
-     double *V2 = S->Vertices + 3*E->iV2;
-     bool V12Symmetric = EqualFloat(VecDistance(QP,V1), VecDistance(QP, V2));
-
-     SortedGTList GTs;
-     GTSignature GTSig;
-     for(int FlipV12=0; FlipV12 < (V12Symmetric ? 2 : 1); FlipV12++)
-      for(int FlipQPM=0; FlipQPM<2; FlipQPM++)
-       if (TestEdgeEquivalence(S, neParent, S, neChild, DistanceQuantum, &GTSig, FlipQPM==1, FlipV12==1)==EQUIV)
-        GTs.insert(std::pair<GTSignature,ChildEdgeData>(GTSig, ChildEdgeData(neChild, 1-2*FlipQPM, GTSig) ) );
-
-     for(SortedGTList::iterator it=GTs.begin(); it!=GTs.end(); it++)
-      ChildEdges.push_back(it->second);
-   }
-  return ChildEdges;
-}
-
-// this routine is used only for testing
-ChildEdgeList GetChildEdgeList(RWGSurface *S, int neParent, double DistanceQuantum, size_t Results[NUMEERESULTS])
-{ 
-  SimilarEdgeTable SETable;
-  for(int ne=0; ne<S->NumEdges; ne++)
-   { EdgeSignature ES;
-     GetEdgeSignature(S, ne, DistanceQuantum, ES);
-     AddSimilarEdge(SETable, ES, ne);
-   }
-  return GetChildEdgeList(S, neParent, DistanceQuantum, SETable, Results);
-}
-
-ChildEdgeList *GetChildren(RWGGeometry *G, int ns, double DistanceQuantum)
+EdgePairTable CreateEdgePairTable(RWGGeometry *G, int ns, double DistanceQuantum)
 {
   RWGSurface *S = G->Surfaces[ns];
   int NE = S->NumEdges;
 
-  // initial order-N step to construct edge signature map
+  // initial order-N step to construct a table of edges organized by edge signature
   // SETable[ES][0, 1, ...] = indices of edges with edge signature ES
-  SimilarEdgeTable SETable;
+  SignedEdgeTable SETable;
   for(int ne=0; ne<NE; ne++)
-   { EdgeSignature ES;
-     GetEdgeSignature(S, ne, DistanceQuantum, ES);
-     AddSimilarEdge(SETable, ES, ne);
-   }
+   AddSignedEdge(SETable, ne, GetEdgeSignature(S,ne));
 
   int NumThreads=1;
   CheckEnv("SCUFF_EEP_THREADS", &NumThreads);
-  size_t EEResults[NUMEERESULTS]; // histogram of edge-equivalence test results
-  memset(EEResults, 0, NUMEERESULTS*sizeof(size_t)); 
-  ChildEdgeList *Children = new ChildEdgeList[NE];
+  EdgePairTable Children(NE);
 #ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-  for(int ne=0; ne<NE; ne++)
-   Children[ne] = GetChildEdgeList(S, ne, DistanceQuantum, SETable, EEResults);
+  for(int neParent=0; neParent<NE; neParent++)
+   { GTransformation InvTParent = -GetStandardTransformation(S, neParent);
+     iVec *neChildCandidates = GetSimilarEdges(SETable, S, neParent);
+     for(size_t n=0; neChildCandidates && n<neChildCandidates->size(); n++)
+      { int neChild = (*neChildCandidates)[n];
+        //if (neChild<neParent) continue;
+        double Distance;
+        GTransformation T = InvTParent + GetStandardTransformation(S, neChild);
+        int Result = TestEdgeMatch(S, neParent, S, neChild, &T, &Distance);
+        if (Result!=EQUIV_PLUS && Result!=EQUIV_MINUS)
+         continue;
+        bool Flipped  = (Result==EQUIV_MINUS);
+        int QDistance = (int) round(Distance/DistanceQuantum);
+        Children[neParent].push_back(EdgePairData(neParent, neChild, QDistance, T, Flipped));
+      }
+   }
 
   if (G->LogLevel>=SCUFF_VERBOSE2)
    { 
@@ -469,12 +284,12 @@ ChildEdgeList *GetChildren(RWGGeometry *G, int ns, double DistanceQuantum)
      for(int ne=0; ne<NE; ne++)
       { NumParents += (Children[ne].size() > 0 ? 1 : 0);
         for(size_t nc=0; nc<Children[ne].size(); nc++)
-         NumChildren[Children[ne][nc].Sign==1 ? 0 : 1]++;
+         NumChildren[Children[ne][nc].Flipped ? 1 : 0]++;
       }
+     int TotalChildren=NumChildren[0] + NumChildren[1];
 
      Log(" Surface %s: %i/%i edges are parents (%.0g %%)",S->Label, NumParents,NE,100.0*((double)NumParents)/((double)NE));
-     Log(" results of equivalent-edge detection:");
-     Log("  Equivalent            : %6i (%i,%i)",EEResults[EQUIV],NumChildren[0],NumChildren[1]);
+     Log("             %i/%i edges are children (%.0g %%) {%i,%i}", TotalChildren,NE,100.0*((double)TotalChildren)/((double)NE),NumChildren[0],NumChildren[1]);
 /*
      for(size_t nr=EQUIV+1; nr<NUMEERESULTS; nr++)
       if (EEResults[nr]) 
@@ -485,18 +300,36 @@ ChildEdgeList *GetChildren(RWGGeometry *G, int ns, double DistanceQuantum)
   return Children;
 }
 
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/* The remainder of the file contains routines for analyzing    */
-/* relationships between *pairs* of edge pairs, i.e. relations  */
-/* of the form (neaParent,nebParent) <--> (neaChild,nebChild).  */
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
+
+#if defined(HAVE_CXX11) 
+  typedef unordered_multimap<int, EdgePairData *> EdgePairMap;
+#elif defined(HAVE_TR1) 
+  typedef tr1::unordered_multimap<int, EdgePairData *> EdgePairMap;
+#else
+  typedef multimap<int, EdgePairData *> EdgePairMap;
+#endif
+
+typedef EdgePairMap::iterator EPMIterator;
+
+EdgePairMap CreateEdgePairMap(EdgePairTable &EPTable)
+{ 
+  EdgePairMap EPMap;
+  for(size_t ne=0; ne<EPTable.size(); ne++)
+   for(size_t nc=0; nc<EPTable[ne].size(); nc++)
+    EPMap.insert( pair<int, EdgePairData *>(EPTable[ne][nc].QDistance, &(EPTable[ne][nc])));
+  return EPMap;
+}
 
 /******************************************************************/
-/* General-purpose helper routines that convert back and forth    */
-/* between pairs of edges indices and indices of edge pairs.      */
+/* Part 2: of the file contains routines for analyzing          */
+/* relationships between *pairs* of edge pairs, i.e. relations  */
+/* of the form (neaParent,nebParent) <--> (neaChild,nebChild).  */
 /******************************************************************/
+
+/*--------------------------------------------------------------*/
+/* General-purpose helper routines that convert back and forth  */
+/* between pairs of edges indices and indices of edge pairs.    */
+/*--------------------------------------------------------------*/
 EdgePair EquivalentEdgePairTable::GetEdgePair(int neParent, int neChild)
 { return neParent*NERadix + neChild; }
 
@@ -511,39 +344,10 @@ bool EquivalentEdgePairTable::ResolveEdgePair(EdgePair Pair, int *neParent, int 
   return SignFlip;
 }
 
-/******************************************************************************/
-/* If GTSig is the signature of a GTransformation GT, then                    */
-/* ParentChildTable[GTSig] is a list of GT-related {parent, child} pairs,     */
-/* i.e. for each {parent, child} pair in the list we have parent = GT(child). */
-/******************************************************************************/
-#ifdef HAVE_CXX11 
- typedef unordered_map<GTSignature, EdgePairList, GTSigHash, GTSigCmp> ParentChildTable; 
-#elif defined(HAVE_TR1) 
- typedef tr1::unordered_map<GTSignature, EdgePairList, GTSigHash, GTSigCmp> ParentChildTable;
-#else 
- typedef map<GTSignature, EdgePairList, GTSigCmp2> ParentChildTable;
-#endif
-
-void AddParentChildPair(ParentChildTable &PCTable, GTSignature GTSig, EdgePair PCPair)
-{ 
-  ParentChildTable::iterator pctIterator=PCTable.find(GTSig);
-  if (pctIterator!=PCTable.end())
-   pctIterator->second.push_back(PCPair);
-  else
-   PCTable.insert( std::pair<GTSignature, EdgePairList>(GTSig, EdgePairList(1,PCPair)));
-}
-
-EdgePairList *GetParentChildPairs(ParentChildTable &PCTable, GTSignature GTSig)
-{ 
-  ParentChildTable::iterator pctIterator=PCTable.find(GTSig);
-  return (pctIterator==PCTable.end() ? 0 : &(pctIterator->second));
-}
-
 /****************************************************************************/
 /* constructor helper routine to add a single equivalent edge pair **********/
 /****************************************************************************/
-void EquivalentEdgePairTable::AddEquivalentEdgePair(EdgePair ParentPair, EdgePair ChildPair,
-                                                    bool SignFlip)
+void EquivalentEdgePairTable::AddReducedPair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip)
 {
   if (ChildPair == ParentPair) return;
   if (ChildPair < ParentPair) ISWAP(ChildPair, ParentPair);
@@ -552,18 +356,18 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(EdgePair ParentPair, EdgePai
  { if (!IsReduced[ParentPair] && !IsReduced[ChildPair])
     { IsReduced[ChildPair]=true;
       if (SignFlip) ChildPair*=-1;
-      IrreducibleEdgePairMap::iterator it=IEPMap.find(ParentPair);
-      if (it!=IEPMap.end())
+      ReducedEdgePairMap::iterator it=REPMap.find(ParentPair);
+      if (it!=REPMap.end())
        it->second.push_back(ChildPair);
       else
-       IEPMap.insert(std::pair<EdgePair, EdgePairList>(ParentPair,EdgePairList(1,ChildPair)));
+       REPMap.insert(std::pair<EdgePair, EdgePairList>(ParentPair,EdgePairList(1,ChildPair)));
     }
  }
 }
 
-void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent,
-                                                    int neaChild, int nebChild,
-                                                    bool SignFlip)
+void EquivalentEdgePairTable::AddReducedPair(int neaParent, int nebParent,
+                                             int neaChild, int nebChild,
+                                             bool SignFlip)
 { 
   if(nsa==nsb)
    { if (nebParent<neaParent) ISWAP(nebParent, neaParent);
@@ -572,21 +376,65 @@ void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int nebParent
 
   if (nsa==nsb && (neaParent==nebChild && neaChild==nebParent)) return;
 
-  AddEquivalentEdgePair( GetEdgePair(neaParent, nebParent),
+  AddReducedPair( GetEdgePair(neaParent, nebParent),
                          GetEdgePair(neaChild, nebChild),
                          SignFlip
                        );
 }
 
-void EquivalentEdgePairTable::AddEquivalentEdgePair(int neaParent, int neaChild,
-                                                    EdgePair nebPair)
+void EquivalentEdgePairTable::AddReducedPair(int neaParent, int neaChild, EdgePair nebPair)
 { 
   bool aFlipped = (neaChild < 0);
   int nebParent, nebChild;
   bool bFlipped = ResolveEdgePair( nebPair, &nebParent, &nebChild);
-  AddEquivalentEdgePair( neaParent, nebParent, iabs(neaChild), nebChild,
-                         aFlipped!=bFlipped );
+  AddReducedPair( neaParent, nebParent, iabs(neaChild), nebChild, aFlipped!=bFlipped );
 }
+
+void EquivalentEdgePairTable::EvaluatePairPair(EdgePairData *aPair, EdgePairData *bPair)
+{
+  int Result=0; // 1,-1,0 for positive match, negative match, non-match
+
+  int aSign=TestEdgeMatch(G, nsa, aPair->neParent, nsb, aPair->neChild, bPair->T);
+  if (aSign==EQUIV_PLUS || aSign==EQUIV_MINUS)
+   { bool aFlipped = (aSign==EQUIV_MINUS);
+     Result = (aFlipped == bPair->Flipped) ? 1 : -1;
+   }
+  else
+   { int bSign=TestEdgeMatch(G, nsb, bPair->neParent, nsb, bPair->neChild, aPair->T);
+     if (bSign==EQUIV_PLUS || bSign==EQUIV_MINUS)
+      { bool bFlipped = (bSign==EQUIV_MINUS);
+        Result = (bFlipped == aPair->Flipped) ? 1 : -1;
+      }
+   }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+bool aOK= (      (aPair->neParent==0 && aPair->neChild==1)
+             ||  (aPair->neParent==1 && aPair->neChild==0)
+          );
+bool bOK= (      (bPair->neParent==0 && bPair->neChild==8)
+             ||  (bPair->neParent==8 && bPair->neChild==0)
+          );
+bool Case1 = (aOK && bOK);
+bool cOK= (      (aPair->neParent==0 && aPair->neChild==8)
+             ||  (aPair->neParent==8 && aPair->neChild==0)
+          );
+bool dOK= (      (bPair->neParent==0 && bPair->neChild==1)
+             ||  (bPair->neParent==1 && bPair->neChild==0)
+          );
+bool Case2 = (cOK && dOK);
+if (Case1 || Case2)
+ { printf("(%i,%i) <--> (%i,%i): %s\n",
+   aPair->neParent,bPair->neParent,aPair->neChild,bPair->neChild, EdgeMatchResults[aSign]);
+   int bSign=TestEdgeMatch(G, nsb, bPair->neParent, nsb, bPair->neChild, aPair->T);
+   printf("(%i,%i) <--> (%i,%i): %s\n",
+   bPair->neParent,aPair->neParent,bPair->neChild,aPair->neChild, EdgeMatchResults[bSign]);
+ }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+ if (Result==0) return;
+
+ AddReducedPair(aPair->neParent, bPair->neParent, aPair->neChild, bPair->neChild, Result==-1);
+
+} 
 
 /******************************************************************/
 /******************************************************************/
@@ -645,9 +493,12 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   /* than the edge index of any of its parents.                     */
   /*----------------------------------------------------------------*/
   double DistanceQuantum = 0.1 * GetMinPanelRadius(G);
-  ChildEdgeList *aChildren  = GetChildren(G, nsa, DistanceQuantum);
-  ChildEdgeList *bChildren  = (nsa==nsb) ? aChildren : GetChildren(G, nsb, DistanceQuantum);
-
+  EdgePairTable aPairTable = CreateEdgePairTable(G, nsa, DistanceQuantum);
+  EdgePairTable bPairTable;
+  if (nsa!=nsb) 
+   bPairTable = CreateEdgePairTable(G,nsb,DistanceQuantum);
+  EdgePairMap bPairMap = CreateEdgePairMap( nsa==nsb ? aPairTable : bPairTable );
+  
   /*----------------------------------------------------------------*/
   /* Step 2: To accelerate Step 4 below, we pause to build a        */
   /*         "Parent-Child table" for surface *nsb. This is a table */
@@ -657,20 +508,6 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   /*         edge pairs on surface #nsb.                            */
   /*         A pair is "GT-related" if GT(Child) = Parent.          */
   /*----------------------------------------------------------------*/
-  ParentChildTable aPCTable;
-  for(int neaParent=0; neaParent<NEA; neaParent++)
-   for(size_t nc=0; nc<aChildren[neaParent].size(); nc++)
-    AddParentChildPair(aPCTable, aChildren[neaParent][nc].GTSig,
-                       aChildren[neaParent][nc].Sign * GetEdgePair(neaParent,aChildren[neaParent][nc].neChild));
-
-  ParentChildTable bPCTBuffer;
-  if (nsa!=nsb)
-   for(int nebParent=0; nebParent<NEB; nebParent++)
-    for(size_t nc=0; nc<bChildren[nebParent].size(); nc++)
-     AddParentChildPair(bPCTBuffer, bChildren[nebParent][nc].GTSig,
-                        bChildren[nebParent][nc].Sign * GetEdgePair(nebParent,bChildren[nebParent][nc].neChild));
-
-  ParentChildTable *bPCTable = (nsa==nsb ? &aPCTable : &bPCTBuffer);
 
   /*----------------------------------------------------------------*/
   /* second pass to identify equivalent off-diagonal edge pairs.    */
@@ -685,10 +522,10 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   // handle diagonal pairs first separately
   if (nsa==nsb)
    for(int neaParent=0; neaParent<NEA; neaParent++)
-    for(size_t nc=0; nc<aChildren[neaParent].size(); nc++)
-     AddEquivalentEdgePair(neaParent, neaParent,
-                           aChildren[neaParent][nc].neChild,
-                           aChildren[neaParent][nc].neChild);
+    for(size_t nc=0; nc<aPairTable[neaParent].size(); nc++)
+     AddReducedPair(neaParent, neaParent,
+                           aPairTable[neaParent][nc].neChild,
+                           aPairTable[neaParent][nc].neChild);
 
   /*----------------------------------------------------------------*/
   /*- For all {Parent,Child} pairs on surface #nsa, look for pairs  */
@@ -696,53 +533,25 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
   /*----------------------------------------------------------------*/
   if (G->LogLevel>=SCUFF_VERBOSE2) 
    Log("  Step 2: Identifying equivalent edge pairs (%i threads)",NumThreads);
-if(CheckEnv("SCUFF_NEW_EEPS"))
-{
-  for(ParentChildTable::iterator ita=aPCTable.begin(); ita!=aPCTable.end(); ita++)
-   { if (ita->second.size()==0) continue;
-     ParentChildTable::iterator itb=bPCTable->find(ita->first);
-     if (itb==bPCTable->end() || itb->second.size()==0) continue;
-     for(size_t nca=0; nca<ita->second.size(); nca++)
-      for(size_t ncb=0; ncb<itb->second.size(); ncb++)
-       { 
-         int neaParent, nebParent, neaChild, nebChild;
-         bool aFlipped = ResolveEdgePair(ita->second[nca], &neaParent, &neaChild);
-         bool bFlipped = ResolveEdgePair(itb->second[ncb], &nebParent, &nebChild);
-if (neaParent>neaChild)
- ISWAP(neaParent, neaChild);
-if (nebParent>nebChild)
- ISWAP(nebParent, nebChild);
-if (nsa==nsb && neaParent>nebParent)
- { ISWAP(neaParent, nebParent);
-   ISWAP(neaChild,  nebChild);
- }
-         AddEquivalentEdgePair(neaParent, nebParent, neaChild, nebChild, aFlipped!=bFlipped);
-       }
-   }
-}
-else
-{
 #ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int neaParent=0; neaParent<NEA; neaParent++)
-   for(size_t nc=0; nc<aChildren[neaParent].size(); nc++)
-    { int neaChild  = aChildren[neaParent][nc].Sign * aChildren[neaParent][nc].neChild;
-      EdgePairList *bPairs = GetParentChildPairs(*bPCTable, aChildren[neaParent][nc].GTSig);
-      if (bPairs==0) continue;
-      for(size_t n=0; n<bPairs->size(); n++)
-       AddEquivalentEdgePair(neaParent, neaChild, (*bPairs)[n]);
+   for(size_t naPair=0; naPair<aPairTable[neaParent].size(); naPair++)
+    { EdgePairData *aPair = &(aPairTable[neaParent][naPair]);
+      pair<EPMIterator, EPMIterator> range = bPairMap.equal_range(aPair->QDistance);
+      for(EPMIterator it=range.first; it!=range.second; it++)
+       EvaluatePairPair(aPair, it->second);
     }
-}
 
   /*----------------------------------------------------------------*/
   /* report some statistics on equivalent edge pairs to log file    */
   /*----------------------------------------------------------------*/
-  int NumParentPairs = IEPMap.size();
+  int NumParentPairs = REPMap.size();
   int NumChildPairs  = 0, NumChildPairs2 = 0;
   for(int nePair=0; nePair<NERadix*NERadix; nePair++)
    if (IsReduced[nePair]) NumChildPairs++;
-  for(IrreducibleEdgePairMap::iterator it=IEPMap.begin(); it!=IEPMap.end(); it++)
+  for(ReducedEdgePairMap::iterator it=REPMap.begin(); it!=REPMap.end(); it++)
    NumChildPairs2+=it->second.size();
  
   int NEPairs = (nsa==nsb ? NEA*(NEA+1)/2 : NEA*NEB);
@@ -752,7 +561,7 @@ else
    Log(" ** warning: child pair counts disagree (%i,%i)",NumChildPairs,NumChildPairs2);
   if (G->LogLevel>SCUFF_VERBOSE2)
    { Log("    %u are parents (%.1f %%)",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NEPairs));
-//     Log("    %u are unicorns (should be %u)",IEPMap->size(), NEPairs - NumParentPairs - NumChildPairs);
+//     Log("    %u are unicorns (should be %u)",REPMap->size(), NEPairs - NumParentPairs - NumChildPairs);
    }
 }
 
@@ -773,7 +582,7 @@ void EquivalentEdgePairTable::Export(char *FileName)
      return;
    }
 
-  for(IrreducibleEdgePairMap::iterator it=IEPMap.begin(); it!=IEPMap.end(); it++)
+  for(ReducedEdgePairMap::iterator it=REPMap.begin(); it!=REPMap.end(); it++)
    { int neaParent, nebParent;
      ResolveEdgePair(it->first, &neaParent, &nebParent);
      fprintf(f,"{%i,%i}",neaParent,nebParent);
@@ -847,7 +656,7 @@ char *EquivalentEdgePairTable::Import(char *FileName)
      if (AtTopOfLine)
       neaParent=nea, nebParent=neb;
      else
-      AddEquivalentEdgePair(neaParent, nebParent, nea, neb, SignFlip);
+      AddReducedPair(neaParent, nebParent, nea, neb, SignFlip);
      if (Status==2) break;
      AtTopOfLine=(Status==3);
      if (AtTopOfLine) LineNum++;

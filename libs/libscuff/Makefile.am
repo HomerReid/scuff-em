@@ -1,9 +1,9 @@
 lib_LTLIBRARIES = libscuff.la
 pkginclude_HEADERS = libscuff.h \
-  EquivalentEdgePairs.h \
-  GTransformation.h     \
-  GBarAccelerator.h     \
-  PFTOptions.h          \
+  EquivalentEdgePairs.h		\
+  GTransformation.h     	\
+  GBarAccelerator.h		\
+  PFTOptions.h			\
   PanelCubature.h
 
 libscuff_la_SOURCES =		\
@@ -15,8 +15,8 @@ libscuff_la_SOURCES =		\
  EdgeEdgeInteractions.cc	\
  EMTPFT.cc			\
  EPPFT.cc			\
- EquivalentEdgePairs.cc 	\
- EquivalentEdgePairs.h  	\
+ EquivalentEdgePairs.cc     	\
+ EquivalentEdgePairs.h      	\
  ExpandCurrentDistribution.cc 	\
  Faddeeva.cc        		\
  Faddeeva.hh        		\

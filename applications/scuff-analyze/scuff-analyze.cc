@@ -600,7 +600,7 @@ int main(int argc, char *argv[])
      EquivalentEdgePairTable EEPTable(G,EEPs[0],EEPs[1]);
      int NEA = Sa->NumEdges, NEB=Sb->NumEdges;
      int NEPairs = NEA * (Sa==Sb ? (NEA+1)/2 : NEB);
-     int NumParentPairs = EEPTable.IEPMap.size();
+     int NumParentPairs = EEPTable.REPMap.size();
      int NumChildPairs=0;
      for(int n=0; n<EEPTable.NERadix*EEPTable.NERadix; n++)
       if (EEPTable.IsReduced[n]) NumChildPairs++;

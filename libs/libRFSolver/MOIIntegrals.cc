@@ -700,7 +700,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
    { 
      if (G->LogLevel>=SCUFF_VERBOSE2)
       Log("Filling in matrix entries for child edge pairs ...");
-     for(IrreducibleEdgePairMap::iterator it=EEPTable->IEPMap.begin(); it!=EEPTable->IEPMap.end(); it++)
+     for(ReducedEdgePairMap::iterator it=EEPTable->REPMap.begin(); it!=EEPTable->REPMap.end(); it++)
       { int neaParent, nebParent;
         EEPTable->ResolveEdgePair(it->first, &neaParent, &nebParent);
         cdouble ME[2][2];
