@@ -1,4 +1,4 @@
-# Power, force, and torque in Mie scattering
+ Power, force, and torque in Mie scattering
 
 This test validates the algorithms implemented in
 [[scuff-em]] for computing the power, force, and torque (PFT)

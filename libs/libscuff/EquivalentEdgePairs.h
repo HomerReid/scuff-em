@@ -34,30 +34,20 @@
   #include <tr1/unordered_map>
 #elif defined(HAVE_CXX11)
   #include <unordered_map>
-#else
-  #include <map>
 #endif
+#include <map>
 
 namespace scuff {
 
 /*********************************************************************************/
 /* An EdgePair is a pair of edge indices.                                        */
 /* An EdgePairList is a list of EdgePairs.                                       */
-/* A ReducedEdgePairMap is a set of (Key=EdgePair, Value=EdgePairList) pairs,    */
-/* where the key is a single pair of RWG edges (the parent pair) and the value   */
-/* is a list of edge pairs (the children) where each child pair has matrix       */
-/* elements equal to those of the parent pair.                                   */
 /*********************************************************************************/
 typedef int EdgePair;
 typedef vector<EdgePair> EdgePairList;
 
-#if defined(HAVE_CXX11) 
-  typedef std::unordered_map<EdgePair, EdgePairList> ReducedEdgePairMap;
-#elif defined(HAVE_TR1) 
-  typedef std::tr1::unordered_map<EdgePair, EdgePairList> ReducedEdgePairMap;
-#else
-  typedef std::map<EdgePair, EdgePairList> ReducedEdgePairMap;
-#endif
+typedef map<int, bool> EquivalentPairSet;
+typedef map<int, EquivalentPairSet* > EquivalentPairSetMap;
 
 /****************************************************************************/
 /* an EquivalentEdgePairTable is a table of matrix-element redundancies for */
@@ -69,6 +59,8 @@ class EquivalentEdgePairTable
 { 
 public:
    EquivalentEdgePairTable(RWGGeometry *G, int nsa, int nsb, char *EEPTFile=0);
+   bool HasParent(int nea, int neb);
+   EquivalentPairSet GetChildren(int neaParent, int nebParent);
 
    void Export(char *EEPTFile=0);
    char *Import(char *EEPTFile);
@@ -81,10 +73,12 @@ public:
    bool ResolveEdgePair(EdgePair nPair, int *neParent, int *neChild);
   
    // helper methods for constructing the table
-   bool AddReducedPair(EdgePair ParentPair, EdgePair ChildPair, bool SignFlip=false);
-   bool AddReducedPair(int neaParent, int nebParent, int neaChild, int nebChild, bool SignFlip=false);
-   bool AddReducedPair(int neaParent, int neaChild, EdgePair nebPair);
-   bool EvaluatePairPair(struct EdgePairData *aPair, struct EdgePairData *bPair);
+   int TestEdgePairPair(int ParentPair, int ChildPair);
+   bool EvaluatePairPair(EquivalentPairSetMap &EPSetMap, struct EdgePairData *aPair, struct EdgePairData *bPair);
+   void AddEquivalentPair(EquivalentPairSetMap &EPSetMap,
+                          int neaParent, int neaChild, int nebParent, int nebChild,
+                          bool Flipped=false);
+   void MergeEPSMaps(EquivalentPairSetMap *Tree, EquivalentPairSetMap *Branch);
 
 // private data fields
 
@@ -94,9 +88,10 @@ public:
 
    bVec IsReduced;
 
-   /* REPMap[ParentPair] = list of edge pairs equivalent to ParentPair */
-   ReducedEdgePairMap REPMap;
+   /* EPSetMap[ParentPair] = set of edge pairs equivalent to ParentPair */
+   EquivalentPairSetMap EPSMap;
 };
+
 
 } // namespace scuff
 

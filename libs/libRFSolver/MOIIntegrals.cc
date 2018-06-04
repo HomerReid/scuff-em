@@ -685,7 +685,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      int neb = nPair%NEB;
      if (nsa==nsb && neb<nea) continue;
 
-     if (EEPTable && EEPTable->IsReduced[EEPTable->GetEdgePair(nea, neb)]) continue;
+     //if (EEPTable && EEPTable->HasParent(nea, neb)) continue;
 
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
@@ -696,10 +696,12 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#if 0
   if (EEPTable)
    { 
      if (G->LogLevel>=SCUFF_VERBOSE2)
       Log("Filling in matrix entries for child edge pairs ...");
+      
      for(ReducedEdgePairMap::iterator it=EEPTable->REPMap.begin(); it!=EEPTable->REPMap.end(); it++)
       { int neaParent, nebParent;
         EEPTable->ResolveEdgePair(it->first, &neaParent, &nebParent);
@@ -716,6 +718,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
          }
       }
    }
+#endif
 
   /***************************************************************/
   /* if this is a diagonal block (nsa==nsb) we only filled in the*/
