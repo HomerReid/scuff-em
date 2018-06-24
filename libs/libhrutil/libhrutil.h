@@ -117,15 +117,16 @@ void Warn(const char *format, ...);
 /***************************************************************/
 /* General-purpose status logging ******************************/
 /***************************************************************/
+char *GetHostName(); 
+char *GetTimeString(char *s=0);
 void SetLogFileName(const char *format, ...);
 void InitializeLog(char *argv0, const char *Path=0);
 void SetConsoleLogging();
 void Log(const char *format, ...);
 void LogC(const char *format, ...);
+void LogThread(const char *format, ...);
 void MutexLog(const char *format, ...);
 void LogPercent(int n, int N, int Gradations=10);
-char *GetHostName(); 
-char *GetTimeString();
 
 /***************************************************************/
 /* POSIX-specific nonportable system information functions *****/

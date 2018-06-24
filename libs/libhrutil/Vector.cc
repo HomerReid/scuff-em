@@ -324,11 +324,11 @@ void Compare(cdouble *V1, cdouble *V2, int N, const char *str1, const char *str2
       { Ratio   = (abs(V2[n])>0.0) ? (V1[n]/V2[n]) : -0.0;
         RelDiff = abs(V1[n]-V2[n])/VMax;
       };
-     if (RelDiff>WarningThreshold) printf("\033[1;%im",ColorCode);
+     if (RelDiff>=WarningThreshold) printf("\033[1;%im",ColorCode);
      printf("%2i | (%+.4e,%+.4e) | (%+.4e,%+.4e) | %.1e | (%g,%g)\n",
              n, real(V1[n]),imag(V1[n]), real(V2[n]),imag(V2[n]),
              RelDiff,real(Ratio),imag(Ratio));
-     if (RelDiff>WarningThreshold) printf("\033[0m");
+     if (RelDiff>=WarningThreshold) printf("\033[0m");
    };
   printf("\n");
 }
@@ -345,10 +345,10 @@ void Compare(double *V1, double *V2, int N, const char *str1, const char *str2)
      if (VMax>0.0) 
       { Ratio   = (fabs(V2[n])>0.0) ? (V1[n]/V2[n]) : -0.0;
         RelDiff = fabs(V1[n]-V2[n])/VMax;
-        if (RelDiff>WarningThreshold) printf("\033[1;%im",ColorCode);
+        if (RelDiff>=WarningThreshold) printf("\033[1;%im",ColorCode);
         printf("%2i | %+12.4e | %+12.4e | %.1e | %.3e\n",n,
                 V1[n],V2[n],RelDiff,Ratio);
-        if (RelDiff>WarningThreshold) printf("\033[0m");
+        if (RelDiff>=WarningThreshold) printf("\033[0m");
       };
    };
   printf("\n");
@@ -372,12 +372,12 @@ void Compare(double *V1, double *V2, double *V3, int N,
      double RD12=RD(V1[n],V2[n]);
      if (RD12 > WarningThreshold) printf("\033[1;%im",ColorCode);
      printf("%+12.4e | %.1e | ",V2[n],RD12);
-     if (RD12>WarningThreshold) printf("\033[0m");
+     if (RD12>=WarningThreshold) printf("\033[0m");
 
      double RD13=RD(V1[n],V3[n]);
-     if (RD13 > WarningThreshold) printf("\033[1;%im",ColorCode);
+     if (RD13>=WarningThreshold) printf("\033[1;%im",ColorCode);
      printf("%+12.4e | %.1e\n",V3[n],RD13);
-     if (RD13>WarningThreshold) printf("\033[0m");
+     if (RD13>=WarningThreshold) printf("\033[0m");
    };
   printf("\n");
 }
@@ -411,12 +411,12 @@ void Compare(cdouble *V1, cdouble *V2, cdouble *V3, int N,
      double RD12=RD(V1[n],V2[n]);
      if (RD12 > WarningThreshold) printf("\033[1;%im",ColorCode);
      printf("(%+.4e,%+.4e) | %.1e | ",real(V2[n]),imag(V2[n]),RD12);
-     if (RD12>WarningThreshold) printf("\033[0m");
+     if (RD12>=WarningThreshold) printf("\033[0m");
 
      double RD13=RD(V1[n],V3[n]);
      if (RD13 > WarningThreshold) printf("\033[1;%im",ColorCode);
      printf("(%+.4e,%+.4e) | %.1e\n",real(V3[n]),imag(V3[n]),RD13);
-     if (RD13>WarningThreshold) printf("\033[0m");
+     if (RD13>=WarningThreshold) printf("\033[0m");
    };
   printf("\n");
 }

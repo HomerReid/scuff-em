@@ -18,81 +18,55 @@
  */
 
 /* 
- * EquivalentEdges.h 
+ * EquivalentEdgePairs.h -- definitions for EquivalentEdgePairs module
  */
 
 #ifndef EQUIVALENT_EDGE_PAIRS_H
 #define EQUIVALENT_EDGE_PAIRS_H
 
-#include <libscuff.h>
-
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+  #include <config.h>
 #endif
+#include <vector>
 
-#if defined(HAVE_TR1)
-  #include <tr1/unordered_map>
-#elif defined(HAVE_CXX11)
-  #include <unordered_map>
-#endif
-#include <map>
+#include "libscuff.h"
 
 namespace scuff {
 
-/*********************************************************************************/
-/* An EdgePair is a pair of edge indices.                                        */
-/* An EdgePairList is a list of EdgePairs.                                       */
-/*********************************************************************************/
-typedef int EdgePair;
-typedef vector<EdgePair> EdgePairList;
+typedef struct ParentPairData
+ { int nea, neb;
+   ParentPairData(int _nea, int _neb): nea(_nea), neb(_neb) {}
+ } ParentPairData;
 
-typedef map<int, bool> EquivalentPairSet;
-typedef map<int, EquivalentPairSet* > EquivalentPairSetMap;
+typedef vector<ParentPairData> ParentPairList;
 
-/****************************************************************************/
-/* an EquivalentEdgePairTable is a table of matrix-element redundancies for */
-/* a given pair of RWG surfaces.                                            */
-/****************************************************************************/
-struct EdgePairData; // defined in EquivalentEdges.cc
+#define NUM_EEP_SIGNS 2
+typedef struct { bool Flipped[NUM_EEP_SIGNS]; } SignPattern;
+
+typedef struct ChildPairData
+ { int nea, neb; 
+   SignPattern Signs;
+   ChildPairData(int _nea, int _neb, SignPattern _Signs): nea(_nea), neb(_neb), Signs(_Signs) {}
+   ChildPairData(int _nea, int _neb): nea(_nea), neb(_neb) {Signs.Flipped[0]=Signs.Flipped[1]=false;}
+ } ChildPairData;
+typedef vector<ChildPairData> ChildPairList;
 
 class EquivalentEdgePairTable
-{ 
+ {
 public:
-   EquivalentEdgePairTable(RWGGeometry *G, int nsa, int nsb, char *EEPTFile=0);
-   bool HasParent(int nea, int neb);
-   EquivalentPairSet GetChildren(int neaParent, int nebParent);
+    EquivalentEdgePairTable(RWGGeometry *G, int nsa, int nsb, char *EEPTFile=0);
+    void Export(const char *EEPTFile=0);
 
-   void Export(char *EEPTFile=0);
-   char *Import(char *EEPTFile);
-
-//private:
-// private methods 
-
-   // conversion between pairs of edge indices and indices of edge pairs
-   EdgePair GetEdgePair(int neParent, int neChild);
-   bool ResolveEdgePair(EdgePair nPair, int *neParent, int *neChild);
-  
-   // helper methods for constructing the table
-   int TestEdgePairPair(int ParentPair, int ChildPair);
-   bool EvaluatePairPair(EquivalentPairSetMap &EPSetMap, struct EdgePairData *aPair, struct EdgePairData *bPair);
-   void AddEquivalentPair(EquivalentPairSetMap &EPSetMap,
-                          int neaParent, int neaChild, int nebParent, int nebChild,
-                          bool Flipped=false);
-   void MergeEPSMaps(EquivalentPairSetMap *Tree, EquivalentPairSetMap *Branch);
+    bool HasParent(int neaChild, int nebChild, int *neaParent=0, int *nebParent=0, SignPattern *Signs=0);
+    ParentPairList GetParents();
+    ChildPairList GetChildren(int neaParent, int nebParent, bool IncludeParent=false);
 
 // private data fields
-
+// private:
    RWGGeometry *G;
    int nsa, nsb;
-   int NERadix;
+   void *MasterTable;
+ };
 
-   bVec IsReduced;
-
-   /* EPSetMap[ParentPair] = set of edge pairs equivalent to ParentPair */
-   EquivalentPairSetMap EPSMap;
-};
-
-
-} // namespace scuff
-
+} // namespace scuff 
 #endif // #ifndef EQUIVALENT_EDGE_PAIRS_H

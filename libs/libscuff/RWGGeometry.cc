@@ -831,6 +831,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  if (!CheckEnv("SCUFF_IGNORE_EEPS"))
+   for(int ns=0; ns<NumSurfaces; ns++)
+    EEPTables.push_back( vector<EquivalentEdgePairTable *>(NumSurfaces, NULL) );
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   NumMMJs=0;
   MultiMaterialJunctions=0;
   if (UseHRWGFunctions)

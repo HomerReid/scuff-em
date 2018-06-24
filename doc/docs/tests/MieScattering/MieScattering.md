@@ -1,21 +1,122 @@
- Power, force, and torque in Mie scattering
+# Mie Scattering
 
-This test validates the algorithms implemented in
-[[scuff-em]] for computing the power, force, and torque (PFT)
-on bodies irradiated by external fields. The test 
-uses the 
-[<span class="SC">scuff-scatter</span>][scuff-scatter] application module
-to compute the PFT for a lossy dielectric sphere
-irradiated by a circularly-polarized plane wave
-and compares the results to the predictions of 
-Mie scattering theory.
+The `MieScattering` unit of the
+[<span class=SC>scuff-em</span> test suite][TestSuite]
+uses the [<span class=SC>scuff-scatter</span> command-line module][scuff-scatter]
+to study the textbook problem of *Mie scattering*: the scattering
+of plane waves from a sphere.
 
-[scuffScatter]:               ../../applications/scuff-scatter/index.md
-[scuffEMGeometries]:          ../../reference/Geometries.md
-[scuffEMTransformations]:     ../../reference/Transformations.md
-[scuffEMMaterials]:           ../../reference/Materials.md
-[scuffEMInstallation]:        ../../reference/Installation.md
-[EmigPaper]:                  http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.99.170403
-[gnuplot]:                    https://www.gnuplot.info
-[BohrenHuffman]:              http://onlinelibrary.wiley.com/book/10.1002/9783527618156
-[MarstonCrichton]:            http://journals.aps.org/pra/abstract/10.1103/PhysRevA.30.2508
+More specifically, we consider a circularly-polarized plane wave
+incident from below on a sphere of radius $R=1\, \mu$m and made
+of gold, described by the dielectric function
+$$ \epsilon(\omega)=1-\frac{\omega_p^2}{\omega_p(\omega_p+i\gamma)},
+   \qquad \{\omega_p,\gamma\}=\{1.37\cdot 10^{16}, 5.32\cdot 10^{13}\}
+   \text{rad/sec},
+$$
+and we compute
++ scattered and total fields at points outside and inside the sphere,
++ induced electric and magnetic dipole moments
++ power, force, and torque (PFT) imparted to the sphere.
+
+The aspects of [[scuff-em]] functionality exercised by this test include the 
+following:
+
+#### Core library (<span class=SC>libscuff</span>)
+
+Basic setup of scattering problems for compact geometries:
+
++ Parsing of `.scuffgeo` files ([`RWGGeometry.cc`][RWGGeometry.cc], [`RWGSurface.cc`][RWGSurface.cc])
++ Analysis of surface meshes to identify RWG basis functions ([`InitEdgeList.cc`][InitEdgeList.cc])
++ Assembly of system matrix ([`AssembleBEMMatrix.cc`], [`SurfaceSurfaceInteractions`][SurfaceSurfaceInteractions.cc])
++ Evaluation of matrix elements of RWG basis functions ([`GCMatrixElements.cc`][GCMatrixElements.cc])
++ Evaluation, caching, and reuse of singular contributions to integrals: [`TaylorDuffy.cc`], [`FIBBICache.cc`]
++ Assembly of RHS vector ([`AssembleRHSVector.cc`])
+
+Postprocessing:
+
++ Computation of scattered fields ([`GetFields.cc`])
++ Computation of induced dipole moments ([`GetDipoleMoments.cc`])
++ Computation of PFT via displaced-surface-integral algorithm ([`DSIPFT.cc`])
++ Computation of PFT via energy-momentum transfer algorithm ([`EMTPFT.cc`])
+
+#### <span class=SC>libhmat</span> support library:
+
++ Basic handling of dense matrices and vectors
++ Calls to `LAPACK` routines for solving linear systems
+
+#### <span class=SC>libmatprop</span> support library:
+
++ Parsing of `MATERIAL...ENDMATERIAL` sections in `.scuffgeo` files
++ Support for frequency-dependent permittivities defined by user-specified functions
+
+#### <span class=SC>libincfield</span> support library:
+
++ Plane waves
+
+#### <span class=SC>scuff-scatter</span> command-line application module:
+
++ Core functionality
+
+### Exact solution
+
+The theory of Mie scattering is presented in any number of
+textbooks, such as [Bohren and Huffman, *Absorption and Scattering of Light by
+Small Particles,*][BohrenHuffman], and is reviewed in
+[this memo distributed with the <span class=SC>scuff-em</span> documentation][scuffSpherical]. For a sphere irradiated by an incident field consisting of a linear combination
+of incoming spherical waves,
+$$ \vb E^{\text{inc}}(\vb x)=\sum_{P, \ell,m} a_{P, \ell,m} \boldsymbol{\mathcal{W}^\text{reg}}_{P, \ell,m}(\vb x)
+$$
+the scattered fields \{inside,outside\} the sphere
+are linear combinations of \{regular, outgoing\} spherical waves,
+$$ \vb E^{\text{scat in,out}}(\vb x)=\sum_{\ell,m} b_^{in,out}_{\ell,m} \boldysymbol{\mathcal{W}^\text{reg,out}_{\ell,m}(\vb x)
+$$
+where the scattered-field expansion coefficients are related to the incident-field coefficients according to
+$$ b^{\in,out}_{P,\ell,m} =
+
+The situation considered here is that of a right-circularly-polarized
+plane wave of unit amplitude impinging from below the sphere,
+in which case the incident-field expansion coefficients read
+$$ a_{P,\ell,m} = \begin{cases}
+   i^\ell \sqrt{4\pi(2\ell +1)},      \qquad &m=+1, P=M \\
+   -i^{\ell+1} \sqrt{4\pi(2\ell +1)}, \qquad &m=+1, P=N \\
+   0, \qquad m\ne +1
+   \end{cases}
+$$
+
+The
+
+## <span class="SC">scuff-em</span> solution
+
+````bash
+ARGS=""
+ARGS="${ARGS} --geometry    GoldSphere_501.scuffgeo"
+ARGS="${ARGS} --OmegaFile   0.1"
+ARGS="${ARGS} --Omega       1.0"
+ARGS="${ARGS} --ThetaMin    0"
+ARGS="${ARGS} --ThetaMax    85"
+ARGS="${ARGS} --ThetaPoints 19"
+ARGS="${ARGS} --ZAbove      1.0"
+ % scuff-scatter ${ARGS}
+````
+
+## Comparison
+
+## Unit test
+
+The unit test is performed by running the script `tests/Mie/TestMie.sh.`
+This runs `scuff-scatter` with the command-line arguments discussed above,
+producing output files with names like `GoldSphere_501.DSIPFT`, then runs
+`CheckSCUFFData` to compare the content of these files against reference
+files with names like `GoldSphere_501.DSIPFT.reference.`
+(The reference files are included in the <span class=SC>scuff-em</span>
+source distribution, but may be regenerated by running
+`% TestMie.sh --reference.`
+The items to be checked in the comparison are defined in the checklist file
+[`Mie.Checklist`](Mie.Checklist). The unit test passes iff 
+all data items for all data sets agree within specified tolerances.
+
+[BohrenHuffman]:		https://www.wiley.com/en-us/Absorption+and+Scattering+of+Light+by+Small+Particles-p-9780471293408
+
+{!CodeFileLinks.md!}
+
+{!Links.md!}

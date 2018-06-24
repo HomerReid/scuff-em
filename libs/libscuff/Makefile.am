@@ -7,6 +7,7 @@ pkginclude_HEADERS = libscuff.h \
   PanelCubature.h
 
 libscuff_la_SOURCES =		\
+ AssembleBEMMatrix2018.cc      	\
  AssembleBEMMatrix.cc          	\
  AssembleRHSVector.cc 		\
  AssessPanelPair.cc 		\

@@ -130,7 +130,7 @@ HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
    { 
      DeltaSRFluxSizeSave=DeltaSRFluxSize;
      DeltaSRFlux=(cdouble *)reallocEC(DeltaSRFlux,DeltaSRFluxSize);
-   };
+   }
   memset(DeltaSRFlux, 0, DeltaSRFluxSize);
 
   /***************************************************************/
@@ -188,7 +188,7 @@ HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                           +KN*conj(HKN[Mu][KNIndexA+0])*HKN[Nu][KNIndexB+1]
                           +NK*conj(HKN[Mu][KNIndexA+1])*HKN[Nu][KNIndexB+0]
                           +NN*conj(HKN[Mu][KNIndexA+1])*HKN[Nu][KNIndexB+1];
-           };
+           }
 
          cdouble Trace, PV[3], MST[3][3];
          Trace = EpsAbs*(EE[0][0] + EE[1][1] + EE[2][2])
@@ -216,9 +216,9 @@ HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
           for(int Nu=0; Nu<3; Nu++)
            DeltaSRFlux[Index++] += MST[Mu][Nu];
 
-       }; // for(int nbfA=0 ... for(int nbfB=0...
+       } // for(int nbfA=0 ... for(int nbfB=0...
 
-   }; //for(int nx=0; nx<NX; nx++)
+   } //for(int nx=0; nx<NX; nx++)
          
   /*--------------------------------------------------------------*/
   /*- sum contributions of all threads ---------------------------*/

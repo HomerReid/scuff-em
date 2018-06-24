@@ -55,6 +55,7 @@
 [TestSuite]:            	/tests/Overview.md
 
 [StaticSubstrate]:		/tex/StaticDielectricSubstrate.pdf
+[scuffSpherical]:		/tex/scuffSpherical.pdf
 [FullWaveSubstrate]:         	/tex/FullWaveSubstrate.pdf
 [libSubstrate]:         	/tex/FullWaveSubstrate.pdf
 [scuffRFMemo]:			/tex/scuff-rf.pdf 

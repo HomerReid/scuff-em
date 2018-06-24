@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <complex>
 #include <cmath>
+#include <vector>
 
 #include <libhrutil.h>
 #include <libhmat.h>
@@ -49,6 +50,7 @@
 #include "GTransformation.h"
 #include "GBarAccelerator.h"
 #include "PFTOptions.h"
+#include "EquivalentEdgePairs.h"
 
 namespace scuff {
 
@@ -292,8 +294,7 @@ class RWGSurface
    /* undoing it.                                                   */
    /* Origin is the point (0,0,0) in the original mesh file,        */
    /* transformed by OTGT and or any subsequent transformations.    */
-   GTransformation *OTGT;
-   GTransformation *GT;
+   GTransformation *OTGT, *GT;
    double Origin[3];
 
    /* SurfaceZeta, if non-NULL, points to a cevaluator for a      */
@@ -339,6 +340,8 @@ typedef struct MMJData
  { int NumEdges;
    int *SurfaceIndices, *EdgeIndices;
  } MMJData;
+
+class EquivalentEdgePairTable; // forward declaration
 
 /*************************** ***********************************/
 /* an RWGGeometry is a collection of regions with interfaces   */
@@ -611,6 +614,9 @@ class RWGGeometry
    /*  (1) the regions on either side have the same material    */
    /*      properties                                           */
    int *Mate;
+
+   // EEPTables[nsa][nsb] = equivalent edge-pair table for surfaces (nsa,nsb) 
+   std::vector < std::vector< EquivalentEdgePairTable *> > EEPTables;
 
    /* SurfaceMoved[i] = 1 if surface #i was moved on the most   */
    /* recent call to Transform(). Otherwise SurfaceMoved[i]=0.  */

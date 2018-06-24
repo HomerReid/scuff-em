@@ -52,6 +52,8 @@
 
 namespace scuff {
 
+HMatrix *AssembleBEMMatrix2018(RWGGeometry *G, cdouble Omega, double *kBloch, HMatrix *M);
+
 /***************************************************************/
 /* This routine adds the contents of matrix block B, which has */
 /* dimensions NRxNC, to the block of M whose upper-left corner */
@@ -681,6 +683,9 @@ void RWGGeometry::ApplyMMJTransformation(HMatrix *M, HVector *RHS)
 /***************************************************************/
 HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *M)
 { 
+  if (CheckEnv("SCUFF_MATRIX_2018") && LDim==0 )
+   return AssembleBEMMatrix2018(this, Omega, kBloch, M);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -697,7 +702,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   else if ( M->NR != TotalBFs || M->NC != TotalBFs )
    { Warn("wrong-size matrix passed to AssembleBEMMatrix; reallocating...");
      M=AllocateBEMMatrix();
-   };
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -733,7 +738,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
       else
        AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
                               BFIndexOffset[ns], BFIndexOffset[nsp]);
-    };
+    }
 
   /***************************************************************/
   /* if the matrix is symmetric, then the computations above have*/

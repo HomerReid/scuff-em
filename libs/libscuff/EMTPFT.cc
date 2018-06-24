@@ -304,10 +304,10 @@ void ScatteredPFTIntegrand2(double *xA, PCData *PCD,
 /* compute PFT integrals between pairs of RWG basis functions  */
 /***************************************************************/
 void GetScatteredPFTIntegrals(RWGGeometry *G,
-                               int nsa, int nea, int nsb, int neb,
-                               cdouble Omega, cdouble k, 
-                               cdouble EpsR, cdouble MuR,
-                               int EMTPFTIMethod, cdouble PFTIs[NUMPFTIS])
+                              int nsa, int nea, int nsb, int neb,
+                              cdouble Omega, cdouble k, 
+                              cdouble EpsR, cdouble MuR,
+                              int EMTPFTIMethod, cdouble PFTIs[NUMPFTIS])
 {
   RWGSurface *SA=G->Surfaces[nsa];
   RWGSurface *SB=G->Surfaces[nsb];

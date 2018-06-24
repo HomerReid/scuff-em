@@ -15,8 +15,7 @@
 %- Document header  -----------------------------------------
 %------------------------------------------------------------
 %------------------------------------------------------------
-\title {{\sc librfsolver} and {\sc scuff-rf}: Support for
-        RF device modeling in {\sc scuff-em}}
+\title {RF device modeling in {\sc scuff-em}}
 \author {Homer Reid}
 \date {April 16, 2018}
 
@@ -40,9 +39,9 @@
 
 The {\sc scuff-em} package includes a module for RF device modeling
 within the framework of integral-equation electromagnetism.
-The core functionality of the module is implemented 
-by the {\sc librfsolver} library packaged with the {\sc scuff-em}
-distribution, and may be accessed either \textbf{(a)} in API form 
+The core functionality of the module is implemented
+within the {\sc scuff-solver} high-level interface to {\sc scuff-em}
+and may be accessed either \textbf{(a)} in API form 
 from C++ or python programs, or \textbf{(b)} from the command line
 via the {\sc scuff-rf} binary application code.
 
@@ -83,12 +82,30 @@ In this memo we will discuss the implementation of these features.
 %####################################################################%
 \begin{figure}
 \begin{center}
-%\includegraphics{RWGPortFigure
-\caption{An \texttt{RWGPort}. The port current $I$ is
-         forced into the positive port terminal, while
-         an identical current is extracted from the negative
-         port terminal. Each port terminal is comprised of one or
-         more exterior edges in a meshed geometry.
+\begin{tabular}{cc}
+\begin{tabular}{c}
+\resizebox{0.5\textwidth}{!}{\includegraphics{PointPort.pdf}} \\
+\textbf{(a)}\\
+\resizebox{0.5\textwidth}{!}{\includegraphics{PolygonPort.pdf}} \\
+\textbf{(b)}
+\end{tabular}
+\begin{tabular}{c}
+\resizebox{0.5\textwidth}{!}{\includegraphics{LinePort.pdf}}\\
+\textbf{(c)}
+\end{tabular}
+\end{tabular}
+\caption{Examples of \texttt{RWGPort} terminals.
+         \textbf{(a)} Port terminal defined by a single point $\vb v_0$ in the
+         interior of a meshed surface. 
+         \textbf{(b)} Port terminal defined by a planar polygon; the port terminal
+          is the union of all triangle edges lying on the boundary of 
+          the meshed structure and inside the polygon.
+         \textbf{(c)} Port terminals defined by line segments: the
+         positive port terminal (blue arrows) consists of all triangle edges
+         on the boundary of the meshed structure lying within the line segment 
+         $\overline{\vb v_3 \vb v_4}$, while the negative terminal (red arrows)
+         consists of all triangle edges contained in line segments
+         $\overline{\vb v_1 \vb v_2}$ and $\overline{\vb v_5 \vb v_6}.$
         }
 \label{RWGPortFigure}
 \end{center}
@@ -100,24 +117,32 @@ In this memo we will discuss the implementation of these features.
 The key extension of the \lss core library provided by {\sc scuff-rf}
 is the idea of an \texttt{RWGPort}. This is a physical region of
 a material body that interfaces with RF circuitry. More specifically,
-a port consists of positive and negative terminals, where each
-terminal is a small region of a surface over which flows an externally
-injected or extracted current; the fields radiated by the resulting
+a port consists of a positive terminal and an (optional) negative terminal, 
+where each terminal is a small region of a surface into (or from)
+which an external current is forced; if the port current is $I$, 
+then a total current $I$ is forced into the positive terminal
+and an equal current is extracted from the negative terminal.
+The fields radiated by the resulting
 spatially localized current distributions then constitute the incident
 field in a scattering problem.
+(A port may have no negative terminal, in which case the current
+forced into the positive terminal may be thought of as flowing out 
+through the ground plane of the substrate (if present) or from 
+a negative terminal at spatial infinity.
 
-Internally, each terminal of an RWGPort is simply a set of
-{\sc half-RWG} basis functions
+Figure \ref{RWGPortFigure} shows some examples of \texttt{RWGPort}
+terminals. As this figure makes clear, each port is fully defined
+by one or more vertices; ports are specified to {\sc scuff-em}
+simply by giving the coordinates of these vertices.
 
-Figure \ref{PortFigure} shows some examples of \texttt{RWGPort} 
-terminals.
-As this figure makes clear, internally each terminal of a \texttt{RWGPort}
-is nothing but a collection of \textit{half-RWG} basis functions.
-A half-RWG function is just what it sounds like---it is defined by
+To each \texttt{RWGPort} terminal correspond one or more triangles with distinguished
+edges (indicated by arrows in Figure \ref{RWGPortFigure}), to which {\sc scuff-em}
+assigns \textit{half-RWG} basis functions $\vb h(\vb x)$.
+A half-RWG basis function is just what it sounds like---it is defined by
 a single triangle, with a distinguished choice of vertex, and it describes
 a surface-current density supported only on that triangle,
 emanating from the vertex and flowing normally outward through the opposite edge.
-In a \textit{full}-RWG function this outflow of current is
+In a \textit{full}-RWG function $\vb b(\vb x)$ this outflow of current is
 sunk into the adjacent panel (which, in {\sc scuff-em} parlance, would be
 the `negative panel' of the full RWG function), and thus full RWG
 functions carry no net current; half-RWG functions, on the other hand,
@@ -125,13 +150,46 @@ have no negative panel and describe currents that appear from out of nowhere,
 as is appropriate for representing ports driven by a given current injected
 by fixed external sources.
 
+The \textit{perimeter} of a port terminal is the sum of the lengths of
+all triangle edges it contains. This number is relevant for determining
+the weight with which each half-RWG basis function in a port terminal is
+populated to describe a port current $I$.
+If $L_{p}^\pm$ are the perimeters of the positive and negative ports
+of port $p$, then a port current $I_p$ is described by weighting
+each basis function in the positive terminal with weight
+$+\frac{I_p}{L_p^+}$ and 
+each basis function in the negative terminal with weight
+$-\frac{I_p}{L_p^-}$. 
+Thus, defining
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+\vb K_p(I_p; \vb x)
+&\equiv \left(\parbox{0.6\textwidth}
+    { spatial distribution of electric surface-current density
+      due to port $p$ driven by current $I_p$
+    }
+  \right)
+\intertext{we have}
+\vb K_p(I_p; \vb x)
+&= \frac{I_p}{L_p^+} \sum_{a\in \mc{P}_p^+} \vb h_{a}(\vb x)
+  -\frac{I_p}{L_p^-} \sum_{a\in \mc{P}_p^-} \vb h_{a}(\vb x).
+\label{KpDef}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the notation $a\in \mc P_p^\pm$ indicates that
+$a$ runs over the indices of all half-RWG basis functions
+on the $\pm$ terminal of port $p$. 
+
+In this memo I use indices $a,b$ for half-RWG functions 
+and $\alpha,\beta$ for full-RWG functions.
+
+\paragraph{Some technical implementation details} 
 Any meshed representation of an open surface in a {\sc scuff-em} geometry 
 is automatically assigned a set of half-RWG basis functions, one 
 for each exterior panel edge; these are stored 
 within the \texttt{RWGSurface} structure for the surface
 in an array called \texttt{HalfRWGEdges}. 
 (Full RWG edges are stored separately, in the \texttt{Edges} array.)
-
 Ordinarily, the half-RWG functions assigned to exterior edges are inert
 in {\sc scuff-em} scattering problems; they are identified when the 
 geometry is read and their properties are stored in the \texttt{HalfRWGEdges} 
@@ -153,35 +211,6 @@ creation of new \texttt{HalfRWGEdge} structures that are tacked on
 to the end of the \texttt{HalfRWGEdge} array for the \texttt{RWGSurface}
 in question.
 
-The \textit{perimeter} of a port terminal is the sum of the lengths of
-all half-RWG edges it contains. This number is relevant for determining
-the weight with which each half-RWG function in a port terminal is
-populated to describe a port current $I$.
-If $L_{p}^\pm$ are the perimeters of the positive and negative ports
-of port $p$, then a port current $I_p$ is described by weighting
-each basis function in the positive terminal with weight
-$+\frac{I_p}{L_p^+}$ and 
-each basis function in the negative terminal with weight
-$-\frac{I_p}{L_p^-}$. 
-Thus, defining
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align}
-\vb K_p(I_p; \vb x)
-&\equiv \left(\parbox{0.6\textwidth}
-    { spatial distribution of electric surface-current density
-      due to port $p$ driven by current $I_p$
-    }
-  \right)
-\intertext{we have}
-\vb K_p(I_p; \vb x)
-&= \frac{I_p}{L_p^+} \sum_{a_p^+} \vb h_{a_p^+}(\vb x)
-  -\frac{I_p}{L_p^-} \sum_{a_p^-} \vb h_{a_p^-}(\vb x).
-\label{KpDef}
-\end{align}
-where $a_p^\pm$ run over the indices of all half-RWG basis functions
-on the $\pm$ terminal of port $p$.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -189,81 +218,6 @@ on the $\pm$ terminal of port $p$.
 
 \section{SIE scattering problems with port excitation}
 \label{SIEWithPortExcitationSection}
-
-Consider an $N$-port RF device geometry driven by a set of 
-$N$ complex-valued currents $\{I_p\}, p=1,\cdots,N.$
-The full surface-current distribution of all driven ports
-is given by superposing (\ref{KpDef}) for all ports:
-%====================================================================%
-\begin{align*}
- \vb K\sups{port}(\vb x)
-&= \sum_{\sigma_p \in\pm} \sigma_p \frac{I_p}{L_p^{\sigma_p}} 
-   \sum_{a_p^\pm} \vb h_{a_p^\pm}(\vb x).
-\end{align*}
-%====================================================================%
-The electric field radiated by this current distribution, which defines
-the incident field in our scattering problem, is then a sum of
-contributions from HRWG basis functions:
-%====================================================================%
-\begin{align}
-  \vb E\sups{inc}(\vb x)
-&=\underbrace{\int \vbGamma(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) \, d\vb x^\prime
-             }_{\vbGamma\star \vb K}
-\\
-&= \sum_{\sigma_p \in\pm} \sigma_p \frac{I_p}{L_p^{\sigma_p}}
-   \sum_{a_p^\pm} \vbGamma \star \vb h_{a_p^\pm}
-\label{EInc}
-\end{align}
-%====================================================================%
-with $\vbGamma\equiv \vbGamma\supt{EE}$ the $3\times 3$ dyadic Green's function
-giving the electric field of an electric current in the medium
-of the scattering geometry.\footnote{In a homogeneous
-medium with wavevector $k$ and relative wave impedance $Z_r$ we have
-$\vbGamma\supt{EE}(\vb x, \vb x^\prime)=ik Z_0 Z_r \mb G(k; \vb x-\vb x^\prime)$
-with 
-$\mb G_{ij}(\vb r) \equiv \left(\delta_{ij} + \frac{1}{k^2}\partial_i \partial_j\right)
- \frac{e^{ik|\vb r|}}{4\pi |\vb r|}$ the usual Helmholtz dyadic, 
-but this discussion is more general; in particular, $\vbGamma\supt{EE}$ may
-include the effect of a layered dielectric substrate.}
-
-The usual EFIE formulation of scattering from PEC bodies then 
-yields an integral equation for the unknown electric surface-current 
-density $\vb K\sups{ind}$ induced on the scatterers by the incident field:
-%====================================================================%
-\begin{align*}
- \int \vbGamma_{\parallel}(\vb x, \vb x^\prime) \cdot \vb K\sups{ind}(\vb x^\prime) d\vb x^\prime
-&=-\vb E_\parallel\supt{inc}(\vb x)
-\intertext{Inserting (\ref{EInc}),
-           expanding $\vb K\sups{ind}$ as a linear combination of RWG basis functions
-           $\vb K\sups{ind}=\sum k_\alpha \vb b_\alpha$, and Galerkin testing yields
-           a discrete linear system for the expansion coefficients:}
-\vb M \cdot \vb k &= \vb r
-\label{Mkr}
-\end{align*}
-%====================================================================%
-where the elements of $\vb M$ are the $\vbGamma$ interactions of
-full RWG basis functions,
-%====================================================================%
-$$ \vb M_{\alpha\beta} = \Vmv{\vb b_{\alpha}}{\vbGamma}{\vb b_\beta} $$
-%====================================================================%
-and the elements of the RHS vector are $\vbGamma$ interactions 
-of full RWG functions with half RWG functions:
-%====================================================================%
-\numeq{rAlphaDef}
-{r_{\alpha} = -\sum_{a} w_a \Vmv{\vb b_{\alpha}}{\vbGamma}{\vb h_a}.}
-%====================================================================%
-In (\ref{rAlphaDef}), the sum runs over all half-RWG functions on all ports,
-and the weight $w_a=\pm \frac{I_p}{L_p^\pm}$ if half-RWG function $\vb h_a$
-lives on the $\pm$ terminal of port $p$.
-Formally solving (\ref{Mkr}), the induced surface-current density reads
-%====================================================================%
-\begin{align*} 
- \vb K\sups{ind}(\vb x)
-&= \sum_{\alpha} k_\alpha \vb b_\alpha(\vb x)
-&= \sum_{\alpha\beta} \vb b_\alpha(\vb x) W_{\alpha\beta} r_\beta
-\end{align*} 
-%====================================================================%
-with $\vb W=\vb M^{-1}$ the inverse EFIE matrix.
 
 In RF device modeling, structures are excited by user-specified input currents
 forced into one or more ports of a structure, and the objective is to compute
@@ -292,6 +246,83 @@ algorithms for computing fields radiated by excited structures.)
 
 \subsection{Port currents: A new type of incident field}
 
+Consider an $N$-port RF device geometry driven by a set of 
+$N$ complex-valued currents $\{I_p\}, p=1,\cdots,N.$
+The full surface-current distribution of all driven ports
+is given by superposing (\ref{KpDef}) for all ports:
+%====================================================================%
+\begin{align*}
+ \vb K\sups{port}(\vb x)
+&= \sum_{a\in \mc P_p^\pm } 
+   \underbrace{\pm \frac{I_p}{L_p^{\pm}}}_{\xi_a} \vb h_{a}(\vb x)
+\end{align*}
+%====================================================================%
+The electric field radiated by this current distribution, which defines
+the incident field in the scattering problem solved by {\sc scuff-em},
+is then a sum of contributions from HRWG basis functions:
+%====================================================================%
+\begin{align}
+  \vb E\sups{inc}(\vb x)
+&=\underbrace{\int \vbGamma(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) \, d\vb x^\prime
+             }_{\vbGamma\star \vb K}
+\\
+&= \sum_{a}\xi_a \vbGamma \star \vb h_a
+\label{EInc}
+\end{align}
+%====================================================================%
+with $\vbGamma\equiv \vbGamma\supt{EE}$ the $3\times 3$ dyadic Green's function
+giving the electric field of an electric current in the medium
+of the scattering geometry.\footnote{In a homogeneous
+medium with wavevector $k$ and relative wave impedance $Z_r$ we have
+$\vbGamma\supt{EE}(\vb x, \vb x^\prime)=ik Z_0 Z_r \mb G(k; \vb x-\vb x^\prime)$
+with 
+$\mb G_{ij}(\vb r) \equiv \left(\delta_{ij} + \frac{1}{k^2}\partial_i \partial_j\right)
+ \frac{e^{ik|\vb r|}}{4\pi |\vb r|}$ the usual Helmholtz dyadic, 
+but this discussion is more general; in particular, $\vbGamma\supt{EE}$ may
+include the effect of a layered dielectric substrate.}
+
+The usual EFIE formulation of scattering from PEC bodies then 
+yields an integral equation for the unknown electric surface-current 
+density $\vb K\sups{ind}$ induced on the scatterers by the incident field:
+%====================================================================%
+\begin{align}
+ \int \vbGamma_{\parallel}(\vb x, \vb x^\prime) \cdot \vb K\sups{ind}(\vb x^\prime) d\vb x^\prime
+&=-\vb E_\parallel\supt{inc}(\vb x)
+\intertext{Inserting (\ref{EInc}),
+           expanding $\vb K\sups{ind}$ as a linear combination of RWG basis functions
+           $\vb K\sups{ind}=\sum k_\alpha \vb b_\alpha$, and Galerkin testing yields
+           a discrete linear system for the expansion coefficients:}
+\vb M \cdot \vb k &= \vb r
+\label{Mkr}
+\end{align}
+%====================================================================%
+where the elements of $\vb M$ are the $\vbGamma$ interactions of
+full RWG basis functions,
+%====================================================================%
+$$ \vb M_{\alpha\beta} = \Vmv{\vb b_{\alpha}}{\vbGamma}{\vb b_\beta} $$
+%====================================================================%
+and the elements of the RHS vector are $\vbGamma$ interactions 
+of full RWG functions with half RWG functions:
+%====================================================================%
+\numeq{rAlphaDef}
+{r_{\alpha} = -\sum_{a} \xi_a \Vmv{\vb b_{\alpha}}{\vbGamma}{\vb h_a}.}
+%====================================================================%
+where the sum runs over all edges on all port terminals
+and $\xi_a\equiv \pm \frac{I_p}{L_p^\pm}$ is the common
+weight of all half-RWG functions $\vb h_a$ on the $\pm$ terminal
+of port $p$.
+Formally solving (\ref{Mkr}), the induced surface-current density reads
+%====================================================================%
+\begin{align} 
+ \vb K\sups{ind}(\vb x)
+&= \sum_{\alpha} k_\alpha \vb b_\alpha(\vb x)
+\nn
+&= \sum_{\alpha\beta} \vb b_\alpha(\vb x) W_{\alpha\beta} r_\beta
+\label{KInd}
+\end{align} 
+%====================================================================%
+with $\vb W=\vb M^{-1}$ the inverse EFIE matrix.
+
 %####################################################################%
 %####################################################################%
 %####################################################################%
@@ -302,210 +333,129 @@ algorithms for computing fields radiated by excited structures.)
          is the field radiated by half-RWG basis functions
          associated with the exterior edges comprising the
          \texttt{RWGPort}.
-         The weight of each
-half-RWG basis function is populated with
+         Each half-RWG basis function is populated with
          a strength proportional to the port current.
         }
 \label{PortCurrentFigure}
 \end{center}
 \end{figure}
-%####################################################################%
-%####################################################################%
-%####################################################################%
-
-To model RF devices excited by currents forced into ports,
-the {\sc scuff-em} RF module solves an integral-equation scattering problem
-in which the incident field is the field radiated by the currents
-forced into the ports.
-half-RWG basis
-functions associated 
-with each port, with those basis functions populated by strengths
-proportional to the port current.
-
-The positive port current is assumed to be equally distributed over 
-all edges on the positive side of the port, while the 
-negative port current is assumed to be equally distributed over 
-all edges on the negative side of the port.
-Thus, if the port current in Figure \ref{PortCurrentFigure}) is $I$, 
-then the coefficients of the three half-RWG functions on the 
-positive side of the port are
-$$K_{15}=K_{29}=K_{37}=-\frac{I}{W^+},$$
-while the coefficients of the three half-RWG functions on the 
-positive side of the port are
-$$K_{61}=K_{82}=+\frac{I}{W^-}.$$
-Note that our sign convention is that the current carried
-by a half-RWG function always flows \textit{from} the vertex 
-\textit{to} the edge, which is why the half-RWG functions
-on the positive port edge have negative coefficients.
 
 %####################################################################%
 %####################################################################%
 %####################################################################%
-\begin{figure}
-\begin{center}
-%\includegraphics{PortCurrentIncidentField}}
-\caption{The fields radiated by a half-RWG basis function
-         contain one contribution from surface sources 
-         (surface current and associated surface charge)
-         on the triangular panel $\pan$, and a second contribution
-         from the line charge that accumulates on the edge 
-         $\vb L.$
-        }
-\label{HalfRWGBasisFunction}
-\end{center}
-\end{figure}
-%####################################################################%
-%####################################################################%
-%####################################################################%
+\newpage
+\section{Calculation of impedance matrix}
 
-\subsection*{Fields radiated by a half-RWG basis function}
+For an $N\subt{P}$-port system driven by a set of port currents $\{I_p\}$,
+the complex power is a quadratic function of the $\{I_p\}$,
+whose coefficients define the \textit{impedance parameters} $Z_{pq}$
+(entries of the \textit{impedance matrix} $\vb Z$) of the system:
+%====================================================================%
+\numeq{ZpqDef}
+{ \frac{1}{2} \int \vb K^* \cdot \vb E \, dA
+   \equiv \frac{1}{2}\sum I^*_p Z_{pq} I_q
+   = \frac{1}{2} \vb I^\dagger \vb Z \vb I
+}
+%====================================================================%
+where the integral extends over all surfaces in the SIE geometry.
+(Note that we consider the full \textit{complex} power, i.e. both
+real and imaginary parts of the integral of $\vb J^*\cdot \vb E$.)
 
-Consider a half-RWG basis function $h_\alpha(\vb x)$, as depicted in 
-Figure \ref{HalfRWGBasisFunction}.  Suppose the basis function
-is weighted with coefficient $k_\alpha$. 
-($k_\alpha$ has dimensions of current/length.) 
-The $\vb E$ field may be expressed in terms of the Lorentz-gauge potentials,
+In this section I derive an expression relating the impedance parameters $Z_{pq}$
+to quantities computed by {\sc scuff-em}. The derivation proceeds in 
+multiple steps.
+
+\begin{description}
+
+\item[1. Total surface current.]
+
+For a $N\subt{P}$-port system driven by port currents $\{I_p\}$,
+the total surface current at a point $\vb x$ on a meshed surface
+is a linear function of the $\{I_p\}$:
+%====================================================================%
 \begin{align*}
-  \vb E(\vb x) 
- &= iw\vb A(\vb x) - \nabla \Phi(\vb x),,,,
+\vb K(\vb x) &= \sum I_p \vb K_p(\vb x)
+\\
 \end{align*}
-where the vector potential is obtained by integrating over surface 
-currents on $\pan_\alpha$,
-\begin{align*}
- \vb A(\vb x) 
-&=\mu\int_{\pan_\alpha} G(\vb x, \vb x^\prime) \vb K(\vb x^\prime) 
-  d\vb x^\prime
-\intertext{but the scalar potential contains contributions from both
-           the surface charge on $\pan_\alpha$ and the line charge 
-           on $\vb L_\alpha$:}
- \vb \phi(\vb x) 
-&=+\frac{1}{\epsilon}
-  \int_{\pan_\alpha} G(\vb x, \vb x^\prime) \sigma(\vb x^\prime) dA 
-+\,\frac{1}{\epsilon}
-  \int_{\vb L_\alpha} G(\vb x, \vb x^\prime) \lambda(\vb x^\prime) dl
-\end{align*}
-For a half-RWG function populated by strength $k_\alpha$ we have 
-$$ \left.
-   \begin{array}{lcl}
-   \vb K(\vb x)  &=& \frac{lk_\alpha}{2A}(\vb x-\vb Q)
-   \\[8pt]
-   \sigma(\vb x) &=& \frac{lk_\alpha}{i\omega A}
-   \end{array}
-   \right\} \qquad \vb x\in\pan_\alpha 
-$$
-and 
-$$ \lambda(\vb x) = \frac{k_\alpha}{i\omega}, \qquad 
-   \vb x \in \vb L 
-$$
-and hence the 
+%====================================================================%
+where $\vb K_p$ receives both a \textit{direct} contribution from the
+half-RWG basis functions $\{\vb h(\vb x)\}$ carrying the port currents
+and an \textit{induced} contribution from the full-RWG basis
+functions populated by the coefficients obtained by solving
+the scattering problem, equation (\ref{KInd}):
+%====================================================================%
+\numeq{Kp}
+{\vb K_p(\vb x) =
+   \sum_{a\in\mc{P}_p^\pm}
+   \pm \frac{1}{L_p^\pm}
+   \bigg\{  \vb b_a(\vb x)
+           -\sum_{\alpha\beta} \vb b_\alpha(\vb x) W_{\alpha\beta} r_{\beta a}
+   \bigg\}
+}
+%====================================================================%
+\item[2. Total electric field.]
 
-\subsection{Evaluation of RHS vector}
-
-The elements of the RHS vector in a {\sc scuff-em} scattering problem
-are (the negatives of) the inner products of the incident fields
-with the RWG basis functions of the geometry.
-
-%####################################################################%
-%####################################################################%
-%####################################################################%
-\subsection{Calculation of impedance matrix}
-
-For an $N\subt{P}$-port system, the
-$N\subt{P}\times N\subt{P}$ impedance matrix $\vb Z$ is defined by
-JStar E = (Jr-iJi)(Er+iEi) JrEr + JiEi + i(JrEi-JiEr)
-J E = (Jr+iJi)(Er+iEi) (JrEr - JiEi) + i(JrEi+JiEr)
-
-$$ \vb J_p(\vb x) =
-   \sum_{a\in\mc{P}_p}
-   \bigg\{ \Big[ 
-     -\sum_{\alpha\beta} \vb b_\alpha(\vb x) M_{\alpha\beta} R_{\beta a}
-           \Big]
-           +\vb b_a(\vb x)
-   \bigg\}w_a,
- \quad 
-   \vb E_q(\vb x) =
-   \sum_{b\in\mc{P}_q}
-   \bigg\{ \Big[ 
-     -\sum_{\gamma\delta} \mb E_\gamma(\vb x) M_{\gamma\delta} R_{\delta b}
-           \Big]
-           +\mb E_b(\vb x)
-   \bigg\}w_b
- \qquad 
-$$
+The total $\vb E$-field is similarly linear the $\{I_p\}$:
+%====================================================================%
+\begin{align}
+ \vb E(\vb x) 
+&= \sum_p I_p \vb E_p(\vb x), 
+\quad
+\vb E_p(\vb x) 
+&= \sum_{b\in\mc{P}^\pm_p}
+   \pm \frac{1}{L_p^\pm}
+   \bigg\{  \mb E_a(\vb x)
+           -\sum_{\alpha\beta} \mb E_\alpha(\vb x) W_{\alpha\beta} r_{\beta a}
+   \bigg\}
+ \label{Ep}
+\end{align}
+%====================================================================%
+where $\{\mb E_\alpha, \mb E_a\}\equiv \vbGamma \star \{\vb b_\alpha, \vb b_a\}$
+are the electric fields due to individual
+full- or half-RWG functions weighted with unit strength.
+%====================================================================%
+\item[3. Complex power.]
+Inserting (\ref{Kp}) and (\ref{Ep}) into (\ref{ZpqDef}), the
+impedance parameter $Z_{pq}$ becomes a sum of 4 terms:
 %====================================================================%
 \begin{align*}
  Z_{pq} 
- &\equiv \frac{1}{2I_p I_q}\int \vb J_p(\vb x) \vb E_q(\vb x)\,d\vb x
+ &\equiv \frac{1}{2}\int \vb J_p(\vb x) \vb E_q(\vb x)\,d\vb x
 \\
- &= T_1 + T_2 + T_3 + T_4 
+ &= T_1 + T_2 + T_3 + T_4
 \\
- T_1 &\equiv \sum_{\alpha\beta\gamma\delta}
-  R_{\delta q}
-  M_{\alpha\beta}
- \underbrace{\Inp{\vb b_\alpha}{\vb E_\gamma}}_{M_{\alpha\gamma}^{-1}}
-  M_{\gamma\delta}
-  R_{\beta p}
+\intertext{The first term describes interactions between half-RWG basis functions:}
+T_1 &\equiv \sum_{a b} \frac{1}{2 L_p^\pm L_q^\pm} \Inp{\vb h_a}{\vb E_b}
 \\
-&= \frac{1}{2} \vb R_q \vb M \vb R_p
+\intertext{The second two terms describe interactions between half-RWG and full-RWG functions:}
+T_2 &= -\sum_{a \alpha \beta b}
+  \frac{1}{2L_p^\pm L_q^\pm}
+ \underbrace{\Inp{\vb b_a}{\vb E_\alpha}}_{r_{p \alpha}}
+  W_{\alpha\beta}
+  r_{q \beta}
 \\
- T_2 &\equiv -\sum_{\alpha\beta}
- \underbrace{\Inp{\vb b_\alpha}{\vb E_b}}_{R_{\alpha q}}
-  M_{\alpha\beta}
-  R_{\beta p}
- &= -\frac{1}{2}\vb R_q \vb M \vb R_p
+ &= -\frac{1}{2}\vb r^T_p \vb W \vb r_q
+\\
+T_3 &= -\frac{1}{2}\vb r^T_q \vb W \vb r_p
+\\
+\intertext{The final term describes the interaction of full-RWG and full-RWG functions:}
+ T_4 &\equiv \sum_{a \alpha\beta\gamma\delta b}
+  \frac{1}{2L_p^\pm L_q^\pm}
+  r_{p \beta}
+  W_{\alpha\beta}
+ \underbrace{\Inp{\vb b_\alpha}{\vb E_\gamma}}_{W_{\alpha\gamma}^{-1}}
+  W_{\gamma\delta}
+  r_{q \delta}
+\\
+&= + \frac{1}{2L_p^\pm L_q^\pm} \vb r_p^T \vb W \vb r_q
 \end{align*}
 %====================================================================%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\appendix
-\subsection{Port voltages: Alternative computation of impedance matrix}
-%####################################################################%
-%####################################################################%
-%####################################################################%
-\begin{figure}
-\begin{center}
-%\includegraphics{PortCurrentIncidentField}}
-\caption{The port voltage is the line integral of the total $\vb E$ 
-         field along the straight line connecting the port's 
-         positive reference point to its negative reference point.
-        }
-\label{LineIntegralFigure}
-\end{center}
-\end{figure}
-%####################################################################%
-%####################################################################%
-%####################################################################%
-
-\label{PortVoltageSection}
-
-The port voltage is defined to be the directed line integral 
-of the total $\vb E$ field over the straight line connecting
-the port's positive reference point to its negative reference
-point (Figure \ref{LineIntegralFigure}).
-
-\begin{align*}
-  V\sups{port}
-&=\int_{P^+}^{P^-} \vb E(\vb x) \cdot d \vb l 
-\\
-&=\int_{P^+}^{P^-} \Big[ i\omega \vb A(\vb x) - \nabla \Phi(\vb x)\Big]
-                   \cdot d \vb l
-\\
-&= \Big[ \Phi\big(P^+\big) - \Phi\big(P^-\big)\Big]
-   +i\omega \int_{P^+}^{P^-} \vb A(\vb x) \cdot d\vb l
-\end{align*}
-
-\section*{Averaging the potential due to $\mathcal{P}$ over an edge $\vb L$}
-
-The electrostatic potential due to a unit charge density on panel $\mc P$,
-averaged over the length of some panel edge $\vb L$, is 
-
-\begin{align*}
- \Big\langle \phi^{\mc P} \Big \rangle_{\vb L}
-&= \frac{1}{4\pi \epsilon_0 |\vb L|}\int_{\vb L} d\vb x \int_{\mc P} d\vb x^\prime 
-   \frac{1}{|\vb x - \vb x^\prime|} 
-\end{align*}
+Thus, when the dust settles we find that $|T_2|=|T_3|=|T_4|$
+and the impedance parameter reads
+%====================================================================%
+$$ Z_{pq} = \sum_{\pm} \frac{1}{2L_p^\pm L_q^\pm}
+ \Big[ -\vb r^T_p \vb W \vb r_q + \sum_{ab} \Inp{\vb h_a}{\vb E_b} \Big]
+$$
+\end{description}
 
 \end{document}

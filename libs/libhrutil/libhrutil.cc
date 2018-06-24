@@ -453,65 +453,42 @@ void SetLogFileName(const char *format, ...)
   va_end(ap);
 }
 
-void Log(const char *format, ...)
+void DoLog(bool ByThread, bool WriteCR, const char *Message)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-  time_t MyTime;
-  struct tm *MyTm;
-  FILE *f;
-
-  /* 20091210 i now think the default behavior should be   */
-  /* to do nothing until someone has called SetLogFileName */
-  /* 20091223 adding feature to enable console logging     */
-  if (LogToConsole)
+  FILE *f=0;
+  if (LogToConsole) 
    f=stdout;
+  else if (LogFileName==0) 
+   return;
   else
-   { if ( !LogFileName )
-      return; //LogFileName=strdup("libhrutil.log");
-     if ( !(f=fopen(LogFileName,"a")) )
-      return;
-     setbuf(f,0);
-   };
+   f = (ByThread ? vfopen("%s.%i","a",LogFileName,GetThreadNum()) : fopen(LogFileName,"a")); 
+  if (f==0) return;
+  fprintf(f,"%s: %s%s",GetTimeString(),Message,WriteCR ? "\n" : "");
+  if (!LogToConsole) fclose(f);
+}
 
-  MyTime=time(0);
-  MyTm=localtime(&MyTime);
-  strftime(buffer,30,"%D::%T",MyTm);
-  fprintf(f,"%s: ",buffer);
-
+void Log(const char *format, ...)
+{ va_list ap;
   va_start(ap,format);
+  char buffer[MAXSTR];
   vsnprintfEC(buffer,MAXSTR,format,ap);
-  fprintf(f,"%s \n",buffer);
-  va_end(ap);
-
-  if (!LogToConsole)
-   fclose(f);
+  DoLog(false,true,buffer);
 }
 
 void LogC(const char *format, ...)
-{
-  va_list ap;
-  char buffer[MAXSTR];
-  FILE *f;
-
-  if ( !LogFileName )
-   return; // LogFileName=strdup("libhrutil.log");
-
+{ va_list ap;
   va_start(ap,format);
+  char buffer[MAXSTR];
   vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
+  DoLog(false,false,buffer);
+}
 
-  if (LogToConsole)
-   { Log(buffer);
-     return;
-   };
-
-  if ( !(f=fopen(LogFileName,"r+")) )
-   return;
-
-  fseek(f,-2,SEEK_END);
-  fprintf(f,"%s \n",buffer);
-  fclose(f);
+void LogThread(const char *format, ...)
+{ va_list ap;
+  va_start(ap,format);
+  char buffer[MAXSTR];
+  vsnprintfEC(buffer,MAXSTR,format,ap);
+  DoLog(true,true,buffer);
 }
 
 void InitializeLog(char *argv0, const char *Path)
@@ -937,16 +914,15 @@ FILE *CreateUniqueFile(const char *Base, int ConsoleMessage, char *FileName)
 
  } 
 
-// return a string form of the current time; the return 
-// value is a pointer to a static buffer so the routine
-// is not thread-safe
-char *GetTimeString()
+// return a string form of the current time. If no buffer is supplied,
+// the return value is a pointer to a static buffer, so not thread-safe.
+char *GetTimeString(char *s)
 {
-  time_t MyTime=time(0);
-  struct tm *MyTm=localtime(&MyTime);
   static char TimeStr[30];
-  strftime(TimeStr,30,"%D::%T",MyTm);
-  return TimeStr;
+  if (s==0) s=TimeStr;
+  time_t MyTime=time(0);
+  strftime(s,30,"%D::%T",localtime(&MyTime));
+  return s;
 }
 
 char *GetHostName()
