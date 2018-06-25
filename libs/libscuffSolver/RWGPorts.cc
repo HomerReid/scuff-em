@@ -401,25 +401,26 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
   ErrExit("SCUFF-EM must be compiled with libGDSII to process GDSII files");
   return 0;
 #else
-  char PortFileName[100];
-  snprintf(PortFileName,100,"%s.Ports.XXXXXX",GetFileBase(GDSIIFileName));
-  FILE *f = (mkstemp(PortFileName)==-1) ? 0 : fopen(PortFileName,"w");
-  if (!f) ErrExit("%s:%i: could not create temporary file %s",__FILE__,__LINE__,PortFileName);
 
+  // Loop over text strings on the given GDSII layer (or all layers if Layer==-1).
   TextStringList TextStrings = GetTextStrings(GDSIIFileName, Layer);
-  
   int MaxPort=0; 
   multimap<int,dVec> PMPolygons[2];
   for(size_t nt=0; nt<TextStrings.size(); nt++)
-   { char *Text    = TextStrings[nt].Text;
-     dVec TextXY   = TextStrings[nt].XY;
-     int TextLayer = TextStrings[nt].Layer;
+   {
+     // loop for text strings of the form PORT 3+ or PORT 5-
+     char *Text    = TextStrings[nt].Text;
      int nPort;
      char Sign;
      if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) ) continue;
      int PM = (strchr("-mM",Sign) ? 1 : 0);
      if (nPort>MaxPort) MaxPort=nPort;
-     PolygonList Polygons=GetPolygons(GDSIIFileName, Text, TextLayer);
+
+     // find a polygon on the same layer containing the reference point;
+     // if none found, take the reference point itself to be the polygon
+     int TextLayer = TextStrings[nt].Layer;
+     dVec TextXY   = TextStrings[nt].XY;
+     PolygonList Polygons=GetPolygons(GDSIIFileName, TextLayer);
      bool FoundPolygon=false;
      for(size_t np=0; !FoundPolygon && np<Polygons.size(); np++)
       if (libGDSII::PointInPolygon( Polygons[np], TextXY[0], TextXY[1]))
@@ -429,7 +430,13 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
      if (!FoundPolygon)
       PMPolygons[PM].insert( pair<int,dVec>(nPort,TextXY) );
    }
+  Log("%s: found %i port definitions (total %lu port-terminal polygons)",MaxPort,PMPolygons[0].size()+PMPolygons[1].size());
 
+  // Write what we found to a `.ports` file
+  char PortFileName[100];
+  snprintf(PortFileName,100,"/tmp/%s.ports.XXXXXX",GetFileBase(GDSIIFileName));
+  FILE *f = (mkstemp(PortFileName)==-1) ? 0 : fopen(PortFileName,"w");
+  if (!f) ErrExit("%s:%i: could not create temporary file %s",__FILE__,__LINE__,PortFileName);
   for(int nPort=1; nPort<=MaxPort; nPort++)
    for(int PM=0; PM<2; PM++)
     { if (PM==0) fprintf(f,"PORT \n");
@@ -446,12 +453,12 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
     }
   fclose(f);
   printf("Wrote port list to %s.\n",PortFileName);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  exit(1);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   RWGPortList *PortList=ParsePortFile(G, PortFileName);
-  unlink(PortFileName);
+  if (!CheckEnv("SCUFF_RETAIN_GDSII_PORTFILE"))
+   unlink(PortFileName);
   return PortList;
+
 #endif
 }
 

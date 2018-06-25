@@ -12,7 +12,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
 
 TESTLIBS = $(top_builddir)/libs/libscuff/libscuff.la
 
-check_PROGRAMS = t1BFMOIFields tEquivalentPairs tGDSII
+#check_PROGRAMS = t1BFMOIFields tEquivalentPairs tGDSII
+check_PROGRAMS = t1BFMOIFields tEquivalentPairs
 
 t1BFMOIFields_SOURCES = t1BFMOIFields.cc
 t1BFMOIFields_LDADD   = $(TESTLIBS)
@@ -20,7 +21,5 @@ t1BFMOIFields_LDADD   = $(TESTLIBS)
 tEquivalentPairs_SOURCES = tEquivalentPairs.cc
 tEquivalentPairs_LDADD   = $(TESTLIBS)
 
-tGDSII_SOURCES = tGDSII.cc
-tGDSII_LDADD   = $(TESTLIBS)
- 
-#TESTS = t1BFMOIFields
+#tGDSII_SOURCES = tGDSII.cc
+#tGDSII_LDADD   = $(TESTLIBS)
