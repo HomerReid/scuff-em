@@ -3,11 +3,11 @@
 [TOC]
 
 <a name="Units">
-# Units
+## Units
 
 + What units does [[scuff-em]] use for physical quantities like length, frequency, field strengths, power, force, torque, etc?
 
-## Length and frequency 
+### Length and frequency 
 
 Short answer: The default units are $L_0=1\, \mu\text{m}$ for length
 and $\omega_0=3\cdot 10^{14}$ rad/sec (=$c/L_0)$ for angular frequency.
@@ -78,7 +78,7 @@ length and frequency units more appropriate for RF modeling;
 this is discussed in the 
 [<span class=SC>scuff-rf</span> documentation][scuff-rf].)
 
-## Electric and magnetic field strengths
+### Electric and magnetic field strengths
 
 The only code in the [[scuff-em]] suite that directly outputs
 numerical values of electric and magnetic field components is
@@ -103,7 +103,7 @@ amplitude 1 volt/meter, use the same command-line options,
 but now interprety the output numbers in units of 
 volts/meter (amps/meter).
 
-## Power, force, torque
+### Power, force, torque
 
 The units in which numerical values of power, force, and torque are
 reported differ slightly for different codes in the [[scuff-em]] suite:
@@ -131,7 +131,7 @@ over angular frequencies to yield heat-transfer rates, forces, and torques;
 this is discussed in more detail in the 
 [<span class=SC>scuff-neq</span>][scuff-neq] documentation.
 
-# Organizing working directories
+## Organizing working directories
 
 + I'm working on a big project involving multiple calculations on a geometry with various different values of geometric parameters, material properties, and meshing fineness. It's getting unwieldy to have all of these `.geo` and `.msh` and `.scuffgeo` files cluttering up my project directory. How would you suggest organizing things?
 
@@ -170,7 +170,7 @@ Here is what I typically do:
     to find files, something like this:
 
 ````bash
-#!/bin/bash
+##!/bin/bash
 
 export FILEBASE=${HOME}/myProject
 export SCUFF_MESH_PATH=${FILEBASE}/mshFiles
@@ -233,18 +233,30 @@ or similar utilities to double check that each
 job is running on its own set of 8 cores and 
 not interfering with the other jobs.
 
-# Compiling C++ API codes
+## Compiling C++ API codes
 
-I think I need to write a standalone program that uses
-the *libscuff* API to setup and solve a scattering
-problem. Where can I find a simple example of such
-a program to get me started?
++   I think I need to write a standalone program that uses the *libscuff* API 
+    to setup and solve a scattering problem. Where can I find a simple example of such
+    a program to get me started?
 
-A. Look in the directory
+A: Look in the directory
    ``share/scuff-em/examples/PlateWithHole`` within your <span class=SC>scuff-em</span> installation.
    There you will find a simple API code and a reference makefile (`Makefile.manual`)
    that you can customize for your system.
 
 [MaterialUnits]:               /reference/Materials.md#Parsed
+
+<a name="HighlyStructuredMeshes"></a>
+## Automatic detection of equivalent edge pairs in highly structured meshes
+
++   Why is it best to use structured meshes (i.e. meshes containing many
+    identical triangles) whenever possible?
+
+A: Because <span class=SC>scuff-em</span> is equipped with functionality for
+   *automatic detection of equivalent edge pairs*. This feature, available
+   since <span class=SC>scuff-em</span> version 0.99 (June 2018),
+   can yield enormous reductions---tenfold or more---in the cost of
+   assembling the system matrix for geometries with highly structured meshes.
+   (Further documentation of this new feature is coming!)
 
 {!Links.md!}

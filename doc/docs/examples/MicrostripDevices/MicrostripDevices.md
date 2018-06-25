@@ -19,7 +19,7 @@ three particular examples (click the pictures for larger images):
 |[![](CPW.png)](CPW.png)                           | a section of a *coplanar waveguide*, which we will treat as a two-port device and compare computed multiport S-parameters to the predictions of transmission-line theory.   |
 
 In all of these calculations, the metal traces (red regions) are described by
-the usual [discretized triangle mesh files common to in all <span class=SC>scuff-em</span>
+the usual [discretized triangle mesh files common to all <span class=SC>scuff-em</span>
 geometries][scuffEMGeometries], but the dielectric substrate (green) and ground plane
 (black bottom layer) are *not meshed*; instead, the presence of the substrate layers
 is taken into account 
@@ -51,18 +51,20 @@ we summarize here some salient points.
   both ways.
 
 + The primary way in which the RF module extends the core library is by adding
-  support for [*RF ports*][RFPorts], regions of meshed surfaces into which RF currents are
-  forced. This means that, in addition to specifying the usual
+  support for [*RF ports*][RFPorts], regions of meshed surfaces at which external
+  RF currents (white arrows in the figures above) are injected or extracted.
+  This means that, in addition to specifying the usual
   [collection of meshed surfaces constituting a <span class=SC>scuff-em</span> geometry][scuffEMGeometries],
   you must also define one or more ports for your structure.
   Port terminals in <span class=SC>scuff-em</span> are defined by geometric objects:
   lines or polygons (identifying regions on the boundaries of meshed surfaces)
   or points (identifying source/sink points inside meshed surfaces).
   Port definitions may be communicated to <span class=SC>scuff-em</span> by
-  **(a)** writing a simple text file (`.ports` file),
-  **(b)** making API calls from C++/python,
-  **(c)** creating a GDSII file containing points, lines, or polygons tagged by special text strings.
-  (Examples of all of these methods are discussed below).
+    + **(a)** writing a simple text file (`.ports` file),
+    + **(b)** making API calls from C++/python,
+    + **(c)** creating a GDSII file containing points, lines, or polygons tagged by special text strings.
+
+  Examples of all of these methods are discussed below.
 
 ## Layout of the `MicrostripDevices` directory
 
@@ -104,11 +106,13 @@ which we process with [[gmsh]] to yield mesh files
 
 The coarser mesh looks like this:
 
-![EFAntennaMesh.pdf](EFAntennaMesh.pdf)
+![EFAntennaMesh.png](EFAntennaMesh.png)
 
 Note that the `.geo` file contains several user-definable parameters, of which
 we are here specifying two: `LFeed` (length of feed line) and `N` (discretization
-fineness, i.e. number of triangle edges per unit length).
+fineness, i.e. number of triangle edges per unit length). Also note that we have
+taken care to create a [highly structured][HighlyStructuredMeshes] mesh,
+which yields an enormous reduction in computational cost.
 
 ### Defining ports
 

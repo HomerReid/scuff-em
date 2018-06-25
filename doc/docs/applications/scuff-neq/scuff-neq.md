@@ -109,7 +109,7 @@ as discussed in more detail below.
 
 [TOC]
 
-# 1. What <span class="SC">scuff-neq</span> actually computes
+## 1. What <span class="SC">scuff-neq</span> actually computes
 
 Consider a collection of one or more homogeneous material
 bodies, each maintained at a given temperature, embedded
@@ -206,9 +206,9 @@ the actual $\omega$ integrals and compute thermally-averaged
 power, force, and torque quantities at various temperatures.
 
 <a name="CommandLineOptions"></a>
-# 2. <span class="SC">scuff-neq</span> command-line options
+## 2. <span class="SC">scuff-neq</span> command-line options
 
-### Options specifying the geometry
+#### Options specifying the geometry
 
 ````--geometry  MyGeometry.scuffgeo
 --TransFile MyTransFile
@@ -226,7 +226,7 @@ to be applied to your geometry. Each output quantity you
 request will be separately computed and reported for 
 each transform you request.
 
-### Options specifying frequencies
+#### Options specifying frequencies
 
 ````--omega 1.23
 --OmegaFile MyOmegaFile
@@ -241,7 +241,7 @@ The second option specifies a file containing a list
 of frequencies $\omega$ (one per line) at which to compute
 generalized fluxes $\Phi(\omega)$.
 
-### Options requesting spatially-integrated output quantities
+#### Options requesting spatially-integrated output quantities
 
 ````--EMTPFT
 --DSIPFT
@@ -265,7 +265,7 @@ For the particular case of `--DSIPFT,` there are several
 options controlling the particular implementation of the 
 algorithm; see below.
 
-### Option requesting spatially-resolved output quantities
+#### Option requesting spatially-resolved output quantities
 
 ````
 --EPFile MyEPFile
@@ -276,7 +276,7 @@ one per line (three Cartesian coordinates),
 at which values of the Poynting vector and Maxwell stress tensor
 are to be computed.
 
-#### Options controlling DSI calculations
+##### Options controlling DSI calculations
 
 The displaced-surface-integral (DSI) method
 total absorbed/radiated power,
@@ -337,7 +337,7 @@ all frequencies, but use `--DSIPFT` with a `--DSIOmegaFile`
 containing only every 5th or 10th frequency in your full 
 `OmegaFile` to obtain a sanity check on the EMTPFT results.
 
-### Option requesting visualization output
+#### Option requesting visualization output
 
 ````
 --PlotFlux
@@ -352,7 +352,7 @@ Maxwell stress on the surfaces of objects or
 the displaced bounding surfaces over which those quantities
 are integrated to compute the total PFT quantity.
 
-### Other options
+#### Other options
 
 ````
 --FileBase MyFileBaSe
@@ -395,17 +395,17 @@ of self-contributions
 (i.e. fluxes of the form $\Phi_{s\to s}$).
 
 --------------------------------------------------
-# 3. <span class="SC">scuff-neq</span> output files
+## 3. <span class="SC">scuff-neq</span> output files
 
 <a name="#LogFile"></a>
-### The `.log` file 
+#### The `.log` file 
 
 Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you
 can monitor to keep track of your calculation's progress.
 
 <a name="#SIFluxFile"></a>
-### Output files for spatially-integrated PFTs: The `.SIFlux.METHOD` file
+#### Output files for spatially-integrated PFTs: The `.SIFlux.METHOD` file
 
 If you used an option like `--EMTPFT` or `--DSIPFT` to request
 computation of spatially-integrated PFT data,
@@ -426,7 +426,7 @@ operation is carried out by the utility
 code [<span class=SC>scuff-integrate</span>][scuff-integrate],
 as described [below](scuff-neq.md/#scuffIntegrate).
 
-### Output files for spatially-resolved PFTs: The `.SRFlux` file
+#### Output files for spatially-resolved PFTs: The `.SRFlux` file
 
 If you requested the computation of spatially-resolved
 power and momentum flux (by specifying the `--EPFile` 
@@ -437,7 +437,7 @@ and Maxwell stress at each point in your `EPFile`.
 (See below for more information on what these values mean.)
 
 --------------------------------------------------
-# 4. Using <span class="SC">scuff-integrate</span> to perform frequency integrals
+## 4. Using <span class="SC">scuff-integrate</span> to perform frequency integrals
 
 After running [[scuff-neq]] to get temperature-independent 
 generalized flux data at various frequencies, we
@@ -445,7 +445,7 @@ run [[scuff-integrate]] to evaluate the frequency integrals
 that compute total thermally-averaged rates of energy
 and momentum transfer.
 
-## Specifying temperatures
+### Specifying temperatures
 
 To convert frequency-resolved data into thermally-averaged
 data, we need to know the temperature of all bodies in
@@ -479,7 +479,7 @@ environment kept at $T_{\text{env}}=0$ K
 0 150 100 
 ```
 
-## Spatially-integrated quantities
+### Spatially-integrated quantities
 
 For spatially-integrated quantities (total heat radiation/absorption,
 force, and torque on bodies),
@@ -560,7 +560,7 @@ indicates that the data on that line correspond to
 the *total* PFT on object 2---that is, the sum of 
 contributions from all source objects.
 
-## Spatially-resolved quantities
+### Spatially-resolved quantities
 
 For spatially-resolved data,
 [[scuff-integrate]] inputs a `.SRFlux` produced by [[scuff-neq]]
@@ -618,7 +618,7 @@ At the top of each output file you will find a file header
 explaining how to interpret the various data columns
 on each line.
 
-### Units of output quantities
+#### Units of output quantities
 
 * The units of the total (frequency-integrated)
 spatially-integrated output quantities reported in
@@ -640,7 +640,7 @@ the force flux has units of *nanoNewtons / watts*,
 and the torque flux has units of *nanoNewtons microns/watts.*
 
 <a name="Examples"></a>
-# 4. Examples of calculations using <span class="SC">scuff-neq</span>
+## 4. Examples of calculations using <span class="SC">scuff-neq</span>
 
 + [Heat radiation from a warm sphere in a cold environment][SiO2Spheres]
 
@@ -650,7 +650,7 @@ and the torque flux has units of *nanoNewtons microns/watts.*
 
 <a name="bibliography"></a>
 
-## Bibliography
+### Bibliography
 
 Here are the original papers cited above describing the FSC approach to 
 fluctuational electromagnetism:

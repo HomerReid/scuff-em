@@ -151,7 +151,7 @@ and the execution of the various types of calculation
 --------------------------------------------------
 
 <a name="CommandLineOptions"></a>
-# 1. <span class="SC">scuff-static</span> command-line options
+## 1. <span class="SC">scuff-static</span> command-line options
 
 ### Options defining the geometry 
 
@@ -340,7 +340,7 @@ will be overwritten if it already exists.)
 
 --------------------------------------------------
 <a name="Examples"></a>
-# 2. Examples of calculations using <span class="SC">scuff-static</span>
+## 2. Examples of calculations using <span class="SC">scuff-static</span>
 
 + [Polarizability of platonic solids][PlatonicSolids]
 

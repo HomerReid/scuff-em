@@ -46,9 +46,9 @@ up your calculation.
 [TOC]
 
 <a name="Options"></a>
-# 1. <span class="SC">scuff-scatter</span> command-line options
+## 1. <span class="SC">scuff-scatter</span> command-line options
 
-### Common options
+#### Common options
 
 [[scuff-scatter]] recognizes the following subset of the 
 [list of commonly accepted options to <span class="SC">scuff-em</span> command-line codes][CommonOptions].
@@ -63,7 +63,7 @@ up your calculation.
 --WriteCache
 ````
 
-## Options defining the scattering problem
+### Options defining the scattering problem
 
 ````bash
 --geometry MyGeometry.scuffgeo
@@ -106,7 +106,7 @@ wavelength. To plot your data versus wavelength
 instead of frequency, just plot versus the
 quantity $\frac{2\pi}{\omega}$.
 
-## Options defining the incident field
+### Options defining the incident field
 
 The options for specifying incident fields in
 [[scuff-em]] are described in detail on the page
@@ -136,7 +136,7 @@ available options without commentary.
 (As in [[scuff-scatter]], these options may occur multiple times 
 to define superpositions of multiple types of incident field.)
 
-## Options requesting scattered and total fields
+### Options requesting scattered and total fields
 
 ````bash
  --EPFile MyEPFile
@@ -147,7 +147,7 @@ compute and report components of the scattered and total
 fields. This option may be specified more than once to 
 define multiple sets of field evaluation points. 
 
-## Options requesting power, force, and torque data
+### Options requesting power, force, and torque data
 
 ````bash
  --PFTFile     MyGeometry.PFT
@@ -183,7 +183,7 @@ and the total electric and magnetic fields at
 body surfaces.
 
 <a name="AdvancedMode"></a>
-# 2. <span class="SC">scuff-scatter</span> advanced mode
+## 2. <span class="SC">scuff-scatter</span> advanced mode
 
 For some types of calculation it is possible to achieve
 significant computational accelerations by taking advantage
@@ -289,7 +289,7 @@ supports the command-line option
 where ``MyIFFile`` is a [list of incident fields][IFList].
 
 <a name="Examples"></a>
-# 3. <span class="SC">scuff-scatter</span> examples
+## 3. <span class="SC">scuff-scatter</span> examples
 
 + [Mie scattering][MieScattering]
 + [Electrostatics of a spherical dielectric shell][DielectricShell]

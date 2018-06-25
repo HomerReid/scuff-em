@@ -110,6 +110,7 @@ class PlaneWave : public IncField
    double nHat[3];        /* unit vector in direction of propagation */
 
    PlaneWave(const cdouble E0[3], const double nHat[3], const char *Label = 0);
+   PlaneWave();
    ~PlaneWave();
 
    void SetE0(cdouble pE0[3]);

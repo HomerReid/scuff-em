@@ -7,7 +7,7 @@ in the [[scuff-em]] suite.
 [TOC]
 
 <a name="CommonOptions"></a>
-# 1. Common command-line arguments
+## 1. Common command-line arguments
 
 The various standalone applications in the [[scuff-em]] suite
 share a number of command-line arguments in common,
@@ -209,7 +209,7 @@ accept that argument.
 > `.scuffgeo` file.
 
 <a name="CommandLineOptionsByFile"></a>
-# 2. Passing command-line options via text file
+## 2. Passing command-line options via text file
 
 All of the standalone applications in the [[scuff-em]] suite allow 
 their command-line options to be passed via a text file fed into 
@@ -257,7 +257,7 @@ everything else unchanged, you could say
 ````
 
 <a name="Complex"></a>
-# 3. Complex numbers
+## 3. Complex numbers
 
 Many of the standalone programs in the [[scuff-em]] suite have 
 options for which you may specify complex numbers. (An example 
@@ -279,7 +279,7 @@ of the following are valid frequency specifications:
 ````
 
 <a name="LogFiles"></a> 
-# 4. Log files 
+## 4. Log files 
 
 All command-line codes in the [[scuff-em]] suite
 write logging information to text-based logfiles
@@ -306,7 +306,7 @@ This produces a running list of log messages, something like this:
 ````
 
 <a name="OutputFiles"></a>
-# 5. Output Files
+## 5. Output Files
 
 The [[scuff-em]] application codes generally produce
 output in the form of human-readable text-based
@@ -358,7 +358,7 @@ application codes include `.hdf5` binary data
 files and `.pp` files containing visualization data
 that may be viewed in [[gmsh]].
 
-# 6. Environment variables
+## 6. Environment variables
 
 Here are some environment-variable settings that 
 affect the behavior of [[scuff-em]].

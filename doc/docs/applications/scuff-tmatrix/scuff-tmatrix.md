@@ -46,7 +46,7 @@ You will get back
 [TOC]
 
 <a name="Options"></a>
-# 1. <span class="SC">scuff-tmatrix</span> Command-Line Options
+## 1. <span class="SC">scuff-tmatrix</span> Command-Line Options
 
 The following table summarizes all command-line options currently
 available in <span class="SC">scuff-tmatrix.</span>
@@ -57,7 +57,7 @@ specified in a text file catted to standard input; see
 [here](../GeneralReference#CommandLineOptionsByFile)
 for an example of how this works.
 
-### Options controlling the scattering geometry
+#### Options controlling the scattering geometry
 
 ```
 --geometry MyGeometry.scuffgeo
@@ -91,7 +91,7 @@ the `--OmegaFile` option, which specifies a file containing an
 entire list of `--Omega` values, one per line; blank lines and comments (lines beginning with `#`) are skipped.
 
 
-### Option describing the range of spherical-wave indices
+#### Option describing the range of spherical-wave indices
 
 ```{.listing}
 --lMax 3
@@ -145,9 +145,9 @@ disabled by default; you must specify this option to enable
 binary data output.
 
 <a name="OutputFiles"></a>
-# 2. <span class="SC">scuff-tmatrix</span> Output Files
+## 2. <span class="SC">scuff-tmatrix</span> Output Files
 
-### 1. *T-*matrix data in text form
+#### 1. *T-*matrix data in text form
 
 <span class="SC">scuff-tmatrix</span> always writes *T-*matrix
 data to a text-based output file named `FileBase.TMatrix,`
@@ -193,7 +193,7 @@ Also see below for a [julia](http://julialang.org){.SC} code that
 you can use to import T-matrix data into a
 [julia](http://julialang.org){.SC} session.
 
-### 2. *T-*matrix data in binary form
+#### 2. *T-*matrix data in binary form
 
 If you specify the `--WriteHDF5Files` command-line argument, then 
 *T-*matrix data will be written in binary `HDF5` format to 
@@ -201,7 +201,7 @@ files named `FileBase_wXXXX.HDF5` where `XXXX` stands for
 the angular frequency $\omega$.
 
 <a name="#SphericalWaveOrder"></a>
-#### Ordering and indexing of spherical waves
+##### Ordering and indexing of spherical waves
 
 For a fixed single value of $\ell\ge 1$ there are
 $=2(2\ell+1)$ spherical waves: 
@@ -241,7 +241,7 @@ according to
 $$ \alpha = 2\Big[\ell(\ell+1) + m - 1\Big] + P. $$
 
 <a name="Examples"></a>
-# 3. <span class="SC">scuff-tmatrix</span> Examples
+## 3. <span class="SC">scuff-tmatrix</span> Examples
 
 Here are some examples of calculations you can do with <span
 class="SC">scuff-tmatrix</span>. Input files and command-line
@@ -249,13 +249,13 @@ runscripts for all these examples are included in the
 `share/scuff-em/examples` subdirectory of the <span
 class="SC">scuff-em</span> installation.
 
-## 4a. Dielectric and magnetic spheres
+### 4a. Dielectric and magnetic spheres
 
 We start with the canonical textbook stalwart of scattering from a
 homogeneous sphere of uniform isotropic relative permittivity $\epsilon_r$
 and relative permeability $\mu_r.$
 
-### Analytical expressions for T-matrix elements
+#### Analytical expressions for T-matrix elements
 
 This is an example (indeed, the only example) of a
 dielectric object whose *T-*matrix may be computed analytically, making
@@ -278,7 +278,7 @@ $$ a=\frac{\omega R}{c}, \qquad n=\sqrt{\epsilon_r \mu_r},
    \quad \overline{f(x)} \equiv f(x) + x\frac{d}{dx}f(x).
 $$
 
-### Geometry and mesh files
+#### Geometry and mesh files
 
 The first step is to create meshed surfaces representing
 spheres discretized with various resolutions, then write
@@ -328,7 +328,7 @@ OBJECT Sphere
 ENDOBJECT
 ```
 
-### Frequency list
+#### Frequency list
 
 We create a simple file called
 [`OmegaFile`](OmegaFile) containing a
@@ -342,7 +342,7 @@ at which to compute *T-*matrices:
 6.00000000
 ```
 
-### Run <span class=SC>scuff-tmatrix</span>
+#### Run <span class=SC>scuff-tmatrix</span>
 
 And now we launch <span class="codename">scuff-tmatrix: </span>
 
@@ -356,12 +356,12 @@ This produces the file `E10Sphere_327.TMatrix`, which contains one
 remind you which is which:
 
 ``` {.listing}
-# scuff-tmatrix run on hikari (11/06/17::01:34:31)
-# columns:
-# 1 omega
-# 2,3,4,5 (alpha, {L,M,P}_alpha)   (T-matrix row index)
-# 6,7,8,9 ( beta, {L,M,P}_beta)    (T-matrix columnindex)
-# 10, 11  real, imag T_{alpha, beta}
+## scuff-tmatrix run on hikari (11/06/17::01:34:31)
+## columns:
+## 1 omega
+## 2,3,4,5 (alpha, {L,M,P}_alpha)   (T-matrix row index)
+## 6,7,8,9 ( beta, {L,M,P}_beta)    (T-matrix columnindex)
+## 10, 11  real, imag T_{alpha, beta}
 0.1  0 1 -1 +0   0 1 -1 +0  -1.34273817e-07 +3.62883443e-04
 0.1  0 1 -1 +0   1 1 -1 +1  +1.13651828e-09 -1.05703395e-06
 ...
@@ -406,6 +406,6 @@ I used to generate the plots.)
 ![T1M for Eps,Mu=10,5 sphere](E10M5_T1M.png)
 
 <a name="Julia"></a>
-#4. Reading T-Matrix data into <span class="SC">julia</span>
+##4. Reading T-Matrix data into <span class="SC">julia</span>
 
 [scuffGeometries]:		../../reference/Geometries.md

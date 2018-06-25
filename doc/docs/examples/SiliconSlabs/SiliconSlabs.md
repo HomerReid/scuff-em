@@ -10,7 +10,7 @@ of your [[scuff-em]] installation.
 
 --------------------------------------------------
 
-# [[gmsh]] geometry file for unit-cell geometry 
+## [[gmsh]] geometry file for unit-cell geometry 
 
 The [[gmsh]] geometry file [`Square_N.geo`](Square_N.geo)
 describes the portion of the surface of a single
@@ -77,7 +77,7 @@ Note the following:
 
 --------------------------------------------------
 
-# [[scuff-em]] geometry file
+## [[scuff-em]] geometry file
 
 The 
 [<span class="SC">scuff-em</span> geometry file][Geometries]
@@ -137,7 +137,7 @@ separation.
 
 --------------------------------------------------
 
-# [[scuff-em]] transformation file 
+## [[scuff-em]] transformation file 
 
 The file describing a list of
 [geometric transformations][Transformations]
@@ -170,7 +170,7 @@ which can be visualized by opening it in [[GMSH]]:
 
 --------------------------------------------------
 
-# Launching the run
+## Launching the run
 
 Here's a `bash` script that will run the full Casimir 
 calculation on both the coarser and finer meshes:

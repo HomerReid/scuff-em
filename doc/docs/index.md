@@ -1,22 +1,12 @@
-<p align="center"> <img src="reference/scuffEMLogo.png" style='height: 100%; width: 100%; object-fit: contain'/></p> 
-
-<p align="center">
-<h1> <span class=SC>scuff-em</span> documentation: Table of contents </h1> 
-</p>
+<p align="center"> <img src="reference/scuffEMLogo.png" style='height: 100%; width: 100%; object-fit: contain'/></p>
 
 **If you find any inconsistencies or missing bits in the documentation, please
   [file an issue on the <span class="SC">scuff-em</span> GitHub page][GitHub].**
 
-## General reference
+<h1> <span class=SC>scuff-em</span> documentation: Table of contents</h1>
 
-* [Top-level overview](reference/TopLevel.md)
-* [Installation](reference/Installing.md)
-* [Geometry files](reference/Geometries.md)
-* [Material descriptions](reference/Materials.md)
-* [Geometrical transformations](reference/Transformations.md)
-* [Incident Fields](reference/IncidentFields.md)
-* [Brillouin-zone integration](reference/BrillouinZoneIntegration.md)
-* [FAQ](reference/FAQ.md)
+<!--- Why do I need the following empty header item to get "Tutorial Examples" to show up in the TOC at the left of the page? -->
+##
 
 ## Tutorial Examples
 
@@ -34,7 +24,7 @@
 ### RF device modeling
 
 * [S-parameters, directivity, and radiated field patterns of Yagi-Uda antennas](examples/YagiUdaAntennas/YagiUdaAntennas.md)
-* [Input impedance, mutual coupling, and radiated fields of microstrip RF devices][MicrostripDevicesExample]
+* [Input impedance, mutual coupling, and radiated fields of microstrip RF devices](/examples/MicrostripDevices/MicrostripDevices)
 
 ### Fluctuation-induced phenomena
 
@@ -57,8 +47,31 @@
 
 * [BU Symposium on Open-Source CAD tools: <span class=SC>scuff-em</span> for photonics](http://homerreid.github.io/SCUFFEMTutorialSymposium/)
 
-<a name="ApplicationSuite"></a>
-## Command-line application reference
+## Test Suite
+
+* [Overview of the <span class="CodeName">scuff-em</span> test suite](tests/Overview.md)
+* [Mie scattering](tests/MieScattering/MieScattering.md)
+* [Fresnel scattering](tests/FresnelScattering/FresnelScattering.md)
+* [Equilibrium Casimir forces between spheres](tests/CasimirSpheres/CasimirSpheres.md)
+* [Equilibrium Casimir forces between plates](tests/CasimirPlates/CasimirPlates.md)
+* [Equilibrium Casimir-Polder potential near a sphere](tests/CPSphere/CPSphere.md)
+* [Equilibrium Casimir-Polder potential near a plate](tests/CPPlate/CPPlate.md)
+* [Heat transfer and non-equilibrium Casimir forces between spheres](tests/NEQSpheres/NEQSpheres.md)
+* [Low-level tests of the <span class="CodeName">scuff-em</span> core library](tests/libscuff/libscuff.md)
+
+## General reference
+
+* [Top-level overview](reference/TopLevel.md)
+* [Installation](reference/Installing.md)
+* [Geometry files](reference/Geometries.md)
+* [Material descriptions](reference/Materials.md)
+* [Geometrical transformations](reference/Transformations.md)
+* [Incident Fields](reference/IncidentFields.md)
+* [Brillouin-zone integration](reference/BrillouinZoneIntegration.md)
+* [FAQ](reference/FAQ.md)
+
+<a name="CommandLineSuite"></a>
+## Command-line tools:
 
 * [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
 
@@ -94,19 +107,11 @@
     + [<span class="SC">scuff-analyze</span>][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
     + [<span class="SC">scuff-integrate</span>][scuff-integrate] - utility tool to integrate functions using samples tabulated in data files
 
-## Validation Test Suite
+## High-level interface
 
-* [Overview of the <span class="CodeName">scuff-em</span> test suite](tests/Overview.md)
-* [Mie scattering](tests/MieScattering/MieScattering.md)
-* [Fresnel scattering](tests/FresnelScattering/FresnelScattering.md)
-* [Equilibrium Casimir forces between spheres](tests/CasimirSpheres/CasimirSpheres.md)
-* [Equilibrium Casimir forces between plates](tests/CasimirPlates/CasimirPlates.md)
-* [Equilibrium Casimir-Polder potential near a sphere](tests/CPSphere/CPSphere.md)
-* [Equilibrium Casimir-Polder potential near a plate](tests/CPPlate/CPPlate.md)
-* [Heat transfer and non-equilibrium Casimir forces between spheres](tests/NEQSpheres/NEQSpheres.md)
-* [Low-level tests of the <span class="CodeName">scuff-em</span> core library](tests/libscuff/libscuff.md)
+* [<span class="SC">scuff-solver</span>: A high-level interface to <span class=SC>scuff-em</span>][HighLevelInterface]
 
-## API reference
+## Low-level API
 
 * [<span class="SC">libscuff</span>][libscuff] - Accessing [[scuff-em]] from C++ and python programs
 

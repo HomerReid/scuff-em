@@ -17,9 +17,9 @@ please [file an issue on the <span class=SC>scuff-em</span> GitHub page][Issues]
 [TOC]
 
 <a name="#GeneralComments"></a>
-# 1. General comments about installing <span class=SC>scuff-em</span>
+## 1. General comments about installing <span class=SC>scuff-em</span>
 
-## External packages
+### External packages
 
 [[scuff-em]] relies on a small number of well-established free open-source
 software packages to implement certain non-essential functionality (see
@@ -57,7 +57,7 @@ but in this case the code will be somewhat crippled.
 utilities for extracting shapes and other information from
   [GDSII files](https://en.wikipedia.org/wiki/GDSII)
 
-## Status of the GitHub repository
+### Status of the GitHub repository
 
 After installing external packages, you will fetch the <span class=SC>scuff-em</span>
 source code from its repository hosted on [GitHub][GitHub] (see specific
@@ -67,7 +67,7 @@ The current build status of the [[scuff-em]] master branch is:
 ![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)
 
 <a name="UsefulPrompt"></a>
-## Setting up an informative command-line prompt
+### Setting up an informative command-line prompt
 
 Regardless of the specific OS you're running (Linux, MacOS,
 or Windows), the installation process will involve typing
@@ -98,7 +98,7 @@ it into your `${HOME}/.bashrc` file, in which case
 the informative prompt will be set up automatically 
 whenever you open a console window.
 
-## Configure options
+### Configure options
 
 After fetching the source tree, you will run a command that automatically sniffs out
 the environment on your machine to *configure* the procedure that will be used to
@@ -122,7 +122,8 @@ various options manually (in the space labeled `[OPTIONS]` above).
 Here are a few of the more salient options you may wish to specify
 to customize your build.
 
-####Specifying the installation prefix
+<a name="InstallationPrefix"></a>
+#####Specifying the installation prefix
 
 If the build process succeeds, all files needed to
 run <span class=SC>scuff-em</span> calculations---including
@@ -164,7 +165,7 @@ from any directory and the OS will know where to find the
 program file.
 
 <a name="HDF5Locations"></a>
-####Specifying locations of external libraries
+#####Specifying locations of external libraries
 
 In some cases, external packages used in the SCUFF-EM compilation
 process may be installed in non-standard locations on your system.
@@ -203,7 +204,7 @@ its files, you can use the command `dpkg --listfiles`:
 ````
 
 <a name="openMPI"></a>
-####Using the MPI compilers
+#####Using the MPI compilers
 
 <span class=SC>scuff-em</span> makes heavy use of
 [<span class=SC>openmp</span>-based shared-memory multithreading](http://www.openmp.org/) to accelerate tasks
@@ -226,7 +227,7 @@ configuring:
 ````
 
 <a name="Disabling Python"></a>
-#### Disabling the python interface to speed the build process
+##### Disabling the python interface to speed the build process
 
 Compiling the python interface is slow---it accounts for
 more than half of the build time on some systems.
@@ -234,7 +235,7 @@ If you don't need the python interface to [[scuff-em]],
 use the configure option `--without-python` 
 to accelerate the build process.
 
-#### Parallel make
+##### Parallel make
 
 As described in the OS-specific instructions below,
 after the configure process is finished you will type `make install`
@@ -252,9 +253,9 @@ this process by saying e.g.
 <!------------------------------------------------------>
 <!------------------------------------------------------>
 <a name="Linux"></a>
-# 2. Installing on Debian/Ubuntu-based Linux systems
+## 2. Installing on Debian/Ubuntu-based Linux systems
 
-###A. Use <span class=SC>apt-get</span> to install external packages
+####A. Use <span class=SC>apt-get</span> to install external packages
 
 On Debian/Ubuntu Linux systems, you can fetch all of the external packages mentioned above as follows:
 
@@ -262,7 +263,7 @@ On Debian/Ubuntu Linux systems, you can fetch all of the external packages menti
 % sudo apt-get install libopenblas-dev libhdf5-openmpi-dev python-dev python3-scipy gmsh
 ````
 
-###B. Clone the GitHub repository and build the code
+####B. Clone the GitHub repository and build the code
 
 The procedure should now be as simple as 
 
@@ -289,7 +290,7 @@ and verifying CPU utilization](PerformanceCheck).
 <!------------------------------------------------------>
 <!------------------------------------------------------>
 <a name="MacOS"></a>
-#3. Installing on MacOS
+##3. Installing on MacOS
 
 The following installation procedure succeeded for me
 on MacOS Sierra 10.12.3 with 
@@ -300,7 +301,7 @@ All commands are to be
 entered at the console prompt of a terminal window
 (and, if you wish, after [setting up an informative prompt](#UsefulPrompt) to help you keep track of where you are in the filesystem).
 
-###A. Use <span class=SC>xcode</span> and <span class=SC>homebrew</span> to install external packages
+####A. Use <span class=SC>xcode</span> and <span class=SC>homebrew</span> to install external packages
 
 <h4>A1. Install command-line tools for Apple developer suite</h4>
 
@@ -329,7 +330,7 @@ version seemed to be lacking graphics support when I tried it,
 so instead I installed it from the 
 [<span class=SC>gmsh</span> website](http://gmsh.info/), but YMMV.)
 
-###B. Clone the GitHub repository and build the code
+####B. Clone the GitHub repository and build the code
 
 On the system I used (MacOS Sierra 10.12.3, XCode version
 8.1), the setup protocol outlined above has the following quirks:
@@ -343,7 +344,7 @@ repository from GitHub, building, and installing in the
 parent directory specified by the `--prefix` option below:
 
 ```bash
-#!/bin/bash
+##!/bin/bash
 
 export CC="gcc-7 -fopenmp"
 export CXX="g++-7 -fopenmp"
@@ -369,13 +370,13 @@ and verifying CPU utilization](PerformanceCheck).
 <!------------------------------------------------------>
 <!------------------------------------------------------>
 <a name="Windows"></a>
-# 4. Installing on Windows
+## 4. Installing on Windows
 
 <!------------------------------------------------------>
 <!------------------------------------------------------>
 <!------------------------------------------------------>
 <a name="PerformanceCheck"></a>
-#5. Run a <span class=SC>scuff-em</span> computational example and check CPU utilization
+##5. Run a <span class=SC>scuff-em</span> computational example and check CPU utilization
 
 If the build and installation succeed, you're in business
 to run a <span class=SC>scuff-em</span> calculation
@@ -429,7 +430,7 @@ others---if you have any ideas let me know!
 <!------------------------------------------------------>
 <!------------------------------------------------------>
 <a name="Debugging"></a>
-# 6. Building for debugging
+## 6. Building for debugging
 
 If you would like to run [[scuff-em]] API codes in a debugger
 like [<span class="SC">gdb</sc>](https://www.gnu.org/software/gdb),
@@ -441,7 +442,7 @@ with [[GDB]].
 Here is the script that works for me to achieve these goals:
 
 ````bash
-#!/bin/bash
+##!/bin/bash
 
 CC="gcc -ggdb -O0"
 CXX="g++ -ggdb -O0"

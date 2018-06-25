@@ -8,17 +8,17 @@ for assembling and post-processing the linear  SIE system.
 
 {!LaTeXCommands.md!}
 
-# SIE matrix elements: Singular and non-singular 4-dimensional integrals
+## SIE matrix elements: Singular and non-singular 4-dimensional integrals
 
 This subunit tests `libscuff` routines for computing element of the SIE
 system matrix, which involve singular and nonsingular 4-dimensional
 integrals over pairs of triangular panels.
 
-## SIE matrix elements in <span class=SC>scuff-em</span>
+### SIE matrix elements in <span class=SC>scuff-em</span>
 
 First we review the computation of SIE matrix elements in <span class=SC>scuff-em</span>.
 
-### Matrix elements
+#### Matrix elements
 
 In the most general case, each pair of RWG basis functions $\{\vb b_{\alpha}, \vb b_{\beta}\}$ 
 contributes a $2\times 2$ block of entries to the system matrix:
@@ -42,7 +42,7 @@ If one or both basis functions lie on PEC surfaces then
 $\Delta\vb M$ reduces to a $2\times 1$, $1\times 2$, or $1\times 1$ matrix.
 
 
-### Edge-edge interactions
+#### Edge-edge interactions
 
 Matrix elements of the $\mb G$ and $\mb C$ operators are 4-dimensional integrals
 over the supports of the basis functions that may be written in terms of the
@@ -80,7 +80,7 @@ $$
 <!----------------------------------------------------->
 <!----------------------------------------------------->
 
-### Panel-panel interactions
+#### Panel-panel interactions
 
 Each edge-edge integral is a sum of 4 panel-panel integrals, e.g.
 
@@ -126,7 +126,7 @@ The panel-panel integrals are
 \end{align*}
 <!----------------------------------------------------->
 
-### Desingularization
+#### Desingularization
 
 For pairs of basis functions with 1 or more common vertices I
 desingularize by subtracting off the first 3 nonvanishing terms
@@ -147,7 +147,7 @@ $$  \mc{I}_{\bullet\alpha\beta}
 $$
 <!----------------------------------------------------->
 
-## Reference values
+### Reference values
 
 As reference values for testing `libscuff` routines for evaluating RWG integrals, I consider matrix elements between
 RWG functions on the following surface mesh, in which the triangles are sufficiently regular that it's

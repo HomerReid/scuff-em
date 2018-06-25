@@ -53,9 +53,10 @@ google_analytics:
 
 pages:
 
-- SCUFF-EM documentation: 'index.md'
+- 'index.md'
 
 - Examples:
+    - 'SCUFF-EM tutorial examples':               'examples/index.md'
     - 'Mie scattering':                           'examples/MieScattering/MieScattering.md'
     - 'Electrostatics of a spherical dielectric shell':   'examples/DielectricShell/DielectricShell.md'
     - 'Spatially-resolved study of plane-wave transmission through an infinite-area thin dielectric film':   'examples/ThinFilm/ThinFilm.md'
@@ -76,6 +77,17 @@ pages:
     - 'Z-parameters and directivity of Yagi-Uda antennas': 'examples/YagiUdaAntennas/YagiUdaAntennas.md'
     - 'Input impedance, mutual coupling, and radiated fields of microstrip RF devices': 'examples/MicrostripDevices/MicrostripDevices.md'
 
+- Test suite:
+    - 'Overview of the test suite':                                        'tests/Overview.md'
+    - 'Mie scattering':                                                    'tests/MieScattering/MieScattering.md'
+    - 'Fresnel scattering':                                                'tests/FresnelScattering/FresnelScattering.md'
+    - 'Equilibrium Casimir forces between spheres':                        'tests/CasimirSpheres/CasimirSpheres.md'
+    - 'Equilibrium Casimir forces between plates':                         'tests/CasimirPlates/CasimirPlates.md'
+    - 'Equilibrium Casimir-Polder potential near a sphere':                'tests/CPSphere/CPSphere.md'
+    - 'Equilibrium Casimir-Polder potential near a plate':                 'tests/CPPlate/CPPlate.md'
+    - 'Heat transfer and non-equilibrium Casimir forces between spheres':  'tests/NEQSpheres/NEQSpheres.md'
+    - 'Low-level tests of the core library':                               'tests/libscuff/libscuff.md'
+
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'
@@ -84,9 +96,9 @@ pages:
     - 'Geometric transformations': 'reference/Transformations.md'
     - 'Incident fields':           'reference/IncidentFields.md'
     - 'Brillouin zone integration': 'reference/BrillouinZoneIntegration.md'
-    - 'FAQ':                       'reference/FAQ.md'
+    - 'FAQ':                        'reference/FAQ.md'
 
-- Command-line application reference:
+- Command-line tools:
     - 'General command-line reference': 'applications/GeneralReference.md'
     - 'scuff-scatter':         'applications/scuff-scatter/scuff-scatter.md'
     - 'scuff-transmission':    'applications/scuff-transmission/scuff-transmission.md'
@@ -101,18 +113,10 @@ pages:
     - 'scuff-analyze':         'applications/scuff-analyze/scuff-analyze.md'
     - 'scuff-integrate':       'applications/scuff-integrate/scuff-integrate.md'
 
-- Validation tests:
-    - 'Overview of the test suite':                                        'tests/Overview.md'
-    - 'Mie scattering':                                                    'tests/MieScattering/MieScattering.md'
-    - 'Fresnel scattering':                                                'tests/FresnelScattering/FresnelScattering.md'
-    - 'Equilibrium Casimir forces between spheres':                        'tests/CasimirSpheres/CasimirSpheres.md'
-    - 'Equilibrium Casimir forces between plates':                         'tests/CasimirPlates/CasimirPlates.md'
-    - 'Equilibrium Casimir-Polder potential near a sphere':                'tests/CPSphere/CPSphere.md'
-    - 'Equilibrium Casimir-Polder potential near a plate':                 'tests/CPPlate/CPPlate.md'
-    - 'Heat transfer and non-equilibrium Casimir forces between spheres':  'tests/NEQSpheres/NEQSpheres.md'
-    - 'Low-level tests of the core library':                               'tests/libscuff/libscuff.md'
+- High-level interface:
+    - 'High-Level Interface':  'HighLevelInterface/HighLevelInterface.md'
 
-- API reference:  
+- Low-level API:
     - 'libscuff':              'API/libscuff.md'
     - 'MainFlow API':          'API/MainFlow.md'
     - 'Utility API':           'API/UtilityAPI.md'

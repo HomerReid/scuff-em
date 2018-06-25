@@ -31,10 +31,10 @@ for use in API programs.
 
 [TOC]
 
-# Built-in types of incident field 
+## Built-in types of incident field 
 
 <a name="PlaneWaves">
-## Plane waves
+### Plane waves
 
 [[scuff-scatter]] command-line syntax:
 
@@ -84,7 +84,7 @@ will specify an incident field consisting of a circularly
 polarized plane wave traveling in the positive *z* direction.
 
 <a name="GaussianBeams">
-## Gaussian beams
+### Gaussian beams
 
 [[scuff-scatter]] command-line syntax:
 
@@ -125,7 +125,7 @@ Beyond the Paraxial Approximation," *Journal of the Optical
 Society of America A* **16** 1381 (1999), [http://dx.doi.org/10.1364/JOSAA.16.001381](http://dx.doi.org/10.1364/JOSAA.16.001381).
 
 <a name="PointSources">
-## Point sources
+### Point sources
 
 [[scuff-scatter]] command-line syntax:
 
@@ -166,7 +166,7 @@ possible to a define a magnetic point source as follows:
 ````
 
 <a name="IFFile">
-# Specifying an entire list of incident fields
+## Specifying an entire list of incident fields
 
 A feature of the 
 [surface-integral-equation solver implemented by <span class="SC">scuff-em</sc>][Implementation]
@@ -179,7 +179,7 @@ To exploit this feature, you may write an "incident-field file"
 (a simple text file) describing multiple types of incident field 
 with which to irradiate your geometry.
 
-## Example of an incident-field file
+### Example of an incident-field file
 
 [Here's an example](IFFile) of an incident-field file describing 9 
 different incident fields. If you specify this file
@@ -244,7 +244,7 @@ For example, the field we labeled `COMPOUND1` consists of a
 planewave acting simultaneously with the field of a point source.
 
 <a name="RollingYourOwn">
-# Using incident fields in API programs
+## Using incident fields in API programs
 
 Please see 
 [here][oldIncFieldPage]

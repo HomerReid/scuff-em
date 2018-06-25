@@ -1,0 +1,9 @@
+ABSTOL 1.0e-6
+RELTOL 1.0e-2
+
+KEY  Omega 1
+
+DATA real_pz   7
+DATA imag_pz   8
+DATA real_mz   13
+DATA imag_mz   14

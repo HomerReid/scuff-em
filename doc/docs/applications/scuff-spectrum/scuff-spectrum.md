@@ -16,7 +16,7 @@ of the corresponding eigenvectors.
 
 Of course, the information reported by [[scuff-spectrum]] could
 also be obtained *indirectly* from other codes in the
-[<span class=SC>scuff-em</span> application suite][ApplicationSuite]---for
+[<span class=SC>scuff-em</span> application suite][CommandLineSuite]---for
 example, the resonant modes of the
 [spherical dielectric cavity][SphericalDielectricCavity]
 shown below would show up as blips in (say) the
@@ -39,7 +39,7 @@ and field patterns of the modes themselves.
 [TOC]
 
 <a name="BeynMethod"></a>
-# 1. Beyn's algorithm: the computational engine behind <span class="SC">scuff-spectrum</span>
+## 1. Beyn's algorithm: the computational engine behind <span class="SC">scuff-spectrum</span>
 
 ### Mode frequencies as nonlinear eigenvalues
 
@@ -187,12 +187,12 @@ accuracy increasing with the number of quadrature points $N$---as
 well as values for the corresponding eigenvectors.
 
 <a name="SphericalDielectricCavity"></a>
-# 2. <span class="SC">scuff-spectrum</span> tutorial: Modes of a spherical dielectric cavity
+## 2. <span class="SC">scuff-spectrum</span> tutorial: Modes of a spherical dielectric cavity
 
 In this example we'll use the Beyn algorithm as implemented by [[scuff-spectrum]] to
 compute the modes of a spherical dielectric cavity, i.e. a simple dielectric sphere.
 
-## Exact (spherical-wave) calculation
+### Exact (spherical-wave) calculation
 
 For this simple geometry, the mode frequencies can be
 calculated to any desired numerical precision by looking
@@ -217,9 +217,9 @@ $$ a=2.0714122747181446982 - 0.14636128063766849563i $$
 Next let's ask how well we can reproduce these results
 in [[scuff-spectrum]].
 
-## <span class=SC>scuff-spectrum</span> calculation
+### <span class=SC>scuff-spectrum</span> calculation
 
-### <span class=SC>scuff-em</span> geometry files for spherical cavity
+#### <span class=SC>scuff-em</span> geometry files for spherical cavity
 
 For [[scuff-spectrum]] calculations I use a simple `.scuffgeo`
 file describing an isolated sphere with $\epsilon_r=4$;
@@ -250,7 +250,7 @@ and finest $(N=4107)$ sphere meshes I will use.
 ![Sphere_501.png](Sphere_501.png)
 ![Sphere_4107.png](Sphere_4107.png)
 
-### Running <span class=SC>scuff-spectrum</span> to pinpoint mode frequencies
+#### Running <span class=SC>scuff-spectrum</span> to pinpoint mode frequencies
 
 Based on the discussion above, I expect to find modes
 at frequencies near $\omega_0\approx 1.1-0.63i$
@@ -296,7 +296,7 @@ there would most probably have been several lines of data
 each with the 4-number format shown above, corresponding to
 multiple eigenvalues identified within the contour.
 
-### Mesh convergence
+#### Mesh convergence
 
 Of course, even if Beyn's method converges to many-digit
 precision on an eigenmode, we don't necessarily 
@@ -367,7 +367,7 @@ at the *surface currents* (eigenvectors) and the *field patterns*
 they produce. [[scuff-spectrum]] offers several command-line
 options to facilitate this analysis, many of which are 
 similar to the post-processing outputs available in 
-[<span class=SC>scuff-scatter</span>][scuffScatter] and other
+[<span class=SC>scuff-scatter</span>][scuffScatterOptions] and other
 <span class=SC>scuff-em</span> codes:
 
 + `--EPFile MyEPFile` requests computation of **E** and **H**
@@ -402,10 +402,11 @@ The quadrupole structure of the $\ell=2$ resonance is clearly
 distinguishable from the dipole structure of the $\ell=1$ mode.
 
 <a name="CommandLineReference"></a>
-# 3. <span class="SC">scuff-spectrum</span> command-line reference
+## 3. <span class="SC">scuff-spectrum</span> command-line reference
 
-[ApplicationSuite]:            ../../index.md/#ApplicationSuite
-[SphericalDielectricCavity]:   ../../applications/scuff-spectrum/scuff-spectrum/#SphericalDielectricCavity
-[BeynMethod]:                  ../../applications/scuff-spectrum/scuff-spectrum/#BeynMethod
+[SphericalDielectricCavity]:   /applications/scuff-spectrum/scuff-spectrum/#SphericalDielectricCavity
+[BeynMethod]:                  /applications/scuff-spectrum/scuff-spectrum/#BeynMethod
 [PMCHWTSystem]:                ../../forDevelopers/Implementation.md/#PMCHWTSystem
-[scuffScatter]:                ../../applications/scuff-scatter/scuff-scatter/#Options
+[scuffScatterOptions]:         /applications/scuff-scatter/scuff-scatter.md/#Options
+
+{!Links.md!}

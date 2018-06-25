@@ -41,6 +41,12 @@ PlaneWave::PlaneWave(const cdouble pE0[3], const double pnHat[3],
   SetRegionLabel(Label);
 }
 
+PlaneWave::PlaneWave()
+{  E0[0]=1.0;    E0[1]=0.0;    E0[2]=0.0;
+ nHat[0]=0.0;  nHat[1]=0.0;  nHat[2]=1.0;
+  SetRegionLabel(0);
+}
+
 PlaneWave::~PlaneWave()
 { 
   // no malloc'ed data to free

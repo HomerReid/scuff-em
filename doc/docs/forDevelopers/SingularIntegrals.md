@@ -37,7 +37,7 @@ method in their own codes.
 
 [TOC]
 
-# 1. What the code actually computes
+## 1. What the code actually computes
 
 The code provides a `C++` function named `TaylorDuffy`
 which computes the following four-dimensional integral over a triangle-product
@@ -87,7 +87,7 @@ In this expression,
    This is faster than making <i>N</i> separate calls due to the 
    reuse of computational overhead.
 
-# 2. C++ calling convention
+## 2. C++ calling convention
 
 The `TaylorDuffy` routine has many input
 arguments (many of which may be set to default values)
@@ -125,7 +125,7 @@ The process looks like this:
  printf("Result: %e \n", real(TDArgs->Result[0]) );
 ````
 
-## Thread Safety
+### Thread Safety
 
 `TaylorDuffy()` is thread-safe; you may call it 
 from multiple simultaneously-executing threads without fear
@@ -134,7 +134,7 @@ of crosstalk or race conditions. (Indeed,
 with support for <span class=SC>openmp</span>
 or <span class=SC>pthreads</span>.)
 
-## Fields in `TaylorDuffyArgStruct`
+### Fields in `TaylorDuffyArgStruct`
 
 The table below details all fields in the argument structure
 passed to `TaylorDuffy.`
@@ -379,7 +379,7 @@ values for any optional fields you wish to tweak).
 </table>
 
 
-## Values of the `PIndex` field
+### Values of the `PIndex` field
 
 The implementation of `TaylorDuffy` provided here
 contains support for the following choices of the <i>P</i>
@@ -411,7 +411,7 @@ is also a factor <i>ll'</i> (product of edge lengths)
 which is missing from these calculations, and you must put that 
 in yourself, by hand.
 
-## Values of the `KIndex` field
+### Values of the `KIndex` field
 
 The implementation of `TaylorDuffy` provided here
 contains support for the following choices of the <i>K</i>
@@ -424,7 +424,7 @@ In this table, the values of the parameters <i>p</i> and
 <i>k</i> are what you put into the `KParam`
 array in the `TaylorDuffyArgStruct`. 
 
-# 3. Simple demonstration program
+## 3. Simple demonstration program
 
 Here is a little test program that you can download and compile
 against the

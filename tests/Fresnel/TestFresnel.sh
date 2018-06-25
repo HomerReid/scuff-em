@@ -87,7 +87,7 @@ fi
 # check results
 ##################################################
 ${CHECKSCUFFDATA} --data ${DATAFILE} --reference ${DATAREF} --checklist ${CHECKLIST}
-Status=$?
+STATUS=$?
 
 ##################################################
 # extract timing info if available 

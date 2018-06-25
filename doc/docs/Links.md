@@ -1,3 +1,5 @@
+[CommandLineSuite]:		/index.md#CommandLineSuite
+
 [CoreLibrary]:             	/API/libscuff.md
 [libscuff]:             	/API/libscuff.md
 [MainFlowAPI]:             	/API/MainFlow.md
@@ -32,6 +34,8 @@
 [Documentation]:		/forDevelopers/Documentation.md
 [SingularIntegrals]:		/forDevelopers/SingularIntegrals.md
 
+[HighLevelInterface]:		/HighLevelInterface/HighLevelInterface.md
+
 [MicrostripDevicesExample]:	/examples/MicrostripDevices/MicrostripDevices.md
 [SphericalShellExample]:	/examples/DielectricShell/DielectricShell.md
 [SiliconBeamExample]:		/examples/SiliconBeams/SiliconBeams.md
@@ -49,8 +53,10 @@
 [scuffEMTransformations]:	/reference/Transformations.md
 [scuffEMMaterials]:		/reference/Materials.md
 [scuffEMInstallation]:		/reference/Installing.md
+[InstallationPrefix]:		/reference/Installing.md#InstallationPrefix
 [scuffEMFAQ]:			/reference/FAQ.md
 [Units]:     			/reference/FAQ.md#Units
+[HighlyStructuredMeshes]:     	/reference/FAQ.md#HighlyStructuredMeshes
 
 [TestSuite]:            	/tests/Overview.md
 

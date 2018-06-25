@@ -44,9 +44,9 @@ plotting or post-processing tools.
 
 [TOC]  
 
-# 1. What [[scuff-cas3d]] actually computes
+## 1. What [[scuff-cas3d]] actually computes
 
-## 1a. Compact objects
+### 1a. Compact objects
 
 The Casimir energy $\mathcal{E}$ of a collection of compact bodies,
 and the $i$-directed Casimir force $\mathcal{F}_i$ and 
@@ -104,7 +104,7 @@ file; the `.byXi` file reports data on the Casimir
 integrands at the frequencies $\{\xi\}$ chosen by 
 the built-in integrator.
 
-## 1b. Extended objects
+### 1b. Extended objects
 
 For an extended material configuration described by a
 [periodic geometry](../../reference/Geometries.md#Extended)
@@ -189,9 +189,9 @@ points chosen by the built-in integrator instead of the
 Matsubara frequencies.
 
 <a name="CommandLineOptions"></a>
-# 2. <span class="SC">scuff-cas3d</span> command-line options
+## 2. <span class="SC">scuff-cas3d</span> command-line options
 
-### Common options
+#### Common options
 
 [[scuff-cas3d]] recognizes the following subset of the 
 [list of commonly accepted options to <span class="SC">scuff-em</span> command-line codes][CommonOptions].
@@ -216,7 +216,7 @@ Matsubara frequencies.
   ````
 {.toc}
 
-### Options requesting Casimir output quantities
+#### Options requesting Casimir output quantities
 
   ````
 --Energy
@@ -244,7 +244,7 @@ consisting of just two objects or surfaces, the force/torque
 on the second object/surface is just the negative of the 
 force/torque on the first. 
 
-### Options specifying temperature
+#### Options specifying temperature
 
   ````
 --Temperature 300
@@ -259,7 +259,7 @@ incompatible with options such as `--Xi` or `--XiFile` that
 specify particular frequencies at which to compute.
 
 <a name="OutputFiles"></a>
-# 3. <span class="SC">scuff-cas3d</span> output files
+## 3. <span class="SC">scuff-cas3d</span> output files
 
 The base file name of all output files produced by
 `scuff-cas3d` may be specified using the `--FileBase`
@@ -273,20 +273,20 @@ For all data output files (`.out`, `.byXi`,
 *header* (a sequence of text lines starting with`#`)
 explaining how to interpret the contents of the file.
 
-### The `.log` file
+#### The `.log` file
 
 Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you 
 can monitor to keep track of your calculation's progress.
 
-### The `.out` file
+#### The `.out` file
 
 If you requested the calculation of
 full frequency-integrated or Matsubara-summed
 Casimir quantities, these will be written to 
 the `.out` file.
 
-### The `.byXi` file
+#### The `.byXi` file
 
 For any problem involving compact geometries,
 and for any problem involving extended geometries
@@ -294,7 +294,7 @@ in which you requested Brillouin-zone integrations,
 the contributions of individual imaginary frequencies 
 $\xi$ will be written to a file named `.byXi`.
 
-### The `.byXikBloch` file
+#### The `.byXikBloch` file
 
 For any problem involving extended geometries,
 the contributions of individual (frequency, Bloch vector)
@@ -302,7 +302,7 @@ points $(\xi,\mathbf k)$ will be written to a file
 named `FILEBASE.byXikBloch`.
 
 <a name="Examples"></a>
-# 4. Examples of Casimir calculations using <span class="SC">scuff-cas3d</span>
+## 4. Examples of Casimir calculations using <span class="SC">scuff-cas3d</span>
 
 + Casimir forces in a compact geometry:
   [A cube and a torus immersed in ethanol][CubeTorus]

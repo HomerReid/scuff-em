@@ -11,7 +11,7 @@ The files for this example may be found in the
 `share/scuff-em/examples/PlatonicSolids` subdirectory
 of your [[scuff-em]] installation.
 
-## [[gmsh]] geometry files for spherical, tetrahedral, and octrahedral particles
+### [[gmsh]] geometry files for spherical, tetrahedral, and octrahedral particles
 
 The [[gmsh]] geometry files
 [Sphere.geo](Sphere.geo),
@@ -51,7 +51,7 @@ Here are pictures of the finer of the three meshes produced by this procedure:
 
 ![PlatonicSolidMeshPicture](PlatonicSolidMeshes.png)
 
-## Polarizability of a dielectric sphere
+### Polarizability of a dielectric sphere
 
 Here's a simple [<span class="SC">scuff-em</span> geometry file][scuffEMGeometries] named `E10Sphere.scuffgeo` that describes a dielectric sphere with relative permittivity $\epsilon=10$:
 
@@ -102,7 +102,7 @@ numerical noise.
 In all three cases, the result is improved by running
 calculations with finer surface meshes.
 
-## Polarizability of a dielectric cavity
+### Polarizability of a dielectric cavity
 
 Here's an alternative geometry file describing a spherical
 vacuum *cavity* in a universe filled with $\epsilon=10$ 
@@ -129,7 +129,7 @@ Sphere -5.168105e+00 3.103541e-03 1.420259e-02 3.842746e-03 -5.164908e+00 -1.409
 The diagonal components here agree with the theoretical value of
 $\frac{\alpha}{\epsilon_0}=4\pi \frac{1-\epsilon}{1+2\epsilon}R^3\approx -5.14 R^3$.
 
-## [[bash]] script to run calculations at many different permittivities
+### [[bash]] script to run calculations at many different permittivities
 
 Ultimately we want to compute the polarizability at many
 different values of the interior and exterior permittivity,

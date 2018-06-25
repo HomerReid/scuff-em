@@ -198,8 +198,7 @@ void ScatteredPFTIntegrand1(double xA[3], double bA[3], double DivbA,
      QKK[PFT_XTORQUE2    + Mu + 6 ] -= FTPreFac*PEFIE*MuRel*XTBxR[Mu]*Psi;
      QNN[PFT_XTORQUE2    + Mu + 6 ] -= FTPreFac*PEFIE*EpsRel*XTBxR[Mu]*Psi;
      QKNmNK[PFT_XTORQUE2 + Mu + 6 ] += FTPreFac*(XTBxbxb[Mu]*Psi + PMFIE*XTBxR[Mu]*Zeta)/Omega;
-
-   };
+   }
 }
 
   
@@ -357,7 +356,7 @@ void GetScatteredPFTIntegrals(RWGGeometry *G,
       { QKK[PFT_XFORCE+Mu]    = FTPreFac*MuR*GabArray[0][GCME_FX + Mu];
         QNN[PFT_XFORCE+Mu]    = FTPreFac*EpsR*GabArray[0][GCME_FX + Mu];
         QKNmNK[PFT_XFORCE+Mu] = FTPreFac*ikCabArray[0][GCME_FX + Mu]/Omega;
-      };
+      }
      for(int nq=PFT_XTORQUE1+6; nq<PFT_ZTORQUE2+6; nq++)
       QKK[nq]=QNN[nq]=QKNmNK[nq]=0.0;
    }

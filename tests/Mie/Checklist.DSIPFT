@@ -1,0 +1,9 @@
+ABSTOL 1.0e-6
+RELTOL 1.0e-2
+
+KEY  Omega 1
+
+DATA PAbs   3
+DATA PScat  4
+DATA Fz     7
+DATA Tz     10

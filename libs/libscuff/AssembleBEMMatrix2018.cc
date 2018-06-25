@@ -51,11 +51,22 @@ char *ToStr(cdouble Omega, double *kBloch, int LDim, char *s=0)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int neb,
-                          cdouble iwEps[2], cdouble iwMu[2], dVec Signs, HMatrix *MEs)
+void AddSubstrateContributionToSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
+                                                 int nea, int neb,
+                                                 cdouble Gab, cdouble ikCab, cdouble GPhiTerm,
+                                                 cdouble iwEps, cdouble iwMu, HMatrix *MEs)
 {
-  cdouble Gab[2][NUMGCMES], ikCab[2][NUMGCMES];
-  GetGCMatrixElements(G, Args, nea, neb, Gab, ikCab);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int neb,
+                          cdouble iwEps[2], cdouble iwMu[2], dVec Signs, HMatrix *MEs,
+                          bool Exterior)
+{
+  cdouble Gab[2][NUMGCMES], ikCab[2][NUMGCMES], GPhiTerm;
+  GetGCMatrixElements(G, Args, nea, neb, Gab, ikCab, &GPhiTerm);
   Gab[0][0]*=Signs[0];   ikCab[0][0]*=Signs[0];
   Gab[1][0]*=Signs[1];   ikCab[1][0]*=Signs[1];
   MEs->SetEntry(0, 0, iwMu[0]*Gab[0][0] + iwMu[1]*Gab[1][0]);
@@ -65,6 +76,10 @@ void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int n
    MEs->SetEntry(1, 0, -1.0*(ikCab[0][0] + ikCab[1][0]));
   if (MEs->NR>1 && MEs->NC>1)
    MEs->SetEntry(1, 1, -1.0*(iwEps[0]*Gab[0][0] + iwEps[1]*Gab[1][0]));
+
+  if (Exterior && G->Substrate)
+   AddSubstrateContributionToSIEMatrixElements(G,Args,nea,neb, Gab[0][0],ikCab[0][0],GPhiTerm,
+                                               iwEps[0], iwMu[0], MEs);
 }
 
 /***************************************************************/
@@ -188,7 +203,7 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix AssembleBEMMatrix2018(RWGGeometry *G, cdouble Omega, double *kBloch, HMatrix *M)
+HMatrix *AssembleBEMMatrix2018(RWGGeometry *G, cdouble Omega, double *kBloch, HMatrix *M)
 { 
   /***************************************************************/
   /***************************************************************/

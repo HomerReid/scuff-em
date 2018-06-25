@@ -20,4 +20,4 @@ AM_CPPFLAGS = -DSCUFF 				\
 # files needed for the test to the appropriate
 # subdirectory of $PREFIX/share/scuff-em/tests
 ##################################################
-SUBDIRS = Fresnel
+SUBDIRS = Mie Fresnel

@@ -51,7 +51,7 @@ ground planes and infinite-area dielectric half-spaces).
 [TOC]
 
 --------------------------------------------------
-# 1. What <span class="SC">scuff-ldos</span> actually computes
+## 1. What <span class="SC">scuff-ldos</span> actually computes
 
 Some technical details on the calculation performed by
 [[scuff-ldos]] may be found in [this memo](../../tex/scuff-ldos.pdf).
@@ -112,9 +112,9 @@ for the full (BZ-integrated) LDOS are written to the
 
 --------------------------------------------------
 <a name="CommandLineOptions"></a>
-# 2. <span class="SC">scuff-ldos</span> command-line options
+## 2. <span class="SC">scuff-ldos</span> command-line options
 
-### Common options
+#### Common options
 
 [[scuff-ldos]] recognizes the following subset of the 
 [list of commonly accepted options to <span class="SC">scuff-em</span> command-line codes][CommonOptions].
@@ -161,7 +161,7 @@ specified. In this case you wil get back a
 `.byOmegakBloch` file, but not an
 `.LDOS` file.
 
-### Options requesting analytical LDOS calculations
+#### Options requesting analytical LDOS calculations
 
   ````
 --GroundPlane
@@ -207,16 +207,16 @@ file is used to define the lattice used
 for the analytical calculation.)
 
 --------------------------------------------------
-# 3. <span class="SC">scuff-ldos</span> output files
+## 3. <span class="SC">scuff-ldos</span> output files
 
-### The `.log` file
+#### The `.log` file
 
 Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-ldos]] produces a text output file named
 `FileBase.log` that you can follow to monitor the
 status of your calculation.
 
-### The `.LDOS` file
+#### The `.LDOS` file
 
 This file reports values of the electric and magnetic
 LDOS for each angular frequency and each evaluation
@@ -226,7 +226,7 @@ calculation on periodic geometries, this file is
 produced only if you specified the 
 `--Omega` and/or `--OmegaFile` command-line options.
 
-### The `.byOmegakBloch` file
+#### The `.byOmegakBloch` file
 
 This file reports Bloch-vector resolved versions
 of the information reported by the `.LDOS` file.
@@ -235,7 +235,7 @@ periodic geometries.
 
 --------------------------------------------------
 <a name="Examples"></a>
-# 4. Examples of calculations using <span class="SC">scuff-ldos</span>
+## 4. Examples of calculations using <span class="SC">scuff-ldos</span>
 
 + [LDOS above a dielectric half-space][HalfSpaceLDOS]
 

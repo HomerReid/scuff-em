@@ -103,9 +103,9 @@ required.
 
 [TOC]
 
-# 1. Using <span class=SC>scuff-integrate</span> as a general-purpose numerical integrator
+## 1. Using <span class=SC>scuff-integrate</span> as a general-purpose numerical integrator
 
-## Integrating a single function of a single variable
+### Integrating a single function of a single variable
 
 The simplest usage of [[scuff-integrate]] is to integrate
 a single function $f$ of a single variable $x$; as noted
@@ -241,7 +241,7 @@ Then each line of the `.Integrated` output file will report
 $x$-integrated values of all functions for a single tuple of 
 parameter values $(p,q,\cdots).$
 
-# 2. Using <span class=SC>scuff-integrate</span> as a specialized integrator for <span class=SC>scuff-em</span> data
+## 2. Using <span class=SC>scuff-integrate</span> as a specialized integrator for <span class=SC>scuff-em</span> data
 
 As noted above, [[scuff-integrate]] has built-in knowledge
 of the structure of various data files produced by
@@ -251,7 +251,7 @@ you to feed those data files directly into [[scuff-integrate]]
 without needing to tell the code which column of the data file
 is which.
  
-## 2A. Integrating [[scuff-neq]] data
+### 2A. Integrating [[scuff-neq]] data
 
 As discussed at the top of the page, the frequency-resolved
 data reported by [<span class=SC>scuff-neq</span>][scuff-neq]
@@ -272,7 +272,7 @@ data files produced by [<span class=SC>scuff-neq</span>][scuff-neq],
 so there is no need to specify `--FreqColumn` and `--DataColumn`
 options. 
 
-### Specifiying temperatures
+#### Specifiying temperatures
 
 Instead, the only input you need to supply (besides
 the `.SIFlux` or `.SRFlux` data file) is a specification
@@ -294,7 +294,7 @@ for setting
 
     If $N=0$, this instead sets the temperature of the environment to `T`.
 
-### Specifiying multiple temperature sets
+#### Specifiying multiple temperature sets
 
 A bonus feature
 of the separation between [[scuff-neq]] and [[scuff-integrate]]
@@ -306,7 +306,7 @@ evaluating integral (2) multiple times with different temperatures
 but the same flux data.
 
 
-### Spatially-integrated flux data (`.SIFlux` files)
+#### Spatially-integrated flux data (`.SIFlux` files)
 
 knows how to do this automatically 
 
@@ -359,11 +359,11 @@ supports the following additional command-line options:
 0 300 300
 ````
 
-# 3. <span class=SC>scuff-integrate</span> Command-Line Reference
+## 3. <span class=SC>scuff-integrate</span> Command-Line Reference
 
-# 4. Miscellaneous notes
+## 4. Miscellaneous notes
 
-## Only numerical data columns are counted as columns
+### Only numerical data columns are counted as columns
 
 There is one potentially confusing aspect of the way
 [[scuff-integrate]] interprets column indices as specified

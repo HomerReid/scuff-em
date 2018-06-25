@@ -17,7 +17,7 @@ The files for this example may be found in the
 `share/scuff-em/examples/HalfSpaceLDOS` subdirectory
 of your [[scuff-em]] installation.
 
-### Review: What we are computing and why we need Brillouin-zone integration
+#### Review: What we are computing and why we need Brillouin-zone integration
 
 For the benefit of users who may be wondering why numerical Brillouin-zone
 integration is needed for this calculation, this section briefly reviews
@@ -27,7 +27,7 @@ some of the theoretical background.
 If you just want to get started running the calculations in [[scuff-em]], 
 feel free to [skip to the next section](#GMSHFiles).
 
-#### Green's functions and LDOS
+##### Green's functions and LDOS
 
 The scattering dyadic Green's function
 $\boldsymbol{\mathcal G}^{\text E}(\omega;
@@ -72,7 +72,7 @@ $$ \begin{array}{lcl}
      \text{Tr Im }\boldsymbol{\mathcal{G}}^\text{E,M}(\omega; \mathbf{x}, \mathbf{x})
 \end{array}$$
 
-#### Computing Green's functions
+##### Computing Green's functions
 
 The electric and magnetic DGFs for a given source point
 (and any number of destination points)
@@ -203,7 +203,7 @@ below and discussed in more detail on the page
 
 --------------------------------------------------
 <a name="GMSHFiles">
-# [[gmsh]] geometry files for unit-cell geometries
+## [[gmsh]] geometry files for unit-cell geometries
 
 To compute DGFs and LDOS in a half-space geometry,
 we will describe the interface between the upper (vacuum)
@@ -274,7 +274,7 @@ of the `HalfSpaceLDOS` example distributed with
 [[scuff-em]].
 
 --------------------------------------------------
-# [[scuff-em]] geometry files
+## [[scuff-em]] geometry files
 
 For each unit-cell mesh I create
 [<span class="SC">scuff-em</span> geometry files][Geometries]
@@ -321,7 +321,7 @@ ENDSURFACE
 ````
 
 --------------------------------------------------
-# List of evaluation points
+## List of evaluation points
 
 We'll compute one-point DGFs and LDOS at four points,
 located at distances of 1, 10, 100, and 1000 nm above
@@ -336,7 +336,7 @@ file (`EPFile`) looks like this:
 ````
 
 --------------------------------------------------
-## Studying the integrand to select the optimal cubature rule
+### Studying the integrand to select the optimal cubature rule
 
 Ultimately we will want to launch a full
 Brillouin-zone-integrated calculation to get
@@ -347,7 +347,7 @@ the integrand so that we can make intelligent
 choices for the various 
 [options controlling Brillouin-zone integration][BZI].
 
-### Checking Brillouin-zone symmetry
+#### Checking Brillouin-zone symmetry
 
 A first thing to check is the *symmetry* of the
 integrand within the Brillouin zone (BZ).
@@ -429,7 +429,7 @@ evaluating the full BZ integral.
 Incidentally, notice that the individual components of the DGFs (such as
 $\overline{\mathcal{G}}_{xx}$) do *not* obey the full set of symmetries obeyed by the LDOS. You will need to take this into account if your goal is to compute DGFs and not just LDOS.
 
-### Observing the variation of the integrand with $|\mathbf{k}_\text{B}|$ 
+#### Observing the variation of the integrand with $|\mathbf{k}_\text{B}|$ 
 
 Another diagnostic test is to inspect the variation of the integrand with the magnitude of the Bloch vector. For this purpose we'll compute the integrand at points lying on the $x$-axis between the origin and the edge of the BZ, again working with the $L=100$ nm lattice at $\omega=10$.  We create a file called `XAxisPoints` specifying the ($\omega,k_x,k_y$) points we want to sample: 
 
@@ -491,7 +491,7 @@ that decay exponentially with distance from the surface.
 script that produces the two plots above.)
 
 --------------------------------------------------
-## Running full Brillouin-zone-integrated calculations
+### Running full Brillouin-zone-integrated calculations
 
 Now it's time to launch runs for full BZ-integrated LDOS. For
 this purpose we will want to set appropriate values for the

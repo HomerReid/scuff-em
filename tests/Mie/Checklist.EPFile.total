@@ -1,0 +1,21 @@
+ABSTOL 1.0e-6
+RELTOL 1.0e-2
+
+KEY  X     1
+KEY  Y     2
+KEY  Z     3
+KEY  Omega 4
+
+DATA realEx    5
+DATA imagEx    6
+DATA realEy    7
+DATA imagEy    8
+DATA realEz    9
+DATA imagEz    10
+
+DATA realHx    11
+DATA imagHx    12
+DATA realHy    13
+DATA imagHy    14
+DATA realHz    15
+DATA imagHz    16
