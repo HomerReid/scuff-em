@@ -20,7 +20,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil       \
               -I$(top_srcdir)/libs/libMDInterp     \
               -I$(top_srcdir)/libs/libTriInt       \
               -I$(top_srcdir)/libs/libscuff        \
-              -I$(top_srcdir)/libs/libRFSolver     \
+              -I$(top_srcdir)/libs/libscuffSolver  \
               -I$(top_srcdir)/libs/libStaticSolver \
               -I$(top_srcdir)/libs/libSubstrate    \
               -I$(top_builddir) # for config.h
@@ -33,7 +33,7 @@ AM_CXXFLAGS=-W
 
 if MAINTAINER_MODE
 
-scuff-python.cpp scuff.py: $(SWIG_SRC) $(top_srcdir)/libs/libscuff/libscuff.h $(top_srcdir)/libs/libscuff/GTransformation.h $(top_srcdir)/libs/libIncField/libIncField.h $(top_srcdir)/libs/libhrutil/libhrutil.h $(top_srcdir)/libs/libMatProp/libMatProp.h $(top_srcdir)/libs/libhmat/libhmat.h $(top_srcdir)/libs/libStaticSolver/StaticSolver.h $(top_srcdir)/libs/libRFSolver/RFSolver.h
+scuff-python.cpp scuff.py: $(SWIG_SRC) $(top_srcdir)/libs/libscuff/libscuff.h $(top_srcdir)/libs/libscuff/GTransformation.h $(top_srcdir)/libs/libIncField/libIncField.h $(top_srcdir)/libs/libhrutil/libhrutil.h $(top_srcdir)/libs/libMatProp/libMatProp.h $(top_srcdir)/libs/libhmat/libhmat.h $(top_srcdir)/libs/libStaticSolver/StaticSolver.h $(top_srcdir)/libs/libscuffSolver/scuffSolver.h
 	swig -Wall $(AM_CPPFLAGS) -outdir $(builddir) -c++ -python -o $(builddir)/scuff-python.cpp $(srcdir)/scuff.i
 
 endif

@@ -40,7 +40,7 @@
 #include <vector>
 using namespace std;
 
-#include "RFSolver.h"
+#include "scuffSolver.h"
 
 using namespace scuff;
 
@@ -395,7 +395,7 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
 /* the columns of this matrix are the vectors called           */
 /* \mathbf{r}_p (p=1,\cdots,NumPorts) in the memo).            */
 /***************************************************************/
-void RFSolver::AssemblePortBFInteractionMatrix(cdouble Omega)
+void scuffSolver::AssemblePortBFInteractionMatrix(cdouble Omega)
 { 
   // don't need to recompute the matrix if has been assembled at this frequency already;
   if (Omega==OmegaPBFI) return;
@@ -520,7 +520,7 @@ void RFSolver::AssemblePortBFInteractionMatrix(cdouble Omega)
 /* iwSigmaK[2] = Ky                                            */
 /* iwSigmaK[3] = Kz                                            */
 /***************************************************************/
-void RFSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
+void scuffSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
 {
   iwSigmaK[0]=iwSigmaK[1]=iwSigmaK[2]=iwSigmaK[3]=0.0;
 
@@ -582,7 +582,7 @@ void RFSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
 /***************************************************************/
 /* contribution of port currents to panel source densities     */
 /***************************************************************/
-HMatrix *RFSolver::GetPanelSourceDensities(HMatrix *PSDMatrix)
+HMatrix *scuffSolver::GetPanelSourceDensities(HMatrix *PSDMatrix)
 { 
   /***************************************************************/
   /* get basis-function contributions     ************************/

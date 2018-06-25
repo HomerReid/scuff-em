@@ -35,7 +35,7 @@
 #  include "config.h"
 #endif
 
-#include "RFSolver.h"
+#include "scuffSolver.h"
 
 namespace scuff {
 void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
@@ -619,8 +619,7 @@ void GetRzMinMax(RWGGeometry *G, HMatrix *XMatrix, double RhoMinMax[2], double z
 /***************************************************************/
 /***************************************************************/
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
-                            cdouble Omega, HMatrix *Block, int OffsetA, int OffsetB,
-                            EquivalentEdgePairTable **EEPTables)
+                            cdouble Omega, HMatrix *Block, int OffsetA, int OffsetB)
 {
   int Order=-1;
   char *s=getenv("SCUFF_MOIME_ORDER");
@@ -643,8 +642,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /* it is not already there                                     */
   /***************************************************************/
   if (G->Substrate)
-   { 
-     double RhoMinMax[2];
+   { double RhoMinMax[2];
      GetRhoMinMax(G, nsa, nsb, RhoMinMax);
      bool PPIsOnly = true;
      bool Subtract = true;
@@ -662,12 +660,12 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   int NEB=Sb->NumEdges, NBFPEB = Sb->IsPEC ? 1 : 2;
   int NumPairs=NEA*NEB;
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   EquivalentEdgePairTable *EEPTable=0;
-  if (EEPTables)
-   { int NS=G->NumSurfaces;
-     if (EEPTables[nsa*NS + nsb]==0) EEPTables[nsa*NS+nsb]=new EquivalentEdgePairTable(G,nsa,nsb);
-     EEPTable = EEPTables[nsa*NS + nsb];
-   }
+  if ( G->EEPTables.size()>0 && G->EEPTables[nsa][nsb]==0 )
+   EEPTable = G->EEPTables[nsa][nsb] = new EquivalentEdgePairTable(G,nsa,nsb);
 
   /***************************************************************/
   /***************************************************************/
@@ -684,38 +682,21 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      int nea = nPair/NEB;
      int neb = nPair%NEB;
      if (nsa==nsb && neb<nea) continue;
-
-     //if (EEPTable && EEPTable->HasParent(nea, neb)) continue;
+     if (EEPTable && EEPTable->HasParent(nea, neb)) continue;
 
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
      Block->SetEntry(OffsetA + nea, OffsetB + neb, ME);
-   
-   }
 
-#if 0
-  if (EEPTable)
-   { 
-     if (G->LogLevel>=SCUFF_VERBOSE2)
-      Log("Filling in matrix entries for child edge pairs ...");
-      
-     for(ReducedEdgePairMap::iterator it=EEPTable->REPMap.begin(); it!=EEPTable->REPMap.end(); it++)
-      { int neaParent, nebParent;
-        EEPTable->ResolveEdgePair(it->first, &neaParent, &nebParent);
-        cdouble ME[2][2];
-        for(int a=0; a<NBFPEA; a++)
-         for(int b=0; b<NBFPEB; b++)
-          ME[a][b]=Block->GetEntry(OffsetA+NBFPEA*neaParent+a, OffsetB+NBFPEB*nebParent+b);
-        for(size_t nREP=0; nREP<it->second.size(); nREP++)
-         { int neaChild, nebChild;
-           EEPTable->ResolveEdgePair(it->second[nREP], &neaChild, &nebChild);
-           for(int a=0; a<NBFPEA; a++)
-            for(int b=0; b<NBFPEB; b++)
-             Block->SetEntry(OffsetA+NBFPEA*neaChild+a, OffsetB+NBFPEB*nebChild+b, ME[a][b]);
+     if (EEPTable)
+      { ChildPairList Children = EEPTable->GetChildren(nea, neb);
+        for(size_t nc=0; nc<Children.size(); nc++)
+         { int neaChild = Children[nc].nea, nebChild = Children[nc].neb;
+           double Sign = Children[nc].Signs.Flipped[0] ? -1.0 : 1.0;
+           Block->SetEntry(OffsetA+neaChild, OffsetB+nebChild, Sign*ME);
          }
       }
    }
-#endif
 
   /***************************************************************/
   /* if this is a diagonal block (nsa==nsb) we only filled in the*/
@@ -730,7 +711,7 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable **EEPTables)
+void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M)
 {
   if ( !M || (M->NR != G->TotalBFs) || (M->NC != G->TotalBFs) )
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
@@ -767,7 +748,7 @@ void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdge
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
-       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb], EEPTables);
+       AssembleMOIMatrixBlock(G, nsa, nsb, Omega, M, G->BFIndexOffset[nsa], G->BFIndexOffset[nsb]);
     }
 
   // fill in lower triangle
@@ -906,7 +887,7 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RFSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
+HMatrix *scuffSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
 {
   if (XMatrix->NR!=3)
    ErrExit("wrong-size (%ix%i) XMatrix in GetMOIFields",XMatrix->NR,XMatrix->NC);
@@ -950,7 +931,7 @@ HMatrix *RFSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
+HMatrix *scuffSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
 {
   int NX           = XMatrix->NC;
 
@@ -1064,7 +1045,7 @@ HMatrix *RFSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::GetFields(double X[3], cdouble PF[NPFC])
+void scuffSolver::GetFields(double X[3], cdouble PF[NPFC])
 { 
   HMatrix XMatrix(3,1,X);
   HMatrix PFMatrix(NPFC,1,PF);

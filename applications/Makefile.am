@@ -5,7 +5,6 @@ SUBDIRS = \
  scuff-ldos  		\
  scuff-neq   		\
  scuff-plotEpsMu	\
- scuff-microstrip	\
  scuff-rf 		\
  scuff-scatter  	\
  scuff-spectrum 	\

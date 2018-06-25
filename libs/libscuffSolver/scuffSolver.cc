@@ -18,7 +18,7 @@
  */
 
 /* 
- * RFSolver.cc  -- main code file for SCUFF-EM RF solver
+ * scuffSolver.cc  -- main code file for SCUFF-EM RF solver
  *
  * homer reid   -- 9/2011 - 4/2018
  */
@@ -36,7 +36,7 @@
 #include <libIncField.h>
 #include <libscuffInternals.h>
 
-#include "RFSolver.h"
+#include "scuffSolver.h"
 
 #define II cdouble(0.0,1.0)
 
@@ -48,7 +48,7 @@ namespace scuff {
 /* RF solver class constructor #1: construct from a .scuffgeo  */
 /* file plus a .ports file                                     */
 /***************************************************************/
-RFSolver::RFSolver(const char *scuffgeoFileName, const char *portFileName)
+scuffSolver::scuffSolver(const char *scuffgeoFileName, const char *portFileName)
 { 
   InitSolver();
   scuffgeoFile = scuffgeoFileName ? strdup(scuffgeoFileName) : 0;
@@ -60,7 +60,7 @@ RFSolver::RFSolver(const char *scuffgeoFileName, const char *portFileName)
 /* most actual initialization is handled by InitGeometry below,*/
 /* which is called lazily just-in-time as needed               */
 /***************************************************************/
-void RFSolver::InitSolver()
+void scuffSolver::InitSolver()
 {
   /*--------------------------------------------------------------------------*/
   /* initialize internal variables needed to perform RF calculations (which   */
@@ -68,7 +68,6 @@ void RFSolver::InitSolver()
   /*--------------------------------------------------------------------------*/
   G              = 0;
   PortList       = 0;
-  EEPTables      = 0;
   NumPorts       = 0;
   FileBase       = 0;
 
@@ -92,7 +91,7 @@ void RFSolver::InitSolver()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-RFSolver::~RFSolver()
+scuffSolver::~scuffSolver()
 {
   if (TBlocks)
    { for(int ns=0; ns<G->NumSurfaces; ns++)
@@ -104,13 +103,6 @@ RFSolver::~RFSolver()
      for(int nu=0; nu<NU; nu++)
       delete UBlocks[nu];
      delete UBlocks;
-   }
-
-  if (EEPTables)
-   { int NS=G->NumSurfaces;
-     for(int nsp=0; nsp<NS*NS; nsp++)
-      if (EEPTables[nsp]) delete EEPTables[nsp];
-     delete[] EEPTables;
    }
 
   if (PortCurrents) delete PortCurrents;
@@ -129,7 +121,7 @@ RFSolver::~RFSolver()
 /* added, with the actual initialization done later by              */
 /* InitGeometry() and/or InitSubstrate()                            */
 /********************************************************************/
-void RFSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu)
+void scuffSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu)
 { 
   SubstrateInitialized=false;
 
@@ -143,22 +135,22 @@ void RFSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu)
   SubstrateLayers.insert(std::pair<double, char *>(-zInterface, strdup(Line)));
 }
 
-void RFSolver::AddGroundPlane(double zGP)
+void scuffSolver::AddGroundPlane(double zGP)
 { AddSubstrateLayer(zGP, HUGE_VAL); }
 
-void RFSolver::SetSubstratePermittivity(cdouble Epsilon)
+void scuffSolver::SetSubstratePermittivity(cdouble Epsilon)
 { AddSubstrateLayer(0.0, Epsilon); }
 
-void RFSolver::SetSubstrateThickness(double h)
+void scuffSolver::SetSubstrateThickness(double h)
 { AddGroundPlane(-h); }
 
-void RFSolver::SetSubstrateFile(const char *_SubstrateFile)
+void scuffSolver::SetSubstrateFile(const char *_SubstrateFile)
 { 
   SubstrateInitialized=false;
   SubstrateFile = strdup(_SubstrateFile);
 }
 
-void RFSolver::InitSubstrate()
+void scuffSolver::InitSubstrate()
 {
   if (SubstrateInitialized) return;
   SubstrateInitialized=true;
@@ -187,7 +179,7 @@ void RFSolver::InitSubstrate()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::SetGeometryFile(const char *_scuffgeoFile)
+void scuffSolver::SetGeometryFile(const char *_scuffgeoFile)
 {
   if (MeshFiles.size() > 0)
    { Warn("can't add geometry file after adding metal traces");
@@ -201,7 +193,7 @@ void RFSolver::SetGeometryFile(const char *_scuffgeoFile)
   scuffgeoFile = vstrdup(_scuffgeoFile);
 }
 
-void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const char *Transformation)
+void scuffSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const char *Transformation)
 {
   char *ErrMsg=0;
 
@@ -234,7 +226,7 @@ void RFSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const 
   MeshTransforms.push_back( Transformation ? strdup(Transformation) : 0);
 }
 
-void RFSolver::SetPortFile(const char *_portFile)
+void scuffSolver::SetPortFile(const char *_portFile)
 { char *ErrMsg=0;
   if (G)
    ErrMsg=vstrdup("can't add port file after geometry has been initialized");
@@ -249,7 +241,7 @@ void RFSolver::SetPortFile(const char *_portFile)
   portFile = strdup(_portFile);
 }
 
-void RFSolver::AddPort(const dVec PVertices, const dVec MVertices)
+void scuffSolver::AddPort(const dVec PVertices, const dVec MVertices)
 { char *ErrMsg=0;
   if (G)
    ErrMsg=vstrdup("can't add port after geometry has been initialized");
@@ -269,10 +261,10 @@ void RFSolver::AddPort(const dVec PVertices, const dVec MVertices)
   PortTerminalVertices.push_back(MVertices);
 }
 
-void RFSolver::AddPort(const dVec PVertices)
+void scuffSolver::AddPort(const dVec PVertices)
 { AddPort(PVertices, dVec()); }
 
-void RFSolver::AddPortTerminal(char PM, const dVec Vertices)
+void scuffSolver::AddPortTerminal(char PM, const dVec Vertices)
 { 
   bool NewTerminalIsNegative     = ( (toupper(PM)=='M') || (PM=='-') );
   bool CurrentTerminalIsNegative = ((PortTerminalVertices.size() % 2) != 1);
@@ -291,7 +283,7 @@ void RFSolver::AddPortTerminal(char PM, const dVec Vertices)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::InitGeometry()
+void scuffSolver::InitGeometry()
 { 
   if (G) return;
 
@@ -369,12 +361,6 @@ void RFSolver::InitGeometry()
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   InitSubstrate();
- 
-  if (!CheckEnv("SCUFF_IGNORE_EQUIVALENT_EDGES"))
-   { int NS=G->NumSurfaces;
-     EEPTables = new EquivalentEdgePairTable* [NS*NS];
-     memset(EEPTables, 0, NS*NS*sizeof(EEPTables[0]));
-   }
  
   if(ownsGeoFile && !CheckEnv("PYSCUFF_RETAIN_GEOFILE")) unlink(scuffgeoFile);
   if(ownsPortFile) unlink(portFile);
@@ -482,7 +468,7 @@ int FindEquivalentSurfacePair(RWGGeometry *G, int nsAlpha, int nsBeta,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::EnableSystemBlockCache()
+void scuffSolver::EnableSystemBlockCache()
 { 
   if (G==0)
    { Warn("EnableSysteBlockCache() must be called after InitGeometry (skipping)");
@@ -514,7 +500,7 @@ void RFSolver::EnableSystemBlockCache()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::UpdateSystemMatrix(cdouble Omega)
+void scuffSolver::UpdateSystemMatrix(cdouble Omega)
 { 
   if (TBlocks==0)
    { Warn("EnableSystemBlockCache() must be called before UpdateSystemMatrix (skipping)");
@@ -525,7 +511,7 @@ void RFSolver::UpdateSystemMatrix(cdouble Omega)
   if (Omega!=OmegaSIE)
    for(int ns=0; ns<G->NumSurfaces; ns++)
     if (G->Mate[ns]==-1)
-     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns], 0, 0, EEPTables);
+     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns]);
 
   // UBlocks recomputed if frequency has changed or surfaces were moved
   for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
@@ -535,7 +521,7 @@ void RFSolver::UpdateSystemMatrix(cdouble Omega)
       if (Omega!=OmegaSIE || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
        { if (UBlocks[nu]==0) 
           UBlocks[nu]=new HMatrix(G->Surfaces[nsa]->NumBFs, G->Surfaces[nsb]->NumBFs, LHM_COMPLEX);
-         AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu], 0, 0, EEPTables);
+         AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu]);
        }
     }
 
@@ -558,7 +544,7 @@ void RFSolver::UpdateSystemMatrix(cdouble Omega)
   OmegaSIE=Omega;
 }
 
-void RFSolver::AssembleSystemMatrix(double Freq)
+void scuffSolver::AssembleSystemMatrix(double Freq)
 { 
   if (!G) InitGeometry();
   if (!SubstrateInitialized) InitSubstrate();
@@ -582,7 +568,7 @@ void RFSolver::AssembleSystemMatrix(double Freq)
 
   G->UpdateCachedEpsMuValues(Omega);
   if (TBlocks==0)
-   AssembleMOIMatrix(G, Omega, M, EEPTables);
+   AssembleMOIMatrix(G, Omega, M);
   else
    UpdateSystemMatrix(Omega);
 
@@ -590,10 +576,10 @@ void RFSolver::AssembleSystemMatrix(double Freq)
   M->LUFactorize();
 }
 
-void RFSolver::Solve(cdouble *CallerPortCurrents)
+void scuffSolver::Solve(cdouble *CallerPortCurrents)
 {
   if (M==0 || G->StoredOmega!=OmegaSIE)
-   ErrExit("RFSolver: AssembleSystemMatrix() must be called before Solve()");
+   ErrExit("scuffSolver: AssembleSystemMatrix() must be called before Solve()");
 
   /*--------------------------------------------------------------*/
   /*- lazy allocation of internal variables ----------------------*/
@@ -624,7 +610,7 @@ void RFSolver::Solve(cdouble *CallerPortCurrents)
   M->LUSolve(KN);
 }
 
-void RFSolver::Solve(int WhichPort, cdouble PortCurrent)
+void scuffSolver::Solve(int WhichPort, cdouble PortCurrent)
 {
   if (PortCurrents==0) PortCurrents = new cdouble[NumPorts];
   memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
@@ -635,7 +621,7 @@ void RFSolver::Solve(int WhichPort, cdouble PortCurrent)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::PlotGeometry(const char *PPFormat, ...)
+void scuffSolver::PlotGeometry(const char *PPFormat, ...)
 {
   if (!G) InitGeometry();
 
@@ -764,10 +750,10 @@ void RFSolver::PlotGeometry(const char *PPFormat, ...)
   fprintf(stdout,"RF geometry visualization written to GMSH file %s.\n",PPFileName);
 }
 
-void RFSolver::PlotGeometry()
+void scuffSolver::PlotGeometry()
  { PlotGeometry(0); }
 
-void RFSolver::Transform(const char *SurfaceLabel, const char *Transformation)
+void scuffSolver::Transform(const char *SurfaceLabel, const char *Transformation)
 { 
   if (!G) InitGeometry();
   RWGSurface *S=G->GetSurfaceByLabel(SurfaceLabel);
@@ -778,7 +764,7 @@ void RFSolver::Transform(const char *SurfaceLabel, const char *Transformation)
   S->Transform(Transformation);
 }
 
-void RFSolver::UnTransform()
+void scuffSolver::UnTransform()
 { if (!G) return;
   G->UnTransform();
 }

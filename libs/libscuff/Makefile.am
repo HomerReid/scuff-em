@@ -72,7 +72,7 @@ libscuff_la_LIBADD = 		 \
  ../libTriInt/libTriInt.la 	 \
  ../libSpherical/libSpherical.la \
  ../libSubstrate/libSubstrate.la \
- ../libRFSolver/libRFSolver.la   \
+ ../libscuffSolver/libscuffSolver.la   \
  ../libStaticSolver/libStaticSolver.la
 
 # set the shared-library version number (DIFFERENT from human version #)
@@ -89,5 +89,5 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
               -I$(top_srcdir)/libs/libTriInt    \
               -I$(top_srcdir)/libs/libSubstrate \
               -I$(top_srcdir)/libs/libStaticSolver  \
-              -I$(top_srcdir)/libs/libRFSolver  \
+              -I$(top_srcdir)/libs/libscuffSolver  \
               -I$(top_builddir) # for config.h 

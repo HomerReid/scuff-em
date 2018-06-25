@@ -1,4 +1,4 @@
-AC_INIT(scuff-em, 0.95, homer@homerreid.com)
+AC_INIT(scuff-em, 0.96, homer@homerreid.com)
 AC_CONFIG_SRCDIR([README])
 
 # Shared-library version.  This has a technical
@@ -271,8 +271,8 @@ AC_CONFIG_FILES([
  libs/libhrutil/Makefile
  libs/libscuff/Makefile
  libs/libStaticSolver/Makefile
- libs/libRFSolver/Makefile
- libs/libRFSolver/tests/Makefile
+ libs/libscuffSolver/Makefile
+ libs/libscuffSolver/tests/Makefile
  libs/python/Makefile
  applications/Makefile
  applications/scuff-analyze/Makefile
@@ -282,7 +282,6 @@ AC_CONFIG_FILES([
  applications/scuff-neq/Makefile
  applications/scuff-plotEpsMu/Makefile
  applications/scuff-rf/Makefile
- applications/scuff-microstrip/Makefile
  applications/scuff-scatter/Makefile
  applications/scuff-spectrum/Makefile
  applications/scuff-static/Makefile
@@ -314,6 +313,7 @@ AC_CONFIG_FILES([
  examples/WireAntenna/Makefile
  examples/YagiUdaAntennas/Makefile
  tests/Makefile
+ tests/Mie/Makefile
  tests/Fresnel/Makefile
 ])
 AC_OUTPUT

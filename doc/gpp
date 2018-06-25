@@ -5,7 +5,7 @@
 # scuff-em/doc/site directory
 #
 
-if [ "${PWD}" != "/home/homer/work/scuff-em/doc/site" ]
+if [ "${PWD##*/}" != "site" ]
 then
   echo "whoops! you are executing this script from the wrong directory"
   exit

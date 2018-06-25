@@ -829,7 +829,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
 
   /***************************************************************/
-  /***************************************************************/
+  /* initialize all equivalent edge-pair tables to NULL (they    */
+  /* are created lazily)                                         */
   /***************************************************************/
   if (!CheckEnv("SCUFF_IGNORE_EEPS"))
    for(int ns=0; ns<NumSurfaces; ns++)

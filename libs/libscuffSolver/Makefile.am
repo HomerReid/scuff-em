@@ -1,11 +1,11 @@
-noinst_LTLIBRARIES = libRFSolver.la
-pkginclude_HEADERS = RFSolver.h
+noinst_LTLIBRARIES = libscuffSolver.la
+pkginclude_HEADERS = scuffSolver.h
 
-libRFSolver_la_SOURCES = 	\
- RFSolver.h            		\
+libscuffSolver_la_SOURCES = 	\
+ scuffSolver.h            	\
  MOIIntegrals.cc  		\
  OutputModules.cc		\
- RFSolver.cc      		\
+ scuffSolver.cc      		\
  RWGPorts.cc      		
 
 AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \

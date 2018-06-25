@@ -35,7 +35,7 @@
 #include <libscuff.h>
 #include <libIncField.h>
 #include <libSubstrate.h>
-#include <RFSolver.h>
+#include <scuffSolver.h>
 
 #define II cdouble(0.0,1.0)
 
@@ -173,9 +173,9 @@ int main(int argc, char *argv[])
    FileBase=strdup(GetFileBase(GeoFile));
 
   /***************************************************************/
-  /* create the RFSolver                                         */
+  /* create the scuffSolver                                         */
   /***************************************************************/
-  RFSolver *Solver = new RFSolver(GeoFile, PortFile);
+  scuffSolver *Solver = new scuffSolver(GeoFile, PortFile);
   if (SubstrateFile)
    Solver->SetSubstrateFile(SubstrateFile);
   else

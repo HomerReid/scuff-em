@@ -19,7 +19,7 @@
 
 /* 
  * OutputModules.cc -- calculations of various types of output quantities
- *                  -- for the scuff-EM RFSolver module
+ *                  -- for the scuff-EM scuffSolver module
  * 
  * homer reid       -- 9/2011 - 4/2018
  */
@@ -35,7 +35,7 @@
 #include <libscuff.h>
 #include <libIncField.h>
 
-#include "RFSolver.h"
+#include "scuffSolver.h"
 
 #define II cdouble(0.0,1.0)
 
@@ -46,7 +46,7 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RFSolver::ProcessEPFile(char *EPFile, char *OutFileName)
+void scuffSolver::ProcessEPFile(char *EPFile, char *OutFileName)
 {
   /***************************************************************/
   /* read in the list of evaluation points                       */
@@ -81,7 +81,7 @@ void RFSolver::ProcessEPFile(char *EPFile, char *OutFileName)
   time_t MyTime=time(0);
   struct tm *MyTm=localtime(&MyTime);
   strftime(TimeString,30,"%D::%T",MyTm);
-  fprintf(f,"# RFSolver::ProcessEPFile ran on %s (%s)\n",getenv("HOST"),TimeString);
+  fprintf(f,"# scuffSolver::ProcessEPFile ran on %s (%s)\n",getenv("HOST"),TimeString);
   fprintf(f,"# columns:\n");
   fprintf(f,"#   1-3: x, y, z\n");
   fprintf(f,"#   4,5: re, im Ex \n");
@@ -134,7 +134,7 @@ static const char *DataNames[]=
   
 HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
 {
-  RFSolver *Solver      = (RFSolver *)UserData;
+  scuffSolver *Solver      = (scuffSolver *)UserData;
 
   RWGGeometry *G        = Solver->G;
   cdouble Omega         = G->StoredOmega;
@@ -238,7 +238,7 @@ const char *PPOptions=
  "View.Light   = 0;\n"
  "View.Visible = 0;\n";
 
-HMatrix *RFSolver::ProcessFVMesh(char *FVMesh, char *TransFile, char *OutFileBase)
+HMatrix *scuffSolver::ProcessFVMesh(char *FVMesh, char *TransFile, char *OutFileBase)
 {
   char FileBaseBuffer[100];
   if (!OutFileBase) 
@@ -279,7 +279,7 @@ HMatrix *RFSolver::ProcessFVMesh(char *FVMesh, char *TransFile, char *OutFileBas
 /*       V_p^\pm = average value of Phi at \pm terminal of     */
 /*                 port p due to unit current input to port q  */
 /***************************************************************/
-void RFSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
+void scuffSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
 {
   int NBF           = G->TotalBFs;
   int NumPortEdges  = PortList->PortEdges.size();
@@ -323,7 +323,7 @@ void RFSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
 /***************************************************************/
 /* compute the NPxNP impedance matrix (NP=number of ports).    */
 /***************************************************************/
-HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
+HMatrix *scuffSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 {
   HMatrix *ZTerms[3];
   if (pZTerms)
@@ -411,7 +411,7 @@ HMatrix *RFSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
 /* If the second argument is equal to the first argument, the  */
 /* routines operate in-place.                                  */
 /***************************************************************/
-HMatrix *RFSolver::Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
+HMatrix *scuffSolver::Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
 { 
   HMatrix *ZpZC = new HMatrix(Z);
   if (S==0) 
@@ -428,7 +428,7 @@ HMatrix *RFSolver::Z2S(HMatrix *Z, HMatrix *S, double ZCharacteristic)
   return S;
 }
 
-HMatrix *RFSolver::S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
+HMatrix *scuffSolver::S2Z(HMatrix *S, HMatrix *Z, double ZCharacteristic)
 {
   // 'OmS = 'one minus S'
   HMatrix *OmS=new HMatrix(S);

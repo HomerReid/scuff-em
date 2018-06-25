@@ -31,7 +31,7 @@
 #include <libscuff.h>
 #include <libIncField.h>
 #include <libSubstrate.h>
-#include <RFSolver.h>
+#include <scuffSolver.h>
 
 #define II cdouble(0.0,1.0)
 

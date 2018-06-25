@@ -18,15 +18,15 @@
  */
 
 /*
- * RFSolver.h   -- header file for libRFSolver, a library that extends
- *              -- the SCUFF-EM core library for modeling of RF and
- *              -- microwave devices
+ * scuffSolver.h -- header file for libscuffSolver, a library that extends
+ *               -- the SCUFF-EM core library for modeling of RF and
+ *               -- microwave devices
  *                                          
  * homer reid   -- 3/2011 -- 4/2018
  */
 
-#ifndef RFSOLVER_H
-#define RFSOLVER_H
+#ifndef SCUFFSOLVER_H
+#define SCUFFSOLVER_H
 
 #include <stdio.h>
 #include <math.h>
@@ -35,7 +35,6 @@
 #include "libscuff.h"
 #include <libhmat.h>
 #include <libMatProp.h>
-#include "EquivalentEdgePairs.h"
 
 #include <libhrutil.h>
 
@@ -94,10 +93,10 @@ typedef struct RWGPortList
  } RWGPortList;
 
 /***************************************************************/
-/* an "RFSolver" is a SCUFF-EM geometry, plus a list of ports, */
+/* an "scuffSolver" is a SCUFF-EM geometry, plus a list of ports, */
 /* plus various internally-cached data (operating frequency,   */
 /***************************************************************/
-class RFSolver
+class scuffSolver
  {
 public:
     ////////////////////////////////////////////////////
@@ -105,10 +104,10 @@ public:
     ////////////////////////////////////////////////////
 
     // constructors and geometry-definition routines
-    RFSolver(const char *scuffgeoFileName=0, const char *portFileName=0);
+    scuffSolver(const char *scuffgeoFileName=0, const char *portFileName=0);
 
-    //RFSolver(const char *GDSIIFileName);
-    ~RFSolver();
+    //scuffSolver(const char *GDSIIFileName);
+    ~scuffSolver();
 
     // functions designed to allow python users to define microstrip
     // geometries line-by-line from python scripts
@@ -182,7 +181,6 @@ public:
     // info on the geometry
     RWGGeometry *G;
     RWGPortList *PortList;
-    EquivalentEdgePairTable **EEPTables;
     int NumPorts;
     char *FileBase;
 
@@ -216,7 +214,7 @@ public:
     std::vector<dVec> PortTerminalVertices;
     char *portFile;
 
- }; // class RFSolver;
+ }; // class scuffSolver;
 
 /***************************************************************/
 /***************************************************************/
@@ -238,13 +236,12 @@ int GetMOIMatrixElement(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
                         int Order=-1, bool Subtract=true, cdouble *Terms=0);
 
 void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
-                            cdouble Omega, HMatrix *Block, int OffsetA=0, int OffsetB=0,
-                            EquivalentEdgePairTable **EEPTable=0);
+                            cdouble Omega, HMatrix *Block, int OffsetA=0, int OffsetB=0);
 
-void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M, EquivalentEdgePairTable **EEPTable=0);
+void AssembleMOIMatrix(RWGGeometry *G, cdouble Omega, HMatrix *M);
 
 void GetRhoMinMax(RWGGeometry *G, int nsa, int nsb, double RhoMinMax[2]);
 void GetRhoMinMax(RWGGeometry *G, double RhoMinMax[2]);
 
 } // namespace scuff 
-#endif // #ifndef RFSOLVER
+#endif // #ifndef SCUFFSOLVER

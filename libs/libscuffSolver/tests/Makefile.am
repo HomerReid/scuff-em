@@ -6,7 +6,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
               -I$(top_srcdir)/libs/libSpherical \
               -I$(top_srcdir)/libs/libIncField  \
               -I$(top_srcdir)/libs/libSubstrate \
-              -I$(top_srcdir)/libs/libRFSolver  \
+              -I$(top_srcdir)/libs/libscuffSolver  \
               -I$(top_srcdir)/libs/libscuff     \
               -I$(top_builddir) # for config.h
 
