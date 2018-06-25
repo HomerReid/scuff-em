@@ -12,6 +12,20 @@ then
 fi
 
 ###################################################################
+# if the location of CheckSCUFFData wasn't specified,
+# assume it lives one level up in the directory hierarchy
+###################################################################
+if [ "x${CHECKSCUFFDATA}" == "x" ]
+then
+  export CHECKSCUFFDATA=../CheckSCUFFData
+  if [ ! -x ${CHECKSCUFFDATA} ]
+  then
+    echo "could not find CheckSCUFFData executable (set CHECKSCUFFDATA environment variable)"
+    exit 1
+  fi
+fi
+
+###################################################################
 # process arguments ###############################################
 ###################################################################
 REFERENCE=0
@@ -47,6 +61,7 @@ ARGS="${ARGS} --DSIPoints      302"
 # try to set up timing measurement
 ##################################################
 TIMECMD=
+RUNTIME=${GEOM}.Runtime
 if [ -x `which time` ]
 then
   TIMECMD="`which time` -v -o ${RUNTIME}"
@@ -81,32 +96,24 @@ FIELDS=EPFile.total
 EMTPFT=EMTPFT
 DSIPFT=DSIPFT
 MOMENTS=Moments
-RUNTIME=Runtime
 LOG=scuff-scatter.log
 
 if [ ${REFERENCE} -eq 1 ]
 then
   mkdir -p reference
-  for FILE in ${FIELDS} ${EMTPFT} ${DSIPFT} ${MOMENTS} ${RUNTIME}
+  for FILE in ${FIELDS} ${EMTPFT} ${DSIPFT} ${MOMENTS}
   do 
     /bin/mv ${GEOM}.${FILE} reference
     echo "Wrote reference file: reference/${GEOM}.${FILE}"
   done
-  /bin/mv ${LOG} reference/${GEOM}.log
+  /bin/mv ${RUNTIME} reference/${RUNTIME}
+  /bin/mv ${LOG}     reference/${GEOM}.log
   exit 0
 fi
 
 ##################################################
 # check results
 ##################################################
-
-# if the location of CheckSCUFFData wasn't specified,
-# assume it lives one level up in the directory hierarchy
-if [ "x${CHECKSCUFFDATA}" == "x" ]
-then
-  export CHECKSCUFFDATA=../CheckSCUFFData
-fi
-
 STATUS=0
 for FILE in ${FIELDS} ${EMTPFT} ${DSIPFT} ${MOMENTS}
 do
