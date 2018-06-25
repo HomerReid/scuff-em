@@ -280,6 +280,7 @@ class RWGSurface
    int NumRedundantVertices;
 
    char *MeshFileName;             /* saved name of mesh file */
+   char *MeshFileDir;              /* directory in which mesh file was found */
    int MeshTag;                    /* index of entity within mesh file; = -1 if not applicable */
    char *Label;                    /* unique label identifying surface */
 

@@ -81,7 +81,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   ErrMsg=0;
   SurfaceZeta=0;
   MeshTag=-1;
-  MeshFileName=0;
+  MeshFileName=MeshFileDir=0;
   IsPEC=1;
   Label = strdupEC(pLabel);
   tolVecClose=0.0; // to be updated once mesh is read in
@@ -273,6 +273,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 {
   MeshFileName=strdup(MeshFile);
+  MeshFileDir=0;
   MeshTag=pMeshTag;
   Label=strdup(MeshFile);
   SurfaceZeta=0;
@@ -334,6 +335,7 @@ char *RWGSurface::InitRWGSurface()
    Log(" Opened mesh file %s/%s",WhichDir,MeshFileName);
   else
    Log(" Opened mesh file %s",MeshFileName);
+  MeshFileDir = WhichDir ? strdup(WhichDir) : 0;
    
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/

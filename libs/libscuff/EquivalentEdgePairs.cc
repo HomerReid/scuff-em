@@ -346,7 +346,8 @@ void ExportEEPSubTable(EquivalentEdgePairSubTable *Table, const char *FileName)
    { Warn("could not open file %s (skipping edge-pair table export)",FileName); 
      return;
    }
-
+  fprintf(f,"%s %i \n",Table->Sa->MeshFileName,Table->Sa->NumEdges);
+  fprintf(f,"%s %i \n",Table->Sb->MeshFileName,Table->Sb->NumEdges);
   for(ChildPairMap::iterator it=Table->Children.begin(); it!=Table->Children.end(); it++)
    { EdgePair ParentPair  = it->first;
      EdgePairSet Children = it->second;
@@ -613,14 +614,114 @@ ChildPairList EquivalentEdgePairTable::GetChildren(int neaParent, int nebParent,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void EquivalentEdgePairTable::Export(const char *FileName) 
-{ char FileNameBuffer[100];
-  if (!FileName)
-   { if (G==0) return;
-     FileName = FileNameBuffer;
-     snprintf(FileNameBuffer,100,"%s.EEPTable",GetFileBase(G->GeoFileName));
-   }
-  ExportEEPSubTable( (EquivalentEdgePairSubTable *)MasterTable, FileName); 
+char *GetStandardEEPTFilePath(RWGSurface *Sa, RWGSurface *Sb)
+{
+  static char Path[1000];
+  char PWD[2]=".";
+
+  char *Dir = Sa->MeshFileDir;
+  if (Dir==0) Dir=PWD;
+  if ( !strcmp(Sa->MeshFileName, Sb->MeshFileName) )
+   snprintf(Path,1000,"%s/%s.EEPTable",Dir,GetFileBase(Sa->MeshFileName));
+  else
+   snprintf(Path,100,"%s/%s_%s.EEPTable",Dir,GetFileBase(Sa->MeshFileName),GetFileBase(Sb->MeshFileName));
+  return Path;
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void EquivalentEdgePairTable::Export(const char *FileName)
+{ if (FileName==0) FileName=GetStandardEEPTFilePath(G->Surfaces[nsa], G->Surfaces[nsb]);
+  ExportEEPSubTable( (EquivalentEdgePairSubTable *)MasterTable, FileName); 
+  Log("Exported EEPTable(%i,%i) to file %s.\n",nsa,nsb,FileName);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#if 0
+// read a string of the form {n1,n2} or %c%c{n1,n2} from f.
+// return codes: 
+// 0: fail because end of file
+// 1: fail for other reason
+// 2: success, at end of file
+// 3: success, at end of line
+// 4: success, neither of the above
+int ReadIndexPair(FILE *f, bool AtTopOfLine, int *n1, int *n2, bool *SignFlip)
+{
+  bool Success;
+  char SignChar;
+  int nPos, nNeg;
+  if( AtTopOfLine )
+   Success = ( fscanf(f," {%i,%i} %i %i ",n1,n2,&nPos,&nNeg)==4 );
+  else
+   Success = ( fscanf(f," %c{%i,%i}",&SignChar,n1,n2)==3 );
+  if (!Success)
+   return feof(f) ? 0 : 1;
+
+  if (SignChar=='-')
+   *SignFlip=true;
+  else if (SignChar=='+')
+   *SignFlip=false;
+  else 
+   return 1;
+
+  char c=' ';
+  while ( isspace(c) && c!='\n' )
+   c=fgetc(f);
+  if (feof(f))
+   return 2;
+  if (c=='\n')
+   return 3;
+  ungetc(c,f);
+  return 4;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool EquivalentEdgePairTable::Import(const char *FileName)
+{ 
+  if (FileName==0) FileName=GetStandardEEPTFilePath(Sa, Sb);
+  FILE *f=fopen(FileName,"r");
+  if (f==0) return false;
+
+  Log("Trying to import EEPTable from %s...",FileName);
+  char Line[1000], LineShouldBe[1000];
+  snprintf(LineShouldBe[0],1000,"%s %i\n",Sa->MeshFileName,Sa->NumEdges);
+  if ( !fgets(Line,1000,f) || strcmp(Line, LineShouldBe) )
+   { Log("failed (line 1 should read %s)",LineShouldBe); fclose(f); return false; }
+  snprintf(LineShouldBe[0],1000,"%s %i\n",Sb->MeshFileName,Sb->NumEdges);
+  if ( !fgets(Line,1000,f) || strcmp(Line, LineShouldBe) )
+   { Log("failed (line 2 should read %s)",LineShouldBe); fclose(f); return false; }
+ 
+  int LineNum=3;
+  bool AtTopOfLine=true;
+  int neaParent, nebParent;
+  char *ErrMsg=0;
+  while( !feof(f) )
+   { int nea, neb;
+     SignPattern Signs[2];
+     int Status=ReadIndexPair(f, AtTopOfLine, &nea, &neb, &SignPattern);
+     if (Status==1)
+      ErrMsg=vstrdup("%s:%i: syntax error",FileName,LineNum);
+     if (Status<=1)
+      break;
+     if (AtTopOfLine)
+      neaParent=nea, nebParent=neb;
+     else
+      AddEquivalentPair(EPSMap, neaParent, nebParent, nea, neb, SignFlip);
+      //AddEquivalentPair(FileEPS, neaParent, nebParent, nea, neb, SignFlip);
+     if (Status==2) break;
+      Warn("%s:%i: internal error A",__FILE__,__LINE__);
+     AtTopOfLine=(Status==3);
+     if (AtTopOfLine) LineNum++;
+   }
+  fclose(f);
+  //MergeEPSMaps(&EPSMap, &FileEPS);
+  return ErrMsg;
+}
+#endif
 
 } // namespace scuff

@@ -9,7 +9,7 @@ fields."
 %module(docstring=DOCSTRING) scuff
 %{
 #include "libscuff.h"
-#include "RFSolver.h"
+#include "scuffSolver.h"
 #include "StaticSolver.h"
 using namespace scuff;
 %}
@@ -60,4 +60,4 @@ using namespace scuff;
 %include "GTransformation.h"
 %include "libscuff.h"
 %include "StaticSolver.h"
-%include "RFSolver.h"
+%include "scuffSolver.h"

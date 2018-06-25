@@ -656,17 +656,17 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   RWGSurface *Sa = G->Surfaces[nsa], *Sb=G->Surfaces[nsb];
-  int NEA=Sa->NumEdges, NBFPEA = Sa->IsPEC ? 1 : 2;
-  int NEB=Sb->NumEdges, NBFPEB = Sb->IsPEC ? 1 : 2;
-  int NumPairs=NEA*NEB;
+  int NEA=Sa->NumEdges, NEB=Sb->NumEdges, NumPairs=NEA*NEB;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   EquivalentEdgePairTable *EEPTable=0;
-  if ( G->EEPTables.size()>0 && G->EEPTables[nsa][nsb]==0 )
-   EEPTable = G->EEPTables[nsa][nsb] = new EquivalentEdgePairTable(G,nsa,nsb);
-  if (CheckEnv("SCUFF_IGNORE_EEPS")) EEPTable=0;
+  if ( G->EEPTables.size()>0 && !CheckEnv("SCUFF_IGNORE_EEPS") )
+   { if (G->EEPTables[nsa][nsb]==0)
+      G->EEPTables[nsa][nsb]=new EquivalentEdgePairTable(G,nsa,nsb);
+     EEPTable=G->EEPTables[nsa][nsb];
+   }
 
   /***************************************************************/
   /***************************************************************/
