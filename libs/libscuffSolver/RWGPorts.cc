@@ -417,7 +417,7 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
      char Sign;
      if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) )
       continue;
-     PolygonList Polygons=GetPolygons(Text, TextLayer);
+     PolygonList Polygons=GetPolygons(GDSIIFileName, Text, TextLayer);
      dVec XY = (Polygons.size()>0) ? Polygons[0] : TextStrings[n].XY;
      int PM = (strchr("-mM",Sign) ? 1 : 0);
      PMPolygons[PM].insert( pair<int,dVec>(nPort,XY) );
