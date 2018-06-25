@@ -417,6 +417,7 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
      char Sign;
      if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) )
       continue;
+     if (nPort>MaxPort) MaxPort=nPort;
      PolygonList Polygons=GetPolygons(GDSIIFileName, Text, TextLayer);
      dVec XY = (Polygons.size()>0) ? Polygons[0] : TextStrings[n].XY;
      int PM = (strchr("-mM",Sign) ? 1 : 0);
@@ -424,17 +425,19 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
    }
 
   for(int nPort=0; nPort<MaxPort; nPort++)
-   { fprintf(f,"PORT\n");
-     for(int PM=0; PM<2; PM++)
-      { pair< multimap<int,dVec>::iterator , multimap<int,dVec>::iterator > Range=PMPolygons[PM].equal_range(nPort);
-        for(multimap<int,dVec>::iterator p=Range.first; p!=Range.second; p++)
-         { fprintf(f," %cPOLYGON ",PM==0 ? 'P' : 'M');
-           for(size_t n=0; n<p->second.size(); n++) fprintf(f,"%g ",p->second[n]);
-           fprintf(f,"\n");
-         }
-      }
-     fprintf(f,"ENDPORT\n\n");
-   }
+   for(int PM=0; PM<2; PM++)
+    { if (PM==0) fprintf(f,"PORT \n");
+      pair< multimap<int,dVec>::iterator , multimap<int,dVec>::iterator > Range=PMPolygons[PM].equal_range(nPort);
+      int NumPolygons=0;
+      for(multimap<int,dVec>::iterator p=Range.first; p!=Range.second; p++, NumPolygons++)
+       { fprintf(f," %cPOLYGON ",PM==0 ? 'P' : 'M');
+         for(size_t n=0; n<p->second.size(); n++) fprintf(f,"%g ",p->second[n]);
+         fprintf(f,"\n");
+       }
+      if (PM==0 && NumPolygons==0)
+       ErrExit("%s: no positive terminal defined for port %i/%i",GDSIIFileName,nPort,MaxPort);
+      if (PM==1) fprintf(f,"ENDPORT \n");
+    }
   fclose(f);
   printf("Wrote port list to %s.\n",PortFileName);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
