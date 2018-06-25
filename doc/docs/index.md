@@ -131,5 +131,6 @@
 * [Computation of reflection and transmission coefficients in <span class="SC">scuff-em</span>](tex/scuff-transmission.pdf) - a technical memo describing the implementation of the [<span class="SC">scuff-transmission</span>](applications/scuff-transmission) code for computing plane-wave transmission and reflection coefficients
 * [<span class=SC>scuff-static:</span> Pure electrostatics in <span class=SC>scuff-em</span>](tex/scuff-static.pdf) -- a technical memo describing the implementation of the [<span class=SC>scuff-static</span>](applications/scuff-static) code for electrostatics
 * [Electromagnetism in the vector-spherical-wave (VSW) basis](tex/scuffSpherical.pdf) -- a technical memo collecting results of various classical electromagnetism calculations in the vector-spherical-wave basis
+* [RF device modeling in <span class=SC>scuff-em</span>](tex/scuff-rf.pdf) -- a technical memo describing the implementation of RF device modeling in the integral-equation framework of <span class=SC>scuff-em</span>
 
 {!Links.md!}

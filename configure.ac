@@ -184,6 +184,14 @@ AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([gslcblas],[cblas_dgemm])
 AC_CHECK_LIB([gsl],[gsl_sf_legendre_array_n])
 
+##############################################################################
+# check for libGDSII
+##############################################################################
+AC_CHECK_HEADER(libGDSII.h, [have_gdsii=maybe], [have_gdsii=no])
+if test $have_gdsii = maybe; then
+  AC_CHECK_LIB(GDSII, libGDSIIExists)
+fi
+
 ##################################################
 # Checks for miscellaneous math functions
 AC_CHECK_FUNCS([isnan isinf erf erfc copysign])

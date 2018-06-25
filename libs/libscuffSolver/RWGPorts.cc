@@ -30,6 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <libhrutil.h>
 #include <libhmat.h>
@@ -38,7 +39,16 @@
 #include <libSGJC.h>
 
 #include <vector>
+#include <map>
 using namespace std;
+
+#ifdef HAVE_CONFIG_H
+  #include <config.h>
+#endif
+#ifdef HAVE_LIBGDSII
+  #include <libGDSII.h>
+  using namespace libGDSII;
+#endif
 
 #include "scuffSolver.h"
 
@@ -379,6 +389,61 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
     }
 
   return PortList;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer)
+{
+#ifndef HAVE_LIBGDSII
+  (void) G; (void) GDSIIFileName; (void) Layer;
+  ErrExit("SCUFF-EM must be compiled with libGDSII to process GDSII files");
+  return 0;
+#else
+  char PortFileName[100];
+  snprintf(PortFileName,100,"%s.Ports.XXXXXX",GetFileBase(GDSIIFileName));
+  FILE *f = (mkstemp(PortFileName)==-1) ? 0 : fopen(PortFileName,"w");
+  if (!f) ErrExit("%s:%i: could not create temporary file %s",__FILE__,__LINE__,PortFileName);
+
+  TextStringList TextStrings = GetTextStrings(GDSIIFileName, Layer);
+  
+  int MaxPort=0; 
+  multimap<int,dVec> PMPolygons[2];
+  for(size_t n=0; n<TextStrings.size(); n++)
+   { char *Text = TextStrings[n].Text;
+     int TextLayer = TextStrings[n].Layer;
+     int nPort;
+     char Sign;
+     if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) )
+      continue;
+     PolygonList Polygons=GetPolygons(Text, TextLayer);
+     dVec XY = (Polygons.size()>0) ? Polygons[0] : TextStrings[n].XY;
+     int PM = (strchr("-mM",Sign) ? 1 : 0);
+     PMPolygons[PM].insert( pair<int,dVec>(nPort,XY) );
+   }
+
+  for(int nPort=0; nPort<MaxPort; nPort++)
+   { fprintf(f,"PORT\n");
+     for(int PM=0; PM<2; PM++)
+      { pair< multimap<int,dVec>::iterator , multimap<int,dVec>::iterator > Range=PMPolygons[PM].equal_range(nPort);
+        for(multimap<int,dVec>::iterator p=Range.first; p!=Range.second; p++)
+         { fprintf(f," %cPOLYGON ",PM==0 ? 'P' : 'M');
+           for(size_t n=0; n<p->second.size(); n++) fprintf(f,"%g ",p->second[n]);
+           fprintf(f,"\n");
+         }
+      }
+     fprintf(f,"ENDPORT\n\n");
+   }
+  fclose(f);
+  printf("Wrote port list to %s.\n",PortFileName);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  exit(1);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  RWGPortList *PortList=ParsePortFile(G, PortFileName);
+  unlink(PortFileName);
+  return PortList;
+#endif
 }
 
 /***************************************************************/

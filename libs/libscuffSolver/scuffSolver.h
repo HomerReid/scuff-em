@@ -220,6 +220,7 @@ public:
 /***************************************************************/
 /***************************************************************/
 RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName);
+RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int GDSIILayer=-1);
 
 /***************************************************************/
 /* Routines for handling MOI (metal on insulator, i.e. thin    */

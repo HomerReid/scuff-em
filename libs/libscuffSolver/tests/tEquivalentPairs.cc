@@ -91,19 +91,17 @@ int main(int argc, char *argv[])
   HMatrix *MFast = new HMatrix(NEA, NEB, LHM_COMPLEX);
 
   Tic();
-  AssembleMOIMatrixBlock(G, nsa, nsb, Omega, MSlow, 0, 0, 0);
+  setenv("SCUFF_IGNORE_EEPS","1",1);
+  AssembleMOIMatrixBlock(G, nsa, nsb, Omega, MSlow);
   printf("Slow time 1: %e s\n",Toc());
 
   Tic();
-  AssembleMOIMatrixBlock(G, nsa, nsb, Omega, MSlow, 0, 0, 0);
+  AssembleMOIMatrixBlock(G, nsa, nsb, Omega, MSlow);
   printf("Slow time 2: %e s\n",Toc());
 
   Tic();
-  EquivalentEdgePairTable *EEPTable = new EquivalentEdgePairTable(G);
-  printf("EEPTable:    %e s\n",Toc());
-
-  Tic();
-  AssembleMOIMatrixBlock(G, nsa, nsb, Omega, MFast, 0, 0, EEPTable);
+  setenv("SCUFF_IGNORE_EEPS","0",1);
+  AssembleMOIMatrixBlock(G, nsa, nsb, Omega, MFast);
   printf("Fast time: %e s\n",Toc());
 
   double MaxRD=0.0, MeanRD=0.0;

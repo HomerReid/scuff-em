@@ -38,6 +38,10 @@
 
 #include "scuffSolver.h"
 
+#ifdef HAVE_CONFIG_H
+  #include <config.h>
+#endif
+
 #define II cdouble(0.0,1.0)
 
 using namespace scuff;
