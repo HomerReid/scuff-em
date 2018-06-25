@@ -410,21 +410,27 @@ RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer
   
   int MaxPort=0; 
   multimap<int,dVec> PMPolygons[2];
-  for(size_t n=0; n<TextStrings.size(); n++)
-   { char *Text = TextStrings[n].Text;
-     int TextLayer = TextStrings[n].Layer;
+  for(size_t nt=0; nt<TextStrings.size(); nt++)
+   { char *Text    = TextStrings[nt].Text;
+     dVec TextXY   = TextStrings[nt].XY;
+     int TextLayer = TextStrings[nt].Layer;
      int nPort;
      char Sign;
-     if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) )
-      continue;
+     if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) ) continue;
+     int PM = (strchr("-mM",Sign) ? 1 : 0);
      if (nPort>MaxPort) MaxPort=nPort;
      PolygonList Polygons=GetPolygons(GDSIIFileName, Text, TextLayer);
-     dVec XY = (Polygons.size()>0) ? Polygons[0] : TextStrings[n].XY;
-     int PM = (strchr("-mM",Sign) ? 1 : 0);
-     PMPolygons[PM].insert( pair<int,dVec>(nPort,XY) );
+     bool FoundPolygon=false;
+     for(size_t np=0; !FoundPolygon && np<Polygons.size(); np++)
+      if (libGDSII::PointInPolygon( Polygons[np], TextXY[0], TextXY[1]))
+       { PMPolygons[PM].insert( pair<int,dVec>(nPort,Polygons[np]) );
+         FoundPolygon=true;
+       }
+     if (!FoundPolygon)
+      PMPolygons[PM].insert( pair<int,dVec>(nPort,TextXY) );
    }
 
-  for(int nPort=0; nPort<MaxPort; nPort++)
+  for(int nPort=1; nPort<=MaxPort; nPort++)
    for(int PM=0; PM<2; PM++)
     { if (PM==0) fprintf(f,"PORT \n");
       pair< multimap<int,dVec>::iterator , multimap<int,dVec>::iterator > Range=PMPolygons[PM].equal_range(nPort);
