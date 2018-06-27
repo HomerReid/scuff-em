@@ -51,7 +51,7 @@ PlaneWave::PlaneWave(const PlaneWave &PW)
 { 
   memcpy(E0, PW.E0, 3*sizeof(cdouble));
   memcpy(nHat, PW.nHat, 3*sizeof(double));
-  SetRegionLabel(PW.Label);
+  SetRegionLabel(PW.RegionLabel);
 }
 
 PlaneWave::~PlaneWave()

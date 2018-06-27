@@ -67,7 +67,7 @@ PointSource::PointSource()
 }
 
 PointSource::PointSource(const PointSource &PS)
-{ InitPointSource(PS.X0, PS.P, PS.Type, PS.Label); }
+{ InitPointSource(PS.X0, PS.P, PS.Type, PS.RegionLabel); }
 
 void PointSource::InitPointSource(const double pX0[3], const cdouble pP[3],
                                   int pType, const char *Label)
