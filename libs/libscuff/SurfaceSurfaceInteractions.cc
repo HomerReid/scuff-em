@@ -476,8 +476,8 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   else
    Args->EpsB = Args->MuB = Args->SignB = 0.0;
 
-  Args->SaIsPEC = (Sa->IsPEC==1);
-  Args->SbIsPEC = (Sb->IsPEC==1);
+  Args->SaIsPEC = Sa->IsPEC;
+  Args->SbIsPEC = Sb->IsPEC;
 
   /***************************************************************/
   /***************************************************************/

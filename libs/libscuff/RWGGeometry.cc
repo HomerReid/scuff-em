@@ -540,7 +540,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       }
      else if ( !StrCaseCmp(Tokens[0],"OBJECT") || !StrCaseCmp(Tokens[0],"SURFACE") )
       { 
-        RWGSurface *S;
+        RWGSurface *S=0;
         if ( nTokens==2 )
          S=new RWGSurface(f,Tokens[1],&LineNum,Tokens[0]);
         else if (nTokens!=1)
@@ -732,7 +732,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
            P->ZHatFlipped=true;
            VecScale(P->ZHat, -1.0);
            NumFlipped++;
-         };
+         }
 /*
         else
          ErrExit("%s:%i: internal error (%i,%i)",__FILE__,__LINE__,ns,np);

@@ -243,7 +243,7 @@ int Get1BFMOIFields(RWGGeometry *G, int ns, int ne,
   LayeredSubstrate *Substrate = G->Substrate;
   cdouble Eps                 = Substrate ? Substrate->EpsLayer[1] : 1.0;
   bool NeedSITerms            = (Substrate==0 || Subtract);
-  bool NeedSubstrateTerms     = Substrate && (Eps!=1.0 || !isinf(Substrate->zGP));
+  bool NeedSubstrateTerms     = Substrate && (Eps!=1.0 || !std::isinf(Substrate->zGP));
 
   memset(PFVector, 0, NPFC*sizeof(cdouble));
 
@@ -388,7 +388,7 @@ int GetMOIMatrixElement(RWGGeometry *G,
   cdouble Eps = (Substrate && Substrate->NumLayers>0 ? Substrate->EpsLayer[1] : 1.0);
 
   bool NeedSITerms        = (Substrate==0 || Subtract);
-  bool NeedSubstrateTerms = (Substrate && (Eps!=1.0 || !isinf(Substrate->zGP)));
+  bool NeedSubstrateTerms = (Substrate && (Eps!=1.0 || !std::isinf(Substrate->zGP)));
   int qPoints=0;
 
   /***************************************************************/
@@ -688,14 +688,15 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
      Block->SetEntry(OffsetA + nea, OffsetB + neb, ME);
+   }
 
-     if (EEPTable)
-      { ChildPairList Children = EEPTable->GetChildren(nea, neb);
-        for(size_t nc=0; nc<Children.size(); nc++)
-         { int neaChild = Children[nc].nea, nebChild = Children[nc].neb;
-           double Sign = Children[nc].Signs.Flipped[0] ? -1.0 : 1.0;
-           Block->SetEntry(OffsetA+neaChild, OffsetB+nebChild, Sign*ME);
-         }
+  if (EEPTable)
+   { Log("Filling in child matrix elements...");
+     ParentPairList Parents=EEPTable->GetParents();
+     for(auto Parent:EEPTable->GetParents()) 
+      { cdouble ME = Block->GetEntry(OffsetA + Parent.nea, OffsetB + Parent.neb);
+        for(auto Child : EEPTable->GetChildren(Parent.nea, Parent.neb))
+         Block->SetEntry(OffsetA+Child.nea, OffsetB+Child.neb, ME*Child.GCSign[0]);
       }
    }
 
@@ -918,7 +919,7 @@ HMatrix *scuffSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
   // add port contribution
   if (PortRPFMatrix)
    { HVector Payload(NPFC*NX, LHM_COMPLEX);
-     HVector PCVector(NumPorts, PortCurrents);
+     HVector PCVector(NumPorts, CachedPortCurrents);
      PortRPFMatrix->Apply(&PCVector, &Payload);
      HMatrix PortPFContribution(NPFC, NX, Payload.ZV);
      PFMatrix->Add(&PortPFContribution);
@@ -937,7 +938,7 @@ HMatrix *scuffSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
   int NX           = XMatrix->NC;
 
   bool OmitBFTerms   = CheckEnv("SCUFF_RFFIELDS_PORTONLY");
-  bool OmitPortTerms = CheckEnv("SCUFF_RFFIELDS_BFONLY");
+  bool OmitPortTerms = CachedPortCurrents==0 || CheckEnv("SCUFF_RFFIELDS_BFONLY");
 
   int NBFEdges     = OmitBFTerms   ? 0 : G->TotalBFs;
   int NPortEdges   = OmitPortTerms ? 0 : PortList->PortEdges.size();
@@ -1004,7 +1005,7 @@ HMatrix *scuffSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
         double Perimeter = PortList->Ports[nPort]->Perimeter[PE->Pol];
         ns               = PE->ns;
         ne               = PE->ne;
-        Weight           = PE->Sign*PolSign*PortCurrents[nPort] / Perimeter;
+        Weight           = PE->Sign*PolSign*CachedPortCurrents[nPort] / Perimeter;
       }
      if (Weight==0.0) continue;
     

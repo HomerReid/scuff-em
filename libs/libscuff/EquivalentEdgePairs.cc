@@ -116,7 +116,7 @@ public:
  };
 
 void GetRelativeSigns(const SignPattern *SP1, const SignPattern *SP2, SignPattern *SPRel)
-{ for(int n=0; n<NUM_EEP_SIGNS; n++) SPRel->Flipped[n] = SP1->Flipped[n] ^ SP2->Flipped[n];
+{ for(int n=0; n<NUMKERNELS; n++) SPRel->Flipped[n] = SP1->Flipped[n] ^ SP2->Flipped[n];
 }
 
 SignPattern RelativeSignPattern(const SignPattern *SP1, const SignPattern *SP2)
@@ -129,7 +129,7 @@ SignPattern RelativeSignPattern(const EdgePair *EP1, const EdgePair *EP2)
 { return RelativeSignPattern( &(EP1->Signs), &(EP2->Signs) ); }
 
 void DefaultSignPattern(SignPattern *Signs)
-{ for(int n=0; n<NUM_EEP_SIGNS; n++) Signs->Flipped[n]=false; }
+{ for(int n=0; n<NUMKERNELS; n++) Signs->Flipped[n]=false; }
 
 EdgePair::EdgePair(int _nea, int _neb): nea(_nea), neb(_neb)
 { DefaultSignPattern(&Signs); }
@@ -274,8 +274,8 @@ EdgePairSignature GetEdgePairSignature(RWGSurface *Sa, int nea, RWGSurface *Sb, 
   for(int n=0; n<NUM_NSMES; n++) 
    EPSig.Data[n] = Quantize(NSMEs[n]);
   if (Signs)
-   { Signs->Flipped[EEP_GSIGN] = (NSMEs[NSME_G1] < 0.0);
-     Signs->Flipped[EEP_CSIGN] = (NSMEs[NSME_C]  < 0.0);
+   { Signs->Flipped[GKERNEL] = (NSMEs[NSME_G1] < 0.0);
+     Signs->Flipped[CKERNEL] = (NSMEs[NSME_C]  < 0.0);
    }
   return EPSig;
 }
@@ -356,7 +356,8 @@ void ExportEEPSubTable(EquivalentEdgePairSubTable *Table, const char *FileName)
       { int SignPatternIndex = 2*(p->Signs.Flipped[0] ? 1 : 0) + (p->Signs.Flipped[1] ? 1 : 0);
         ChildrenBySign[SignPatternIndex]++;
       }
-     fprintf(f,"%s %lu [%i,%i,%i,%i] ",ParentPair.Str()+2,Children.size(),ChildrenBySign[0],ChildrenBySign[1],ChildrenBySign[2],ChildrenBySign[3]);
+     fprintf(f,"#_%s_[%lu:%i,%i,%i,%i]\n",ParentPair.Str()+2,Children.size(),ChildrenBySign[0],ChildrenBySign[1],ChildrenBySign[2],ChildrenBySign[3]);
+     fprintf(f,"%s ",ParentPair.Str()+2);
      for(EdgePairSet::iterator p=Children.begin(); p!=Children.end(); p++)
        fprintf(f,"%s ",p->Str());
      fprintf(f,"\n");
@@ -640,14 +641,14 @@ void EquivalentEdgePairTable::Export(const char *FileName)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#if 0
 // read a string of the form {n1,n2} or %c%c{n1,n2} from f.
-// return codes: 
+// return codes:
 // 0: fail because end of file
 // 1: fail for other reason
 // 2: success, at end of file
 // 3: success, at end of line
 // 4: success, neither of the above
+#if 0
 int ReadIndexPair(FILE *f, bool AtTopOfLine, int *n1, int *n2, bool *SignFlip)
 {
   bool Success;
@@ -683,19 +684,28 @@ int ReadIndexPair(FILE *f, bool AtTopOfLine, int *n1, int *n2, bool *SignFlip)
 /***************************************************************/
 bool EquivalentEdgePairTable::Import(const char *FileName)
 { 
+  /*--------------------------------------------------------------*/
+  /* try to open file and check header ---------------------------*/
+  /*--------------------------------------------------------------*/
   if (FileName==0) FileName=GetStandardEEPTFilePath(Sa, Sb);
+  Log("Trying to import EEPTable from %s...",FileName);
   FILE *f=fopen(FileName,"r");
   if (f==0) return false;
-
-  Log("Trying to import EEPTable from %s...",FileName);
-  char Line[1000], LineShouldBe[1000];
-  snprintf(LineShouldBe[0],1000,"%s %i\n",Sa->MeshFileName,Sa->NumEdges);
-  if ( !fgets(Line,1000,f) || strcmp(Line, LineShouldBe) )
-   { Log("failed (line 1 should read %s)",LineShouldBe); fclose(f); return false; }
-  snprintf(LineShouldBe[0],1000,"%s %i\n",Sb->MeshFileName,Sb->NumEdges);
-  if ( !fgets(Line,1000,f) || strcmp(Line, LineShouldBe) )
-   { Log("failed (line 2 should read %s)",LineShouldBe); fclose(f); return false; }
+  char Line[1000]; 
+  for(int ns=0; ns<2; ns++)
+   { char LineShouldBe[1000];
+     RWGSurface *S = (ns==0) ? Sa : Sb;
+     snprintf(LineShouldBe,1000,"%s %i\n",S->MeshFileName,S->NumEdges);
+     if ( !fgets(Line,1000,f) || strcmp(Line, LineShouldBe) )
+      { Log("failed: line %i is %s, should be %s",ns+1,Line,LineShouldBe);
+        fclose(f); 
+        return false;
+      }
+   }
  
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   int LineNum=3;
   bool AtTopOfLine=true;
   int neaParent, nebParent;

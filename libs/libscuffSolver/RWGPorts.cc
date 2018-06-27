@@ -623,7 +623,7 @@ void scuffSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
 
   // add port contribution, if any, by looking at the three edges of the
   // panel containing X and checking if any of them belong to a port
-  if (PortCurrents==0) return;
+  if (CachedPortCurrents==0) return;
   RWGSurface *S    = G->Surfaces[ns];
   RWGPanel *P      = S->Panels[np];
   int NumPortEdges = PortList->PortEdges.size();
@@ -644,7 +644,7 @@ void scuffSolver::EvalSourceDistribution(const double X[3], cdouble iwSigmaK[4])
      int nPort      = PE->nPort;
      int Pol        = PE->Pol;
      double L       = PortList->Ports[nPort]->Perimeter[Pol];
-     cdouble Weight = PE->Sign*PolSigns[Pol]*PortCurrents[nPort] / L;
+     cdouble Weight = PE->Sign*PolSigns[Pol]*CachedPortCurrents[nPort] / L;
      if(Weight==0.0) continue;
 
      RWGEdge *E       = S->GetEdgeByIndex(ne);
@@ -679,25 +679,26 @@ HMatrix *scuffSolver::GetPanelSourceDensities(HMatrix *PSDMatrix)
   /***************************************************************/
   /* add port contributions **************************************/
   /***************************************************************/
-  for(unsigned nPE=0; nPE<PortList->PortEdges.size(); nPE++)
-   { 
-     RWGPortEdge *PE = PortList->PortEdges[nPE];
-     cdouble Weight  = PortCurrents[PE->nPort] / (PortList->Ports[PE->nPort]->Perimeter[PE->Pol]);
-     if (Weight==0.0) continue;
-     RWGSurface *S   = G->Surfaces[PE->ns];
-     RWGEdge *E      = S->GetEdgeByIndex(PE->ne);
-     double Length   = E->Length; 
-     double *QP      = S->Vertices + 3*(E->iQP);
-     int PanelIndex  = G->PanelIndexOffset[S->Index] + E->iPPanel;
-     RWGPanel *Panel = S->Panels[E->iPPanel];
-     cdouble PreFac  = PE->Sign*PolSigns[PE->Pol]*Weight*Length/(2.0*Panel->Area);
-     double XmQ[3];
-     VecSub(Panel->Centroid, QP, XmQ);
-     PSDMatrix->AddEntry( PanelIndex,  4, 2.0*PreFac/(II*Omega));  // rho
-     PSDMatrix->AddEntry( PanelIndex,  5, PreFac*XmQ[0] );  // K_x
-     PSDMatrix->AddEntry( PanelIndex,  6, PreFac*XmQ[1] );  // K_y
-     PSDMatrix->AddEntry( PanelIndex,  7, PreFac*XmQ[2] );  // K_z
-   } // for(int nPE=0...)
+  if (CachedPortCurrents)
+   for(unsigned nPE=0; nPE<PortList->PortEdges.size(); nPE++)
+    { 
+      RWGPortEdge *PE = PortList->PortEdges[nPE];
+      cdouble Weight  = CachedPortCurrents[PE->nPort] / (PortList->Ports[PE->nPort]->Perimeter[PE->Pol]);
+      if (Weight==0.0) continue;
+      RWGSurface *S   = G->Surfaces[PE->ns];
+      RWGEdge *E      = S->GetEdgeByIndex(PE->ne);
+      double Length   = E->Length; 
+      double *QP      = S->Vertices + 3*(E->iQP);
+      int PanelIndex  = G->PanelIndexOffset[S->Index] + E->iPPanel;
+      RWGPanel *Panel = S->Panels[E->iPPanel];
+      cdouble PreFac  = PE->Sign*PolSigns[PE->Pol]*Weight*Length/(2.0*Panel->Area);
+      double XmQ[3];
+      VecSub(Panel->Centroid, QP, XmQ);
+      PSDMatrix->AddEntry( PanelIndex,  4, 2.0*PreFac/(II*Omega));  // rho
+      PSDMatrix->AddEntry( PanelIndex,  5, PreFac*XmQ[0] );  // K_x
+      PSDMatrix->AddEntry( PanelIndex,  6, PreFac*XmQ[1] );  // K_y
+      PSDMatrix->AddEntry( PanelIndex,  7, PreFac*XmQ[2] );  // K_z
+    } // for(int nPE=0...)
  
   return PSDMatrix;
 }

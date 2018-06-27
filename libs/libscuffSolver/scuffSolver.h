@@ -109,9 +109,13 @@ public:
     //scuffSolver(const char *GDSIIFileName);
     ~scuffSolver();
 
-    // functions designed to allow python users to define microstrip
+    // functions designed to allow python users to define
     // geometries line-by-line from python scripts
     void SetGeometryFile(const char *scuffgeoFileName);
+    void AddLatticeVector(dVec L);
+    void SetMedium(char *MediumMaterial);
+    void AddObject(const char *MeshFile, const char *Material,
+                   const char *Label=0, const char *Transformation=0);
     void AddMetalTraceMesh(const char *MeshFile, const char *Label=0,
                            const char *Transformation=0);
 
@@ -140,6 +144,7 @@ public:
     // system assembly 
     void EnableSystemBlockCache();
     void AssembleSystemMatrix(double Freq);
+    void Solve(IncField *IF);
     void Solve(cdouble *PortCurrents);
     void Solve(int WhichPort, cdouble PortCurrent);
 
@@ -174,6 +179,8 @@ public:
     void AssemblePortBFInteractionMatrix(cdouble Omega);
     void UpdateSystemMatrix(cdouble Omega);
 
+    void DoSolve(IncField *IF, cdouble *PortCurrents);
+
     ////////////////////////////////////////////////////
     // internal data fields
     ////////////////////////////////////////////////////
@@ -189,7 +196,8 @@ public:
     HMatrix *PBFIMatrix;    // port <--> basis-function interaction matrix
     HMatrix *PPIMatrix;     // port <--> port interaction matrix
     HVector *KN;            // set by most recent call to SolveSystem()
-    cdouble *PortCurrents;  // set by most recent call to SolveSystem()
+    cdouble *CachedPortCurrents;  // set by most recent call to SolveSystem()
+    IncField *CachedIF;     // set by most recent call to SolveSystem()
     cdouble OmegaSIE;       // frequencies at which M, PBFI/PP were last computed
     cdouble OmegaPBFI;
 
@@ -205,7 +213,9 @@ public:
     char *SubstrateFile;
     bool SubstrateInitialized;
 
-    sVec MeshFiles, MeshLabels, MeshTransforms;
+    vector<dVec> LatticeVectors;
+    char *Medium;
+    sVec MeshFiles, MeshLabels, MeshTransforms, Materials;
     char *scuffgeoFile;
 
     // PortTerminalVertices[2*nPort + Pol][3*nv+0, 3*nv+1, 3*nv+2] =

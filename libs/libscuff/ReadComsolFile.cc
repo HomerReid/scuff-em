@@ -56,12 +56,15 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* Constructor helper function for reading in nodes and  *******/
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
-char *RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
+char *ReadComsolFile(FILE *MeshFile, char *FileName, int MeshTag, 
+                     dVec &VertexCoordinates, iVec &PanelVertexIndices)
 { 
   char Line[MAXSTR];
   int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
-  
   LineNum=0;
+
+  if (MeshTag!=1) 
+   Warn("mesh tagging not supported for COMSOL files (ignoring mesh tag %i)",MeshTag); 
  
   /***************************************************************/
   /* skip down to node definition section                        */
@@ -71,6 +74,7 @@ char *RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
    return vstrdup("%s: failed to find line '#number of mesh points'",FileName);
   LineNum+=LinesRead;
 
+  int NumVertices;
   nConv=sscanf(Line,"%i ",&NumVertices);
   if (nConv!=1 || NumVertices<0 || NumVertices>10000000)
    return vstrdup("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
@@ -83,22 +87,22 @@ char *RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   /***************************************************************/
   /* read vertices ***********************************************/
   /***************************************************************/
-  Vertices=(double *)mallocEC(3*NumVertices*sizeof(double *));
+  VertexCoordinates.clear();
   for(nv=0; nv<NumVertices; nv++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
       return vstrdup("%s: unexpected end of file",FileName);
      LineNum++;
 
-     if ( 3!=sscanf(Line,"%le %le %le",
-                    Vertices+3*nv,Vertices+3*nv+1,Vertices+3*nv+2))
+     double V[3];
+     if ( 3!=sscanf(Line,"%le %le %le",V+0, V+1, V+2) )
       return vstrdup("%s:%i: syntax error",FileName,LineNum);
-   };
-
-  /***************************************************************/
-  /*- Apply geometrical transformation (if any) to all nodes.   -*/
-  /***************************************************************/
-  if (OTGT) OTGT->Apply(Vertices, NumVertices);
+     VertexCoordinates.push_back(V[0]);
+     VertexCoordinates.push_back(V[1]);
+     VertexCoordinates.push_back(V[2]);
+   }
+  if (VertexCoordinates.size() != 3*NumVertices)
+   return vstrdup("%s: stated number of vertices (%i) disagrees with actual (%i)",NumVertices,VertexCoordinates.size()/3);
 
   /***************************************************************/
   /* skip down to element definition section *********************/
@@ -111,6 +115,7 @@ char *RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   if ( !fgets(Line,MAXSTR,MeshFile) )
    return vstrdup("%s: unexpected end of file",FileName);
   LineNum++;
+  int NumPanels;
   nConv=sscanf(Line,"%i",&NumPanels);
   if (nConv!=1 || !strstr(Line,"# number of elements"))
    return vstrdup("%s:%i: syntax error",FileName,LineNum);
@@ -124,19 +129,23 @@ char *RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName)
   /***************************************************************/
   /* read panels    **********************************************/ 
   /***************************************************************/
-  Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(Panels[0]));
-  for(np=0; np<NumPanels; np++)
+  PanelVertexIndices.clear();
+  for(int np=0; np<NumPanels; np++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
       return vstrdup("%s: unexpected end of file",FileName);
      LineNum++;
 
-     if ( 3!=sscanf(Line,"%i %i %i",&n1,&n2,&n3) )
+     int VI[3];
+     if ( 3!=sscanf(Line,"%i %i %i",VI+0,VI+1,VI+2) )
       return vstrdup("%s:%i: syntax error",FileName,LineNum); 
  
-     Panels[np]=NewRWGPanel(Vertices,n1,n2,n3);
-     Panels[np]->Index=np;
-   };
+     PanelVertexIndices.push_back(VI[0]);
+     PanelVertexIndices.push_back(VI[1]);
+     PanelVertexIndices.push_back(VI[2]);
+   }
+  if (PanelVertexIndices.size() != 3*NumPanels)
+   return vstrdup("%s: stated number of panels (%i) disagrees with actual (%i)",NumPanels,PanelVetexIndices.size()/3);
 
   /***************************************************************/
   /* ignore the rest of the file and we are done *****************/

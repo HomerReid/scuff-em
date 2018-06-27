@@ -110,6 +110,7 @@ class PlaneWave : public IncField
    double nHat[3];        /* unit vector in direction of propagation */
 
    PlaneWave(const cdouble E0[3], const double nHat[3], const char *Label = 0);
+   PlaneWave(const PlaneWave &PW);
    PlaneWave();
    ~PlaneWave();
 
@@ -135,6 +136,7 @@ class PointSource: public IncField
 
    PointSource(const double X0[3], const cdouble P[3], 
                int Type = LIF_ELECTRIC_DIPOLE, const char *Label = 0);
+   PointSource(const PointSource &PS);
    PointSource();
    ~PointSource();
 

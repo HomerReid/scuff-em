@@ -189,10 +189,11 @@ class RWGSurface
    /* which exists independently of any RWGGeometry structure. This   */
    /* means the surface doesn't know what regions it bounds or what   */
    /* materials are on its two sides, but can still be used for       */
-   /* low-level computations at the level of individual RWG functions.*/
+   /* low-level computations at the level of individual panels/edges. */
    /*-----------------------------------------------------------------*/
-   RWGSurface(double *Vertices, int NumVertices, int *PanelVertices, int NumPanels);
    RWGSurface(const char *MeshFile, int MeshTag=-1);
+   RWGSurface(dVec VertexCoordinates, iVec PanelVertexIndices, char *pLabel=0);
+   RWGSurface(dVec X0, dVec L1, dVec L2, int N1, int N2=0, char *pLabel=0);
 
    /* destructor */
    ~RWGSurface();
@@ -241,8 +242,8 @@ class RWGSurface
    /*--------------------------------------------------------------*/
    char *RegionLabels[2];          /* names of the regions on either side of the surface */
    int RegionIndices[2];           /* indices of the two regions within the RWGGeometry list of Regions */
-   int IsPEC;                      /* =1 if this is a simple PEC object */
-   int IsObject;                   /* =1 if we came from an OBJECT...ENDOBJECT section */
+   bool IsPEC;                     /* =1 if this is a simple PEC object */
+   bool IsObject;                  /* =1 if we came from an OBJECT...ENDOBJECT section */
                                    /* =0 if we came from a SURFACE...ENDSURFACE section */
 
    double *Vertices;               /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
@@ -316,18 +317,14 @@ class RWGSurface
    /*--------------------------------------------------------------*/ 
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
-   /* the actual body of the class constructor */
-   char *InitRWGSurface();
+   RWGEdge *GetEdgeByIndex(int ne);
 
-   /* constructor subroutines */
+   /* constructor helper subroutines */
+   char *InitRWGSurface(dVec VertexCoordinates, iVec PanelVertexIndices);
+   char *ParseOBJECTSURFACESection(FILE *f, int *LineNum);
    char *InitEdgeList();
-   char *ReadGMSHFile(FILE *MeshFile, char *FileName);
-   char *ReadComsolFile(FILE *MeshFile, char *FileName);
    void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
    void UpdateBoundingBox();
-
-   RWGEdge *GetEdgeByIndex(int ne);
- 
  };
 
 /*--------------------------------------------------------------*/
@@ -643,8 +640,6 @@ class RWGGeometry
 /***************************************************************/
 /* non-class methods that operate on RWGPanels and RWGSurfaces */
 /***************************************************************/
-RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3);
-void InitRWGPanel(RWGPanel *P, double *Vertices);
 int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
                        int CommonRegionIndices[2], double Signs[2]);
 

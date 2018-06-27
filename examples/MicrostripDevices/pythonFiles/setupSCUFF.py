@@ -33,8 +33,14 @@ import scuff;
 # variable SCUFF to the "--prefix" you specified when
 # installing SCUFF-EM (default is /usr/local.)
 ##############################################################
-# first attempt: use pkg-config
+# first attempt: look at SCUFF environment variable
+if os.getenv("SCUFF") is not None:
+    SCUFF=os.environ["SCUFF"]
+
+# next attempt: use pkg-config
 if 'SCUFF' not in locals() and 'SCUFF' not in globals():
+
+    os.environ["SCUFF_MESH_PATH"] = DirBase + "mshFiles"
 
     SCUFF="/usr/local" # default
     try:
@@ -57,6 +63,8 @@ if 'scuffExample' in locals() or 'scuffExample' in globals():
     os.environ["SCUFF_MESH_PATH"] = DirBase + "mshFiles"
     os.environ["SCUFF_GEO_PATH"]  = DirBase + "scuffgeoFiles"
     os.environ["SCUFF_DATA_PATH"] = DirBase + "portFiles"
+
+print("SCUFF_MESH_PATH = ", os.environ["SCUFF_MESH_PATH"])
 
 ##############################################################
 # try to determine number of CPU cores and ask for that many

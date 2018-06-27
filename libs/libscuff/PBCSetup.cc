@@ -33,6 +33,8 @@
 
 namespace scuff{
 
+void InitRWGPanel(RWGPanel *P, double *Vertices);
+
 /***************************************************************/
 /* return 1 if the point with cartesian coordinates X lies on  */
 /* the line connecting the origin to point L.                  */

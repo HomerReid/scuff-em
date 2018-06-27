@@ -18,9 +18,9 @@
  */
 
 /* 
- * scuffSolver.cc  -- main code file for SCUFF-EM RF solver
+ * scuffSolver.cc  -- main code file for SCUFF-EM high-level interface
  *
- * homer reid   -- 9/2011 - 4/2018
+ * homer reid      -- 9/2011 - 4/2018
  */
 
 #include <stdio.h>
@@ -41,8 +41,6 @@
 #ifdef HAVE_CONFIG_H
   #include <config.h>
 #endif
-
-#define II cdouble(0.0,1.0)
 
 using namespace scuff;
 
@@ -67,8 +65,7 @@ scuffSolver::scuffSolver(const char *scuffgeoFileName, const char *portFileName)
 void scuffSolver::InitSolver()
 {
   /*--------------------------------------------------------------------------*/
-  /* initialize internal variables needed to perform RF calculations (which   */
-  /* are allocated lazily)                                                    */
+  /* most internal variables are initialized to zero and allocated lazily later*/
   /*--------------------------------------------------------------------------*/
   G              = 0;
   PortList       = 0;
@@ -79,13 +76,15 @@ void scuffSolver::InitSolver()
   PBFIMatrix     = 0; 
   PPIMatrix      = 0;
   KN             = 0;
-  PortCurrents   = 0;
+  CachedPortCurrents   = 0;
+  CachedIF             = 0;
   OmegaSIE       = CACHE_DIRTY;
   OmegaPBFI      = CACHE_DIRTY;
 
   TBlocks        = 0;
   UBlocks        = 0;
 
+  Medium         = 0;
   SubstrateFile  = 0;
   SubstrateInitialized = false;
   scuffgeoFile   = 0;
@@ -109,7 +108,8 @@ scuffSolver::~scuffSolver()
      delete UBlocks;
    }
 
-  if (PortCurrents) delete PortCurrents;
+  if (CachedPortCurrents) delete CachedPortCurrents;
+  if (CachedIF)     delete CachedIF;
   if (KN)           delete KN;
   if (PBFIMatrix)   delete PBFIMatrix;
   if (PPIMatrix)    delete PPIMatrix;
@@ -130,7 +130,7 @@ void scuffSolver::AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble 
   SubstrateInitialized=false;
 
   char Line[100];
-  if (isinf(real(Epsilon)))
+  if (std::isinf(real(Epsilon)))
    snprintf(Line,100,"%e GROUNDPLANE\n",zInterface);
   else if (Mu==1.0)
    snprintf(Line,100,"%e CONST_EPS_%s\n",zInterface,z2s(Epsilon));
@@ -197,7 +197,21 @@ void scuffSolver::SetGeometryFile(const char *_scuffgeoFile)
   scuffgeoFile = vstrdup(_scuffgeoFile);
 }
 
-void scuffSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const char *Transformation)
+void scuffSolver::AddLatticeVector(dVec L)
+{ if (G) 
+   { Warn("can't add lattice vectors after geometry has been initialized");
+     return;
+   }
+  if ( L.size()<1 || L.size()>3) ErrExit("invalid lattice vector");
+  if ( L.size()==3 && L[2]!=0.0 ) ErrExit("lattice vectors must have zero z-component");
+  while( L.size()!=3 ) L.push_back(0.0); // pad with zeros to dimension 3
+  LatticeVectors.push_back(L);
+}
+
+void scuffSolver::SetMedium(char *MediumMaterial)
+{ Medium=strdup(MediumMaterial); }
+
+void scuffSolver::AddObject(const char *MeshFile, const char *Material, const char *Label, const char *Transformation)
 {
   char *ErrMsg=0;
 
@@ -206,18 +220,27 @@ void scuffSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, con
   if (scuffgeoFile)
    ErrMsg=vstrdup("can't add metal traces to existing geometry file %s",scuffgeoFile);
 
-  // check that mesh is valid
+  // check mesh
   if (!ErrMsg) 
    { RWGSurface *S = new RWGSurface(MeshFile);
      if (S->ErrMsg) ErrMsg = strdup(S->ErrMsg);
      delete S;
    }
 
-  // check that transformation is valid
+  // check material 
+  if (!ErrMsg && Material)
+   { MatProp *MP = new MatProp(Material);
+     if (MP->ErrMsg)
+      ErrExit(MP->ErrMsg);
+     delete MP;
+   }
+
+  // check transformation
   if (!ErrMsg && Transformation)
    { GTransformation *GT = new GTransformation(Transformation, &ErrMsg);
      delete GT;
    }
+
 
   if (ErrMsg)
    { Warn("AddMetalTraceMesh: %s (ignoring)",ErrMsg);
@@ -226,9 +249,13 @@ void scuffSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, con
    }
 
   MeshFiles.push_back(strdup(MeshFile));
+  Materials.push_back(Material ? strdup(Material) : 0);
   MeshLabels.push_back(Label ? strdup(Label) : 0);
   MeshTransforms.push_back( Transformation ? strdup(Transformation) : 0);
 }
+
+void scuffSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const char *Transformation)
+{ AddObject(MeshFile, 0, Label, Transformation); }
 
 void scuffSolver::SetPortFile(const char *_portFile)
 { char *ErrMsg=0;
@@ -306,8 +333,22 @@ void scuffSolver::InitGeometry()
      scuffgeoFile=vstrdup(buffer);
      FILE *f=fdopen( mkstemp(scuffgeoFile), "w");
      if (!f) ErrExit("could not write file %s",scuffgeoFile);
+     
+     if (Medium)
+      { fprintf(f,"MEDIUM\n MATERIAL %s\nENDMEDIUM\n\n",Medium);
+        free(Medium);
+      }
+
+     if (LatticeVectors.size()>0)
+      { fprintf(f,"LATTICE\n");
+        for(size_t n=0; n<LatticeVectors.size(); n++)
+         fprintf(f," %e %e %e \n",LatticeVectors[n][0],LatticeVectors[n][1],LatticeVectors[n][2]);
+        fprintf(f,"ENDLATTICE\n");
+      }
+     LatticeVectors.clear();
 
      if (MeshFiles.size()==0) ErrExit("no metal traces specified");
+     if (MeshFiles.size() != Materials.size()) ErrExit("%s:%i: internal error");
      if (MeshFiles.size() != MeshTransforms.size()) ErrExit("%s:%i: internal error");
      if (MeshFiles.size() != MeshLabels.size()) ErrExit("%s:%i: internal error");
      for(size_t n=0; n<MeshFiles.size(); n++)
@@ -315,13 +356,16 @@ void scuffSolver::InitGeometry()
         if (!Label)
          { Label=Buffer; snprintf(Label,100,"%s_%lu",GetFileBase(MeshFiles[n]),n); }
         fprintf(f,"OBJECT %s\n MESHFILE %s\n",Label,MeshFiles[n]);
+        if (Materials[n]) fprintf(f," MATERIAL %s\n",Materials[n]);
         if (MeshTransforms[n]) fprintf(f," %s\n",MeshTransforms[n]);
         fprintf(f,"ENDOBJECT\n");
         free(MeshFiles[n]);
+        if (Materials[n]) free(Materials[n]);
         if (MeshLabels[n]) free(MeshLabels[n]);
         if (MeshTransforms[n]) free(MeshTransforms[n]);
       }
      MeshFiles.clear();
+     Materials.clear();
      MeshLabels.clear();
      MeshTransforms.clear();
      fclose(f);
@@ -347,8 +391,8 @@ void scuffSolver::InitGeometry()
         for(int Pol=_PLUS; Pol<=_MINUS; Pol++)
          for(size_t nv=0; nv<PortTerminalVertices[2*nPort+Pol].size(); nv++)
           { double V = PortTerminalVertices[2*nPort+Pol][nv];
-            if (nv==0 || isinf(V)) fprintf(f,"\n   %s ",(Pol==_PLUS ? "POSITIVE" : "NEGATIVE"));
-            if (isinf(V)) continue;
+            if (nv==0 || std::isinf(V)) fprintf(f,"\n   %s ",(Pol==_PLUS ? "POSITIVE" : "NEGATIVE"));
+            if (std::isinf(V)) continue;
             fprintf(f,"%g ",V);
           }
         fprintf(f,"\nENDPORT\n\n");
@@ -580,46 +624,55 @@ void scuffSolver::AssembleSystemMatrix(double Freq)
   M->LUFactorize();
 }
 
-void scuffSolver::Solve(cdouble *CallerPortCurrents)
+void scuffSolver::DoSolve(IncField *IF, cdouble *PortCurrents)
 {
   if (M==0 || G->StoredOmega!=OmegaSIE)
    ErrExit("scuffSolver: AssembleSystemMatrix() must be called before Solve()");
+  cdouble Omega = G->StoredOmega;
 
   /*--------------------------------------------------------------*/
   /*- lazy allocation of internal variables ----------------------*/
   /*--------------------------------------------------------------*/
   int NBF = G->TotalBFs;
-  if (PBFIMatrix==0)   PBFIMatrix   = new HMatrix(NBF,      NumPorts, LHM_COMPLEX);
-  if (PPIMatrix==0)    PPIMatrix    = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
-  if (KN==0)           KN           = new HVector(NBF,                LHM_COMPLEX);
-  if (PortCurrents==0) PortCurrents = new cdouble[NumPorts];
-  
-  /*--------------------------------------------------------------*/
-  /*- (re)compute port-BF interaction matrix as necessary --------*/
-  /*--------------------------------------------------------------*/
-  cdouble Omega = G->StoredOmega;
-  AssemblePortBFInteractionMatrix(Omega);
+  if (KN==0) KN = new HVector(NBF,                LHM_COMPLEX);
 
-  if (CallerPortCurrents) // if zero, assumes PortCurrents has already been initialized
-   memcpy(PortCurrents, CallerPortCurrents, NumPorts*sizeof(cdouble));
-
-  // form RHS vector as weighted linear combination of contributions from each port
-  KN->Zero();
-  for(int np=0; np<NumPorts; np++)
-   for(int nbf=0; nbf<NBF; nbf++)
-    KN->AddEntry(nbf, PortCurrents[np]*PBFIMatrix->GetEntry(nbf,np));
+  // stuff needed for RF calculations
+  if (PortCurrents)
+   { if (PBFIMatrix==0)   PBFIMatrix   = new HMatrix(NBF,      NumPorts, LHM_COMPLEX);
+     if (PPIMatrix==0)    PPIMatrix    = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
+     AssemblePortBFInteractionMatrix(Omega);
+    // form RHS vector as weighted linear combination of contributions from each port
+     KN->Zero();
+     for(int np=0; np<NumPorts; np++)
+      for(int nbf=0; nbf<NBF; nbf++)
+       KN->AddEntry(nbf, PortCurrents[np]*PBFIMatrix->GetEntry(nbf,np));
+     if (CachedPortCurrents==0) CachedPortCurrents = new cdouble[NumPorts];
+     memcpy(CachedPortCurrents, PortCurrents, NumPorts*sizeof(cdouble));
+   }
+  else if (IF)
+   { G->AssembleRHSVector(Omega, IF, KN);
+     if (CachedIF) delete CachedIF;
+     PlaneWave *PW = (PlaneWave *) IF;
+     if (PW) CachedIF=new PlaneWave(*PW);
+     //CachedIF = new IncField(IF);
+   }
 
   // solve the system
   Log("LU-solving...");
   M->LUSolve(KN);
 }
 
+void scuffSolver::Solve(IncField *IF)
+{ DoSolve(IF, 0); }
+
+void scuffSolver::Solve(cdouble *PortCurrents)
+{ DoSolve(0,PortCurrents); }
+
 void scuffSolver::Solve(int WhichPort, cdouble PortCurrent)
-{
-  if (PortCurrents==0) PortCurrents = new cdouble[NumPorts];
-  memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
+{ if (NumPorts==0) ErrExit("no ports defined");
+  cdouble *PortCurrents = new cdouble[NumPorts];
   PortCurrents[WhichPort]=PortCurrent;
-  Solve(0);
+  DoSolve(0,PortCurrents);
 }
 
 /***************************************************************/
@@ -740,7 +793,7 @@ void scuffSolver::PlotGeometry(const char *PPFormat, ...)
         fprintf(f,"};\n");
       }
 
-     if ( !isinf(S->zGP) )
+     if ( !std::isinf(S->zGP) )
       { 
         int nl = S->NumLayers;
         fprintf(f,"View \"Ground plane\" {\n");

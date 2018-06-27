@@ -53,7 +53,6 @@ void GetGCBar2D_Fourier(cdouble k, double *kBloch,
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-
 PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
 			 const char *Label)
 {  InitPointSource(pX0, pP, pType, Label); 
@@ -66,6 +65,9 @@ PointSource::PointSource()
   int pType = LIF_ELECTRIC_DIPOLE;
   InitPointSource(pX0, pP, pType, 0);
 }
+
+PointSource::PointSource(const PointSource &PS)
+{ InitPointSource(PS.X0, PS.P, PS.Type, PS.Label); }
 
 void PointSource::InitPointSource(const double pX0[3], const cdouble pP[3],
                                   int pType, const char *Label)

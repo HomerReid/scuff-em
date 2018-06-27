@@ -50,8 +50,7 @@ libscuff_la_SOURCES =		\
  QIFIPPICubature.cc 		\
  QIFIPPITaylorDuffy.cc 		\
  QIFIPPITaylorDuffyV2P0.cc 	\
- ReadComsolFile.cc 		\
- ReadGMSHFile.cc 		\
+ ParseMeshFiles.cc		\
  RWGGeometry.cc 		\
  RWGSurface.cc 			\
  rwlock.cc 			\

@@ -176,12 +176,13 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
         ChildPairList Children = EEPTable->GetChildren(Parents[np].nea, Parents[np].neb);
         for(size_t nc=0; nc<Children.size(); nc++)
          { int neaChild=Children[nc].nea, nebChild=Children[nc].neb;
-           double GFlipped = Children[nc].Signs.Flipped[0], CFlipped = Children[nc].Signs.Flipped[1];
+           double GSign=Children[nc].GCSign[GKERNEL], CSign=Children[nc].GCSign[CKERNEL];
            cdouble ChildMEBuffer[4];
            HMatrix ChildMEs(NBFPEA, NBFPEB, ChildMEBuffer);
-           memcpy(ChildMEBuffer, ParentMEBuffer, 4*sizeof(cdouble));
-           if (GFlipped) { ChildMEBuffer[0]*=-1.0; ChildMEBuffer[3]*=-1.0; }
-           if (CFlipped) { ChildMEBuffer[1]*=-1.0; ChildMEBuffer[2]*=-1.0; }
+           ChildMEBuffer[0]=ParentMEBuffer[0]*GSign;
+           ChildMEBuffer[1]=ParentMEBuffer[1]*CSign;
+           ChildMEBuffer[2]=ParentMEBuffer[2]*CSign;
+           ChildMEBuffer[3]=ParentMEBuffer[3]*GSign;
            Block->InsertBlock(&ChildMEs, OffsetA+NBFPEA*neaChild, OffsetB+NBFPEB*nebChild);
         }
       }

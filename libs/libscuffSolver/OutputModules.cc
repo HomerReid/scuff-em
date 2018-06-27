@@ -299,9 +299,9 @@ void scuffSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
      HVector KNSource(NBF, LHM_COMPLEX, KMatrix->GetColumnPointer(SourcePort));
      if (!KN) KN=G->AllocateRHSVector();
      KN->Copy(&KNSource);
-     if (PortCurrents==0) PortCurrents=new cdouble[NumPorts];
-     memset(PortCurrents, 0, NumPorts*sizeof(cdouble));
-     PortCurrents[SourcePort]=1.0;
+     if (CachedPortCurrents==0) CachedPortCurrents=new cdouble[NumPorts];
+     memset(CachedPortCurrents, 0, NumPorts*sizeof(cdouble));
+     CachedPortCurrents[SourcePort]=1.0;
      GetFields(XMatrix, PFMatrix);
      
      // sum contributions to mean voltage gaps across all destination ports

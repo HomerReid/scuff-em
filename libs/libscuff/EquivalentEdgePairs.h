@@ -40,14 +40,17 @@ typedef struct ParentPairData
 
 typedef vector<ParentPairData> ParentPairList;
 
-#define NUM_EEP_SIGNS 2
-typedef struct { bool Flipped[NUM_EEP_SIGNS]; } SignPattern;
+#define GKERNEL 0
+#define CKERNEL 1
+#define NUMKERNELS 2
+typedef struct { bool Flipped[NUMKERNELS]; } SignPattern;
 
 typedef struct ChildPairData
- { int nea, neb; 
-   SignPattern Signs;
-   ChildPairData(int _nea, int _neb, SignPattern _Signs): nea(_nea), neb(_neb), Signs(_Signs) {}
-   ChildPairData(int _nea, int _neb): nea(_nea), neb(_neb) {Signs.Flipped[0]=Signs.Flipped[1]=false;}
+ { int nea, neb;
+   double GCSign[NUMKERNELS];
+   ChildPairData(int _nea, int _neb, SignPattern Signs): nea(_nea), neb(_neb)
+    { GCSign[0] = Signs.Flipped[0] ? -1.0 : 1.0, GCSign[1] = Signs.Flipped[1] ? -1.0 : 1.0; }
+   ChildPairData(int _nea, int _neb): nea(_nea), neb(_neb) { GCSign[0]=GCSign[1]=1.0; }
  } ChildPairData;
 typedef vector<ChildPairData> ChildPairList;
 

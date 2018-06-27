@@ -14,7 +14,7 @@ Res = "Coarse"
 # create the solver, add metal traces, define ports,
 # initialize substrate
 ###################################################
-Solver=scuff.RFSolver()
+Solver=scuff.scuffSolver()
 
 Solver.AddMetalTraceMesh("EFAntenna_L8_" + Res + ".msh");
 

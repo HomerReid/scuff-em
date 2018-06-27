@@ -20,4 +20,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
               -I$(top_srcdir)/libs/libIncField  \
               -I$(top_builddir) # for config.h
 
+AM_CXXFLAGS = -std=c++11
+
 SUBDIRS = tests
