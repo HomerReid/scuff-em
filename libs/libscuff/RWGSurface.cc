@@ -326,7 +326,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   dVec VertexCoordinates;
   iVec PanelVertexIndices;
   ErrMsg=ParseMeshFile(MeshFileName, MeshTag, &MeshFileDir, VertexCoordinates, PanelVertexIndices);
-  if (!ErrMsg) return;
+  if (ErrMsg) return;
   ErrMsg=InitRWGSurface(VertexCoordinates, PanelVertexIndices);
 }
 
