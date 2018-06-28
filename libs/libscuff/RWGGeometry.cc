@@ -49,8 +49,6 @@ bool RWGGeometry::UseHRWGFunctions=false;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 bool RWGGeometry::DisableCache=false;
-int RWGGeometry::NumMeshDirs=0;
-char **RWGGeometry::MeshDirs=0;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
@@ -63,12 +61,11 @@ char **RWGGeometry::MeshDirs=0;
 void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 {
   char Line[MAXSTR];
-  int NumTokens;
-  char *Tokens[MAXTOK];
   while( fgets(Line,MAXSTR,f) )
    { 
      (*LineNum)++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     char *Tokens[MAXTOK];
+     int NumTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
@@ -83,18 +80,11 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
         Log("Setting material properties of exterior region to %s.",Tokens[1]);
       }
      else if ( !StrCaseCmp(Tokens[0],"ENDMEDIUM") )
-      { 
-        return;
-      }
+      return;
      else
-      {
-        ErrExit("%s:%i: unknown keyword %s",FileName,*LineNum,Tokens[0]);
-      };
-     
-   };
-
+      ErrExit("%s:%i: unknown keyword %s",FileName,*LineNum,Tokens[0]);
+   }
   ErrExit("%s: unexpected end of file",FileName);
-
 }
 
 /***************************************************************/
@@ -175,14 +165,9 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
         return; 
       }
      else
-      {
-        ErrExit("%s:%i: unknown keyword %s",FileName,*LineNum,Tokens[0]);
-      };
-     
-   };
-
+      ErrExit("%s:%i: unknown keyword %s",FileName,*LineNum,Tokens[0]);
+   }
   ErrExit("%s: unexpected end of file",FileName);
-
 }
 
 /***********************************************************************/
@@ -213,12 +198,11 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
      NumRegions++;
 
      RegionID = NumRegions-1;
-   };
+   }
 
   RegionMPs[RegionID] = new MatProp(MaterialName);
   if ( RegionMPs[RegionID]->ErrMsg )
    ErrExit("%s:%i: %s\n",GeoFileName,LineNum,RegionMPs[RegionID]->ErrMsg);
-
 }
 
 /***************************************************************/
@@ -360,9 +344,7 @@ void RWGGeometry::DetectMultiMaterialJunctions()
        };
 
     };
-
   Log("Detected %i multi-material junctions.",NumMMJs);
-
 }
 
 /***********************************************************************/
@@ -394,7 +376,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   for(int nd=0; nd<MAXLDIM; nd++)
    { NumStraddlers[nd]=NULL;
      RegionIsExtended[nd]=NULL;
-   };
+   }
   tolVecClose=0.0; // to be updated once mesh is read in
   TBlockCacheNameAddendum=0;
 
@@ -410,19 +392,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* check for various environment variables *********************/
   /***************************************************************/
   char *s;
-  if ( NumMeshDirs==0 && (s=getenv("SCUFF_MESH_PATH")) )
-   { char MeshPathCopy[1000];
-     strncpy(MeshPathCopy, s, 1000);
-     char *Tokens[10];
-     int NumTokens=Tokenize(MeshPathCopy, Tokens, 10, ":");
-     NumMeshDirs=NumTokens;
-     MeshDirs = (char **)malloc(NumTokens * sizeof(char *));
-     for(int nt=0; nt<NumTokens; nt++)
-      { MeshDirs[nt] = strdup(Tokens[nt]);
-        Log("Added %s to mesh search path.",MeshDirs[nt]);
-      }
-   }
-
   if ( (s=getenv("SCUFF_LOGLEVEL")) )
    {      if ( !strcasecmp(s, "NONE"     ) ) LogLevel=SCUFF_NOLOGGING;
      else if ( !strcasecmp(s, "TERSE"    ) ) LogLevel=SCUFF_TERSELOGGING;
@@ -430,37 +399,32 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      else if ( !strcasecmp(s, "VERBOSE2" ) ) LogLevel=SCUFF_VERBOSE2;
    }
 
-  if ( (s=getenv("SCUFF_DISABLE_CACHE")) && (s[0]=='1') )
-   { Log("Disabling caching of frequency-independent panel-panel integrals.");
-     RWGGeometry::DisableCache=true;
-   }
+  RWGGeometry::DisableCache=CheckEnv("SCUFF_DISABLE_CACHE");
+  RWGGeometry::UseHRWGFunctions=CheckEnv("SCUFF_HALF_RWG");
 
-  if ( (s= getenv("SCUFF_HALF_RWG")) && (s[0]=='1') )
-   { Log("Assigning half-RWG basis functions to exterior edges.");
-     RWGGeometry::UseHRWGFunctions=true;
-   }
-
-  if ( (s=getenv("SCUFF_ABORT_ON_FPE")) && (s[0]=='1') )
+  if (CheckEnv("SCUFF_ABORT_ON_FPE"))
    {
 #ifndef __APPLE__
      feenableexcept(FE_INVALID | FE_OVERFLOW);
      Log("Enabling abort-on-floating-point-exception.");
 #else
-     Log("Can not enable abort-on-floating-point-exception on OS X because feenableexcept is not available.");
+     Log("Can't enable abort-on-floating-point-exception on OS X because feenableexcept is not available.");
 #endif
-   };
+   }
 
   /***************************************************************/
   /* try to open input file **************************************/
   /***************************************************************/
   if (ProcessSpecialSCUFFGeoFileName(GeoFileName))
    GeoFileName=vstrappend(GeoFileName,".scuffgeo");
-  char *Dir; 
+  char *Dir;
   FILE *f=fopenPath(getenv("SCUFF_GEO_PATH"),GeoFileName,"r",&Dir);
   if (!f)
    ErrExit("could not open %s",GeoFileName);
   if (strcmp(Dir,"."))
    Log("Found file %s in directory %s",GeoFileName,Dir);
+  char *GeoFileDir=strdup(Dir);
+  AppendEnv("SCUFF_MESH_PATH",":","%s/../mshFiles",GeoFileDir);
 
   /***************************************************************/
   /* read and process lines from input file one at a time        */
@@ -497,23 +461,12 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         if ( nTokens!=2 )
          ErrExit("%s:%i: invalid MESHPATH specification",GeoFileName,LineNum);
 
-        NumMeshDirs++;
-        MeshDirs=(char **)realloc(MeshDirs,NumMeshDirs*sizeof(char *));
-
         // if MESHPATH starts with a '/' then it is an absolute path; otherwise
         // it is taken relative to the path in which the .scuffgeo file was found
         if (Tokens[1][0]=='/')
-         MeshDirs[NumMeshDirs-1]=strdup(Tokens[1]);
-        else
-         { char *p=strrchr(GeoFileName,'/');
-           if (!p)
-            MeshDirs[NumMeshDirs-1]=strdup(Tokens[1]);
-           else
-            { *p=0;
-              MeshDirs[NumMeshDirs-1]=vstrdup("%s/%s",GeoFileName,Tokens[1]);
-              *p='/';
-            };
-         };
+         AppendEnv("SCUFF_MESH_PATH",":","%s",Tokens[1]);
+        else 
+         AppendEnv("SCUFF_MESH_PATH",":","%s/%s",GeoFileDir,Tokens[1]);
       }
      else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
@@ -594,7 +547,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         Surfaces=(RWGSurface **)realloc(Surfaces, NumSurfaces*sizeof(RWGSurface *) );
         Surfaces[NumSurfaces-1]=S;
         S->Index=NumSurfaces-1;
-
       }
      else if ( !StrCaseCmp(Tokens[0],"SUBSTRATE") )
       {
@@ -696,7 +648,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          }
         Surfaces[NewSlotForS] = S;
       }
-
     } // for(ns = 1 ...)
 
   /*******************************************************************/
@@ -770,7 +721,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      BFIndexOffset[ns]    = BFIndexOffset[ns-1]    + Surfaces[ns-1]->NumBFs;
      EdgeIndexOffset[ns]  = EdgeIndexOffset[ns-1]  + Surfaces[ns-1]->NumEdges;
      PanelIndexOffset[ns] = PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
-   };
+   }
 
   /***************************************************************/
   /* allocate space for cached epsilon and mu values *************/

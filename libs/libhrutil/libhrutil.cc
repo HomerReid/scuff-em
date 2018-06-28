@@ -65,6 +65,12 @@
 
 #define MAXSTR 1000
 
+#define COLLECT_ARGS(format, buffer, buflen) \
+  va_list ap;                                \
+  va_start(ap,format);                       \
+  vsnprintfEC(buffer,buflen,format,ap);      \
+  va_end(ap);
+
 /***************************************************************/
 /* Timing functions ********************************************/
 /***************************************************************/
@@ -1073,4 +1079,15 @@ bool CheckEnv(const char *Name, bool LogSuccess)
   bool Status = (s && s[0]=='1');
   if (Status && LogSuccess) Log("Set %s = true",Name);
   return Status;
+}
+
+void AppendEnv(const char *Name, const char *Separator, const char *format, ...)
+{ 
+  char buffer[MAXSTR];
+  COLLECT_ARGS(format, buffer, MAXSTR);
+  char *Old = getenv(Name);
+  char *New = vstrdup("%s%s%s",Old ? Old:"",Old&&Separator ? Separator:"",buffer);
+  setenv(Name,buffer,1);
+  free(New);
+  return;
 }

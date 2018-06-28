@@ -253,6 +253,7 @@ bool CheckEnv(const char *Name, double *Destination, bool LogSuccess=true);
 bool CheckEnv(const char *Name, int *Destination, bool LogSuccess=true);
 bool CheckEnv(const char *Name, char **Destination, bool LogSuccess=true);
 bool CheckEnv(const char *Name, bool LogSuccess=true);
+void AppendEnv(const char *Name, const char *Separator, const char *format, ...);
 
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage, char *FileName);
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage); 

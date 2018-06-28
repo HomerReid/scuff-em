@@ -109,8 +109,9 @@ public:
     //scuffSolver(const char *GDSIIFileName);
     ~scuffSolver();
 
-    // functions designed to allow python users to define
-    // geometries line-by-line from python scripts
+    /*--------------------------------------------------------------*/
+    /* functions for defining geometries line-by-line from python   */
+    /*--------------------------------------------------------------*/
     void SetGeometryFile(const char *scuffgeoFileName);
     void AddLatticeVector(dVec L);
     void SetMedium(char *MediumMaterial);
@@ -131,21 +132,24 @@ public:
     void AddPort(const dVec PVertexCoordinates);
     void AddPortTerminal(char PM, const dVec VertexCoordinates);
 
-    // function to produce a GMSH post-processing visualization file to sanity-check
-    // the geometry specification
-    void PlotGeometry(const char *PPFormat, ...);
-    void PlotGeometry();
-
-    // geometric transformations of objects
-    void Transform(const char *SurfaceLabel, const char *Transformation);
-    void UnTransform();
-
-    // system assembly 
+    /*--------------------------------------------------------------*/
+    /*- routines for assembling and solving scattering problems     */
+    /*--------------------------------------------------------------*/
     void EnableSystemBlockCache();
     void AssembleSystemMatrix(double Freq);
     void Solve(IncField *IF);
     void Solve(cdouble *PortCurrents);
     void Solve(int WhichPort, cdouble PortCurrent);
+    void Transform(const char *SurfaceLabel, const char *Transformation);
+    void UnTransform();
+
+    /*---------------------------------------------------------------*/
+    /* post-processing routines for producing various types of output*/
+    /*---------------------------------------------------------------*/
+    void PlotGeometry(const char *PPFormat, ...);
+    void PlotGeometry();
+
+    void PlotSurfaceCurrents(char *PPFile=0);
 
     // high-level post-processing
     void ProcessEPFile(char *EPFile, char *OutFileName=0);

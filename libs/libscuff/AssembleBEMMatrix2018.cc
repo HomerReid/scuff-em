@@ -89,7 +89,7 @@ void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int n
 iVec GetCommonRegions(RWGSurface *Sa, RWGSurface *Sb, double Signs[2])
 {
   iVec CommonRegions;
-  int NRA = (Sa->RegionIndices[1]==-1 ? 2 : 1), NRB = (Sb->RegionIndices[1]==-1 ? 2 : 1);
+  int NRA = (Sa->RegionIndices[1]==-1 ? 1 : 2), NRB = (Sb->RegionIndices[1]==-1 ? 1 : 2);
   for(int nra=0; nra<NRA; nra++)
    for(int nrb=0; nrb<NRB; nrb++)
     if ( Sa->RegionIndices[nra] == Sb->RegionIndices[nrb] )

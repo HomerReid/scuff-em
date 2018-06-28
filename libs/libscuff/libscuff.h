@@ -534,13 +534,9 @@ class RWGGeometry
    int UnResolveEdge(int ns, int ne);
    RWGSurface *ResolveBF(int nbfFull, int *pns=0, int *pne=0, bool *pIsMagnetic=0);
 
-   // directories within which to search for mesh files
-   static int NumMeshDirs;
-   static char **MeshDirs;
-
-   /*--------------------------------------------------------------*/ 
+   /*--------------------------------------------------------------*/
    /*- private data fields  ---------------------------------------*/ 
-   /*--------------------------------------------------------------*/ 
+   /*--------------------------------------------------------------*/
 //private:
 
    int NumRegions;

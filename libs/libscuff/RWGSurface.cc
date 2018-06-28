@@ -676,6 +676,7 @@ RWGEdge *RWGSurface::GetEdgeByIndex(int ne)
    return HalfRWGEdges[ -(ne+1) ];
   else
    ErrExit("%s:%i: internal error(%i,%i,%i)",__FILE__,__LINE__,Index,NumEdges,ne);
+  return 0; // never get here
 }
 
 } // namespace scuff
