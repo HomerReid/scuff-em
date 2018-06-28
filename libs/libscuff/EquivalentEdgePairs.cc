@@ -67,16 +67,20 @@ typedef struct { float Data[NUM_NSMES]; } EdgePairSignature;
 #define EEP_SIGN_PATTERNS (1<<EEP_SIGNS)
 
 static double EEPQuantum=1.0e-10;
+static double EEPRelTol=1.0e-6;
 
 /*****************************************************************/
 /*****************************************************************/
 /* Part 1: general-purpose utility routines                      */
 /*****************************************************************/
 /*****************************************************************/
-float Quantize(double d, double Unit=0.0)
+float Quantize(float d, float Unit=0.0)
 { if (Unit==0.0) Unit=EEPQuantum;
   return ( fabs(d) < 0.5*Unit ? 0.0 : Unit*round(d/Unit) ); 
 }
+
+float TruncateDigits(float d, float RelTol=EEPRelTol)
+{ return Quantize(d, RelTol*fabs(d) ); }
 
 float sgn(float x) { return (x<0.0 ? -1.0 : 1.0); }
 
@@ -271,13 +275,25 @@ EdgePairSignature GetEdgePairSignature(RWGSurface *Sa, int nea, RWGSurface *Sb, 
   double NSMEs[NUM_NSMES];
   GetNSMEs(Sa, nea, Sb, neb, Order, NSMEs);
   EdgePairSignature EPSig;
-  for(int n=0; n<NUM_NSMES; n++) 
-   EPSig.Data[n] = Quantize(NSMEs[n]);
+  double Scale = fmax( fmax( fabs(NSMEs[0]), fabs(NSMEs[1]) ), fabs(NSMEs[2]) );
+  for(int n=0; n<NUM_NSMES; n++)
+   EPSig.Data[n] = Quantize(EPSig.Data[n], EEPRelTol*Scale);
   if (Signs)
    { Signs->Flipped[GKERNEL] = (NSMEs[NSME_G1] < 0.0);
      Signs->Flipped[CKERNEL] = (NSMEs[NSME_C]  < 0.0);
    }
   return EPSig;
+}
+
+char *ToStr(EdgePairSignature EPSig, char *s=0)
+{ static char sBuffer[100];
+  if (s==0) s=sBuffer;
+  snprintf(s,100,"{%g %g %g}",(double)(EPSig.Data[0]),(double)(EPSig.Data[1]),(double)(EPSig.Data[2]));
+  return s;
+}
+
+char *EdgePairSignatureStr(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, char *s=0)
+{ return ToStr(GetEdgePairSignature(Sa, nea, Sb, neb), s );
 }
 
 /************************************************************************/
@@ -506,6 +522,7 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
  : G(_G), nsa(_nsa), nsb(_nsb)
 {
   CheckEnv("SCUFF_EEP_QUANTUM",&EEPQuantum);
+  CheckEnv("SCUFF_EEP_RELTOL", &EEPRelTol);
 
   RWGSurface *Sa = G->Surfaces[nsa], *Sb=G->Surfaces[nsb];
   int NEA=Sa->NumEdges, NEB=Sb->NumEdges;
