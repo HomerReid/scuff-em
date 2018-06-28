@@ -521,7 +521,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
             else
              { AddRegion(S->RegionLabels[1], S->MaterialName, S->MaterialRegionsLineNum );
                S->RegionIndices[1] = NumRegions - 1 ;
-             };
+             }
          }
         else
          { 
