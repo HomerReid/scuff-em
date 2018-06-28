@@ -63,6 +63,8 @@ public:
     bool HasParent(int neaChild, int nebChild, int *neaParent=0, int *nebParent=0, SignPattern *Signs=0);
     ParentPairList GetParents();
     ChildPairList GetChildren(int neaParent, int nebParent, bool IncludeParent=false);
+    int NumParents();
+    int NumChildren();
 
 // private data fields
 // private:

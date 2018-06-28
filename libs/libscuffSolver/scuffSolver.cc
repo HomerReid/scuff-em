@@ -257,6 +257,23 @@ void scuffSolver::AddObject(const char *MeshFile, const char *Material, const ch
 void scuffSolver::AddMetalTraceMesh(const char *MeshFile, const char *Label, const char *Transformation)
 { AddObject(MeshFile, 0, Label, Transformation); }
 
+void scuffSolver::SetGDSIIPortFile(const char *GDSIIPortFile, iVec Layers)
+{
+  if (G) 
+   { Warn("can't add port file after geometry has been initialized");
+     return;
+   }
+  if (portFile)
+   { Warn("Overriding existing port file %s",portFile);
+     free(portFile);
+   }
+  portFile=strdup(GDSIIPortFile);
+  GDSIIPortLayers=iVec(Layers);
+}
+
+void scuffSolver::SetGDSIIPortFile(const char *GDSIIPortFile, int Layer)
+{ SetGDSIIPortFile(GDSIIPortFile, iVec(1,Layer) ); }
+
 void scuffSolver::SetPortFile(const char *_portFile)
 { char *ErrMsg=0;
   if (G)
@@ -401,7 +418,9 @@ void scuffSolver::InitGeometry()
      PortTerminalVertices.clear();
    }
   if (!portFile) ErrExit("no ports specified");
-  PortList = ParsePortFile(G, portFile);
+  PortList = (GDSIIPortLayers.size()>0 ? ReadGDSIIPorts(G, portFile, GDSIIPortLayers)
+                                       : ParsePortFile(G, portFile)
+             );
   NumPorts = PortList->Ports.size();
   if (NumPorts==0) Warn("no ports found");
 
@@ -619,6 +638,7 @@ void scuffSolver::AssembleSystemMatrix(double Freq)
    AssembleMOIMatrix(G, Omega, M);
   else
    UpdateSystemMatrix(Omega);
+  OmegaSIE=Omega;
 
   Log("Factorizing...");
   M->LUFactorize();
@@ -627,7 +647,9 @@ void scuffSolver::AssembleSystemMatrix(double Freq)
 void scuffSolver::DoSolve(IncField *IF, cdouble *PortCurrents)
 {
   if (M==0 || G->StoredOmega!=OmegaSIE)
-   ErrExit("scuffSolver: AssembleSystemMatrix() must be called before Solve()");
+   { Warn("scuffSolver: AssembleSystemMatrix() must be called before Solve()");
+     return;
+   }
   cdouble Omega = G->StoredOmega;
 
   /*--------------------------------------------------------------*/

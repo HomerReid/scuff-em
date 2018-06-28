@@ -671,6 +671,10 @@ HMatrix *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
                       const char *MeshFile, const char *TransFile=0,
                       const char *OutFileBase=0, const char *PPOptions=0,
                       bool UseCentroids=true);
+
+HVector *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
+                      dVec X0, dVec L1, dVec L2, iVec NVec,
+                      const char *FileBase, const char *PPOptions=0, bool UseCentroids=false);
                   
 } // namespace scuff
 

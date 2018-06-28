@@ -118,15 +118,14 @@ public:
                    const char *Label=0, const char *Transformation=0);
     void AddMetalTraceMesh(const char *MeshFile, const char *Label=0,
                            const char *Transformation=0);
-
-    //void ImportGDSIILayer(const char *GDSIIFile, int Layer=-1);
-
     void SetSubstratePermittivity(cdouble Epsilon);
     void SetSubstrateThickness(double h);
     void AddGroundPlane(double zGP);
     void AddSubstrateLayer(double zInterface, cdouble Epsilon, cdouble Mu=1.0);
     void SetSubstrateFile(const char *SubstrateFile);
 
+    void SetGDSIIPortFile(const char *GDSIIPortFile, int Layer=-1);
+    void SetGDSIIPortFile(const char *GDSIIPortFile, iVec Layers);
     void SetPortFile(const char *PortFile);
     void AddPort(const dVec PVertexCoordinates, const dVec MVertexCoordinates);
     void AddPort(const dVec PVertexCoordinates);
@@ -150,8 +149,11 @@ public:
 
     // high-level post-processing
     void ProcessEPFile(char *EPFile, char *OutFileName=0);
+    HMatrix *PlotRFFields();
+    HVector *PlotRFFields(dVec X0, dVec L1, dVec L2, iVec NVec, char *OutFileBase);
     HMatrix *ProcessFVMesh(char *FVMesh, char *FVMeshTransFile, char *OutFileBase=0);
-    HMatrix *GetZMatrix(HMatrix *ZMatrix=0, HMatrix **pZTerms=0);
+    HMatrix *GetZMatrix(HMatrix *ZMatrix=0, bool AllTerms=false);
+    HMatrix *GetFullZMatrix();
 
     // utility routines for converting Z <--> S parameters
     HMatrix *Z2S(HMatrix *Z, HMatrix *S=0, double ZCharacteristic=50.0);
@@ -223,6 +225,7 @@ public:
     //    (multiple distinct polygons separated by a single infinite coordinate)
     std::vector<dVec> PortTerminalVertices;
     char *portFile;
+    iVec GDSIIPortLayers;
 
  }; // class scuffSolver;
 
@@ -230,7 +233,7 @@ public:
 /***************************************************************/
 /***************************************************************/
 RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName);
-RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int GDSIILayer=-1);
+RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, iVec Layers);
 
 /***************************************************************/
 /* Routines for handling MOI (metal on insulator, i.e. thin    */

@@ -1007,6 +1007,20 @@ HVector *RWGSurface::MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HVector *MakeMeshPlot(MeshDataFunc MDFunc, void *UserData,
+                      dVec X0, dVec L1, dVec L2, iVec NVec,
+                      const char *FileBase, const char *PPOptions, bool UseCentroids)
+{
+  if (NVec.size()<1 || NVec.size()>2)
+   ErrExit("%s:%i: invalid NVec(%lu)",__FILE__,__LINE__,NVec.size());
+  if (NVec.size()==1) NVec.push_back(NVec[0]);
+  RWGSurface S(X0, L1, L2, NVec[0], NVec[1]);
+  return S.MakeMeshPlot(MDFunc, UserData, FileBase, PPOptions, UseCentroids);
+}
+
+/***************************************************************/
 /* (nd,nt) entry of returned matrix                            */
 /*  = integral of quantity #nd for transform #nt               */
 /***************************************************************/

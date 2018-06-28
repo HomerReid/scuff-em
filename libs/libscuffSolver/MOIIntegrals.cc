@@ -684,7 +684,6 @@ void AssembleMOIMatrixBlock(RWGGeometry *G, int nsa, int nsb,
      int neb = nPair%NEB;
      if (nsa==nsb && neb<nea) continue;
      if (EEPTable && EEPTable->HasParent(nea, neb)) continue;
-
      cdouble ME;
      GetMOIMatrixElement(G, nsa, nea, nsb, neb, Omega, &ME, Order, true);
      Block->SetEntry(OffsetA + nea, OffsetB + neb, ME);

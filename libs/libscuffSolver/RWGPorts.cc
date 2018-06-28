@@ -261,6 +261,79 @@ RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, iVec Layers)
+{
+#ifndef HAVE_LIBGDSII
+  (void) G; (void) GDSIIFileName; (void) Layer;
+  ErrExit("SCUFF-EM must be compiled with libGDSII to process GDSII files");
+  return 0;
+#else
+
+  // Loop over text strings on the given GDSII layer (or all layers if Layer==-1).
+  int MaxPort=0; 
+  multimap<int,dVec> PMPolygons[2];
+  for(size_t nl=0; nl<Layers.size(); nl++)
+   { TextStringList TextStrings = GetTextStrings(GDSIIFileName, Layers[nl]);
+     for(size_t nt=0; nt<TextStrings.size(); nt++)
+      {
+        // loop for text strings of the form PORT 3+ or PORT 5-
+        char *Text    = TextStrings[nt].Text;
+        int nPort;
+        char Sign;
+        if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) ) continue;
+        int PM = (strchr("-mM",Sign) ? 1 : 0);
+        if (nPort>MaxPort) MaxPort=nPort;
+
+        // find a polygon on the same layer containing the reference point;
+        // if none found, take the reference point itself to be the polygon
+        int TextLayer = TextStrings[nt].Layer;
+        dVec TextXY   = TextStrings[nt].XY;
+        PolygonList Polygons=GetPolygons(GDSIIFileName, TextLayer);
+        bool FoundPolygon=false;
+        for(size_t np=0; !FoundPolygon && np<Polygons.size(); np++)
+         if (libGDSII::PointInPolygon( Polygons[np], TextXY[0], TextXY[1]))
+          { PMPolygons[PM].insert( pair<int,dVec>(nPort,Polygons[np]) );
+            FoundPolygon=true;
+          }
+        if (!FoundPolygon)
+         PMPolygons[PM].insert( pair<int,dVec>(nPort,TextXY) );
+      }
+   }
+  Log("%s: found %i port definitions (total %lu port-terminal polygons)",MaxPort,PMPolygons[0].size()+PMPolygons[1].size());
+
+  // Write what we found to a `.ports` file
+  char PortFileName[100];
+  snprintf(PortFileName,100,"/tmp/%s.ports.XXXXXX",GetFileBase(GDSIIFileName));
+  FILE *f = (mkstemp(PortFileName)==-1) ? 0 : fopen(PortFileName,"w");
+  if (!f) ErrExit("%s:%i: could not create temporary file %s",__FILE__,__LINE__,PortFileName);
+  for(int nPort=1; nPort<=MaxPort; nPort++)
+   for(int PM=0; PM<2; PM++)
+    { if (PM==0) fprintf(f,"PORT \n");
+      pair< multimap<int,dVec>::iterator , multimap<int,dVec>::iterator > Range=PMPolygons[PM].equal_range(nPort);
+      int NumPolygons=0;
+      for(multimap<int,dVec>::iterator p=Range.first; p!=Range.second; p++, NumPolygons++)
+       { fprintf(f," %cPOLYGON ",PM==0 ? 'P' : 'M');
+         for(size_t n=0; n<p->second.size(); n++) fprintf(f,"%g ",p->second[n]);
+         fprintf(f,"\n");
+       }
+      if (PM==0 && NumPolygons==0)
+       ErrExit("%s: no positive terminal defined for port %i/%i",GDSIIFileName,nPort,MaxPort);
+      if (PM==1) fprintf(f,"ENDPORT \n");
+    }
+  fclose(f);
+  printf("Wrote port list to %s.\n",PortFileName);
+
+  RWGPortList *PortList=ParsePortFile(G, PortFileName);
+  if (!CheckEnv("SCUFF_RETAIN_GDSII_PORTFILE"))
+   unlink(PortFileName);
+  return PortList;
+
+#endif
+}
+
+/***************************************************************/
 /* port file syntax example                                    */
 /*  PORT                                                       */
 /*   POSITIVE  A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                  */
@@ -389,77 +462,6 @@ RWGPortList *ParsePortFile(RWGGeometry *G, const char *PortFileName)
     }
 
   return PortList;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, int Layer)
-{
-#ifndef HAVE_LIBGDSII
-  (void) G; (void) GDSIIFileName; (void) Layer;
-  ErrExit("SCUFF-EM must be compiled with libGDSII to process GDSII files");
-  return 0;
-#else
-
-  // Loop over text strings on the given GDSII layer (or all layers if Layer==-1).
-  TextStringList TextStrings = GetTextStrings(GDSIIFileName, Layer);
-  int MaxPort=0; 
-  multimap<int,dVec> PMPolygons[2];
-  for(size_t nt=0; nt<TextStrings.size(); nt++)
-   {
-     // loop for text strings of the form PORT 3+ or PORT 5-
-     char *Text    = TextStrings[nt].Text;
-     int nPort;
-     char Sign;
-     if ( 2 != sscanf(Text,"PORT %i%c",&nPort,&Sign) || !strchr("+pP-mM",Sign) ) continue;
-     int PM = (strchr("-mM",Sign) ? 1 : 0);
-     if (nPort>MaxPort) MaxPort=nPort;
-
-     // find a polygon on the same layer containing the reference point;
-     // if none found, take the reference point itself to be the polygon
-     int TextLayer = TextStrings[nt].Layer;
-     dVec TextXY   = TextStrings[nt].XY;
-     PolygonList Polygons=GetPolygons(GDSIIFileName, TextLayer);
-     bool FoundPolygon=false;
-     for(size_t np=0; !FoundPolygon && np<Polygons.size(); np++)
-      if (libGDSII::PointInPolygon( Polygons[np], TextXY[0], TextXY[1]))
-       { PMPolygons[PM].insert( pair<int,dVec>(nPort,Polygons[np]) );
-         FoundPolygon=true;
-       }
-     if (!FoundPolygon)
-      PMPolygons[PM].insert( pair<int,dVec>(nPort,TextXY) );
-   }
-  Log("%s: found %i port definitions (total %lu port-terminal polygons)",MaxPort,PMPolygons[0].size()+PMPolygons[1].size());
-
-  // Write what we found to a `.ports` file
-  char PortFileName[100];
-  snprintf(PortFileName,100,"/tmp/%s.ports.XXXXXX",GetFileBase(GDSIIFileName));
-  FILE *f = (mkstemp(PortFileName)==-1) ? 0 : fopen(PortFileName,"w");
-  if (!f) ErrExit("%s:%i: could not create temporary file %s",__FILE__,__LINE__,PortFileName);
-  for(int nPort=1; nPort<=MaxPort; nPort++)
-   for(int PM=0; PM<2; PM++)
-    { if (PM==0) fprintf(f,"PORT \n");
-      pair< multimap<int,dVec>::iterator , multimap<int,dVec>::iterator > Range=PMPolygons[PM].equal_range(nPort);
-      int NumPolygons=0;
-      for(multimap<int,dVec>::iterator p=Range.first; p!=Range.second; p++, NumPolygons++)
-       { fprintf(f," %cPOLYGON ",PM==0 ? 'P' : 'M');
-         for(size_t n=0; n<p->second.size(); n++) fprintf(f,"%g ",p->second[n]);
-         fprintf(f,"\n");
-       }
-      if (PM==0 && NumPolygons==0)
-       ErrExit("%s: no positive terminal defined for port %i/%i",GDSIIFileName,nPort,MaxPort);
-      if (PM==1) fprintf(f,"ENDPORT \n");
-    }
-  fclose(f);
-  printf("Wrote port list to %s.\n",PortFileName);
-
-  RWGPortList *PortList=ParsePortFile(G, PortFileName);
-  if (!CheckEnv("SCUFF_RETAIN_GDSII_PORTFILE"))
-   unlink(PortFileName);
-  return PortList;
-
-#endif
 }
 
 /***************************************************************/

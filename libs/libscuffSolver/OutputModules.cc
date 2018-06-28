@@ -267,6 +267,17 @@ HMatrix *scuffSolver::ProcessFVMesh(char *FVMesh, char *TransFile, char *OutFile
   return Integrals;
 }
 
+HVector *scuffSolver::PlotRFFields(dVec X0, dVec L1, dVec L2, iVec NVec, char *OutFileBase)
+{ return MakeMeshPlot(RFFieldsMDF, (void *)this, X0, L1, L2, NVec, OutFileBase, PPOptions); }
+
+HMatrix *scuffSolver::PlotRFFields()
+{ 
+  HMatrix *Integrals;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   Integrals=ProcessFVMesh(G->Surfaces[ns]->MeshFileName,0,G->Surfaces[ns]->Label);
+  return Integrals;
+}
+
 /***************************************************************/
 /* on entry: column #np of KMatrix =                           */
 /*  vector of basis-function weights obtained by solving       */
@@ -323,19 +334,12 @@ void scuffSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
 /***************************************************************/
 /* compute the NPxNP impedance matrix (NP=number of ports).    */
 /***************************************************************/
-HMatrix *scuffSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
+HMatrix *scuffSolver::GetZMatrix(HMatrix *ZMatrix, bool AllTerms)
 {
-  HMatrix *ZTerms[3];
-  if (pZTerms)
-   { ZTerms[0] = pZTerms[0] = CheckHMatrix(pZTerms[0], NumPorts, NumPorts, LHM_COMPLEX);
-     ZTerms[1] = pZTerms[1] = CheckHMatrix(pZTerms[1], NumPorts, NumPorts, LHM_COMPLEX);
-     ZTerms[2] = pZTerms[2] = CheckHMatrix(pZTerms[2], NumPorts, NumPorts, LHM_COMPLEX);
-   }
-  else
-   { ZTerms[0] = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
-     ZTerms[1] = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
-     ZTerms[2] = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
-   }
+#define NUMZTERMS 3
+  HMatrix *ZTerms[NUMZTERMS];
+  for(int nt=0; nt<NUMZTERMS; nt++)
+   ZTerms[nt] = new HMatrix(NumPorts, NumPorts, LHM_COMPLEX);
 
   AssemblePortBFInteractionMatrix(G->StoredOmega);
 
@@ -354,13 +358,27 @@ HMatrix *scuffSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
   AddMinusIdVTermsToZMatrix(WRMatrix, ZTerms[2]);
 
   delete WRMatrix;
-
-  ZMatrix=CheckHMatrix(ZMatrix, NumPorts, NumPorts, LHM_COMPLEX, "GetZMatrix");
+ 
+  int NRMult = (AllTerms ? 4 : 1);
+  int NR = NRMult*NumPorts;
+  int NC = NumPorts;
+  ZMatrix=CheckHMatrix(ZMatrix, NR, NC, LHM_COMPLEX, "GetZMatrix");
   ZMatrix->Zero();
-  ZMatrix->Add(ZTerms[0]);
-  ZMatrix->Add(ZTerms[1]);
-  ZMatrix->Add(ZTerms[2]);
+  for(int DestPort=0; DestPort<NumPorts; DestPort++)
+   for(int SourcePort=0; SourcePort<NumPorts; SourcePort++)
+    for(int nt=0; nt<NUMZTERMS; nt++)
+     { 
+       cdouble Term=ZTerms[nt]->GetEntry(DestPort,SourcePort);
+       ZMatrix->AddEntry(NRMult*DestPort+0, SourcePort, Term);
+       if (AllTerms)
+        ZMatrix->SetEntry(NRMult*DestPort+1+nt, SourcePort, Term);
+     }
+  for(int nt=0; nt<NUMZTERMS; nt++)
+   delete ZTerms[nt];
 
+  return ZMatrix;
+
+#if 0
   char *TermFile=0;
   if (CheckEnv("SCUFF_ZMATRIX_TERMFILE",&TermFile))
    { 
@@ -394,9 +412,12 @@ HMatrix *scuffSolver::GetZMatrix(HMatrix *ZMatrix, HMatrix **pZTerms)
      delete ZTerms[1];
      delete ZTerms[2];
    }
-
   return ZMatrix;
+#endif
 }
+
+HMatrix *scuffSolver::GetFullZMatrix()
+{ return GetZMatrix(0,true); }
 
 /***************************************************************/
 /* routines for transforming impedance parameters into         */

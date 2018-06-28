@@ -534,7 +534,6 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
      BranchTables[nt]->Sa = G->Surfaces[nsa];
      BranchTables[nt]->Sb = G->Surfaces[nsb];
    }
-  MasterTable = (void *)BranchTables[0];
 
   Log("Identifying equivalent pairs (%i threads...)",NumThreads);
 #ifdef USE_OPENMP
@@ -563,19 +562,26 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
      }
 
   for(int nt=0; nt<NumThreads; nt++)
-   { int NumParents          = BranchTables[nt]->Children.size();
-     int NumChildren         = BranchTables[nt]->Parents.size();
-     Log("Thread %i: %i/%i parents/children",nt,NumParents,NumChildren);
+   { int NumParentPairs      = BranchTables[nt]->Children.size();
+     int NumChildPairs       = BranchTables[nt]->Parents.size();
+     Log("Thread %i: %i/%i parents/children",nt,NumParentPairs,NumChildPairs);
      if (nt==0) continue;
      MergeEEPSubTables(BranchTables[0], BranchTables[nt]);
    }
+   
+  Log("Before pruning: %lu parents",BranchTables[0]->Children.size());
+  for(ChildPairMap::iterator it=BranchTables[0]->Children.begin(); it!=BranchTables[0]->Children.end(); it++)
+   if ( it->second.size() == 0)
+    BranchTables[0]->Children.erase(it);
+  Log("After pruning: %lu parents",BranchTables[0]->Children.size());
 
   int NEPairs = (nsa==nsb ? NEA*(NEA+1)/2 : NEA*NEB);
-  int NumParents         = BranchTables[0]->Children.size();
-  int NumChildren        = BranchTables[0]->Parents.size();
+  int NumParentPairs     = BranchTables[0]->Children.size();
+  int NumChildPairs      = BranchTables[0]->Parents.size();
   Log(" Of %i total edge-edge pairs on surfaces (%i,%i) (%s,%s):",NEPairs,nsa,nsb,Sa->Label,Sb->Label);
-  Log("    %i are children (savings of %.0f %%)",NumChildren,100.0*((double)NumChildren)/((double)NEPairs));
-  Log("    %i are parents (%.1f %%)",NumParents, 100.0*((double)NumParents) / ((double)NEPairs));
+  Log("    %i are children (savings of %.0f %%)",NumChildPairs,100.0*((double)NumChildPairs)/((double)NEPairs));
+  Log("    %i are parents (%.1f %%)",NumParentPairs, 100.0*((double)NumParentPairs) / ((double)NEPairs));
+  MasterTable = (void *)BranchTables[0];
 }
 
 /***************************************************************/
@@ -610,6 +616,16 @@ ChildPairList EquivalentEdgePairTable::GetChildren(int neaParent, int nebParent,
       ChildPairs.push_back( ChildPairData(ChildEdgePair->nea, ChildEdgePair->neb, RelativeSignPattern( &(*ChildEdgePair), ParentEdgePair) ) );
    }
   return ChildPairs;
+}
+
+int EquivalentEdgePairTable::NumParents()
+{ EquivalentEdgePairSubTable *Table = (EquivalentEdgePairSubTable *)MasterTable;
+  return Table->Children.size();
+}
+
+int EquivalentEdgePairTable::NumChildren()
+{ EquivalentEdgePairSubTable *Table = (EquivalentEdgePairSubTable *)MasterTable;
+  return Table->Parents.size();
 }
 
 /***************************************************************/
