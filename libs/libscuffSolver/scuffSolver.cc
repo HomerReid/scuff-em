@@ -578,7 +578,11 @@ void scuffSolver::UpdateSystemMatrix(cdouble Omega)
   if (Omega!=OmegaSIE)
    for(int ns=0; ns<G->NumSurfaces; ns++)
     if (G->Mate[ns]==-1)
-     AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns]);
+     { if(NumPorts==0)
+        G->AssembleBEMMatrixBlock(ns, ns, Omega, 0, TBlocks[ns]);
+       else 
+        AssembleMOIMatrixBlock(G, ns, ns, Omega, TBlocks[ns]);
+     }
 
   // UBlocks recomputed if frequency has changed or surfaces were moved
   for(int nsa=0, nu=0; nsa<G->NumSurfaces; nsa++)
@@ -588,7 +592,10 @@ void scuffSolver::UpdateSystemMatrix(cdouble Omega)
       if (Omega!=OmegaSIE || G->SurfaceMoved[nsa] || G->SurfaceMoved[nsb])
        { if (UBlocks[nu]==0) 
           UBlocks[nu]=new HMatrix(G->Surfaces[nsa]->NumBFs, G->Surfaces[nsb]->NumBFs, LHM_COMPLEX);
-         AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu]);
+         if(NumPorts==0)
+          G->AssembleBEMMatrixBlock(nsa, nsb, Omega, 0, UBlocks[nu]);
+         else
+          AssembleMOIMatrixBlock(G, nsa, nsb, Omega, UBlocks[nu]);
        }
     }
 
@@ -635,7 +642,11 @@ void scuffSolver::AssembleSystemMatrix(double Freq)
 
   G->UpdateCachedEpsMuValues(Omega);
   if (TBlocks==0)
-   AssembleMOIMatrix(G, Omega, M);
+   { if (NumPorts==0) 
+      G->AssembleBEMMatrix(Omega, M);
+     else
+      AssembleMOIMatrix(G, Omega, M);
+   }
   else
    UpdateSystemMatrix(Omega);
   OmegaSIE=Omega;

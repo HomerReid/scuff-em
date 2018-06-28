@@ -265,7 +265,7 @@ void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
   N2=(int)round(Screen[10]);
 
   RWGSurface FluxMesh(X0, L1, L2, N1, N2);
-  FILE *f=vfopen("%s.pp",OutFileBase);
+  FILE *f=vfopen("%s.pp","w",OutFileBase);
   WriteFVMesh(G, KN, Omega, kBloch, &FluxMesh, f);
   fclose(f);
 }

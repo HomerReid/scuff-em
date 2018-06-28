@@ -175,9 +175,9 @@ int ProcessAMatrices(BeynSolver *Solver,
    for(int n=0; n<K; n++)
     B.ScaleEntry(m,n,1.0/Sigma->GetEntry(n));
 
-  Log(" Eigensolving...");
-  HVector Lambda(K,LHM_COMPLEX,(void *)LLBuffers[0]);
-  HMatrix S(K,K,LHM_COMPLEX,(void *)LLBuffers[1]);
+  Log(" Eigensolving (%i,%i)",K,K);
+  HVector Lambda(K,LLBuffers[0]);
+  HMatrix S(K,K,LLBuffers[1]);
   B.NSEig(&Lambda, &S);
 
   Eigenvalues->Zero();
@@ -187,7 +187,7 @@ int ProcessAMatrices(BeynSolver *Solver,
   if (Eigenvectors==0) return K;
 
   Log(" Multiplying V0*S...");
-  HMatrix V0S(M,K,LHM_COMPLEX,(void *)MLBuffers[1]);
+  HMatrix V0S(M,K,MLBuffers[1]);
   V0.Multiply(&S, &V0S);
 
   Eigenvectors->Zero();

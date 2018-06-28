@@ -675,12 +675,26 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
      if (U) U->SetEntry(0,0,1.0);
      return Lambda;
    }
+  if (NR==2)
+   { cdouble M11 = GetEntry(0,0);
+     cdouble M12 = GetEntry(0,1);
+     cdouble M21 = GetEntry(1,0);
+     cdouble M22 = GetEntry(1,1);
+     cdouble Det = sqrt(M11*M11 + 4.0*M12*M21 - 2.0*M11*M22 + M22*M22);
+     Lambda->SetEntry(0, 0.5*(M11+M22-Det));
+     Lambda->SetEntry(1, 0.5*(M11+M22+Det));
+     U->SetEntry(0,0,(M11-M22-Det)/(2.0*M21));
+     U->SetEntry(1,0,1.0);
+     U->SetEntry(0,1,(M11-M22+Det)/(2.0*M21));
+     U->SetEntry(1,1,1.0);
+     return Lambda;
+   }
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   const char *jobvl = "N";
-  const char *jobvr = (U==0) ? "N" : "V";
+  const char *jobvr = ((U==0) ? "N" : "V");
   int lworkOptimal, info, MinusOne=-1;
 
   if (RealComplex==LHM_REAL)
@@ -725,12 +739,18 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
      double *rwork = new double[2*NR];
      cdouble zlworkOptimal;
      zgeev_(jobvl, jobvr, &NR, ZM, &NR, Lambda->ZV, 0, &NR, 
-            U ? U->ZM : 0, &NR, 
+            (U ? U->ZM : 0), &NR, 
             &zlworkOptimal, &MinusOne, rwork, &info);
 
-     lworkOptimal = 2*(int)(real(zlworkOptimal));
+     lworkOptimal = 2*(int)(ceil(real(zlworkOptimal)));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+printf("NR=%i zlworkOptimal=%s lworkOptimal=%i lwork=%i info=%i work=%p\n",NR,z2s(zlworkOptimal),lworkOptimal,lwork,info,work);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      if (lworkOptimal > lwork)
-      { work=realloc(work,lworkOptimal*sizeof(double));
+      { //work =realloc(work,lworkOptimal*sizeof(double));
+        if (work) free(work);
+        work=(double *)mallocEC(lworkOptimal*sizeof(double));
+printf("work=%p\n",work);
         lwork=lworkOptimal;
       }
 
