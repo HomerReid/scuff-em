@@ -634,7 +634,7 @@ HVector *HMatrix::Eig(HVector *Lambda, HMatrix *U)
   else if ( RealComplex==LHM_COMPLEX && StorageType==LHM_SYMMETRIC )
    {
       ErrExit("use NSEig() for non-hermitian eigenproblems");
-   };
+   }
 
   delete[] isuppz;
   return Lambda;
@@ -657,7 +657,7 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
    { Warn("Incorrect Lambda vector passed to NSEig (reallocating)");
      delete Lambda;
      Lambda=0;
-   };
+   }
   if (Lambda==0)
    Lambda=new HVector(NR,LHM_COMPLEX);
 
@@ -668,7 +668,13 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
    { Warn("Incorrect U matrix passed to NSEig (reallocating)");
      delete U;
      U = new HMatrix(NR, NC, LHM_COMPLEX);
-   };
+   }
+
+  if (NR==1)
+   { Lambda->SetEntry(0, GetEntry(0,0));
+     if (U) U->SetEntry(0,0,1.0);
+     return Lambda;
+   }
 
   /***************************************************************/
   /***************************************************************/
@@ -726,7 +732,7 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
      if (lworkOptimal > lwork)
       { work=realloc(work,lworkOptimal*sizeof(double));
         lwork=lworkOptimal;
-      };
+      }
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/

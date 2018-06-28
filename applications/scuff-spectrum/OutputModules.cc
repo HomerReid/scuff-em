@@ -247,6 +247,32 @@ void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
+                     char *OutFileBase, double *Screen)
+{ 
+  dVec X0, L1, L2;
+  int N1, N2;
+  X0.push_back(Screen[0]);
+  X0.push_back(Screen[1]);
+  X0.push_back(Screen[2]);
+  L1.push_back(Screen[3]);
+  L1.push_back(Screen[4]);
+  L1.push_back(Screen[5]);
+  L2.push_back(Screen[6]);
+  L2.push_back(Screen[7]);
+  L2.push_back(Screen[8]);
+  N1=(int)round(Screen[9]);
+  N2=(int)round(Screen[10]);
+
+  RWGSurface FluxMesh(X0, L1, L2, N1, N2);
+  FILE *f=vfopen("%s.pp",OutFileBase);
+  WriteFVMesh(G, KN, Omega, kBloch, &FluxMesh, f);
+  fclose(f);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void WriteCartesianMoments(RWGGeometry *G, HVector *KN,
                            cdouble Omega, double *kBloch,
                            char *CartesianMomentFile)

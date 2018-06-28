@@ -28,6 +28,9 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
 void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
                      char *OutFileBase, char *FVMesh, char *TransFile);
 
+void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
+                     char *OutFileBase, double *Screen);
+
 void WriteCartesianMoments(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch, char *CartesianMomentFile);
 
 void WriteSphericalMoments(RWGGeometry *G, HVector *KN, cdouble Omega, int LMax, char *SphericalMomentFile);
@@ -103,6 +106,7 @@ int main(int argc, char *argv[])
   int LMax=3;
   char *CartesianMomentFile=0;
   char *EPFiles[MAXEPF];             int nEPFiles;
+  double FVScreens[11*MAXFVM];       int nFVScreens;
   char *FVMeshes[MAXFVM];            int nFVMeshes;
   char *FVMeshTransFiles[MAXFVM];    int nFVMeshTransFiles;
   memset(FVMeshTransFiles, 0, MAXFVM*sizeof(char *));
@@ -132,6 +136,7 @@ int main(int argc, char *argv[])
 //
      {"EPFile",             PA_STRING,  1, MAXEPF, (void *)EPFiles,          &nEPFiles,           "list of evaluation points"},
 //
+     {"FVScreen",           PA_DOUBLE,  11, MAXFVM, (void *)FVScreens,       &nFVScreens,         "field visualization screen"},
      {"FVMesh",             PA_STRING,  1, MAXFVM, (void *)FVMeshes,         &nFVMeshes,          "field visualization mesh"},
      {"FVMeshTransFile",    PA_STRING,  1, MAXFVM, (void *)FVMeshTransFiles, &nFVMeshTransFiles,  "list of geometrical transformations applied to FVMesh"},
 //
@@ -273,7 +278,12 @@ int main(int argc, char *argv[])
         // process user-specified field-visualization meshes
         for(int nfm=0; nfm<nFVMeshes; nfm++)
          VisualizeFields(G, &KN, Omega, kBloch, OutFileBase, FVMeshes[nfm], FVMeshTransFiles[nfm]);
-      };
+        for(int ns=0; ns<nFVScreens; ns++)
+         { char VFFileBase[100];
+           snprintf(VFFileBase,100,"%s.Screen%i",OutFileBase,ns);
+           VisualizeFields(G, &KN, Omega, kBloch, VFFileBase, FVScreens + 11*ns);
+         }
+      }
 
      DestroyBeynSolver(Solver);
 
