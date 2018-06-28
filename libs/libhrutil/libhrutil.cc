@@ -267,7 +267,12 @@ FILE *fopenPath(const char *Path, const char *FileName,
   if (WhichDir) *WhichDir=DirFound;
 
   if ( FILE *f=fopen(FileName,Mode) )
-   { sprintf(DirFound,".");
+   { if (strchr(FileName,'/'))
+      { snprintf(DirFound,MAXSTR,FileName);
+        *strrchr(DirFound,'/') = 0;
+      }
+     else 
+      sprintf(DirFound,".");
      return f;
    }
 
@@ -1087,7 +1092,7 @@ void AppendEnv(const char *Name, const char *Separator, const char *format, ...)
   COLLECT_ARGS(format, buffer, MAXSTR);
   char *Old = getenv(Name);
   char *New = vstrdup("%s%s%s",Old ? Old:"",Old&&Separator ? Separator:"",buffer);
-  setenv(Name,buffer,1);
+  setenv(Name,New,1);
   free(New);
   return;
 }
