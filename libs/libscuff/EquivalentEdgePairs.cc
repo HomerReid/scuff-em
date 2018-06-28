@@ -569,11 +569,12 @@ EquivalentEdgePairTable::EquivalentEdgePairTable(RWGGeometry *_G, int _nsa, int 
      MergeEEPSubTables(BranchTables[0], BranchTables[nt]);
    }
    
-  Log("Before pruning: %lu parents",BranchTables[0]->Children.size());
-  for(ChildPairMap::iterator it=BranchTables[0]->Children.begin(); it!=BranchTables[0]->Children.end(); it++)
-   if ( it->second.size() == 0)
-    BranchTables[0]->Children.erase(it);
-  Log("After pruning: %lu parents",BranchTables[0]->Children.size());
+ // FIXME
+ // Log("Before pruning: %lu parents",BranchTables[0]->Children.size());
+ // for(ChildPairMap::iterator it=BranchTables[0]->Children.begin(); it!=BranchTables[0]->Children.end(); it++)
+ // if ( it->second.size() == 0)
+ //   BranchTables[0]->Children.erase(it);
+ // Log("After pruning: %lu parents",BranchTables[0]->Children.size());
 
   int NEPairs = (nsa==nsb ? NEA*(NEA+1)/2 : NEA*NEB);
   int NumParentPairs     = BranchTables[0]->Children.size();
