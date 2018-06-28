@@ -162,7 +162,7 @@ int ProcessAMatrices(BeynSolver *Solver,
   for(int k=0; k<K; k++)
    { for(int m=0; m<M; m++) V0.SetEntry(m,k,V0Full.GetEntry(m,k));
      for(int l=0; l<L; l++) W0T.SetEntry(k,l,W0TFull.GetEntry(k,l));
-   };
+   }
 
   // B <- V0' * A1 * W0 * Sigma^-1
   HMatrix TM2(K,L,LHM_COMPLEX,(void *)LLBuffers[0]);

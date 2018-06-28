@@ -64,7 +64,7 @@ void AddSubstrateContributionToSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruc
 /***************************************************************/
 /***************************************************************/
 void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int neb,
-                          cdouble iwEps[2], cdouble iwMu[2], dVec Signs, HMatrix *MEs)
+                          cdouble iwEps[2], cdouble iwMu[2], double Signs[2], HMatrix *MEs)
 {
   cdouble Gab[2][NUMGCMES], ikCab[2][NUMGCMES];
   GetGCMatrixElements(G, Args, nea, neb, Gab, ikCab);
@@ -86,15 +86,16 @@ void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int n
 /* contributions of surface currents on the two surfaces to    */
 /* fields in those regions.                                    */
 /***************************************************************/
-iVec GetCommonRegions(RWGSurface *Sa, RWGSurface *Sb, dVec &Signs)
+iVec GetCommonRegions(RWGSurface *Sa, RWGSurface *Sb, double Signs[2])
 {
   iVec CommonRegions;
   int NRA = (Sa->RegionIndices[1]==-1 ? 2 : 1), NRB = (Sb->RegionIndices[1]==-1 ? 2 : 1);
   for(int nra=0; nra<NRA; nra++)
    for(int nrb=0; nrb<NRB; nrb++)
     if ( Sa->RegionIndices[nra] == Sb->RegionIndices[nrb] )
-     { CommonRegions.push_back(Sa->RegionIndices[nra]);
-       Signs.push_back( (nra==0)==(nrb==0) ? +1.0 : -1.0 );
+     { if ( CommonRegions.size() == 2 ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+       Signs[CommonRegions.size()] = ( (nra==0)==(nrb==0) ? +1.0 : -1.0 );
+       CommonRegions.push_back(Sa->RegionIndices[nra]);
      }
   return CommonRegions;
 }
@@ -122,9 +123,13 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
   int NumPairs = (Sa==Sb ? NEA*(NEA+1)/2 : NEA*NEB);
 
   cdouble iwEps[2]={0.0, 0.0}, iwMu[2]={0.0, 0.0};
-  dVec Signs;
+  double Signs[2]={0.0,0.0};
   iVec CommonRegions   = GetCommonRegions(Sa, Sb, Signs);
   int NumCommonRegions = CommonRegions.size();
+  if (NumCommonRegions==0)
+   { Block->ZeroBlock(OffsetA, NEA*NBFPEA, OffsetB, NEB*NBFPEB);
+     return;
+   }
   for(int nr=0; nr<NumCommonRegions; nr++)
    G->RegionMPs[CommonRegions[nr]]->GetEpsMu(Omega, iwEps+nr, iwMu+nr);
 
