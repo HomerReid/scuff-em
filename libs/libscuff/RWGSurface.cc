@@ -237,7 +237,7 @@ char *ParseMeshFile(char *MeshFileName, int MeshTag, char **MeshFileDir,
   /*------------------------------------------------------------*/
   char *Dir=0;
   FILE *MeshFile=fopenPath(getenv("SCUFF_MESH_PATH"),  MeshFileName, "r", &Dir);
-  if (!MeshFile) return vstrdup("could not open file");
+  if (!MeshFile) return vstrdup("could not open file %s",MeshFileName);
   Log(" Opened mesh file %s/%s",Dir ? Dir : "", Dir ? "/" : "", MeshFileName);
   *MeshFileDir = Dir ? strdup(Dir) : 0;
 
