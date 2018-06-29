@@ -79,9 +79,6 @@ float Quantize(float d, float Unit=0.0)
   return ( fabs(d) < 0.5*Unit ? 0.0 : Unit*round(d/Unit) ); 
 }
 
-float TruncateDigits(float d, float RelTol=EEPRelTol)
-{ return Quantize(d, RelTol*fabs(d) ); }
-
 float sgn(float x) { return (x<0.0 ? -1.0 : 1.0); }
 
 char PMSign(bool SignFlip) { return SignFlip ? '-' : '+'; }
@@ -277,7 +274,7 @@ EdgePairSignature GetEdgePairSignature(RWGSurface *Sa, int nea, RWGSurface *Sb, 
   EdgePairSignature EPSig;
   double Scale = fmax( fmax( fabs(NSMEs[0]), fabs(NSMEs[1]) ), fabs(NSMEs[2]) );
   for(int n=0; n<NUM_NSMES; n++)
-   EPSig.Data[n] = Quantize(EPSig.Data[n], EEPRelTol*Scale);
+   EPSig.Data[n] = Quantize(NSMEs[n], EEPRelTol*Scale);
   if (Signs)
    { Signs->Flipped[GKERNEL] = (NSMEs[NSME_G1] < 0.0);
      Signs->Flipped[CKERNEL] = (NSMEs[NSME_C]  < 0.0);

@@ -93,7 +93,7 @@ typedef struct RWGPortList
  } RWGPortList;
 
 /***************************************************************/
-/* an "scuffSolver" is a SCUFF-EM geometry, plus a list of ports, */
+/* a "scuffSolver" is a SCUFF-EM geometry, plus a list of ports, */
 /* plus various internally-cached data (operating frequency,   */
 /***************************************************************/
 class scuffSolver
@@ -104,7 +104,7 @@ public:
     ////////////////////////////////////////////////////
 
     // constructors and geometry-definition routines
-    scuffSolver(const char *scuffgeoFileName=0, const char *portFileName=0);
+    scuffSolver(const char *Name=0);
 
     //scuffSolver(const char *GDSIIFileName);
     ~scuffSolver();
@@ -149,7 +149,7 @@ public:
     void PlotGeometry(const char *PPFormat, ...);
     void PlotGeometry();
 
-    void PlotSurfaceCurrents(char *PPFile=0);
+    void PlotSurfaceCurrents(const char *FileBase=0);
 
     // high-level post-processing
     void ProcessEPFile(char *EPFile, char *OutFileName=0);
@@ -164,11 +164,12 @@ public:
     HMatrix *S2Z(HMatrix *S, HMatrix *Z=0, double ZCharacteristic=50.0);
 
     // low-level post-processing
-    HMatrix *GetFields(HMatrix *XMatrix, HMatrix *PFMatrix=0);
-    void GetFields(double X[3], cdouble PF[NPFC]);
+    HMatrix *GetRFFields(HMatrix *XMatrix, HMatrix *PFMatrix=0);
+    void GetRFFields(double X[3], cdouble PF[NPFC]);
+    zVec GetFields(dVec X, const char *WhichFields=0);
 
     // alternative implementation of GetFields that uses RPF ("reduced potential/field") matrices
-    HMatrix *GetFieldsViaRPFMatrices(HMatrix *XMatrix);
+    HMatrix *GetRFFieldsViaRPFMatrices(HMatrix *XMatrix);
     HMatrix *GetPanelSourceDensities(HMatrix *PSDMatrix=0);
 
 // private:
@@ -186,16 +187,17 @@ public:
     void UpdateSystemMatrix(cdouble Omega);
 
     void DoSolve(IncField *IF, cdouble *PortCurrents);
+    bool ReadyToPostprocess();
 
     ////////////////////////////////////////////////////
     // internal data fields
     ////////////////////////////////////////////////////
+    char *SolverName;
 
     // info on the geometry
     RWGGeometry *G;
     RWGPortList *PortList;
     int NumPorts;
-    char *FileBase;
 
     // internally stored variables
     HMatrix *M;             // LU-factorized SIE matrix, set by AssembleSystemMatrix

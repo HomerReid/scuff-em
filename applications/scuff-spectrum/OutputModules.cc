@@ -100,12 +100,41 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static const char *FieldTitles[]=
- {"Ex", "Ey", "Ez", "|E|",
-  "Hx", "Hy", "Hz", "|H|",
+double GetFieldFunction(cdouble *EH, int nff, double *nHat=0)
+{
+  switch(nff)
+   { case 0:  return real(EH[0]);
+     case 1:  return imag(EH[0]);
+     case 2:  return real(EH[1]);
+     case 3:  return imag(EH[1]);
+     case 4:  return real(EH[2]);
+     case 5:  return imag(EH[2]);
+     case 6:  return sqrt(norm(EH[0]) + norm(EH[1]) + norm(EH[2]));
+     case 7:  return real(EH[3]);
+     case 8:  return imag(EH[3]);
+     case 9:  return real(EH[4]);
+     case 10: return imag(EH[4]);
+     case 11: return real(EH[5]);
+     case 12: return imag(EH[5]);
+     case 13: return sqrt(norm(EH[3]) + norm(EH[4]) + norm(EH[5]));
+     case 14: if (nHat==0) return 0.0;
+              cdouble *E=EH+0, *H=EH+3;
+              return real(  nHat[0]*(E[1]*H[2] - E[2]*H[1])
+                           +nHat[1]*(E[2]*H[0] - E[0]*H[2])
+                           +nHat[2]*(E[0]*H[1] - E[1]*H[0]) );
+   };
+  return 0.0;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+static const char *FieldFunctionNames[]=
+ {"re Ex", "im Ex", "re Ey", "im Ey", "re Ez", "im Ez", "|E|",
+  "re Hx", "im Hx", "re Hy", "im Hy", "re Hz", "im Hz", "|H|", "P"
  };
 
-#define NUMFIELDFUNCS 8
+#define NUMFIELDFUNCS 15
 
 void WriteFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
                  RWGSurface *FluxMesh, FILE *f)
@@ -150,9 +179,7 @@ void WriteFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
   HMatrix *FMatrix=G->GetFields(0, KN, Omega, kBloch, XMatrix);
   for(int nff=0; nff<NUMFIELDFUNCS; nff++)
    { 
-     //if (FuncString && !strcasestr(FuncString,FieldTitles[nff]))
-     // continue;
-     fprintf(f,"View \"%s (Omega%s)",FieldTitles[nff],z2s(Omega));
+     fprintf(f,"View \"%s (Omega%s)",FieldFunctionNames[nff],z2s(Omega));
      fprintf(f,"\" {\n");
 
      /*--------------------------------------------------------------*/
@@ -161,33 +188,23 @@ void WriteFVMesh(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
      for(int np=0; np<NumPanels; np++)
       { 
         RWGPanel *P=Panels[np];
-
         double *V[3]; // vertices
         double Q[3];  // quantities
         for(int nv=0; nv<3; nv++)
-         { 
-           int VI = P->VI[nv];
+         { int VI = P->VI[nv];
            V[nv]  = Vertices + 3*VI;
-
            cdouble EH[6];
            FMatrix->GetEntries(VI, ":", EH);
-           cdouble *F = (nff>=4) ? EH+0 : EH+3;
-           if (nff==3 || nff==7)
-            Q[nv] = sqrt(norm(F[0]) + norm(F[1]) + norm(F[2]));
-           else
-            Q[nv] = abs( F[nff%4] );
-         };
-           
+           Q[nv] = GetFieldFunction(EH, nff);
+         }
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    V[0][0], V[0][1], V[0][2],
                    V[1][0], V[1][1], V[1][2],
                    V[2][0], V[2][1], V[2][2],
                    Q[0], Q[1], Q[2]);
-      }; // for(int np=0; np<FluxMesh->NumPanels; np++)
-
+      } // for(int np=0; np<FluxMesh->NumPanels; np++)
      fprintf(f,"};\n\n");
-
-   };  // for(int nff=0; nff<NUMFIELDFUNCS; nff++)
+   }  // for(int nff=0; nff<NUMFIELDFUNCS; nff++)
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -268,6 +285,47 @@ void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
   FILE *f=vfopen("%s.pp","w",OutFileBase);
   WriteFVMesh(G, KN, Omega, kBloch, &FluxMesh, f);
   fclose(f);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void VisualizeSurfaceFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
+                            char *OutFileBase)
+{
+  char PPFileName[100];
+  snprintf(PPFileName, 100, "%s.SurfaceFields.pp", OutFileBase);
+
+  /*--------------------------------------------------------------*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the flux mesh panel vertices                                */
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(G->TotalPanels, 3);
+  for(int ns=0, ntp=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++, ntp++)
+    XMatrix->SetEntriesD(ntp,":",G->Surfaces[ns]->Panels[np]->Centroid);
+  HMatrix *FMatrix=G->GetFields(0, KN, Omega, kBloch, XMatrix);
+
+  int PlotType=0, AveragingMethod=0;
+  CheckEnv("SCUFF_AVERAGING_METHOD", &AveragingMethod);
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { RWGSurface *S=G->Surfaces[ns];
+     int Offset = G->PanelIndexOffset[ns];
+     double *Values = new double[S->NumPanels];
+     for(int nff=0; nff<NUMFIELDFUNCS; nff++)
+      {
+        for(int np=0; np<S->NumPanels; np++)
+         { cdouble EH[6];
+           FMatrix->GetEntries(Offset+np,":",EH);
+           Values[np] = GetFieldFunction(EH, nff, S->Panels[np]->ZHat);
+         }
+        S->PlotScalarDensity(PlotType, (void *)Values, AveragingMethod, PPFileName, 
+                             "%s.%s",S->Label,FieldFunctionNames[nff]);
+      }
+     delete[] Values;
+   }
+  delete FMatrix;
+  delete XMatrix;
 }
 
 /***************************************************************/

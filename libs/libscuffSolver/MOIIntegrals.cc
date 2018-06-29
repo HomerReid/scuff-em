@@ -888,7 +888,7 @@ void GetMOIRPFMatrices(RWGGeometry *G, RWGPortList *PortList,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *scuffSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
+HMatrix *scuffSolver::GetRFFieldsViaRPFMatrices(HMatrix *XMatrix)
 {
   if (XMatrix->NR!=3)
    ErrExit("wrong-size (%ix%i) XMatrix in GetMOIFields",XMatrix->NR,XMatrix->NC);
@@ -932,7 +932,7 @@ HMatrix *scuffSolver::GetFieldsViaRPFMatrices(HMatrix *XMatrix)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *scuffSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
+HMatrix *scuffSolver::GetRFFields(HMatrix *XMatrix, HMatrix *PFMatrix)
 {
   int NX           = XMatrix->NC;
 
@@ -1046,11 +1046,11 @@ HMatrix *scuffSolver::GetFields(HMatrix *XMatrix, HMatrix *PFMatrix)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void scuffSolver::GetFields(double X[3], cdouble PF[NPFC])
+void scuffSolver::GetRFFields(double X[3], cdouble PF[NPFC])
 { 
   HMatrix XMatrix(3,1,X);
   HMatrix PFMatrix(NPFC,1,PF);
-  GetFields(&XMatrix, &PFMatrix);
+  GetRFFields(&XMatrix, &PFMatrix);
 }
 
 } // namespace scuff

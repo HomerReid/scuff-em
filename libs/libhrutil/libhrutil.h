@@ -81,14 +81,36 @@ using namespace std;
 #endif
 
 /***************************************************************/
-/* Timing functions  *******************************************/
+/* useful macros ***********************************************/
+/***************************************************************/
+#define VARARG_BUFLEN 1000
+#define COMPLETE_VARARGS2(format, lastarg, buffer) \
+  va_list ap;                                     \
+  char buffer[VARARG_BUFLEN];                     \
+  va_start(ap,lastarg);                           \
+  vsnprintfEC(buffer,VARARG_BUFLEN,format,ap);    \
+  va_end(ap);                                     \
+
+#define COMPLETE_VARARGS(format, buffer) COMPLETE_VARARGS2(format, format, buffer)
+
+#define STATICBUFFER(Name,Num,Type)                       \
+ static int Name ## Size=0;                               \
+ static Type *Name=0;                                     \
+ if ( Name ## Size   < (Num) )                            \
+  { Name ## Size   = (Num);                               \
+    if (Name) free(Name);                                 \
+    Name=(Type *)mallocEC((Num)*sizeof(Type));            \
+  }; 
+
+/***************************************************************/
+/* timing functions  *******************************************/
 /***************************************************************/
 double Secs();
 void Tic(bool MeasureBytesAllocated=false);
 double Toc(unsigned long *BytesAllocated=0);
 
 /***************************************************************/
-/* String functions  *******************************************/
+/* string functions  *******************************************/
 /***************************************************************/
 char *RemoveDirectories(char *s);
 char *RemoveExtension(char *s);
@@ -320,17 +342,4 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray,
                     bool AbortOnUnknown=true, bool ZeroArgs=false);
 void ProcessOptions(const char *ArgString, OptStruct *OSArray);
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#define STATICBUFFER(Name,Num,Type)                       \
- static int Name ## Size=0;                               \
- static Type *Name=0;                                     \
- if ( Name ## Size   < (Num) )                            \
-  { Name ## Size   = (Num);                               \
-    if (Name) free(Name);                                 \
-    Name=(Type *)mallocEC((Num)*sizeof(Type));            \
-  }; 
-
 #endif // LIBHRUTIL_H
-

@@ -35,14 +35,6 @@ namespace scuff {
 #define II cdouble(0,1)
 
 #define MAXSTR 1000
-
-#define COMPLETE_VARARGS(Format, Buffer)  \
-  va_list ap;                             \
-  char Buffer[MAXSTR];                    \
-  va_start(ap,Format);                    \
-  vsnprintfEC(Buffer,MAXSTR,Format,ap);   \
-  va_end(ap);                             \
-
 /************************************************************/
 /* subroutines for emitting GMSH postprocessing code        */
 /************************************************************/
@@ -634,7 +626,7 @@ double RWGSurface::PlotScalarDensity(int PlotType, void *Values,
   if (!f) 
    { fprintf(stderr,"warning: could not open file %s \n",FileName);
      return 0.0;
-   };
+   }
   
   COMPLETE_VARARGS(ViewNameFormat, ViewName);
 

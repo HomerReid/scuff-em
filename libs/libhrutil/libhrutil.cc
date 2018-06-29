@@ -65,12 +65,6 @@
 
 #define MAXSTR 1000
 
-#define COLLECT_ARGS(format, buffer, buflen) \
-  va_list ap;                                \
-  va_start(ap,format);                       \
-  vsnprintfEC(buffer,buflen,format,ap);      \
-  va_end(ap);
-
 /***************************************************************/
 /* Timing functions ********************************************/
 /***************************************************************/
@@ -300,47 +294,24 @@ FILE *fopenPath(const char *Path, const char *FileName,
 /***************************************************************/
 FILE *vfopen(const char *format, const char *mode, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-  FILE *f;
-
-  va_start(ap,mode);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
-  f=fopen(buffer,mode);
-  return f;
+  COMPLETE_VARARGS2(format, mode, buffer);
+  return fopen(buffer,mode);
 }
 
 int vmkdir(const char *format, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-  int RetVal;
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
+  COMPLETE_VARARGS(format,buffer);
 #if defined(_WIN32)
-  RetVal=_mkdir(buffer);
+  return _mkdir(buffer);
 #else
-  RetVal=mkdir(buffer,0755);
+  return mkdir(buffer,0755);
 #endif
-  va_end(ap);
-
-  return RetVal;
 }
 
 int vsystem(const char *format, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-  int RetVal;
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  RetVal=system(buffer);
-  va_end(ap);
-
-  return RetVal;
+  COMPLETE_VARARGS(format, buffer);
+  return system(buffer);
 }
 
 // note: unlike the usual strncat, the parameter buflen here is the 
@@ -354,57 +325,33 @@ int vsystem(const char *format, ...)
 //
 void vstrncat(char *s, size_t n, const char *format, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
-
+  COMPLETE_VARARGS(format,buffer);
   size_t OldLength = strlen(s) + 1;
   if (OldLength>=n) return;
   strncat(s, buffer, n - OldLength);
 }
 
 char *vstrappend(char *s, const char *format, ...)
-{
-  va_list ap;
-  char buffer[MAXSTR];
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
-
-  if (s==0)
+{ COMPLETE_VARARGS(format,buffer);
+  if (s==0) 
    s=strdupEC(buffer);
   else
    { int NS=strlen(s), NB=strlen(buffer);
      s = (char *)reallocEC(s, NS+NB+1);
      strcpy(s + NS, buffer);
-   };
+   }
   return s;
 }
 
 char *vstrdup(const char *format, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
+  COMPLETE_VARARGS(format,buffer);
   return strdupEC(buffer);
 }
 
 void vsetenv(const char *VariableName, const char *format, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
-
+  COMPLETE_VARARGS(format,buffer);
 #if defined(_WIN32)
   SetEnvironmentVariable(VariableName, buffer);
 #else
@@ -416,30 +363,19 @@ void ErrExit(const char *format, ...)
 {
   va_list ap; 
   char buffer[2*MAXSTR];
-
   va_start(ap,format);
   vsnprintfEC(buffer,2*MAXSTR,format,ap);
   va_end(ap);
-
   fprintf(stderr,"error: %s (aborting)\n",buffer);
   Log("error: %s (aborting)",buffer);
-
   exit(1);
-  //abort();
 }
 
 void Warn(const char *format, ...)
 {
-  va_list ap;
-  char buffer[MAXSTR];
-
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
-
+  COMPLETE_VARARGS(format, buffer);
   fprintf(stderr,"**warning: %s \n",buffer);
   Log("warning: %s \n",buffer);
-
 }
 
 /***************************************************************/
@@ -452,16 +388,10 @@ void SetConsoleLogging()
  { LogToConsole=1; }
 
 void SetLogFileName(const char *format, ...)
-{
-  va_list ap;
-  char buffer[MAXSTR];
-
+{ COMPLETE_VARARGS(format, buffer);
   LogToConsole=0;
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
   if (LogFileName) free(LogFileName);
   LogFileName=strdupEC(buffer);
-  va_end(ap);
 }
 
 void DoLog(bool ByThread, bool WriteCR, const char *Message)
@@ -479,26 +409,17 @@ void DoLog(bool ByThread, bool WriteCR, const char *Message)
 }
 
 void Log(const char *format, ...)
-{ va_list ap;
-  va_start(ap,format);
-  char buffer[MAXSTR];
-  vsnprintfEC(buffer,MAXSTR,format,ap);
+{ COMPLETE_VARARGS(format,buffer);
   DoLog(false,true,buffer);
 }
 
 void LogC(const char *format, ...)
-{ va_list ap;
-  va_start(ap,format);
-  char buffer[MAXSTR];
-  vsnprintfEC(buffer,MAXSTR,format,ap);
+{ COMPLETE_VARARGS(format,buffer);
   DoLog(false,false,buffer);
 }
 
 void LogThread(const char *format, ...)
-{ va_list ap;
-  va_start(ap,format);
-  char buffer[MAXSTR];
-  vsnprintfEC(buffer,MAXSTR,format,ap);
+{ COMPLETE_VARARGS(format,buffer);
   DoLog(true,true,buffer);
 }
 
@@ -515,23 +436,15 @@ void InitializeLog(char *argv0, const char *Path)
 static pthread_mutex_t LogMutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 void MutexLog(const char *format, ... )
-{
-  va_list ap;
-  char buffer[MAXSTR];
-  va_start(ap,format);
-  vsnprintfEC(buffer,MAXSTR,format,ap);
-  va_end(ap);
+{ COMPLETE_VARARGS(format,buffer);
 
 #ifdef USE_PTHREAD 
   pthread_mutex_lock(&LogMutex);
 #endif
-
   Log(buffer);
-
 #ifdef USE_PTHREAD 
   pthread_mutex_unlock(&LogMutex);
 #endif
-
 }
 
 /***************************************************************/
@@ -1088,8 +1001,7 @@ bool CheckEnv(const char *Name, bool LogSuccess)
 
 void AppendEnv(const char *Name, const char *Separator, const char *format, ...)
 { 
-  char buffer[MAXSTR];
-  COLLECT_ARGS(format, buffer, MAXSTR);
+  COMPLETE_VARARGS(format, buffer);
   char *Old = getenv(Name);
   char *New = vstrdup("%s%s%s",Old ? Old:"",Old&&Separator ? Separator:"",buffer);
   setenv(Name,New,1);

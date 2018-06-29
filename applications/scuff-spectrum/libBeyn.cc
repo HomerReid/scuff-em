@@ -265,12 +265,13 @@ int BeynSolve(BeynSolver *Solver,
   
   int K = ProcessAMatrices(Solver, A0, A1, z0, Eigenvalues, Eigenvectors);
   int KCoarse = ProcessAMatrices(Solver, A0Coarse, A1Coarse, z0, EVErrors);
+  Log("{K,KCoarse}={%i,%i}",K,KCoarse);
   for(int k=0; k<EVErrors->N && k<Eigenvalues->N; k++)
    { EVErrors->ZV[k] -= Eigenvalues->ZV[k];
-     EVErrors->ZV[k] = cdouble( fabs(real(EVErrors->ZV[k])), 
+     EVErrors->ZV[k] = cdouble( fabs(real(EVErrors->ZV[k])),
                                 fabs(imag(EVErrors->ZV[k]))
                               );
-   };
+   }
 
   /***************************************************************/
   /***************************************************************/

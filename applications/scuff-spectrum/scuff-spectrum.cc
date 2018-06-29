@@ -31,6 +31,9 @@ void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
 void VisualizeFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
                      char *OutFileBase, double *Screen);
 
+void VisualizeSurfaceFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch,
+                            char *OutFileBase);
+
 void WriteCartesianMoments(RWGGeometry *G, HVector *KN, cdouble Omega, double *kBloch, char *CartesianMomentFile);
 
 void WriteSphericalMoments(RWGGeometry *G, HVector *KN, cdouble Omega, int LMax, char *SphericalMomentFile);
@@ -102,6 +105,7 @@ int main(int argc, char *argv[])
 //
   bool PlotContours=false;
   bool PlotSurfaceCurrents=false;
+  bool PlotSurfaceFields=false;
   char *SphericalMomentFile=0;
   int LMax=3;
   char *CartesianMomentFile=0;
@@ -128,6 +132,7 @@ int main(int argc, char *argv[])
      {"PlotContours",       PA_BOOL,    0, 1, (void *)&PlotContours,       0,   "plot contours for visualization"},
 //
      {"PlotSurfaceCurrents",PA_BOOL,    0, 1, (void *)&PlotSurfaceCurrents,0,   "generate visualization files for eigenmode currents"},
+     {"PlotSurfaceFields",  PA_BOOL,    0, 1, (void *)&PlotSurfaceFields,  0,   "generate visualization files for eigenmode surface fields"},
 //
      {"SphericalMomentFile",PA_STRING,  1, 1, (void *)&SphericalMomentFile,0,   "name of output file for spherical multipole moments"},
      {"LMax",               PA_INT,     1, 1, (void *)&LMax,               0,   "index of highest spherical multipole moment to retain"},
@@ -270,6 +275,9 @@ int main(int argc, char *argv[])
         // write surface-current visualization files
         if (PlotSurfaceCurrents)
          G->PlotSurfaceCurrents(&KN, Omega, kBloch, "%s.pp", OutFileBase);
+
+        if (PlotSurfaceFields)
+         VisualizeSurfaceFields(G, &KN, Omega, kBloch, OutFileBase);
 
         // process user-specified lists of field-evaluation points
         for(int nepf=0; nepf<nEPFiles; nepf++)

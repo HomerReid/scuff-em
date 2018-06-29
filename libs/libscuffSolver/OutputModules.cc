@@ -42,6 +42,65 @@
 using namespace scuff;
 
 namespace scuff {
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool scuffSolver::ReadyToPostprocess()
+{
+  if (M==0 || G->StoredOmega!=OmegaSIE)
+   { Warn("AssembleSystemMatrix() must be called before postprocessing");
+     return false;
+   }
+  if (KN==0)
+   { Warn("Solve() must be called before postprocessing");
+     return false;
+   }
+  return true;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void scuffSolver::PlotSurfaceCurrents(const char *FileBase)
+{
+  if (!ReadyToPostprocess()) return;
+  if (!FileBase) FileBase=SolverName;
+  G->PlotSurfaceCurrents(KN, OmegaSIE, FileBase);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+zVec scuffSolver::GetFields(dVec X, const char *WhichFields)
+{
+  zVec Fields;
+
+  bool RetainIncident=true, RetainScattered=true;
+  if (WhichFields && !strcasecmp(WhichFields, "incident") )
+   RetainScattered=false;
+  if (WhichFields && !strcasecmp(WhichFields, "scattered") )
+   RetainIncident=false;
+
+  if (RetainScattered && !ReadyToPostprocess()) return Fields;
+
+  if (X.size() % 3)
+    { Warn("length of first argument to GetFields must be a multiple of 3");
+      return Fields;
+    }
+  int NX = X.size() / 3;
+  HMatrix XMatrix(NX, 3);
+  for(int nx=0; nx<NX; nx++)
+   XMatrix.SetEntriesD(nx, ":", &(X[3*nx]));
+
+  HMatrix *FMatrix=G->GetFields(RetainIncident  ? CachedIF : 0,
+                                RetainScattered ? KN : 0, OmegaSIE, &XMatrix);
+
+  for(int nfc=0; nfc<6*NX; nfc++)
+   Fields.push_back(FMatrix->ZM[nfc]);
+  delete FMatrix;
+  return Fields;
+}
   
 /***************************************************************/
 /***************************************************************/
@@ -61,7 +120,7 @@ void scuffSolver::ProcessEPFile(char *EPFile, char *OutFileName)
   /***************************************************************/
   /* Get matrix of field components at evaluation points         */
   /***************************************************************/
-  HMatrix *PFMatrix = GetFields(XMatrix);
+  HMatrix *PFMatrix = GetRFFields(XMatrix);
 
   /***************************************************************/
   /* write field components to output file ***********************/
@@ -69,7 +128,7 @@ void scuffSolver::ProcessEPFile(char *EPFile, char *OutFileName)
   char FileNameBuffer[100];
   if (!OutFileName) 
    { OutFileName = FileNameBuffer;
-     snprintf(OutFileName,100,"%s.%s.fields",FileBase,GetFileBase(EPFile));
+     snprintf(OutFileName,100,"%s.%s.fields",SolverName,GetFileBase(EPFile));
    }
   FILE *f=fopen(OutFileName,"w");
   if (!f) 
@@ -156,7 +215,7 @@ HMatrix *RFFieldsMDF(void *UserData, HMatrix *XMatrix, const char ***pDataNames)
   *pDataNames = DataNames;
 
   Log("Computing FVMesh data: %i quantities at %i points",NumData,NX);
-  HMatrix *PFMatrix = Solver->GetFields(XMatrix);
+  HMatrix *PFMatrix = Solver->GetRFFields(XMatrix);
 
   /***************************************************************/
   /* Q[0,1,2][nd] = {total, BF contribution, Port contribution}  */
@@ -243,7 +302,7 @@ HMatrix *scuffSolver::ProcessFVMesh(char *FVMesh, char *TransFile, char *OutFile
   char FileBaseBuffer[100];
   if (!OutFileBase) 
    { OutFileBase = FileBaseBuffer;
-     snprintf(OutFileBase,100,"%s.%s",FileBase,GetFileBase(FVMesh));
+     snprintf(OutFileBase,100,"%s.%s",SolverName,GetFileBase(FVMesh));
     }
   HMatrix *Integrals = MakeMeshPlot(RFFieldsMDF, (void *)this, FVMesh, TransFile, OutFileBase, PPOptions);
 
@@ -272,7 +331,7 @@ HVector *scuffSolver::PlotRFFields(dVec X0, dVec L1, dVec L2, iVec NVec, char *O
 
 HMatrix *scuffSolver::PlotRFFields()
 { 
-  HMatrix *Integrals;
+  HMatrix *Integrals=0;
   for(int ns=0; ns<G->NumSurfaces; ns++)
    Integrals=ProcessFVMesh(G->Surfaces[ns]->MeshFileName,0,G->Surfaces[ns]->Label);
   return Integrals;
@@ -313,7 +372,7 @@ void scuffSolver::AddMinusIdVTermsToZMatrix(HMatrix *KMatrix, HMatrix *ZMatrix)
      if (CachedPortCurrents==0) CachedPortCurrents=new cdouble[NumPorts];
      memset(CachedPortCurrents, 0, NumPorts*sizeof(cdouble));
      CachedPortCurrents[SourcePort]=1.0;
-     GetFields(XMatrix, PFMatrix);
+     GetRFFields(XMatrix, PFMatrix);
      
      // sum contributions to mean voltage gaps across all destination ports
      for(int npe=0; npe<NumPortEdges; npe++)

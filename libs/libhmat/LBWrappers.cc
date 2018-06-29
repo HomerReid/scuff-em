@@ -670,6 +670,7 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
      U = new HMatrix(NR, NC, LHM_COMPLEX);
    }
 
+/*
   if (NR==1)
    { Lambda->SetEntry(0, GetEntry(0,0));
      if (U) U->SetEntry(0,0,1.0);
@@ -689,6 +690,7 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
      U->SetEntry(1,1,1.0);
      return Lambda;
    }
+*/
 
   /***************************************************************/
   /***************************************************************/
@@ -733,36 +735,22 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
   else // (RealComplex==LHM_COMPLEX)
    {
      /*--------------------------------------------------------------*/
-     /*- query optimal workspace sizes and (re)allocate internally-  */
-     /*- stored workspaces as necessary                              */
+     /*- query optimal workspace sizes and allocate workspaces       */
      /*--------------------------------------------------------------*/
-     double *rwork = new double[2*NR];
+     double *rwork = (double *)mallocEC(2*NR*sizeof(double));
+
      cdouble zlworkOptimal;
      zgeev_(jobvl, jobvr, &NR, ZM, &NR, Lambda->ZV, 0, &NR, 
             (U ? U->ZM : 0), &NR, 
             &zlworkOptimal, &MinusOne, rwork, &info);
-
      lworkOptimal = 2*(int)(ceil(real(zlworkOptimal)));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-printf("NR=%i zlworkOptimal=%s lworkOptimal=%i lwork=%i info=%i work=%p\n",NR,z2s(zlworkOptimal),lworkOptimal,lwork,info,work);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-     if (lworkOptimal > lwork)
-      { //work =realloc(work,lworkOptimal*sizeof(double));
-        if (work) free(work);
-        work=(double *)mallocEC(lworkOptimal*sizeof(double));
-printf("work=%p\n",work);
-        lwork=lworkOptimal;
-      }
+     cdouble *zwork = (cdouble *)mallocEC(lworkOptimal * sizeof(cdouble));
 
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     zgeev_(jobvl, jobvr, &NR, ZM, &NR, Lambda->ZV, 0, &NR, 
-            U ? U->ZM : 0, &NR, (cdouble *)work, &lwork, rwork, &info);
-
-     delete[] rwork;
-
-   };
+     zgeev_(jobvl, jobvr, &NR, ZM, &NR, Lambda->ZV, 0, &NR,
+            U ? U->ZM : 0, &NR, zwork, &lworkOptimal, rwork, &info);
+     free(zwork);
+     free(rwork);
+   }
 
   return Lambda;
 

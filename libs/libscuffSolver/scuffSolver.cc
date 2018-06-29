@@ -50,11 +50,10 @@ namespace scuff {
 /* RF solver class constructor #1: construct from a .scuffgeo  */
 /* file plus a .ports file                                     */
 /***************************************************************/
-scuffSolver::scuffSolver(const char *scuffgeoFileName, const char *portFileName)
+scuffSolver::scuffSolver(const char *Name)
 { 
+  SolverName = strdup( Name ? Name : "pyscuff");
   InitSolver();
-  scuffgeoFile = scuffgeoFileName ? strdup(scuffgeoFileName) : 0;
-  portFile     = portFileName     ? strdup(portFileName)     : 0;
 }
 
 /***************************************************************/
@@ -70,7 +69,6 @@ void scuffSolver::InitSolver()
   G              = 0;
   PortList       = 0;
   NumPorts       = 0;
-  FileBase       = 0;
 
   M              = 0;
   PBFIMatrix     = 0; 
@@ -114,9 +112,9 @@ scuffSolver::~scuffSolver()
   if (PBFIMatrix)   delete PBFIMatrix;
   if (PPIMatrix)    delete PPIMatrix;
   if (M)            delete M;
-  if (FileBase)     free(FileBase);
   if (PortList)     delete PortList;
   if (G)            delete G;
+  if (SolverName)   free(SolverName);
 }
 
 /********************************************************************/
@@ -334,8 +332,6 @@ void scuffSolver::AddPortTerminal(char PM, const dVec Vertices)
 void scuffSolver::InitGeometry()
 { 
   if (G) return;
-
-  FileBase = strdup( scuffgeoFile ? GetFileBase(scuffgeoFile) : "pyscuff");
 
   /*--------------------------------------------------------------*/
   /*- write .scuffgeo file from user's specifications, then try  -*/
@@ -687,7 +683,8 @@ void scuffSolver::DoSolve(IncField *IF, cdouble *PortCurrents)
      if (CachedIF) delete CachedIF;
      PlaneWave *PW = (PlaneWave *) IF;
      if (PW) CachedIF=new PlaneWave(*PW);
-     //CachedIF = new IncField(IF);
+     PointSource *PS = (PointSource *) IF;
+     if (PS) CachedIF=new PointSource(*PS);
    }
 
   // solve the system
@@ -720,7 +717,7 @@ void scuffSolver::PlotGeometry(const char *PPFormat, ...)
   /***************************************************************/
   char PPFileName[1000];
   if (!PPFormat)
-   snprintf(PPFileName,1000,"%s.pp",FileBase);
+   snprintf(PPFileName,1000,"%s.pp",SolverName);
   else
    { va_list ap;
      va_start(ap,PPFormat);
@@ -738,7 +735,7 @@ void scuffSolver::PlotGeometry(const char *PPFormat, ...)
   /***************************************************************/
   /* plot geometry ***********************************************/
   /***************************************************************/
-  G->WritePPMesh(PPFileName,FileBase);
+  G->WritePPMesh(PPFileName,SolverName);
   
   /***************************************************************/
   /* plot ports **************************************************/
