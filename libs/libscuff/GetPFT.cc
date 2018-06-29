@@ -222,12 +222,11 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
    { 
      bool Interior      = Options->Interior;
      int  Method        = Options->EMTPFTIMethod;  
-     HMatrix *PFTMatrix 
-      = GetEMTPFTMatrix(this, Omega, IF, KN, DRMatrix, 0, Interior, Method);
+     HMatrix *PFTMatrix  = new HMatrix(NumSurfaces, NUMPFT);
+     GetEMTPFTMatrix(this, Omega, IF, KN, DRMatrix, PFTMatrix, Interior, Method);
      PFTMatrix->GetEntriesD(SurfaceIndex, ":", PFT);
      delete PFTMatrix;
-   };
-
+   }
 
   /***************************************************************/
   /* produce flux plots if that was requested ********************/

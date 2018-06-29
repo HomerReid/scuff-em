@@ -114,7 +114,8 @@ public:
     /*--------------------------------------------------------------*/
     void SetGeometryFile(const char *scuffgeoFileName);
     void AddLatticeVector(dVec L);
-    void SetMedium(char *MediumMaterial);
+    void SetMediumMaterial(char *MediumMaterial);
+    void SetMediumPermittivity(double Epsilon);
     void AddObject(const char *MeshFile, const char *Material,
                    const char *Label=0, const char *Transformation=0);
     void AddMetalTraceMesh(const char *MeshFile, const char *Label=0,
@@ -136,7 +137,7 @@ public:
     /*- routines for assembling and solving scattering problems     */
     /*--------------------------------------------------------------*/
     void EnableSystemBlockCache();
-    void AssembleSystemMatrix(double Freq);
+    void AssembleSystemMatrix(double Omega);
     void Solve(IncField *IF);
     void Solve(cdouble *PortCurrents);
     void Solve(int WhichPort, cdouble PortCurrent);
@@ -152,6 +153,8 @@ public:
     void PlotSurfaceCurrents(const char *FileBase=0);
 
     // high-level post-processing
+    dVec GetPFT(char *SurfaceLabel, char *Method=0);
+    HMatrix *GetPFTMatrix(char *Method=0);
     void ProcessEPFile(char *EPFile, char *OutFileName=0);
     HMatrix *PlotRFFields();
     HVector *PlotRFFields(dVec X0, dVec L1, dVec L2, iVec NVec, char *OutFileBase);
@@ -166,6 +169,7 @@ public:
     // low-level post-processing
     HMatrix *GetRFFields(HMatrix *XMatrix, HMatrix *PFMatrix=0);
     void GetRFFields(double X[3], cdouble PF[NPFC]);
+    //std::vector< std::complex<double> > GetFields(dVec X, const char *WhichFields=0);
     zVec GetFields(dVec X, const char *WhichFields=0);
 
     // alternative implementation of GetFields that uses RPF ("reduced potential/field") matrices

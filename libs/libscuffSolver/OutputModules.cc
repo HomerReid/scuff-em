@@ -101,6 +101,61 @@ zVec scuffSolver::GetFields(dVec X, const char *WhichFields)
   delete FMatrix;
   return Fields;
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool ParsePFTString(PFTOptions *Options, char *Method)
+{
+  InitPFTOptions(Options);
+  if (Method) 
+   { if ( !strcasecmp(Method,"EMT") )
+      Options->PFTMethod=SCUFF_PFT_EMT; // note this is the default
+     else if ( !strncasecmp(Method,"DSI",3) )
+      { Options->PFTMethod=SCUFF_PFT_DSI;
+        sscanf(Method,"DSI %le %i",&(Options->DSIRadius),&(Options->DSIPoints));
+      }
+     else
+      { Warn("invalid PFT method %s (skipping)",Method);
+        return false;
+      }
+   }
+  return true;
+}
+
+dVec scuffSolver::GetPFT(char *SurfaceLabel, char *Method)
+{
+  dVec PFT(NUMPFT,0.0);
+  if (!ReadyToPostprocess()) return PFT;
+
+  int ns;
+  if (!G->GetSurfaceByLabel(SurfaceLabel, &ns))
+   { Warn("could not find surface with label %s",SurfaceLabel);
+     return PFT;
+   }
+
+  PFTOptions Options;
+  if (!ParsePFTString(&Options, Method)) return PFT;
+  Options.IF = CachedIF;
+
+  printf("Computing PFT for surface %s(%i) via ",SurfaceLabel,ns);
+  if (Options.PFTMethod==SCUFF_PFT_EMT)
+   printf("EMT method\n");
+  else
+   printf("DSI method (R=%e, NumPts=%i)\n",Options.DSIRadius,Options.DSIPoints);
+
+  G->GetPFT(ns, KN, OmegaSIE, &(PFT[0]), &Options);
+  return PFT;
+}
+
+HMatrix *scuffSolver::GetPFTMatrix(char *Method)
+{
+  if (!ReadyToPostprocess()) return 0;
+  PFTOptions Options;
+  if (!ParsePFTString(&Options, Method)) return 0;
+  Options.IF = CachedIF;
+  return G->GetPFTMatrix(KN, OmegaSIE, &Options);
+}
   
 /***************************************************************/
 /***************************************************************/

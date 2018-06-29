@@ -1,6 +1,5 @@
 // -*- C++ -*-
 
-
 %{
 #define SWIG_FILE_WITH_INIT // to build as Python module
 %}
@@ -12,6 +11,8 @@
 namespace std {
    %template(IntVector) vector<int>;
    %template(DoubleVector) vector<double>;
+   %template(ComplexVector) vector< std::complex<double> >;
+   %apply std::vector<std::complex<double> > { zVec };
 }
 
 %include "numpy.i" // numpy array conversions

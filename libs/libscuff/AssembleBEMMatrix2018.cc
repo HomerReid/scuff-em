@@ -245,7 +245,7 @@ HMatrix *AssembleBEMMatrix2018(RWGGeometry *G, cdouble Omega, double *kBloch, HM
    for(int nsb = (MatrixSymmetric ? nsa : 0); nsb<G->NumSurfaces; nsb++)
     { 
       // attempt to reuse the diagonal block of an identical previous object
-      if (nsa==nsb && (G->Mate[nsa])!=-1)
+      if (nsa==nsb && (G->Mate[nsa])!=-1 )
        { int nsMate = G->Mate[nsa];
          int ThisOffset = G->BFIndexOffset[nsa];
          int MateOffset = G->BFIndexOffset[nsMate];

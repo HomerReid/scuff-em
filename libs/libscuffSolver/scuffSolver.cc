@@ -206,8 +206,11 @@ void scuffSolver::AddLatticeVector(dVec L)
   LatticeVectors.push_back(L);
 }
 
-void scuffSolver::SetMedium(char *MediumMaterial)
+void scuffSolver::SetMediumMaterial(char *MediumMaterial)
 { Medium=strdup(MediumMaterial); }
+
+void scuffSolver::SetMediumPermittivity(double Epsilon)
+{ Medium=vstrdup("CONST_EPS_%g",Epsilon); }
 
 void scuffSolver::AddObject(const char *MeshFile, const char *Material, const char *Label, const char *Transformation)
 {
@@ -418,7 +421,7 @@ void scuffSolver::InitGeometry()
                                        : ParsePortFile(G, portFile)
              );
   NumPorts = PortList->Ports.size();
-  if (NumPorts==0) Warn("no ports found");
+  //if (NumPorts==0) Warn("no ports found");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -561,7 +564,7 @@ void scuffSolver::EnableSystemBlockCache()
 }
 
 /***************************************************************/
-/***************************************************************/
+/* note: don't call this routine directly; call AssembleSystemMatrix() instead */
 /***************************************************************/
 void scuffSolver::UpdateSystemMatrix(cdouble Omega)
 { 
@@ -614,15 +617,17 @@ void scuffSolver::UpdateSystemMatrix(cdouble Omega)
   OmegaSIE=Omega;
 }
 
-void scuffSolver::AssembleSystemMatrix(double Freq)
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void scuffSolver::AssembleSystemMatrix(double Omega)
 { 
   if (!G) InitGeometry();
   if (!SubstrateInitialized) InitSubstrate();
-
   if (M==0) M=G->AllocateBEMMatrix();
+  G->UpdateCachedEpsMuValues(Omega);
 
-  Log("Assembling BEM matrix at f=%g GHz...",Freq);
-  cdouble Omega = Freq * FREQ2OMEGA;
+  Log("Assembling BEM matrix at Omega=%g (f=%g GHz)...",Omega,Omega/FREQ2OMEGA);
 
   // update interpolator
   if (G->Substrate)
@@ -636,19 +641,17 @@ void scuffSolver::AssembleSystemMatrix(double Freq)
                                             PPIsOnly, Subtract, RetainSingularTerms, Verbose);
    }
 
-  G->UpdateCachedEpsMuValues(Omega);
-  if (TBlocks==0)
-   { if (NumPorts==0) 
-      G->AssembleBEMMatrix(Omega, M);
-     else
-      AssembleMOIMatrix(G, Omega, M);
-   }
-  else
+  if (TBlocks!=0)
    UpdateSystemMatrix(Omega);
-  OmegaSIE=Omega;
+  else if (NumPorts!=0)
+   AssembleMOIMatrix(G, Omega, M);
+  else 
+   G->AssembleBEMMatrix(Omega, M);
 
   Log("Factorizing...");
   M->LUFactorize();
+
+  OmegaSIE=Omega;
 }
 
 void scuffSolver::DoSolve(IncField *IF, cdouble *PortCurrents)

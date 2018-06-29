@@ -817,11 +817,11 @@ void RWGGeometry::PlotSurfaceCurrents(HMatrix *PSDMatrix,
   vstrncat(Tag,MAXSTR,"}");
 
   /***************************************************************/
-  /***************************************************************/
+  /* handle electric and magnetic charges and currents           */
   /***************************************************************/
   const char *QNames[5]={"Electric charge", "Electric current", "Magnetic charge", "Magnetic current", "Poynting flux"};
   const char *ReImStr[2]={"re","im"};
-  for(int nv=0; nv<5; nv++)
+  for(int nv=0; nv<4; nv++)
    for(int ReIm=0; ReIm<2; ReIm++)
     for(int ns=0; ns<NumSurfaces; ns++)
      { 
@@ -834,11 +834,11 @@ void RWGGeometry::PlotSurfaceCurrents(HMatrix *PSDMatrix,
        for(int np=0; np<S->NumPanels; np++)
         { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
 
-          if (nv==0 || nv==2 || nv==4) // electric or magnetic charge
+          if (nv==0 || nv==2) // electric or magnetic charge
            { cdouble Val=PSDMatrix->GetEntry(Offset+np,(nv==0) ? 4 : (nv==2) ? 8 : 12);
              WriteST(S, np, ReIm ? imag(Val) : real(Val), f);
            }
-          else // // electric or magnetic current
+          else if (nv==1 || nv==3) // // electric or magnetic current
            { cdouble Vx=PSDMatrix->GetEntry(Offset+np,(nv==1) ? 5 : 9);
              cdouble Vy=PSDMatrix->GetEntry(Offset+np,(nv==1) ? 6 : 10);
              cdouble Vz=PSDMatrix->GetEntry(Offset+np,(nv==1) ? 7 : 11);
@@ -849,9 +849,27 @@ void RWGGeometry::PlotSurfaceCurrents(HMatrix *PSDMatrix,
            }
         } // for(int np=0; np<S->NumPanels; np++)
 
-       if (ns==(NumSurfaces-1)) fprintf(f,"};\n");
+       if ((ns==(NumSurfaces-1))) fprintf(f,"};\n");
      } // 
   fclose(f);
+
+  /***************************************************************/
+  /* handle poynting flux                                        */
+  /***************************************************************/
+  for(int ns=0; ns<NumSurfaces; ns++)
+   for(int ReIm=0; ReIm<2; ReIm++)
+    { 
+      RWGSurface *S = Surfaces[ns];
+      if (S->IsPEC)  continue;
+      int Offset    = PanelIndexOffset[ns];
+      double *Values = new double[S->NumPanels];
+      for(int np=0; np<S->NumPanels; np++)
+       Values[np] = real( (ReIm ? -1.0*II : 1.0)*PSDMatrix->GetEntry(Offset+np,12) );
+      char ViewName[100];
+      snprintf(ViewName,100,"%s(Poynting Flux) (%s)",ReIm ? "im" : "re", S->Label);
+      S->PlotScalarDensity(Values,1,FileName,ViewName);
+      delete[] Values;
+    }
 }
 
 void RWGGeometry::PlotSurfaceCurrents(HMatrix *PSDMatrix,
@@ -877,7 +895,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
                                       const char *FileNameFormat, ...)
 { 
   COMPLETE_VARARGS(FileNameFormat, FileName);
-  PlotSurfaceCurrents(KN, Omega, FileName);
+  PlotSurfaceCurrents(KN, Omega, 0, FileName);
 }
 
 /***************************************************************/

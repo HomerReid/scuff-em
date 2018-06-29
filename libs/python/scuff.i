@@ -7,6 +7,9 @@ fields."
 %enddef
 
 %module(docstring=DOCSTRING) scuff
+
+%include "scuff-python.i"
+
 %{
 #include "libscuff.h"
 #include "scuffSolver.h"
@@ -30,22 +33,9 @@ using namespace scuff;
 %typemap(newfree) GTransformation * "free($1);"
 %newobject scuff::CreateGTransformation;
 
-//////////////////////////////////////////////////////////////////////////////
-
-#ifdef SWIGPYTHON
-%include "scuff-python.i"
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// for some reason SWIG gets confused about whether some classes are abstract
-
-%feature("notabstract") PlaneGrid;
-%feature("notabstract") SphereGrid;
-%feature("notabstract") CylinderGrid;
-
-//////////////////////////////////////////////////////////////////////////////
 // SWIG has difficulty with functions that take va_list arguments
 %ignore vsnprintfEC;
+
 // these functions are defined in two different libraries
 // but we do not need them in python anyway
 %ignore VecScale;
