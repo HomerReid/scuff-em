@@ -57,11 +57,11 @@
 // some helper templates that allow for partial specialization of the routines below
 // depending on whether the type is a normal type or an extension of <complex>
 template <bool val> struct bool_type { typedef bool_type<val> type; };
-typedef bool_type<false> false_type;
-typedef bool_type<true>   true_type;
+typedef bool_type<false> lv_false_type;
+typedef bool_type<true>  lv_true_type;
 
-template <typename T> struct is_complex                   : false_type { typedef T norm_type; };
-template <typename U> struct is_complex<std::complex<U> > :  true_type { typedef U norm_type; };
+template <typename T> struct is_complex                   : lv_false_type { typedef T norm_type; };
+template <typename U> struct is_complex<std::complex<U> > : lv_true_type { typedef U norm_type; };
 
 template <typename T> class Vec {
 private:
@@ -133,8 +133,8 @@ public:
 
 
 private:
-  inline norm_type norm2_( false_type ) const { return dot(*this,*this); }
-  inline norm_type norm2_(  true_type ) const { return std::norm(v[0])+std::norm(v[1])+std::norm(v[2]); }
+  inline norm_type norm2_( lv_false_type ) const { return dot(*this,*this); }
+  inline norm_type norm2_( lv_true_type ) const { return std::norm(v[0])+std::norm(v[1])+std::norm(v[2]); }
 };
 
 // 20180325 renaming the following to avoid name collision with libhrutil

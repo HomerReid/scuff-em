@@ -32,7 +32,7 @@
 #  include <omp.h>
 #endif
 
-#define II cdouble(0,1)
+#define II cdouble(0.0,1.0)
 
 namespace scuff {
 
@@ -64,19 +64,21 @@ void AddSubstrateContributionToSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruc
 /***************************************************************/
 /***************************************************************/
 void GetSIEMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args, int nea, int neb,
-                          cdouble iwEps[2], cdouble iwMu[2], double Signs[2], HMatrix *MEs)
+                          cdouble Omega, cdouble Eps[2], cdouble Mu[2],
+                          double Signs[2], HMatrix *MEs)
 {
   cdouble Gab[2][NUMGCMES], ikCab[2][NUMGCMES];
   GetGCMatrixElements(G, Args, nea, neb, Gab, ikCab);
   Gab[0][0]*=Signs[0];   ikCab[0][0]*=Signs[0];
   Gab[1][0]*=Signs[1];   ikCab[1][0]*=Signs[1];
-  MEs->SetEntry(0, 0, iwMu[0]*Gab[0][0] + iwMu[1]*Gab[1][0]);
+  cdouble iw=II*Omega;
+  MEs->SetEntry(0, 0, iw*(Mu[0]*Gab[0][0] + Mu[1]*Gab[1][0]));
   if (MEs->NC>1)
    MEs->SetEntry(0, 1, -1.0*(ikCab[0][0] + ikCab[1][0]));
   if (MEs->NR>1)
    MEs->SetEntry(1, 0, -1.0*(ikCab[0][0] + ikCab[1][0]));
   if (MEs->NR>1 && MEs->NC>1)
-   MEs->SetEntry(1, 1, -1.0*(iwEps[0]*Gab[0][0] + iwEps[1]*Gab[1][0]));
+   MEs->SetEntry(1, 1, -1.0*iw*(Eps[0]*Gab[0][0] + Eps[1]*Gab[1][0]));
 }
 
 /***************************************************************/
@@ -125,7 +127,7 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
   int NEB=Sb->NumEdges, NBFPEB = Sb->IsPEC ? 1 : 2;
   int NumPairs = (Sa==Sb ? NEA*(NEA+1)/2 : NEA*NEB);
 
-  cdouble iwEps[2]={0.0, 0.0}, iwMu[2]={0.0, 0.0};
+  cdouble Eps[2]={0.0, 0.0}, Mu[2]={0.0, 0.0};
   double Signs[2]={0.0,0.0};
   iVec CommonRegions   = GetCommonRegions(Sa, Sb, Signs);
   int NumCommonRegions = CommonRegions.size();
@@ -134,17 +136,17 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
      return;
    }
   for(int nr=0; nr<NumCommonRegions; nr++)
-   G->RegionMPs[CommonRegions[nr]]->GetEpsMu(Omega, iwEps+nr, iwMu+nr);
+   G->RegionMPs[CommonRegions[nr]]->GetEpsMu(Omega, Eps+nr, Mu+nr);
 
   GetGCMEArgStruct Args;
   InitGetGCMEArgs(&Args);
   Args.nsa        = nsa;
   Args.nsb        = nsb;
   Args.NumRegions = CommonRegions.size();
-  Args.k[0]       = sqrt(iwEps[0]*iwMu[0]*Omega);
+  Args.k[0]       = sqrt(Eps[0]*Mu[0])*Omega;
   if (NumCommonRegions==2)
-   Args.k[1]       = sqrt(iwEps[1]*iwMu[1]*Omega);
-  Args.NeedGC = true;
+   Args.k[1]       = sqrt(Eps[1]*Mu[1])*Omega;
+  Args.NeedGC      = true;
   Args.FIBBICache = (nsa==nsb) ? G->FIBBICaches[nsa] : 0;
 
   /***************************************************************/
@@ -167,7 +169,7 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
 
      cdouble MEBuffer[4];
      HMatrix MEs(NBFPEA, NBFPEB, MEBuffer);
-     GetSIEMatrixElements(G, &Args, nea, neb, iwEps, iwMu, Signs, &MEs);
+     GetSIEMatrixElements(G, &Args, nea, neb, Omega, Eps, Mu, Signs, &MEs);
      Block->InsertBlock(&MEs, OffsetA + NBFPEA*nea, OffsetB + NBFPEB*neb);
    }
 
