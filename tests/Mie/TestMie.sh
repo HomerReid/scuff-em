@@ -4,6 +4,7 @@
 # check that scuff-scatter is present
 ###################################################################
 CODE=scuff-scatter
+export SCUFF_LOGLEVEL=VERBOSE2
 which ${CODE} > /dev/null 2>&1
 if [ $? -ne 0 ]
 then

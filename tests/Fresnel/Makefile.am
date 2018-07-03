@@ -5,7 +5,5 @@ pkgdata_DATA = E10HalfSpace_40.scuffgeo 		\
                E10HalfSpace_40.transmission.reference	\
                Fresnel.Checklist
 
-AM_TESTS_ENVIRONMENT=export SCUFF_LOGLEVEL=VERBOSE2
-
 pkgdata_SCRIPTS = TestFresnel.sh
 TESTS = TestFresnel.sh

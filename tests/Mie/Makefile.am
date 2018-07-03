@@ -16,5 +16,3 @@ reference_DATA = reference/LossySphere_327.DSIPFT       \
 
 pkgdata_SCRIPTS = TestMie.sh
 TESTS = TestMie.sh
-
-AM_TESTS_ENVIRONMENT=export SCUFF_LOGLEVEL=VERBOSE2

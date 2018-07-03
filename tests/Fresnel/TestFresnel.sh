@@ -19,6 +19,7 @@ fi
 ###################################################################
 # set up arguments for SCUFF-EM run and subsequent result checking
 ###################################################################
+export SCUFF_LOGLEVEL="VERBOSE2"
 CODE=scuff-transmission
 ARGS=""
 ARGS="${ARGS} --geometry    E10HalfSpace_40.scuffgeo"
