@@ -246,7 +246,6 @@ AM_CONDITIONAL(WITH_PYTHON, test x"$have_python" = "xyes")
 ##################################################
 # checks for tr1 headers vs. c++11
 ##################################################
-
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADER(tr1/unordered_map,[AC_DEFINE([HAVE_TR1],[1],["Have tr1 headers"])],[])
 AX_CXX_COMPILE_STDCXX([11], [], [optional])
