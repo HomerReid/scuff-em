@@ -5,10 +5,7 @@ pkgdata_DATA = E10HalfSpace_40.scuffgeo 		\
                E10HalfSpace_40.transmission.reference	\
                Fresnel.Checklist
 
-AM_TESTS_ENVIRONMENT=\
- export PATH=${PATH}:$(top_builddir)/src/applications/scuff-transmission; \
- export CHECKSCUFFDATA=$(top_buildir)/tests/CheckSCUFFData;               \
- export SCUFF_LOGLEVEL=VERBOSE2;
+AM_TESTS_ENVIRONMENT=export SCUFF_LOGLEVEL=VERBOSE2
 
 pkgdata_SCRIPTS = TestFresnel.sh
 TESTS = TestFresnel.sh
