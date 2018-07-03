@@ -131,7 +131,7 @@ int GetSGFCorrection_MOI(cdouble Omega, double Rho, double z,
   if (RetainSingularTerms)
    AddSGFTerm_MOI(Options, k, Rho, z, h, Eta, 0, 1.0-Eta, V);
 
-  if (isinf(h) || MaxTerms==1) return 1;
+  if (std::isinf(h) || MaxTerms==1) return 1;
 
   // n=1 (first ground-plane image)
   cdouble EtaFac = AddSGFTerm_MOI(Options, k, Rho, z, h, Eta, 1, 1.0-Eta*Eta, V);
@@ -200,10 +200,10 @@ void GetVTwiddle_MOI(cdouble q, cdouble u0, cdouble u,
   GetJdJFactors(q, Rho, JdJFactors, NeedRhoDerivative, NuMax);
   
   // fetch hyperbolic factors
-  cdouble uh = (isinf(h) ? 0.0 : u*h), uh2=uh*uh;
+  cdouble uh = (std::isinf(h) ? 0.0 : u*h), uh2=uh*uh;
   cdouble uTanhFac, uCothFac, SinhFac, CoshFac, dzSinhFac, dzCoshFac, d2zSinhFac;
   cdouble euz = (z<0.0) ? exp(u*z) : 1.0, emuz=1.0/euz;
-  if ( isinf(h) || real(uh)>20.0 )
+  if ( std::isinf(h) || real(uh)>20.0 )
    { uTanhFac = uCothFac = u;
      SinhFac = CoshFac = euz;
      dzSinhFac = dzCoshFac = u*euz;
@@ -651,7 +651,7 @@ InterpND *LayeredSubstrate::InitScalarGFInterpolator(cdouble Omega,
                                                      bool Verbose)
 {
   UpdateCachedEpsMu(Omega);
-  if (EpsLayer[1]==1.0 && isinf(zGP)) return 0; // substrate is trivial
+  if (EpsLayer[1]==1.0 && std::isinf(zGP)) return 0; // substrate is trivial
 
   if (CheckScalarGFInterpolator(Omega,RhoMin,RhoMax,ZMin,ZMax,PPIsOnly,Subtract,RetainSingularTerms))
    return ScalarGFInterpolator;

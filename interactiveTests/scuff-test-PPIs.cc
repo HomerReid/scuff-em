@@ -329,11 +329,11 @@ int main(int argc, char *argv[])
      /*- he didn't specify either part then choose random values for-*/
      /*- both parts                                                  */
      /*--------------------------------------------------------------*/
-     if ( isinf(real(K)) && isinf(imag(K)) )
+     if ( std::isinf(real(K)) && std::isinf(imag(K)) )
       K=cdouble( drand48(), drand48());
-     else if ( isinf(real(K)) )
+     else if ( std::isinf(real(K)) )
       real(K)=0.0;
-     else if ( isinf(imag(K)) )
+     else if ( std::isinf(imag(K)) )
       imag(K)=0.0;
 
      /*--------------------------------------------------------------------*/

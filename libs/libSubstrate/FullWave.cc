@@ -101,7 +101,7 @@ void AddGamma0(double XD[3], double XS[3], cdouble Omega,
      for(int j=0; j<3; j++)
       Gamma0Matrix.AddEntry(3*P+i, 3*Q+j, ImageSign[Q][j]*PreFac[P][Q]*(P==Q ? G[i][j] : C[i][j]));
 
-  if (!isinf(zGP))
+  if (!std::isinf(zGP))
    { R[2] = XD[2] + XS[2] - 2.0*zGP;
      double Zero[3]={0.0, 0.0, 0.0};
      AddGamma0(R, Zero, Omega, EpsRel, MuRel, Gamma0, -1.0*HUGE_VAL, true);

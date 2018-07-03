@@ -86,7 +86,7 @@ bool TestInterface(LayeredSubstrate *S, int ni, cdouble Omega, cdouble q2D[2])
       zSource=S->zInterface[0] + 1.0;
      else if (nl<NI)
       zSource=0.5*(S->zInterface[nl-1] + S->zInterface[nl]);
-     else if (!isinf(zGP))
+     else if (!std::isinf(zGP))
       zSource = 0.5*(S->zInterface[NI-1] + zGP);
      else
       zSource = S->zInterface[nl-1] - 1.0;
@@ -161,7 +161,7 @@ bool TestInterface(LayeredSubstrate *S, int ni, cdouble Omega, cdouble q2D[2])
 /***************************************************************/
 bool TestGroundPlane(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2])
 { 
-  if (isinf(S->zGP))
+  if (std::isinf(S->zGP))
    return true;
 
   int NI=S->NumInterfaces;
@@ -252,7 +252,7 @@ bool RunUnitTest(LayeredSubstrate *S, cdouble Omega, cdouble q2D[2])
   bool AllPassed=true;
   for(int ni=0; ni<S->NumInterfaces; ni++)
    AllPassed &= TestInterface(S, ni, Omega, q2D);
-  if (!isinf(S->zGP))
+  if (!std::isinf(S->zGP))
    AllPassed &= TestGroundPlane(S, Omega, q2D);
   return AllPassed;
 }

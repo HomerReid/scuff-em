@@ -249,7 +249,7 @@ AM_CONDITIONAL(WITH_PYTHON, test x"$have_python" = "xyes")
 
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADER(tr1/unordered_map,[AC_DEFINE([HAVE_TR1],[1],["Have tr1 headers"])],[])
-AC_CHECK_HEADER(unordered_map,[AC_DEFINE([HAVE_CXX11],[1],["Have C++11 headers"])],[])
+AX_CXX_COMPILE_STDCXX([11], [], [optional])
 AC_LANG_POP
 
 ##############################################################################

@@ -177,7 +177,7 @@ void LayeredSubstrate::GetGamma0Twiddle(cdouble Omega, cdouble q2D[2],
       Gamma0Twiddle[3+i][0+j] += MEPreFac * ExpFac * CT[i][j];
       Gamma0Twiddle[3+i][3+j] += MMPreFac * ExpFac * GT[i][j];
     };
-  if ( nl<NumInterfaces || isinf(zGP) ) return;
+  if ( nl<NumInterfaces || std::isinf(zGP) ) return;
 
   /***************************************************************/
   /* add image contribution if we are in the bottommost layer    */

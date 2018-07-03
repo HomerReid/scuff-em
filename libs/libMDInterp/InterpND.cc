@@ -94,7 +94,7 @@ iVec InterpND::GetCell(size_t CellIndex)
 dVec InterpND::X2X0(dVec XVec)
 { dVec X0Vec = FixedCoordinates;
   for(int d0=0, d=0; d0<D0; d0++)
-   if (isinf(X0Vec[d0])) 
+   if (std::isinf(X0Vec[d0])) 
     X0Vec[d0] = XVec[d++];
   return X0Vec;
 }
@@ -103,7 +103,7 @@ dVec InterpND::X02X(dVec X0Vec)
 {
   dVec XVec;
   for(int d0=0; d0<D0; d0++)
-   if (isinf(FixedCoordinates[d0]))
+   if (std::isinf(FixedCoordinates[d0]))
     XVec.push_back(X0Vec[d0]);
    else if (!EqualFloat(X0Vec[d0],FixedCoordinates[d0]))
     ErrExit("%s:%i: X0Vec[%i]=%e != %e",__FILE__,__LINE__,d0,X0Vec[d0],FixedCoordinates[d0]);
@@ -279,7 +279,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 
    iVec dxMax(D0);
    for(int d0=0; d0<D0; d0++)
-    dxMax[d0] = (isinf(FixedCoordinates[d0]) ? 2 : 1);
+    dxMax[d0] = (std::isinf(FixedCoordinates[d0]) ? 2 : 1);
 
    /*--------------------------------------------------------------*/
    /*- call user's function to populate table of function values   */
@@ -382,7 +382,7 @@ void InterpND::Initialize(PhiVDFunc UserFunc, void *UserData, bool Verbose)
 bool InterpND::PointInGrid(double *X0Vec, int *nCell, double *XBarVec)
 { 
   for(int d0=0, d=0; d0<D0; d0++)
-   if ( !isinf(FixedCoordinates[d0]) )
+   if ( !std::isinf(FixedCoordinates[d0]) )
     {
       if (!EqualFloat(X0Vec[d0], FixedCoordinates[d0])) return false;
     }
@@ -622,7 +622,7 @@ double InterpND::PlotInterpolationError(PhiVDFunc UserFunc, void *UserData, char
 
         dVec X0 = FixedCoordinates;
         for(int d0=0, d=0; d0<D0; d0++)
-         if (isinf(X0[d0]))
+         if (std::isinf(X0[d0]))
           { if (XGrids.size() == 0 )
              X0[d0] = XMin[d] + (nCell[d] + 0.4999*tauVec[d])*DX[d]; //EXPLAIN OR FIX ME
             else
