@@ -22,4 +22,4 @@ AM_CPPFLAGS = -I$(top_srcdir)/libs/libhrutil    \
 
 AM_CXXFLAGS = -std=c++11
 
-SUBDIRS = tests
+#SUBDIRS = tests
