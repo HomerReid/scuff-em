@@ -57,7 +57,7 @@ namespace scuff {
 
 #define NSME_G1   0
 #define NSME_G2   1
-#define NSME_C    2
+#define NSME_IKC  2
 #define NUM_NSMES 3
 typedef struct { float Data[NUM_NSMES]; } EdgePairSignature;
 
@@ -258,9 +258,9 @@ void NSMEIntegrand(double x[3], double b[3], double Divb,
 { (void) UserData;
   double R[3]; VecSub(x, xp, R); double r=VecNorm(R);
   double bxbp[3]; VecCross(b,bp,bxbp);
-  Integral[NSME_G1] += Weight*r*VecDot(b,bp);
-  Integral[NSME_G2] += Weight*r*Divb*Divbp;
-  Integral[NSME_C]  += Weight*r*VecDot(R,bxbp);
+  Integral[NSME_G1]  += Weight*r*VecDot(b,bp);
+  Integral[NSME_G2]  += Weight*r*Divb*Divbp;
+  Integral[NSME_IKC] += Weight*r*VecDot(R,bxbp);
 }
 
 void GetNSMEs(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, int Order, double NSMEs[NUM_NSMES])
@@ -276,8 +276,8 @@ EdgePairSignature GetEdgePairSignature(RWGSurface *Sa, int nea, RWGSurface *Sb, 
   for(int n=0; n<NUM_NSMES; n++)
    EPSig.Data[n] = Quantize(NSMEs[n], EEPRelTol*Scale);
   if (Signs)
-   { Signs->Flipped[GKERNEL] = (NSMEs[NSME_G1] < 0.0);
-     Signs->Flipped[CKERNEL] = (NSMEs[NSME_C]  < 0.0);
+   { Signs->Flipped[GKERNEL]   = (NSMEs[NSME_G1]   < 0.0);
+     Signs->Flipped[IKCKERNEL] = (NSMEs[NSME_IKC]  < 0.0);
    }
   return EPSig;
 }

@@ -11,11 +11,8 @@ before_script:
 script:
   - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
   - make install
-  - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests which scuff-scatter
-  - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests echo "PATH is ${PATH}"
-  - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests which CheckSCUFFData
   - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests make check
-  - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'
+  - PYTHONPATH=${HOME}/local/lib/python/site-packages:src/libs/python/.libs python -c 'import scuff'
 
 after_script:
   - for FILE in `find ${TRAVIS_BUILD_DIR} -name test-suite.log`; do printf "\n**${FILE}:\n"; cat ${FILE}; done

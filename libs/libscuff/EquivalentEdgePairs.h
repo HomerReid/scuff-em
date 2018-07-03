@@ -41,7 +41,7 @@ typedef struct ParentPairData
 typedef vector<ParentPairData> ParentPairList;
 
 #define GKERNEL 0
-#define CKERNEL 1
+#define IKCKERNEL 1
 #define NUMKERNELS 2
 typedef struct { bool Flipped[NUMKERNELS]; } SignPattern;
 
