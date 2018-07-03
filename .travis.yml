@@ -9,9 +9,9 @@ addons:
     - swig
 before_script:
 script:
-  - ./autogen.sh --enable-shared --with-python
+  - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
   - make install
-  - make check
+  - (PATH=${PATH}:${HOME}/local/bin make check)
   - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'
 
 after_script:
