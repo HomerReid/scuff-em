@@ -13,3 +13,6 @@ script:
   - make
   - make check
   - PYTHONPATH=src/libs/python:src/libs/python/.libs python -c 'import scuff'
+
+after_script:
+  - for FILE in `find ${TRAVIS_BUILD_DIR} -name test-suite.log`; do printf "\n**${FILE}:\n"; cat ${FILE}; done
