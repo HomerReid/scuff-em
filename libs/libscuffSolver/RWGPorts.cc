@@ -266,7 +266,7 @@ RWGPortEdgeList AddPointPort(RWGGeometry *G, double *X)
 RWGPortList *ReadGDSIIPorts(RWGGeometry *G, const char *GDSIIFileName, iVec Layers)
 {
 #ifndef HAVE_LIBGDSII
-  (void) G; (void) GDSIIFileName; (void) Layer;
+  (void) G; (void) GDSIIFileName; (void) Layers;
   ErrExit("SCUFF-EM must be compiled with libGDSII to process GDSII files");
   return 0;
 #else
