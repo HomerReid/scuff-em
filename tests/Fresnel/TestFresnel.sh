@@ -44,12 +44,28 @@ then
   TIMECMD="`which time` -v -o ${TIMEFILE}"
 fi
 
-# if the location of CheckSCUFFData wasn't specified,
-# assume it lives one level up in the directory hierarchy
+###################################################################
+# if no explicit location for CheckSCUFFData was furnished, look
+# for it in various places
+###################################################################
 if [ "x${CHECKSCUFFDATA}" == "x" ]
 then
-  export CHECKSCUFFDATA=../CheckSCUFFData
+
+  SCUFFDATADIR=`pkg-config scuff-em --variable=datadir`
+  if [ $? -eq 0 ]
+  then
+    export PATH=${PATH}:${SCUFFDATADIR}/tests
+  fi
+
+  export CHECKSCUFFDATA=`which CheckSCUFFData`
+  if [ ! -x ${CHECKSCUFFDATA} ]
+  then
+    echo "could not find CheckSCUFFData executable (set CHECKSCUFFDATA environment variable)"
+    exit 1
+  fi
 fi
+
+echo "CHECKSCUFFDATA=${CHECKSCUFFDATA}"
 
 ##################################################
 # try to set the number of CPU cores as high as possible
