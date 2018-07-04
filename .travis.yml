@@ -12,7 +12,8 @@ script:
   - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
   - make install
   - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests make check
-  - PYTHONPATH=${HOME}/local/lib/python/site-packages:src/libs/python/.libs python -c 'import scuff'
+  - find ${HOME}/local/lib
+  - PYTHONPATH=${HOME}/local/lib/python/site-packages python -c 'import scuff'
 
 after_script:
   - for FILE in `find ${TRAVIS_BUILD_DIR} -name test-suite.log`; do printf "\n**${FILE}:\n"; cat ${FILE}; done

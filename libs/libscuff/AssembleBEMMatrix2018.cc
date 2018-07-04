@@ -186,7 +186,7 @@ void AssembleBEMMatrixBlock2018(RWGGeometry *G, int nsa, int nsb,
         ChildPairList Children = EEPTable->GetChildren(Parents[np].nea, Parents[np].neb);
         for(size_t nc=0; nc<Children.size(); nc++)
          { int neaChild=Children[nc].nea, nebChild=Children[nc].neb;
-           double GSign=Children[nc].GCSign[GKERNEL], CSign=Children[nc].GCSign[CKERNEL];
+           double GSign=Children[nc].GCSign[GKERNEL], CSign=Children[nc].GCSign[IKCKERNEL];
            cdouble ChildMEBuffer[4];
            HMatrix ChildMEs(NBFPEA, NBFPEB, ChildMEBuffer);
            ChildMEBuffer[0]=ParentMEBuffer[0]*GSign;
