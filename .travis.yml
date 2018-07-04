@@ -13,7 +13,7 @@ script:
   - make install
   - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests make check
   - find ${HOME}/local/lib
-  - PYTHONPATH=${HOME}/local/lib/python/site-packages python -c 'import scuff'
+  - PYTHONPATH=${HOME}/local/lib/python2.7/site-packages python -c 'import scuff'
 
 after_script:
   - for FILE in `find ${TRAVIS_BUILD_DIR} -name test-suite.log`; do printf "\n**${FILE}:\n"; cat ${FILE}; done
