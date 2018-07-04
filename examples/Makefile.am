@@ -6,6 +6,7 @@ SUBDIRS =            	\
  HalfSpaceLDOS          \
  ImplicitSubstrate      \
  MicrostripDevices  	\
+ NanorodResonantModes	\
  PaulTrap               \
  PlateWithHole          \
  PerforatedThinFilm     \

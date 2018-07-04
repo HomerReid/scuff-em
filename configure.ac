@@ -304,6 +304,7 @@ AC_CONFIG_FILES([
  examples/HalfSpaceLDOS/scuffgeoFiles/Makefile
  examples/ImplicitSubstrate/Makefile
  examples/MicrostripDevices/Makefile
+ examples/NanorodResonantModes/Makefile
  examples/PaulTrap/Makefile
  examples/PlateWithHole/Makefile
  examples/PerforatedThinFilm/Makefile

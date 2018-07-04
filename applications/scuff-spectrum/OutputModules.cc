@@ -306,7 +306,7 @@ void VisualizeSurfaceFields(RWGGeometry *G, HVector *KN, cdouble Omega, double *
     XMatrix->SetEntriesD(ntp,":",G->Surfaces[ns]->Panels[np]->Centroid);
   HMatrix *FMatrix=G->GetFields(0, KN, Omega, kBloch, XMatrix);
 
-  int PlotType=0, AveragingMethod=0;
+  int PlotType=0, AveragingMethod=1;
   CheckEnv("SCUFF_AVERAGING_METHOD", &AveragingMethod);
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { RWGSurface *S=G->Surfaces[ns];

@@ -338,7 +338,7 @@ struct EPSigCmp
   typedef tr1::unordered_map <EdgePair, EdgePair, EdgePairHash, EdgePairEq > ParentPairMap;
   typedef tr1::unordered_map <EdgePairSignature, EdgePair, EPSigHash, EPSigEqual> EPSigMap;
 #elif defined(HAVE_CXX11)
-  typedef unordered_map <EdgePair, EdgePair, EdgePairHash, EdgePairEq > > ParentPairMap;
+  typedef unordered_map <EdgePair, EdgePair, EdgePairHash, EdgePairEq> ParentPairMap;
   typedef unordered_map <EdgePairSignature, EdgePair, EPSigHash, EPSigEqual> EPSigMap;
 #else
   typedef map<EdgePair, EdgePair, EdgePairCmp> ParentPairMap;

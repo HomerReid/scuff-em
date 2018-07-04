@@ -29,7 +29,7 @@ $x$ and $y$ directions; do not be misled by the apparently finite transverse siz
 the substrates in the pictures above.)
 
 The input files for all of these examples may be found in the `share/scuff-em/examples/MicrostripDevices`
-subdirectory of your `scuff-em` installation.
+subdirectory of your <span class=SC>scuff-em</span> installation.
 
 [TOC]
 
