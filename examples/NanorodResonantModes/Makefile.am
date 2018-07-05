@@ -1,6 +1,6 @@
 pkgdatadir = $(datadir)/scuff-em/examples/NanorodResonantModes
 
-EXTRA_DIST = ComputeNanorodModes
+EXTRA_DIST = ComputeNanorodModes.sh NanorodLDOS.py matprop.dat
 
 geodir   = $(pkgdatadir)/geoFiles
 geo_DATA = geoFiles/Nanorod.geo

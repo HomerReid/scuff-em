@@ -44,7 +44,7 @@
 /* The user's function should replace VHat with                */
 /*  Inverse[ M(z) ] * VHat.                                    */
 /***************************************************************/
-typedef void (*BeynFunction)(cdouble z, void *UserData, HMatrix *VHat);
+typedef void (*BeynFunction)(cdouble z, void *UserData, HMatrix *VHat, HMatrix *MVHat);
 
 /***************************************************************/
 /***************************************************************/
@@ -54,7 +54,7 @@ typedef struct BeynSolver
    int M;   // dimension of matrices
    int L;   // number of columns of VHat matrix
 
-   HVector *Eigenvalues, *EVErrors;
+   HVector *Eigenvalues, *EVErrors, *Residuals;
    HMatrix *Eigenvectors;
    HMatrix *A0, *A1, *A0Coarse, *A1Coarse, *MInvVHat;
    HMatrix *VHat;

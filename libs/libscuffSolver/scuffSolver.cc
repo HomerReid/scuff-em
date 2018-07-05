@@ -218,7 +218,7 @@ void scuffSolver::AddObject(const char *MeshFile, const char *Material, const ch
 
   if (G) 
    ErrMsg=vstrdup("can't add metal traces after geometry has been initialized");
-  if (scuffgeoFile)
+  else if (scuffgeoFile)
    ErrMsg=vstrdup("can't add metal traces to existing geometry file %s",scuffgeoFile);
 
   // check mesh
@@ -232,7 +232,7 @@ void scuffSolver::AddObject(const char *MeshFile, const char *Material, const ch
   if (!ErrMsg && Material)
    { MatProp *MP = new MatProp(Material);
      if (MP->ErrMsg)
-      ErrExit(MP->ErrMsg);
+      ErrMsg=strdup(MP->ErrMsg);
      delete MP;
    }
 
@@ -242,9 +242,8 @@ void scuffSolver::AddObject(const char *MeshFile, const char *Material, const ch
      delete GT;
    }
 
-
   if (ErrMsg)
-   { Warn("AddMetalTraceMesh: %s (ignoring)",ErrMsg);
+   { Warn("AddObject: %s (ignoring)",ErrMsg);
      free(ErrMsg);
      return;
    }

@@ -25,6 +25,7 @@
 [RFPorts]:              	/applications/scuff-rf/scuff-rf.md#RFPorts
 [scuff-scatter]:        	/applications/scuff-scatter/scuff-scatter.md
 [scuff-spectrum]:		/applications/scuff-spectrum/scuff-spectrum.md
+[BeynMethod]:			/applications/scuff-spectrum/scuff-spectrum.md#BeynMethod
 [scuff-static]:                 /applications/scuff-static/scuff-static.md
 [scuff-transmission]:   	/applications/scuff-transmission/scuff-transmission.md
 [scuff-tmatrix]:        	/applications/scuff-tmatrix/scuff-tmatrix.md
@@ -50,6 +51,9 @@
 
 [scuffEMGeometries]:		/reference/Geometries.md
 [ExtendedGeometries]:		/reference/Geometries.md#Extended
+[EquivalentEdgeSurfacePairs]:	/reference/EquivalentEdgeSurfacePairs.md
+[EquivalentEdgePairs]:       	/reference/EquivalentEdgeSurfacePairs.md#EquivalentEdgePairs
+[EquivalentSurfacePairs]:      	/reference/EquivalentEdgeSurfacePairs.md#EquivalentSurfacePairs
 [scuffEMTransformations]:	/reference/Transformations.md
 [scuffEMMaterials]:		/reference/Materials.md
 [scuffEMInstallation]:		/reference/Installing.md

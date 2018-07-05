@@ -49,7 +49,7 @@ typedef struct BFData
    HMatrix *M;
  } BFData;
 
-void BeynFunc(cdouble z, void *UserData, HMatrix *VHat)
+void BeynFunc(cdouble z, void *UserData, HMatrix *VHat, HMatrix *MVHat)
 {
   // unpack fields from data structure
   BFData *Data   = (BFData *)UserData;
@@ -70,9 +70,13 @@ void BeynFunc(cdouble z, void *UserData, HMatrix *VHat)
   M->SetEntry(NR-1, NR-2, ODE);
   M->SetEntry(NR-1, NR-1, 0.5*DE + z/(z-1.0) ); // bottom row
 
-  // replace VHat with M\VHat
-  M->LUFactorize();
-  M->LUSolve(VHat);
+  if (MVHat)
+   M->Multiply(VHat, MVHat);
+  else
+   { // replace VHat with M\VHat
+     M->LUFactorize();
+     M->LUSolve(VHat);
+   }
 }
 
 /***************************************************************/

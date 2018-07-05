@@ -7,19 +7,19 @@
 #
 # Command-line options:
 #
-#  --Omega0 6.5-0.2i             (center of contour)
-#  --RX 0.2                      (horizontal radius of contour ellipse)
+#  --Omega0 6.5-0.3i             (center of contour)
+#  --RX 0.1                      (horizontal radius of contour ellipse)
 #  --RY 0.1                      (vertical radius of contour ellipse)
 #  --NQ 10                       (number of quadrature points)
 #  --NL 5                        (estimated number of eigenvalues)
 #  --Resolution [648|1860|3612]  (fineness of nanorod mesh)
 #  --Dimer                       (use nanorod dimer instead of monomer)
 ##################################################
-OMEGA0=6.5-0.2i
-RX=0.1
-RY=0.15
+OMEGA0=6.5-0.3i
+RX=0.25
+RY=0.1
 NQ=20
-NL=10
+NL=5
 RES=648
 DIMER=0
 while [ $# -ne 0 ]
@@ -43,6 +43,10 @@ done
 # path (i.e. the `--prefix`) you specified.
 ##################################################
 export SCUFF_PREFIX=${SCUFF_PREFIX:-/usr/local}
+
+export SCUFF_BEYN_VERBOSE=1
+export SCUFF_BEYN_RANK_TOL=1.0e-4
+export SCUFF_BEYN_RES_TOL=1.0e-4
 
 ##################################################
 # setup some SCUFF-EM directory paths
@@ -73,11 +77,11 @@ if [ "x${DIMER}" == "x1" ]
 then
   GEOM=GoldNanorods_${RES}
   LY=0.120 
-  NY=12
+  NY=24
 else
   GEOM=GoldNanorod_${RES}
   LY=0.060 
-  NY=6
+  NY=12
 fi
 
 ARGS=""
@@ -87,9 +91,9 @@ ARGS="${ARGS} --RX ${RX}"
 ARGS="${ARGS} --RY ${RY}"
 ARGS="${ARGS} --N ${NQ}"
 ARGS="${ARGS} --L ${NL}"
-#ARGS="${ARGS} --FVScreen 0.000 -0.030 -0.1  0 ${LY} 0  0 0 0.2  ${NY} 20"
-#ARGS="${ARGS} --FVScreen 0.030 -0.015 -0.1  0 ${LY} 0  0 0 0.2  ${NY} 20"
+ARGS="${ARGS} --FVScreen  0.03 -0.03 -0.10 0    ${LY} 0  0 0 0.2 ${NY} 40"
+ARGS="${ARGS} --FVScreen -0.03  0.03 -0.10 0.06 0     0  0 0 0.2 12 40"
 ARGS="${ARGS} --PlotContours"
-#ARGS="${ARGS} --PlotSurfaceCurrents"
-#ARGS="${ARGS} --PlotSurfaceFields"
+ARGS="${ARGS} --PlotSurfaceCurrents"
+ARGS="${ARGS} --PlotSurfaceFields"
 ${SCUFF_PREFIX}/bin/scuff-spectrum ${ARGS}

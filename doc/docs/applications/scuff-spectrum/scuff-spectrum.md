@@ -66,6 +66,7 @@ this means we can't simply use standard solvers
 for linear eigenproblems such as those implemented
 in [<span class=SC>lapack</span>](http://www.netlib.org/lapack/).
 
+<a name="BeynMethod"></a>
 ### Beyn's contour-integral algorithm: A lightning overview
 
 Instead, [[scuff-spectrum]] implements the contour-integral approach

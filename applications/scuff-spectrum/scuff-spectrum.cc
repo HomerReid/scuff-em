@@ -49,7 +49,7 @@ typedef struct BFData
    FILE *LogFile;
  } BFData;
 
-void BeynFunc(cdouble Omega, void *UserData, HMatrix *VHat)
+void BeynFunc(cdouble Omega, void *UserData, HMatrix *VHat, HMatrix *MVHat)
 {
   BFData *Data   = (BFData *)UserData;
 
@@ -73,10 +73,14 @@ void BeynFunc(cdouble Omega, void *UserData, HMatrix *VHat)
   if (LogFile)
    fprintf(LogFile,"%e %e\n",real(Omega),imag(Omega));
 
-  Log(" LUFactorizing...");
-  M->LUFactorize();
-  Log(" LUSolving...");
-  M->LUSolve(VHat);
+  if (MVHat)
+   M->Multiply(VHat, MVHat);
+  else
+   { Log(" LUFactorizing...");
+     M->LUFactorize(); 
+     Log(" LUSolving...");
+     M->LUSolve(VHat);
+   }
 }
 
 /***************************************************************/
@@ -227,8 +231,9 @@ int main(int argc, char *argv[])
      /***************************************************************/
      BeynSolver *Solver    = CreateBeynSolver(D, L);
      HVector *Eigenvalues  = Solver->Eigenvalues;
-     HVector *EVErrors     = Solver->EVErrors;   
+     HVector *EVErrors     = Solver->EVErrors;
      HMatrix *Eigenvectors = Solver->Eigenvectors;
+     HVector *Residuals    = Solver->Residuals;
      int NumModes=BeynSolve(Solver, BeynFunc, (void *)&MyBFData, Omega0, Rx, Ry, N);
 
      if (PlotContours)
@@ -244,11 +249,12 @@ int main(int argc, char *argv[])
         fprintVec(f,kBloch,G->LDim);
       }
      fprintf(f,":\n");
-     fprintf(f,"# re(w) im(w)   estimated error in re(w), im(w)\n");
+     fprintf(f,"# re(w) im(w)   estimated error in re(w), im(w)    residual\n");
      for(int n=0; n<NumModes; n++)
       { fprintf(f,"%+12e %+12e  ",real(Eigenvalues->GetEntry(n)), imag(Eigenvalues->GetEntry(n)));
         if (n<EVErrors->N)
          fprintf(f,"%+12e %+12e  ",real(EVErrors->GetEntry(n)), imag(EVErrors->GetEntry(n)));
+        fprintf(f,"%+e ",Residuals->GetEntryD(n));
         fprintf(f,"\n");
       }
      fclose(f);

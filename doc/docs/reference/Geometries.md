@@ -44,6 +44,13 @@ periodically replicated to constitute the actual geometry.
 In what follows we will see how to write ``.scuffgeo``
 files that describe each of these types of geometries.
 
+**Update, June 2018: <span class=SC>scuff-em</span> versions
+0.96 and later incorporate a new optimization known as
+[*automated detection of equivalent edge and surface pairs*][EquivalentEdgeSurfacePairs]
+that can yield enormous reductions (as much as 90% or more) in the cost of assembling the
+system matrix. See the [documentation][EquivalentEdgeSurfacePairs] for details on 
+how to exploit this features.**
+
 <ol class="TOC">
 
 <p align="center">

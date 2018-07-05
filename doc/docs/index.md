@@ -20,6 +20,7 @@
 * [Plane-wave transmission with rotation of polarization: Chiral metasurface rotator](http://homerreid.github.io/SCUFFEMTutorialSymposium/ChiralMetasurfaceRotator)
 * [Imaging diffraction patterns of discs, disc arrays, and hole arrays in metal screens](examples/DiffractionPatterns/DiffractionPatterns.md)
 * [Imaging diffraction patterns of aperiodic arrays: Vogel spirals](http://homerreid.github.io/SCUFFEMTutorialSymposium/SpiralArrays/)
+* [Mode frequencies and field patterns of resonant modes in gold nanorods](examples/NanorodResonantModes/NanorodResonantModes.md)
 
 ### RF device modeling
 
@@ -64,6 +65,7 @@
 * [Top-level overview](reference/TopLevel.md)
 * [Installation](reference/Installing.md)
 * [Geometry files](reference/Geometries.md)
+* [Automated detection of equivalent edge and surface pairs][EquivalentEdgeSurfacePairs]
 * [Material descriptions](reference/Materials.md)
 * [Geometrical transformations](reference/Transformations.md)
 * [Incident Fields](reference/IncidentFields.md)

@@ -53,6 +53,7 @@ BeynSolver *CreateBeynSolver(int M, int L)
   // storage for eigenvalues and eigenvectors
   Solver->Eigenvalues  = new HVector(L, LHM_COMPLEX);
   Solver->EVErrors     = new HVector(L, LHM_COMPLEX);
+  Solver->Residuals    = new HVector(L, LHM_COMPLEX);
   Solver->Eigenvectors = new HMatrix(M, L, LHM_COMPLEX);
 
   // storage for singular values, random VHat matrix, etc. used in algorithm
@@ -120,7 +121,7 @@ void ReRandomize(BeynSolver *Solver, unsigned int RandSeed)
 /* matrices (obtained via numerical quadrature) to extract     */
 /* eigenvalues and eigenvectors                                */
 /***************************************************************/
-int ProcessAMatrices(BeynSolver *Solver,
+int ProcessAMatrices(BeynSolver *Solver, BeynFunction UserFunc, void *UserData,
                      HMatrix *A0, HMatrix *A1, cdouble z0,
                      HVector *Eigenvalues, HMatrix *Eigenvectors=0)
 {
@@ -135,24 +136,27 @@ int ProcessAMatrices(BeynSolver *Solver,
   LLBuffers[0] = MLBuffers[1] + ML;
   LLBuffers[1] = LLBuffers[0] + LL;
   LLBuffers[2] = LLBuffers[1] + LL;
+
+  bool Verbose=          CheckEnv("SCUFF_BEYN_VERBOSE");
+  double RankTol=1.0e-4; CheckEnv("SCUFF_BEYN_RANK_TOL",&RankTol);
+  double ResTol=0.0;     CheckEnv("SCUFF_BEYN_RES_TOL",&ResTol);
  
-  // A0 -> V0Full * Sigma * W0TFull'
-  Log(" Computing SVD...");
+  // A0 -> V0Full * Sigma * W0TFull' 
+  Log(" Beyn: computing SVD...");
   HMatrix V0Full(M,L,LHM_COMPLEX,(void *)MLBuffers[0]);
   HMatrix W0TFull(L,L,LHM_COMPLEX,(void *)LLBuffers[0]);
   A0->SVD(Sigma, &V0Full, &W0TFull);
 
-  // compute effective rank K
+  // compute effective rank K (number of eigenvalue candidates)
   int K=0;
-  double SigmaThreshold=1.0e-8;
   for(int k=0; k<Sigma->N; k++)
-   if (Sigma->GetEntryD(k) > SigmaThreshold)
-    K++;
-  Log(" %i/%i relevant singular values",K,L);
-  if (K==L)
-   Warn("K=L=%i in BeynMethod (repeat with higher L)",K,L);
+   { if (Verbose) Log("Beyn: SV(%i)=%e",k,Sigma->GetEntryD(k));
+     if (Sigma->GetEntryD(k) > RankTol )
+      K++;
+   }
+  Log(" Beyn: %i/%i relevant singular values",K,L);
   if (K==0)
-   { Warn("no eigenvalues found!");
+   { Warn("no singular values found in Beyn eigensolver");
      return 0;
    }
 
@@ -175,35 +179,50 @@ int ProcessAMatrices(BeynSolver *Solver,
    for(int n=0; n<K; n++)
     B.ScaleEntry(m,n,1.0/Sigma->GetEntry(n));
 
+  // B -> S*Lambda*S'
   Log(" Eigensolving (%i,%i)",K,K);
   HVector Lambda(K,LLBuffers[0]);
   HMatrix S(K,K,LLBuffers[1]);
   B.NSEig(&Lambda, &S);
 
-  Eigenvalues->Zero();
-  for(int k=0; k<K; k++)
-   Eigenvalues->SetEntry(k, Lambda.GetEntry(k) + z0 );
-
-  if (Eigenvectors==0) return K;
-
+  // V0S <- V0*S
   Log(" Multiplying V0*S...");
   HMatrix V0S(M,K,MLBuffers[1]);
   V0.Multiply(&S, &V0S);
+ 
+  Eigenvalues->Zero();
+  if (Eigenvectors) Eigenvectors->Zero();
+  int KRetained=0;
+  for(int k=0; k<K; k++)
+   { 
+     cdouble  z = z0 + Lambda.GetEntry(k);
+     cdouble *V = (cdouble *)V0S.GetColumnPointer(k);
 
-  Eigenvectors->Zero();
-  for(int m=0; m<M; m++)
-   for(int k=0; k<K; k++)
-    Eigenvectors->SetEntry(m,k, V0S.GetEntry(m,k));
+     double Residual=0.0;
+     if (ResTol>0.0)
+      { HMatrix Vk(M,1,V);
+        HMatrix MVk(M,1,MLBuffers[0]);
+        UserFunc(z, UserData, &Vk, &MVk);
+        Residual=VecNorm(MVk.ZM, M);
+        if (Verbose) Log("Beyn: Residual(%i)=%e",k,Residual);
+      }
+     if (ResTol>0.0 && Residual>ResTol) continue;
 
-  return K;
-
+    Eigenvalues->SetEntry(KRetained, z);
+    if (Eigenvectors) 
+     { Eigenvectors->SetEntries(":", KRetained, V);
+       Solver->Residuals->SetEntry(KRetained,Residual);
+     }
+    KRetained++;
+   }
+  return KRetained;
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int BeynSolve(BeynSolver *Solver,
-              BeynFunction UserFunction, void *UserData,
+              BeynFunction UserFunc, void *UserData,
               cdouble z0, double Rx, double Ry, int N)
 {  
   /***************************************************************/
@@ -244,7 +263,7 @@ int BeynSolve(BeynSolver *Solver,
      cdouble dz   = (II*Rx*ST + Ry*CT)/((double)N);
 
      MInvVHat->Copy(VHat);
-     UserFunction(z0+z1, UserData, MInvVHat);
+     UserFunc(z0+z1, UserData, MInvVHat, 0);
 
      VecPlusEquals(A0->ZM, dz,    MInvVHat->ZM, M*L);
      VecPlusEquals(A1->ZM, z1*dz, MInvVHat->ZM, M*L);
@@ -262,8 +281,8 @@ int BeynSolve(BeynSolver *Solver,
   HVector *EVErrors     = Solver->EVErrors;
   HMatrix *Eigenvectors = Solver->Eigenvectors;
   
-  int K = ProcessAMatrices(Solver, A0, A1, z0, Eigenvalues, Eigenvectors);
-  int KCoarse = ProcessAMatrices(Solver, A0Coarse, A1Coarse, z0, EVErrors);
+  int K       = ProcessAMatrices(Solver, UserFunc, UserData, A0,       A1,       z0, Eigenvalues, Eigenvectors);
+  int KCoarse = ProcessAMatrices(Solver, UserFunc, UserData, A0Coarse, A1Coarse, z0, EVErrors);
   Log("{K,KCoarse}={%i,%i}",K,KCoarse);
   for(int k=0; k<EVErrors->N && k<Eigenvalues->N; k++)
    { EVErrors->ZV[k] -= Eigenvalues->ZV[k];

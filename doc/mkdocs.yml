@@ -61,6 +61,7 @@ pages:
     - 'Electrostatics of a spherical dielectric shell':   'examples/DielectricShell/DielectricShell.md'
     - 'Spatially-resolved study of plane-wave transmission through an infinite-area thin dielectric film':   'examples/ThinFilm/ThinFilm.md'
     - 'Imaging diffraction patterns of discs, disc arrays, and hole arrays in metal screens': 'examples/DiffractionPatterns/DiffractionPatterns.md'
+    - 'Mode frequencies and field patterns of resonant modes in gold nanorods': 'examples/NanorodResonantModes/NanorodResonantModes.md'
     - 'Casimir forces in a compact geometry':     'examples/CubeTorus.md'
     - 'Casimir forces in a 1D extended geometry': 'examples/SiliconBeams/SiliconBeams.md'
     - 'Casimir forces in a 2D extended geometry': 'examples/SiliconSlabs/SiliconSlabs.md'
@@ -89,14 +90,15 @@ pages:
     - 'Low-level tests of the core library':                               'tests/libscuff/libscuff.md'
 
 - General reference:
-    - 'Top-level overview':        'reference/TopLevel.md'
-    - 'Installation':              'reference/Installing.md'
-    - 'Geometry descriptions':     'reference/Geometries.md'
-    - 'Material designations':     'reference/Materials.md'
-    - 'Geometric transformations': 'reference/Transformations.md'
-    - 'Incident fields':           'reference/IncidentFields.md'
-    - 'Brillouin zone integration': 'reference/BrillouinZoneIntegration.md'
-    - 'FAQ':                        'reference/FAQ.md'
+    - 'Top-level overview':             'reference/TopLevel.md'
+    - 'Installation':                   'reference/Installing.md'
+    - 'Geometry descriptions':          'reference/Geometries.md'
+    - 'Equivalent edge/surface pairs':  'reference/EquivalentEdgeSurfacePairs.md'
+    - 'Material designations':          'reference/Materials.md'
+    - 'Geometric transformations':      'reference/Transformations.md'
+    - 'Incident fields':                'reference/IncidentFields.md'
+    - 'Brillouin zone integration':     'reference/BrillouinZoneIntegration.md'
+    - 'FAQ':                            'reference/FAQ.md'
 
 - Command-line tools:
     - 'General command-line reference': 'applications/GeneralReference.md'
