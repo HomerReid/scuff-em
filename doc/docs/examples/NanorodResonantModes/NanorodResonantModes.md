@@ -168,9 +168,7 @@ in [<span class=SC>gnuplot</span>][GNUPLOT]:
 gnuplot> plot 'Nanorod_648.LDOS' u 1:3 t 'Monomer', 'Nanorods_648.LDOS' u 1:3 t 'Dimer'
 ```
 
-<p align="center">
-<a href="/examples/NanorodResonantModes/MonomerDimerLDOS.png"><img src="/examples/NanorodResonantModes/MonomerDimerLDOS.png" style='max_width="100%" object-fit: contain'></a>
-</p>
+![MonomerDimerLDOS.png](MonomerDimerLDOS.png)
 
 So, this comports with our expectations: the monomer configuration has a
 single resonance near $\omega\approx 6.5\omega_0$
@@ -214,9 +212,9 @@ This runs in 6 seconds on my laptop and produces several output files:
 visualize field patterns. For example, here's a plot of the real part of
 $E_y$, both on the nanorod surface and on some nearby visualization screens:
 
-<p align="center">
-<a href="/examples/NanorodResonantModes/MonomerEy.png"><img src="/examples/NanorodResonantModes/MonomerEy.png" style='max_width="100%" object-fit: contain'></a>
-</p>
++[`MonomerEy.png`](MonomerEy.png):
+
+![MonomerEy.png](MonomerEy.png)
 
 
 ## Run <span class=SC>scuff-spectrum</span> to pinpoint frequencies of dimer resonant modes
@@ -247,14 +245,16 @@ We also get <span class=SC>gmsh</span> visualization files plotting
 field configurations:
 
 ### Ey fields for the dimer "bonding" mode
-<p align="center">
-<a href="/examples/NanorodResonantModes/DimerBondingEy.png"><img src="/examples/NanorodResonantModes/DimerBondingEy.png" style='max_width="100%" object-fit: contain'></a>
-</p>
+
++[`DimerBondingEy.png`](DimerBondingEy.png):
+
+![DimerBondingEy.png](DimerBondingEy.png)
 
 ### Ey fields for the dimer "anti-bonding" mode
-<p align="center">
-<a href="/examples/NanorodResonantModes/DimerAntibondingEy.png"><img src="/examples/NanorodResonantModes/DimerAntibondingEy.png" style='max_width="100%" object-fit: contain'></a>
-</p>
+
++[`DimerAntibondingEy.png`](DimerAntibondingEy.png):
+
+![DimerAntibondingEy.png](DimerAntibondingEy.png)
 
 
 {!Links.md!}
