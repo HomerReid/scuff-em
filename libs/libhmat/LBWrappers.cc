@@ -670,28 +670,6 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
      U = new HMatrix(NR, NC, LHM_COMPLEX);
    }
 
-/*
-  if (NR==1)
-   { Lambda->SetEntry(0, GetEntry(0,0));
-     if (U) U->SetEntry(0,0,1.0);
-     return Lambda;
-   }
-  if (NR==2)
-   { cdouble M11 = GetEntry(0,0);
-     cdouble M12 = GetEntry(0,1);
-     cdouble M21 = GetEntry(1,0);
-     cdouble M22 = GetEntry(1,1);
-     cdouble Det = sqrt(M11*M11 + 4.0*M12*M21 - 2.0*M11*M22 + M22*M22);
-     Lambda->SetEntry(0, 0.5*(M11+M22-Det));
-     Lambda->SetEntry(1, 0.5*(M11+M22+Det));
-     U->SetEntry(0,0,(M11-M22-Det)/(2.0*M21));
-     U->SetEntry(1,0,1.0);
-     U->SetEntry(0,1,(M11-M22+Det)/(2.0*M21));
-     U->SetEntry(1,1,1.0);
-     return Lambda;
-   }
-*/
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -748,6 +726,8 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
 
      zgeev_(jobvl, jobvr, &NR, ZM, &NR, Lambda->ZV, 0, &NR,
             U ? U->ZM : 0, &NR, zwork, &lworkOptimal, rwork, &info);
+
+     Log("zgeev(%i): info=%i",NR,NR,info);
      free(zwork);
      free(rwork);
    }

@@ -34,8 +34,8 @@
 
 #define II cdouble(0.0,1.0)
 
-cdouble zrandN(double Mu=0.0, double Sigma=1.0)
-{ return cdouble(randN(Mu,Sigma), randN(Mu,Sigma)); }
+cdouble zrandN(double Sigma=1.0, double Mu=0.0)
+{ return cdouble(randN(Sigma,Mu), randN(Sigma,Mu)); }
 
 /***************************************************************/
 /***************************************************************/
@@ -154,7 +154,7 @@ int ProcessAMatrices(BeynSolver *Solver,
   if (K==0)
    { Warn("no eigenvalues found!");
      return 0;
-   };
+   }
 
   // set V0, W0T = matrices of first K right, left singular vectors
   HMatrix V0(M,K,LHM_COMPLEX,(void *)MLBuffers[0]);
@@ -198,7 +198,6 @@ int ProcessAMatrices(BeynSolver *Solver,
   return K;
 
 }
-
 
 /***************************************************************/
 /***************************************************************/
@@ -253,8 +252,8 @@ int BeynSolve(BeynSolver *Solver,
      if ( (n%2)==0 )
       { VecPlusEquals(A0Coarse->ZM, 2.0*dz,    MInvVHat->ZM, M*L);
         VecPlusEquals(A1Coarse->ZM, 2.0*z1*dz, MInvVHat->ZM, M*L);
-      };
-   };
+      }
+   }
 
   /***************************************************************/
   /***************************************************************/

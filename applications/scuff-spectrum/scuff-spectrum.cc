@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
      if (PlotContours)
       { MyBFData.LogFile = vfopen("%s.contours","a",FileBase);
         fprintf(MyBFData.LogFile,"\n\n# (Omega0,Rx,Ry,N)=%s,%e,%e,%i\n",CD2S(Omega0),Rx,Ry,N);
-      };
+      }
 
      /***************************************************************/
      /* run Beyn's algorithm for this contour                       */
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
      if (kBloch)
       { fprintf(f,", kBloch=");
         fprintVec(f,kBloch,G->LDim);
-      };
+      }
      fprintf(f,":\n");
      fprintf(f,"# re(w) im(w)   estimated error in re(w), im(w)\n");
      for(int n=0; n<NumModes; n++)
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
         if (n<EVErrors->N)
          fprintf(f,"%+12e %+12e  ",real(EVErrors->GetEntry(n)), imag(EVErrors->GetEntry(n)));
         fprintf(f,"\n");
-      };
+      }
      fclose(f);
 
      /***************************************************************/
@@ -295,6 +295,6 @@ int main(int argc, char *argv[])
 
      DestroyBeynSolver(Solver);
 
-   }; 
+   }
 
 }
