@@ -58,8 +58,8 @@ export SCUFF_GEO_PATH=${BASE}/scuffgeoFiles
 ##################################################
 # try to use all available CPU cores
 ##################################################
-CORES=`nproc`
-if [ $? -eq 0 ]
+CORES=`getconf _NPROCESSORS_ONLN`
+if [ "x${CORES}" != "x" ]
 then
   export OMP_NUM_THREADS="${CORES}"
   export GOMP_CPU_AFFINITY="0-$((CORES-1))"

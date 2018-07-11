@@ -183,7 +183,7 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
      else
       w=1.0/((double)(NCP));
 
-     cdouble *E, *H;
+     cdouble E[3], H[3];
      FMatrixAbove->GetEntries(ncp, "0:2", E);
      FMatrixAbove->GetEntries(ncp, "3:5", H);
      PAbove += 0.5*w*real(   nHatAbove[0]*(E[1]*conj(H[2]) - E[2]*conj(H[1]) )

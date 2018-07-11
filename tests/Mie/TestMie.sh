@@ -1,6 +1,22 @@
 #!/bin/bash
 
 ###################################################################
+# process arguments ###############################################
+###################################################################
+REFERENCE=0
+if [ $# == 1 ]
+then
+  if [ "x${1}" == "x--reference" ]
+  then
+    REFERENCE=1
+    echo "Reference run to generate data files."
+  else
+    echo "unknown command-line argument ${1} (aborting)"
+    exit 1
+  fi
+fi
+
+###################################################################
 # check that scuff-scatter is present
 ###################################################################
 CODE=scuff-scatter
@@ -18,36 +34,31 @@ fi
 ###################################################################
 if [ "x${CHECKSCUFFDATA}" == "x" ]
 then
-
   SCUFFDATADIR=`pkg-config scuff-em --variable=datadir`
   if [ $? -eq 0 ]
   then
     export PATH=${PATH}:${SCUFFDATADIR}/tests
   fi
 
-  export CHECKSCUFFDATA=`which CheckSCUFFData`
-  if [ ! -x ${CHECKSCUFFDATA} ]
+  if [ "x${CHECKSCUFFDATA}" == "x" ]
   then
     echo "could not find CheckSCUFFData executable (set CHECKSCUFFDATA environment variable)"
     exit 1
   fi
 fi
 
-echo "CHECKSCUFFDATA=${CHECKSCUFFDATA}"
-
-###################################################################
-# process arguments ###############################################
-###################################################################
-REFERENCE=0
-if [ $# == 1 ]
-then
-  if [ "x${1}" == "x--reference" ]
+##################################################
+# try to set the number of CPU cores as high as possible
+# (if it is not already set)
+##################################################
+if [ "x${OMP_NUM_THREADS}" == "x" ]
+then 
+  CORES=`getconf _NPROCESSORS_ONLN`
+  if [ "x${CORES}" != "x" ]
   then
-    REFERENCE=1
-    echo "Reference run to generate data files."
-  else
-    echo "unknown command-line argument ${1} (aborting)"
-    exit 1
+    export OMP_NUM_THREADS=${CORES}
+    export GOMP_CPU_AFFINITY=0-$((CORES-1))
+    echo "Using ${CORES} CPU cores (${GOMP_CPU_AFFINITY})"
   fi
 fi
 
@@ -68,34 +79,17 @@ ARGS="${ARGS} --DSIRadius      1.5"
 ARGS="${ARGS} --DSIPoints      302"
 
 ##################################################
-# try to set up timing measurement
 ##################################################
-TIMECMD=
+##################################################
 RUNTIME=${GEOM}.Runtime
-if [ -x `which time` ]
+TIMECMD=`which time`
+if [ $? -eq 0 ]
 then
-  TIMECMD="`which time` -v -o ${RUNTIME}"
+  ${TIMECMD} -o ${RUNTIME} ${CODE} ${ARGS}
+else
+  echo "No time command found." > ${RUNTIME}
+  ${CODE} ${ARGS}
 fi
-
-##################################################
-# try to set the number of CPU cores as high as possible
-# (if it is not already set)
-##################################################
-if [ "x${OMP_NUM_THREADS}" == "x" ]
-then 
-  CORES=`getconf _NPROCESSORS_ONLN`
-  if [ "x${CORES}" != "x" ]
-  then
-    export OMP_NUM_THREADS=${CORES}
-    export GOMP_CPU_AFFINITY=0-$((CORES-1))
-    echo "Using ${CORES} CPU cores (${GOMP_CPU_AFFINITY})"
-  fi
-fi
-
-##################################################
-# run the code
-##################################################
-${TIMECMD} ${CODE} ${ARGS}
 
 ##################################################
 # if we were invoked with --reference, just create
@@ -143,18 +137,13 @@ done
 ##################################################
 if [ -r ${RUNTIME} ]
 then
-
-  WALL=`cat ${RUNTIME} | grep 'Elapsed' | cut -f5- -d':'`
-  USER=`cat ${RUNTIME} | grep 'User time' | cut -f2- -d':'`
-  MEM=`cat ${RUNTIME}  | grep 'Maximum resident set size' | cut -f2- -d':'`
-
-  WALLREF=`cat reference/${TIMEREF} | grep 'Elapsed' | cut -f5- -d':'`
-  USERREF=`cat reference/${TIMEREF} | grep 'User time' | cut -f2- -d':'`
-  MEMREF=`cat reference/${TIMEREF}  | grep 'Maximum resident set size' | cut -f2- -d':'`
-
-  echo "Wall time: ${WALL} (ref: ${WALLREF})"
-  echo "User time: ${USER} (ref: ${USERREF})"
-  echo "Memory:    ${MEM}  (ref: ${MEMREF})"
+  echo "Timing (this run): "
+  cat ${RUNTIME}
+  if [ -r reference/${RUNTIME} ]
+  then
+    echo "Timing (reference): "
+    cat reference/${RUNTIME}
+  fi
 fi
 
 ##################################################
