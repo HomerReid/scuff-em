@@ -631,6 +631,11 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    };
   //TODO insert here a check for any nested objects and automatically 
   //     disable symmetry if present
+
+  int nsaOnly=-1; CheckEnv("SCUFF_EMTPFT_NSAONLY",&nsaOnly);
+  int nsbOnly=-1; CheckEnv("SCUFF_EMTPFT_NSBONLY",&nsbOnly);
+  //char *EMTLog=0; CheckEnv("SCUFF_EMTPFT_LOGFILE",&EMTLog);
+  //FILE *fLog = EMTLog ? fopen(EMTLog,"w") : 0;
     
 #ifdef USE_OPENMP
   Log("EMT OpenMP multithreading (%i threads)",NT);
@@ -649,7 +654,10 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
 
       int nsb, neb, KNIndexB;
       RWGSurface *SB = G->ResolveEdge(nebTot, &nsb, &neb, &KNIndexB);
-   
+
+      if ( (nsaOnly!=-1 && nsa!=nsaOnly) || (nsbOnly!=-1 && nsb!=nsbOnly) )
+       continue;
+
       double Sign=0.0;
       if (nsa==nsb)
        Sign = Interior ? -1.0 : +1.0;

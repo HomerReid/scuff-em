@@ -167,7 +167,7 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   if ( p != (KVM->end()) )
    { Hits++;
      return (QIFIPPIData *)(p->second);
-   };
+   }
   
   /***************************************************************/
   /* if it was not found, allocate and compute a new QIFIPPIData */

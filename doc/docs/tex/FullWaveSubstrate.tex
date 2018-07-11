@@ -248,17 +248,14 @@ Roughly speaking, the computational problem may be divided into two parts:
 %####################################################################%
 %####################################################################% 
 \newpage
-\section{{\sc libsubstrate:} Numerical computation of substrate Green's functions}
+\section{Numerical computation of tensor Green's functions}
 \label{libSubstrateSection}
 
-Numerical evaluation of substrate contributions to
-dyadic Green's functions is handled by a C++ library 
-called {\sc libsubstrate}.
-Although this library is packaged and distributed with {\sc scuff-em}
-and depends on other support libraries in the {\sc scuff-em}
-distribution, it is independent of the particular integral-equation
-formulation implemented by {\sc libscuff}, and thus should be
-of general utility beyond {\sc scuff-em}.
+In this section I discuss a method for computing the contributions
+of the layered substrate the \textit{tensor} Green's function $\bmc G$,
+i.e the 6$\times$6 dyadic operator that operates on a 6-vector of 
+electric and magnetic currents ${\vb J \choose \vb M}$ to yield
+the 6-vector of electric and magnetic fields ${\vb E \choose \vb H}$.
 
 \subsection{Overview of computational strategy}
 \label{libSubstrateStrategy}
@@ -654,52 +651,6 @@ here---which is the $ij$ component of the substrate DGF---is}
 The calculation of equation (\ref{ScriptGFourier}) is carried
 out by the routine \texttt{GetGTwiddle} in {\sc libsubstrate}.
 
-\subsection*{Green's functions for potentials}
-
-In equation (\ref{FieldsFromInducedCurrents}) I am computing
-the 6 components of the $\vb E$ and $\vb H$ fields produced
-by the induced surface currents. If instead I compute the
-\textit{potentials} produced by those currents I obtain a
-slightly different Green's function. Thus, let
-$\vb A\supt{E}, \Phi\supt{E}$ be the usual vector and scalar
-potential of an electric-current source in a homogeneous region,
-and let $\vb A\supt{M}, \Phi\supt{M}$ be their counterparts for 
-magnetic-current sources, i.e. if the electric and magnetic
-volume currents are $\vb J$ and $\vb M$ then
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{subequations}
-\begin{align}
- \vb A\supt{E}(\vb x\subt{D})
-&= \mu
-   \int \vb J (\vb x\subt{S}) G_0(\vb x\subt{DS})\,d\vb x\subt{S},
- \quad
- \Phi\supt{E}(\vb x\subt{D})
- = \frac{1}{i\omega \epsilon}
-   \int \left(\nabla\cdot \vb J\right) G_0(\vb x\subt{DS}) d\vb x\subt{S}
-\\
-%--------------------------------------------------------------------%
- \vb A\supt{M}(\vb x\subt{D})
-&= \epsilon
-   \int \vb M (\vb x\subt{S}) G_0(\vb x\subt{DS})\,d\vb x\subt{S},
- \quad
- \Phi\supt{M}(\vb x\subt{D})
- = \frac{1}{i\omega \mu}
-   \int \left(\nabla\cdot \vb M\right) G_0(\vb x\subt{DS}) d\vb x\subt{S}
-\end{align}
-\end{subequations}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-with $\vb x\subt{DS}\equiv \vb x\subt{D}-\vb x\subt{S}$ and
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- G_0(k; \vb r)
- &=\frac{e^{ik|\vb r|}}{4\pi|\vb r|}
-  =\int\frac{d^2 \vb q}{(2\pi)^2} 
-   \wt{G}_0(\vb q, z)e^{i\vb q\cdot \vbrho},
- \qquad \wt{G}_0=\frac{i}{2q_z}e^{iq_z|z|}.
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-I write
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1001,6 +952,67 @@ is 18.}
 \end{align}
   
 %====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Numerical computation of scalar Green's functions}
+
+An alternative to computing the
+$6\times 6$ tensor Green's function is instead to consider
+the 4 \textit{scalar} Green's functions that give the electric and
+magnetic scalar and vector potentials due to electric and magnetic
+current and charge distributions.
+
+In this approach we think of currents and charge densities as separate,
+independent types of sources, which give rise respectively to
+vector and scalar potentials. More specifically, an electric
+current distribution $\vb J(\vb x)$
+
+Of course, in reality 
+
+In equation (\ref{FieldsFromInducedCurrents}) I am computing
+the 6 components of the $\vb E$ and $\vb H$ fields produced
+by the induced surface currents. If instead I compute the
+\textit{potentials} produced by those currents I obtain a
+slightly different Green's function. Thus, let
+$\vb A\supt{E}, \Phi\supt{E}$ be the usual vector and scalar
+potential of an electric-current source in a homogeneous region,
+and let $\vb A\supt{M}, \Phi\supt{M}$ be their counterparts for 
+magnetic-current sources, i.e. if the electric and magnetic
+volume currents are $\vb J$ and $\vb M$ then
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+ \vb A\supt{E}(\vb x\subt{D})
+&= \int \vb J (\vb x\subt{S}) G_0(\vb x\subt{DS})\,d\vb x\subt{S},
+ \quad
+ \Phi\supt{E}(\vb x\subt{D})
+ = \frac{1}{i\omega \epsilon}
+   \int \left(\nabla\cdot \vb J\right) G_0(\vb x\subt{DS}) d\vb x\subt{S}
+\\
+%--------------------------------------------------------------------%
+ \vb A\supt{M}(\vb x\subt{D})
+&= \epsilon
+   \int \vb M (\vb x\subt{S}) G_0(\vb x\subt{DS})\,d\vb x\subt{S},
+ \quad
+ \Phi\supt{M}(\vb x\subt{D})
+ = \frac{1}{i\omega \mu}
+   \int \left(\nabla\cdot \vb M\right) G_0(\vb x\subt{DS}) d\vb x\subt{S}
+\end{align}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+with $\vb x\subt{DS}\equiv \vb x\subt{D}-\vb x\subt{S}$ and
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ G_0(k; \vb r)
+ &=\frac{e^{ik|\vb r|}}{4\pi|\vb r|}
+  =\int\frac{d^2 \vb q}{(2\pi)^2} 
+   \wt{G}_0(\vb q, z)e^{i\vb q\cdot \vbrho},
+ \qquad \wt{G}_0=\frac{i}{2q_z}e^{iq_z|z|}.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %####################################################################%
 %####################################################################%
@@ -1372,8 +1384,9 @@ according to
            - \frac{1}{i\omega \mu}\nabla\Phi\supt{M}.
 \end{align*}
 %====================================================================%
-In a homogeneous region, the potentials\footnote{Note that my $\Phi\supt{E,M}$
-are $i\omega$ times the actual scalar potentials due to the charge
+In a homogeneous region, the potentials\footnote{Note that my
+$\Phi\supt{E,M}$ are $i\omega\{\epsilon,\mu\}$ times the actual
+scalar potentials due to the charge
 distributions associated with currents $\vb J, \vb M$.}
 produced by given source distributions $\{\vb J, \vb M\}$ are
 %====================================================================%
@@ -1428,6 +1441,118 @@ $$
  \end{array}\right)
 $$
 \renewcommand{\arraystretch}{1.0}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Analytical result for single material interface in the low-frequency
+         or short-distance limits}
+
+For the case of just a single material interface with no ground plane---i.e.
+the substrate is an infinite half-space---the DGF calculation simplifies
+enough to allow analytical evaluation in the low-frequency and/or
+short-distance limits.
+
+In this case, the $4\times 4$ system of equations (\ref{MsF})
+relating induced surface currents to incident fields in Fourier space
+splits into two disconnected $2\times 2$ blocks:
+%====================================================================%
+\numeq{MKN2x2}
+{
+  \left(\begin{array}{cc}
+  \vb M\supt{E} & 0 \\ 0 & \vb M\supt{M}
+        \end{array}\right)
+  \left(\begin{array}{c}
+  \wt{k_x} \\ \wt{k_y} \\ \wt{n_x} \\ \wt{n_y}
+        \end{array}\right)
+=-
+  \left(\begin{array}{c}
+  \wt{e_x} \\ \wt{e_y} \\ \wt{h_x} \\ \wt{h_y}
+        \end{array}\right)
+}
+%====================================================================%
+where the matrix blocks have the structure $(P=\{E,M\})$
+%====================================================================%
+\begin{align*}
+ M_{ij}\supt{P} &= f_1\supt{P} \delta_{ij} + f_2\supt{P} \frac{q_i q_j}{q^2}
+\end{align*}
+with
+%====================================================================%
+$$
+  f_1\supt{E} = -\frac{\omega}{2}\left[ \frac{\mu\supt{A}}{q_z\supt{A}}
+                                        +\frac{\mu\supt{B}}{q_z\supt{B}}
+                                  \right],
+  \qquad
+  f_2\supt{E} = +\frac{q^2}{2\omega}\left[   \frac{1}{\epsilon\supt{A} q_z\supt{A}}
+                                           + \frac{1}{\epsilon\supt{B} q_z\supt{B}}
+                                    \right]
+$$
+and $f_{12}\supt{M}$ similar with $\epsilon\leftrightarrow \mu.$
+Considering an ansatz for the inverse $\vb W=\vb M^{-1}$ of the form
+%====================================================================%
+\begin{align}
+W_{ij}\supt{P} &= g_1\supt{P} \delta_{ij} + g_2\supt{P} \frac{q_i q_j}{q^2}
+\label{WijP}
+\intertext{and demanding $\vb M \vb W = \vb 1$ yields}
+g_1 &= \frac{1}{f_1}, \qquad g_2=-\frac{f_2}{f_1(f_1+f_2)}.
+\label{g1g2}
+\end{align}
+%====================================================================%
+For a $j$-directed point electric source of strength $\mc J$
+at a distance $z\subt{S}$ above the interface
+[that is, a pointlike current distribution
+$\vb J(\vb x)=\mc J \vbhat{r}_j \delta(\vb x - \vb x\subt{S})$
+with $x\subt{S}=(0,0,z\subt{S})$]
+the tangential fields that enter the RHS of (\ref{MKN2x2}) are
+%====================================================================%
+\begin{align}
+\left(\begin{array}{c}
+ \wt e_x \\ \wt e_y \\ \wt h_x \\ \wt h_y
+\end{array}\right)
+ &=
+ \frac{\mc J}{2q_z\supt{A}}
+ \left(\begin{array}{c}
+ -\omega\mu\supt{A}\delta_{jx} + \frac{q_x q_j}{\omega \epsilon\supt{A}}
+\\
+ -\omega\mu\supt{A}\delta_{jy} + \frac{q_y q_j}{\omega \epsilon\supt{A}}
+\\
+ -q_y \delta_{jz} + q\supt{A}_z \delta_{jy}
+\\
+ +q_x \delta_{jy} - q\supt{A}_z \delta_{jx}
+ \end{array}\right)
+\label{eehh}
+\end{align}
+%====================================================================%
+Armed with (\ref{Wijp}), \ref{g1g2}), and (\ref{eehh}), I can now
+obtain analytical formulas for the Fourier-space surface currents---but
+unfortunately the results are too unwieldy to be useful in practice.
+
+To make progress, I make the following simplifications:
+%====================================================================%
+\begin{itemize}
+ \item
+  I put $q\supt{B}_z=q\supt{A}_z.$ The rationale is that
+  I am interested in the behavior as $q\to\infty$, in which case
+  $q\supt{B}_z$ does become equal to $q\supt{A}_z.$
+ \item I consider the nonmagnetic case $\mu\supt{A}=\mu\supt{B}=1.$
+\end{itemize}
+%====================================================================%
+With these simplifications, the components of the induced surface currents
+on the interface read
+%====================================================================%
+\begin{align*}
+ \frac{\wt k_i}{\mc J}
+ &= -\delta_{ij}
+    -\frac{\epsilon\supt{B}}{\epsilon\supt{A}}
+     \frac{q_i q_j}{q^2 - \epsilon\supt{P} \omega^2},
+\qquad
+ \frac{\wt n_i}{\mc J}
+&= \varepsilon_{ij} \frac{\omega q_z}{q^2}
+  +\frac{q^2 q_z}{\omega \epsilon\supt{S}\left[ q^2 - \epsilon\supt{S} \omega^2\right]}
+  -\cdots
+\end{align*}
 %====================================================================%
 
 \end{document} 

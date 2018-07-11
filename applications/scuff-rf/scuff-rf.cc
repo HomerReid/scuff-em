@@ -560,11 +560,11 @@ int main(int argc, char *argv[])
   if (ZParameters)
    { fclose(ZParFile);
      printf("Z-parameters vs. frequency written to file %s\n",ZParFileName);
-   };
+   }
   if (SParameters)
    { fclose(SParFile);
      printf("S-parameters vs. frequency written to file %s\n",SParFileName);
-   };
+   }
   if (Moments)
    fclose(MomentFile);
   printf("Thank you for your support.\n");

@@ -12,7 +12,8 @@ referencedir = $(pkgdatadir)/reference
 reference_DATA = reference/LossySphere_327.DSIPFT       \
                  reference/LossySphere_327.EMTPFT       \
                  reference/LossySphere_327.Moments      \
-                 reference/LossySphere_327.EPFile.total
+                 reference/LossySphere_327.EPFile.total \
+                 reference/LossySphere_327.Runtime
 
 pkgdata_SCRIPTS = TestMie.sh
 TESTS = TestMie.sh
