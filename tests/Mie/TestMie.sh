@@ -34,6 +34,15 @@ fi
 ###################################################################
 if [ "x${CHECKSCUFFDATA}" == "x" ]
 then
+  DIR=`which CheckSCUFFData`
+  if [ $? -eq 0 ]
+  then
+    export CHECKSCUFFDATA=${DIR}
+  fi
+fi
+
+if [ "x${CHECKSCUFFDATA}" == "x" ]
+then
   SCUFFDATADIR=`pkg-config scuff-em --variable=datadir`
   if [ $? -eq 0 ]
   then

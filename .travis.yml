@@ -1,4 +1,5 @@
 language: cpp
+
 addons:
   apt:
     packages:
@@ -7,12 +8,23 @@ addons:
     - liblapack-dev
     - python-numpy
     - swig
-before_script:
+
+matrix:
+  include:
+  - os: linux
+  - os: osx
+    env: CC="gcc-7 -fopenmp" CXX="g++-7 -fopenmp" CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas 
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update                                 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc --without-multilib         ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install autoconf automake hdf5 openblas; fi
+
 script:
   - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
   - make install
   - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests make check
-  - find ${HOME}/local/lib
+  -find ${HOME}/local/lib
   - PYTHONPATH=${HOME}/local/lib/python2.7/site-packages python -c 'import scuff'
 
 after_script:
