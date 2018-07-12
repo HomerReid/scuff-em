@@ -13,7 +13,7 @@ matrix:
   include:
   - os: linux
   - os: osx
-    env: CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas
+    env: FC=gfortran F77=gfortran CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
@@ -21,7 +21,7 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated gcc || brew upgrade gcc; fi
 
 script:
-  - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
+  - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local 
   - make install 
   - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests make check
   - find ${HOME}/local/lib
