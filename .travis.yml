@@ -18,7 +18,6 @@ matrix:
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated openblas || brew upgrade openblas; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated gfortran || brew upgrade gfortran; fi
 
 script:
   - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
@@ -28,4 +27,5 @@ script:
   - PYTHONPATH=${HOME}/local/lib/python2.7/site-packages python -c 'import scuff'
 
 after_script:
+  - cat ${TRAVIS_BUILD_DIR}/config.log
   - for FILE in `find ${TRAVIS_BUILD_DIR} -name test-suite.log`; do printf "\n**${FILE}:\n"; cat ${FILE}; done
