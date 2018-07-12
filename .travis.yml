@@ -9,10 +9,12 @@ addons:
     - python-numpy
     - swig
 
+
 matrix:
   include:
   - os: linux
   - os: osx
+    osx_image: xcode9.3
     env: FC=gfortran F77=gfortran CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas
 
 before_script:
