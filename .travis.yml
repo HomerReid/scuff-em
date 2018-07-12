@@ -21,6 +21,8 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated openblas || brew upgrade openblas; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated gcc || brew upgrade gcc; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew list; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew ls --verbose gcc; fi
 
 script:
   - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local 
