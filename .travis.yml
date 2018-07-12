@@ -13,15 +13,15 @@ matrix:
   include:
   - os: linux
   - os: osx
-    env: CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas
+    env: F77=gfortran FC=gfortran CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated openblas || brew upgrade openblas; fi
 
 script:
-  - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local
-  - make install
+  - ./autogen.sh --enable-shared --with-python --prefix=${HOME}/local FC=gfortran F77=gfortran
+  - make install 
   - PATH=${PATH}:${HOME}/local/bin:${HOME}/local/share/scuff-em/tests make check
   - find ${HOME}/local/lib
   - PYTHONPATH=${HOME}/local/lib/python2.7/site-packages python -c 'import scuff'
