@@ -13,7 +13,7 @@ matrix:
   include:
   - os: linux
   - os: osx
-    env: CC="gcc-7 -fopenmp" CXX="g++-7 -fopenmp" CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas 
+    env: CPPFLAGS=-I/usr/local/opt/openblas/include LDFLAGS=-L/usr/local/opt/openblas/lib BLAS_LIBS=-lopenblas
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
