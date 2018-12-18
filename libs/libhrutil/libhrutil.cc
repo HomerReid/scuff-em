@@ -1003,6 +1003,16 @@ void AppendEnv(const char *Name, const char *Separator, const char *format, ...)
 { 
   COMPLETE_VARARGS(format, buffer);
   char *Old = getenv(Name);
+  if (Old) { // check if Old already contains buffer
+    const char *p = strstr(Old, buffer);
+    if (p) {
+      size_t seplen = strlen(Separator);
+      size_t buflen = strlen(buffer);
+      if ((p == Old || (p >= Old + seplen && !strncmp(p-seplen, Separator, seplen)))
+          && (*(p+buflen)==0 || !strcmp(p+buflen, Separator)))
+        return; // Old contains buffer with Separator before & after
+    }
+  }
   char *New = vstrdup("%s%s%s",Old ? Old:"",Old&&Separator ? Separator:"",buffer);
   setenv(Name,New,1);
   free(New);
