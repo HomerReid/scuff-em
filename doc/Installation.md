@@ -28,7 +28,7 @@ but in this case the code will be somewhat crippled.
 On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a 
 
 ````bash
-% sudo apt-get install liblapack-dev libblas-dev libhdf5-serial-dev python-dev gmsh
+% sudo apt-get install liblapack-dev libblas-dev libhdf5-serial-dev python-dev gmsh swig
 ````
 
 > Note: In some cases it seems the ``gmsh`` package conflicts with 
