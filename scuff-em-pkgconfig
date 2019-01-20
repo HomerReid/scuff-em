@@ -1,0 +1,11 @@
+prefix=/Users/jayyao/scuff-em-installation
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+datadir=${prefix}/share
+
+Name: SCUFF-EM
+Description: Surface-integral-equation modeling of classical and quantum-statistical phenomena
+Version: 0.96
+Libs: -L${libdir} -lscuff -L/usr/local/opt/openblas/lib -lm -lreadline  -lopenblas -lhdf5_hl -lhdf5   -lhdf5_hl -lhdf5  -L/usr/local/opt/openblas/lib -L/usr/local/Cellar/gcc/8.2.0/lib/gcc/8/gcc/x86_64-apple-darwin17.7.0/8.2.0 -L/usr/local/Cellar/gcc/8.2.0/lib/gcc/8/gcc/x86_64-apple-darwin17.7.0/8.2.0/../../.. -lgfortran -lquadmath -lm
+Cflags: -I${includedir}
