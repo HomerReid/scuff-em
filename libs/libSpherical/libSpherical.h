@@ -67,19 +67,19 @@
 /* conversion routines                                         */
 /***************************************************************/
 void CoordinateC2S(double X, double Y, double Z, double *r, double *Theta, double *Phi);
-void CoordinateC2S(double X[3], double *r, double *Theta, double *Phi);
-void CoordinateC2S(double X[3], double R[3]);
-void CoordinateC2S(double X[3]);
+void CoordinateC2S(const double X[3], double *r, double *Theta, double *Phi);
+void CoordinateC2S(const double X[3], double R[3]);
+void CoordinateC2S(const double X[3]);
 void CoordinateS2C(double r, double Theta, double Phi, double X[3]);
 void CoordinateS2C(double r, double Theta, double Phi, double *X, double *Y, double *Z);
-void CoordinateS2C(double R[3], double X[3]);
+void CoordinateS2C(const double R[3], double X[3]);
 void CoordinateS2C(double R[3]);
-void VectorC2S(double Theta, double Phi, cdouble VC[3], cdouble VS[3]);
-void VectorC2S(double Theta, double Phi, double VC[3], double VS[3]);
+void VectorC2S(double Theta, double Phi, const cdouble VC[3], cdouble VS[3]);
+void VectorC2S(double Theta, double Phi, const double VC[3], double VS[3]);
 void VectorC2S(double Theta, double Phi, double V[3]);
 void VectorC2S(double Theta, double Phi, cdouble V[3]);
-void VectorS2C(double Theta, double Phi, cdouble VS[3], cdouble VC[3]);
-void VectorS2C(double Theta, double Phi, double VS[3], double VC[3]);
+void VectorS2C(double Theta, double Phi, const cdouble VS[3], cdouble VC[3]);
+void VectorS2C(double Theta, double Phi, const double VS[3], double VC[3]);
 void VectorS2C(double Theta, double Phi, double V[3]);
 void VectorS2C(double Theta, double Phi, cdouble V[3]);
 

@@ -23,14 +23,11 @@
  * homer reid          -- 11/2009 -- 2/2012
  */
 
-#include <string.h>
 #include <math.h>
 
 #include <libhrutil.h>
 #include <libIncField.h>
 #include <libSpherical.h>
-
-#define II cdouble(0.0,1.0)
 
 /**********************************************************************/
 /* constructor and field-setting routines *****************************/
@@ -57,10 +54,8 @@ void SphericalWave::GetFields(const double X[3], cdouble EHC[6])
   cdouble Z=ZVAC*sqrt(Mu/Eps);
   
   // convert the evaluation point to spherical coordinates 
-  double XX[3]; 
-  memcpy(XX, X, 3*sizeof(double));
   double r, Theta, Phi;
-  CoordinateC2S(XX, &r, &Theta, &Phi);
+  CoordinateC2S(X, &r, &Theta, &Phi);
 
   // get the M and N vector spherical harmonics 
   cdouble MVec[3], NVec[3];

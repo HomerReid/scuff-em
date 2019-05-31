@@ -804,6 +804,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
     FIBBICaches[ns] = FIBBICaches[ Mate[ns] ];
    else
     FIBBICaches[ns] = CreateFIBBICache(Surfaces[ns]->MeshFileName);
+  fclose(f);
 }
 
 /***************************************************************/

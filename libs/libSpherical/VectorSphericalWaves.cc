@@ -246,7 +246,7 @@ HMatrix *GetWaveMatrix(double r, double Theta, double Phi,
   cdouble *RFArray       = dYdThetaArray + NAlpha;
   cdouble *dWorkspace    = RFArray       + 3*(LMax+1);
 
-  GetVSWRadialFunctions(LMax, k, r, WaveType, RFArray, (double *)dWorkspace, RConjugate);
+  GetVSWRadialFunctions(LMax, k, r, WaveType, RFArray, (double *)dWorkspace, /* TimesrFactor */ false, RConjugate);
 
   /***************************************************************/
   /* fetch angular functions                                     */
