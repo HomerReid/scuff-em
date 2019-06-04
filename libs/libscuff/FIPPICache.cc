@@ -66,7 +66,7 @@ typedef struct
 
 typedef std::pair<KeyStruct, QIFIPPIData *> KeyValuePair;
 
-struct KeyHash
+struct FIPPIKeyHash
  {
    long operator() (const KeyStruct &K) const { return HashFunction(K.Key); }
  };
@@ -80,18 +80,18 @@ typedef struct
       return true;
     };
 
- } KeyCmp;
+ } FIPPIKeyCmp;
 
 #ifdef HAVE_CXX11
 typedef std::unordered_map< KeyStruct,
                             QIFIPPIData *,
-                            KeyHash,
-                            KeyCmp> KeyValueMap;
+                            FIPPIKeyHash,
+                            FIPPIKeyCmp> KeyValueMap;
 #elif defined(HAVE_TR1)
 typedef std::tr1::unordered_map< KeyStruct,
                                  QIFIPPIData *, 
-                                 KeyHash, 
-                                 KeyCmp> KeyValueMap;
+                                 FIPPIKeyHash, 
+                                 FIPPIKeyCmp> KeyValueMap;
 #endif
 
 /*--------------------------------------------------------------*/

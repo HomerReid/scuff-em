@@ -69,9 +69,8 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
 /*--------------------------------------------------------------*/
 long JenkinsHash(const char *key, size_t len)
 {
-    long hash;
-    unsigned int i;
-    for(hash = i = 0; i < len; ++i)
+    long hash = 0;
+    for(size_t i = 0; i < len; ++i)
     {
         hash += key[i];
         hash += (hash << 10);
@@ -95,7 +94,7 @@ typedef struct { double Data[DATALEN];  } DataStruct;
 
 typedef std::pair<KeyStruct, DataStruct> KDPair;
 
-struct KeyHash
+struct FIBBIKeyHash
  {
    long operator() (const KeyStruct &K) const 
     { return HashFunction(K.Key); }
@@ -111,18 +110,18 @@ typedef struct
                     );
     };
 
- } KeyCmp;
+ } FIBBIKeyCmp;
 
 #ifdef HAVE_CXX11
 typedef std::unordered_map< KeyStruct,
                             DataStruct,
-                            KeyHash,
-                            KeyCmp> KDMap;
+                            FIBBIKeyHash,
+                            FIBBIKeyCmp> KDMap;
 #elif defined(HAVE_TR1)
 typedef std::tr1::unordered_map< KeyStruct,
                                  DataStruct,
-                                 KeyHash,
-                                 KeyCmp> KDMap;
+                                 FIBBIKeyHash,
+                                 FIBBIKeyCmp> KDMap;
 #endif
 
 /*--------------------------------------------------------------*/
