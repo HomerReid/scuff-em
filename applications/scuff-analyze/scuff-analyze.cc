@@ -33,6 +33,10 @@
 #include <unistd.h>
 #include <libhrutil.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "libscuff.h"
 #include "EquivalentEdgePairs.h"
 
@@ -451,7 +455,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   if (GeoFile==0 && MeshFile==0)
-   OSUsage(argv[0],OSArray,"either --geometry or --meshfile option must be specified");
+   OSUsage(argv[0], VERSION, OSArray,"either --geometry or --meshfile option must be specified");
   if (GeoFile!=0 && MeshFile!=0)
    ErrExit("--geometry and --meshfile options are mutually exclusive");
   if (PhysicalRegion!=-1 && MeshFile==0)

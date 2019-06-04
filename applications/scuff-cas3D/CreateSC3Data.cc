@@ -224,7 +224,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
   time_t MyTime = time(0);
   struct tm *MyTm=localtime(&MyTime);
   strftime(DateStr,30,"%D::%T",MyTm);
-  fprintf(f,"# scuff-cas3D run on %s at %s\n",GetHostName(),DateStr);
+  fprintf(f,"# scuff-cas3D " VERSIONSTRING " run on %s at %s\n",GetHostName(),DateStr);
   fprintf(f,"# data file columns: \n");
   fprintf(f,"#1: transform tag\n");
 

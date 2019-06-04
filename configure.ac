@@ -1,4 +1,4 @@
-AC_INIT(scuff-em, 0.96, homer@homerreid.com)
+AC_INIT(scuff-em, [m4_esyscmd_s([git describe --always --dirty])], homer@homerreid.com)
 AC_CONFIG_SRCDIR([README])
 
 # Shared-library version.  This has a technical

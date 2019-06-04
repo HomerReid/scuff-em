@@ -67,7 +67,7 @@ void WriteFields(StaticSolver *SS, HVector *Sigma, StaticExcitation *SE,
      else 
       snprintf(FileName, MAXSTR, "%s.%s.out",OutFileBase,GetFileBase(EPFiles[nepf]));
      FILE *f=fopen(FileName,Separate ? "w" : "a");
-     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# scuff-static " VERSIONSTRING " run on %s (%s)",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
      int nc=1;
      if (!Separate && TransformLabel) 
@@ -138,7 +138,7 @@ void WritePolarizabilities(StaticSolver *SS, HMatrix *M, HVector *Sigma, char *P
   FILE *f=fopen(PolFile,"a");
   if (!WroteHeader)
    { WroteHeader=true;
-     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# scuff-static " VERSIONSTRING " run on %s (%s)",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
      int nc=1;
      if (SS->TransformLabel)
@@ -196,7 +196,7 @@ void WriteCapacitanceMatrix(StaticSolver *SS, HMatrix *M,
   RWGGeometry *G=SS->G;
   if (WroteHeader==false)
    { WroteHeader=true;
-     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# scuff-static " VERSIONSTRING " run on %s (%s)",GetHostName(),GetTimeString());
      fprintf(f,"# indices of conducting surfaces: ");
      fprintf(f,"# data file columns: \n");
      int NCS=0;

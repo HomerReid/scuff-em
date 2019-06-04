@@ -33,6 +33,10 @@
 #include <stdarg.h>
 #include <fenv.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "scuff-scatter.h"
 
 /***************************************************************/
@@ -179,7 +183,7 @@ int main(int argc, char *argv[])
   ProcessOptions(argc, argv, OSArray);
 
   if (GeoFile==0)
-   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray, "--geometry option is mandatory");
 
   if (FileBase==0) 
    FileBase=vstrdup(GetFileBase(GeoFile));
@@ -190,7 +194,7 @@ int main(int argc, char *argv[])
   HVector *OmegaList=GetOmegaList(OmegaFile, OmegaVals, nOmegaVals,
                                   LambdaFile, LambdaVals, nLambdaVals);
   if (OmegaList==0)
-   OSUsage(argv[0], OSArray, "you must specify at least one frequency");
+   OSUsage(argv[0], VERSION, OSArray, "you must specify at least one frequency");
 
   /*******************************************************************/
   /* process incident-field-related options to construct the data    */

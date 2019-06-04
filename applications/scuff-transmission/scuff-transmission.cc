@@ -26,6 +26,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <libIncField.h>
 #include "scuff-transmission.h"
 
@@ -85,7 +89,7 @@ bool GetSourceDestRegions(RWGGeometry *G, bool FromAbove,
 /***************************************************************/
 void WriteFilePreamble(FILE *f)
 {
-  fprintf(f,"# scuff-transmission run on %s (%s)\n",
+  fprintf(f,"# scuff-transmission " VERSION " run on %s (%s)\n",
              GetHostName(),GetTimeString());
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1:      omega \n");
@@ -232,11 +236,11 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   if (GeoFileName==0)
-   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFileName));
   SetLogFileName("%s.log",FileBase);
-  Log("scuff-transmission running on %s",GetHostName());
+  Log("scuff-transmission" VERSION " running on %s",GetHostName());
   
   /*******************************************************************/
   /*- create the RWGGeometry                                        -*/
@@ -265,7 +269,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   HVector *OmegaVector=GetOmegaList(OmegaFile, OmegaVals, nOmegaVals, LambdaFile, LambdaVals, nLambdaVals);
   if ( !OmegaVector || OmegaVector->N==0)
-   OSUsage(argv[0], OSArray, "you must specify at least one frequency");
+   OSUsage(argv[0], VERSION, OSArray, "you must specify at least one frequency");
 
   /*******************************************************************/
   /* process incident-angle-related options to construct a list of   */
@@ -278,7 +282,7 @@ int main(int argc, char *argv[])
   HVector *ThetaVector;
   if ( ThetaMax!=0.0 )
    { if ( ThetaMax<ThetaMin )
-      OSUsage(argv[0], OSArray, "--ThetaMin must not be greater than --ThetaMax");
+      OSUsage(argv[0], VERSION, OSArray, "--ThetaMin must not be greater than --ThetaMax");
      if ( ThetaMax==ThetaMin )  
       ThetaPoints=1;
      ThetaVector=LinSpace(ThetaMin*DEG2RAD, ThetaMax*DEG2RAD, ThetaPoints);

@@ -16,4 +16,5 @@ AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/libs/libSGJC       \
               -I$(top_srcdir)/libs/libSubstrate  \
               -I$(top_srcdir)/libs/libTriInt     \
-              -I$(top_srcdir)/libs/libhrutil
+              -I$(top_srcdir)/libs/libhrutil     \
+              -DVERSIONSTRING=\"$(shell git describe always --dirty)\"

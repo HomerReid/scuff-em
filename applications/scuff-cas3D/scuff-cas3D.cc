@@ -29,6 +29,10 @@
 #include <stdarg.h>
 #include <math.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "scuff-cas3D.h"
 
 /***************************************************************/
@@ -145,7 +149,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   if (GeoFile==0)
-   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFile));
 

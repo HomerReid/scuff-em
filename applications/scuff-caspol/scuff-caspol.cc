@@ -54,7 +54,7 @@ void WriteFilePreamble(SCPData *SCPD, const char *FileName,
   char TimeString[200];
   strftime(TimeString,30,"%D::%T",MyTm);
 
-  fprintf(f,"# scuff-caspol running on %s (%s)\n",getenv("HOST"),TimeString);
+  fprintf(f,"# scuff-caspol " VERSIONSTRING " run on %s (%s)\n",getenv("HOST"),TimeString);
   fprintf(f,"#\n");
   fprintf(f,"# command line:\n");
   fprintf(f,"#\n");

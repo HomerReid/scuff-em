@@ -24,6 +24,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <libhrutil.h>
 #include <libscuff.h>
 #include <libscuffInternals.h>
@@ -106,9 +110,9 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
   if (GeoFile==0 && (SkipBZIntegration==false) )
-   OSUsage(argv[0], OSArray,"--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray,"--geometry option is mandatory");
   if (nEPFiles==0)
-   OSUsage(argv[0], OSArray,"you must specify at least one --EPFile");
+   OSUsage(argv[0], VERSION, OSArray,"you must specify at least one --EPFile");
   if (!FileBase)
    FileBase = vstrdup(GetFileBase(GeoFile));
   if (HalfSpace)
@@ -172,7 +176,8 @@ int main(int argc, char *argv[])
 
   int LDim = Data->G->LDim;
   if (HalfSpace && LDim!=2)
-   OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry unless you also say --SkipBZIntegration");
+   OSUsage(argv[0], VERSION, OSArray,
+       "--HalfSpace requires a 2D-periodic geometry unless you also say --SkipBZIntegration");
 
   int NX         = Data->TotalEvalPoints;
   int NFun       = Data->LDOSOnly ? 2 : 38; // # outputs per eval pt

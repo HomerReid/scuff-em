@@ -55,16 +55,18 @@ void AppendOSUsageMessage(const char *Message)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...)
+void printOSUsage(const char *ProgName, const char *version, OptStruct *OSArray, const char *format, va_list ap)
 {
-  va_list ap;
+  //va_list ap;
   char buffer[MAXSTR];
 
+  if (version)
+    fprintf(stderr, "%s %s\n", ProgName, version);
+
   if (format)
-   { va_start(ap,format);
+   {
      vsnprintfEC(buffer,MAXSTR,format,ap);
      fprintf(stderr,"\nerror: %s (aborting)\n\n",buffer);
-     va_end(ap);
    };
 
   fprintf(stderr,"usage: %s [options]\n\n",ProgName);
@@ -110,8 +112,29 @@ void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...)
   if (ExtraOSUsageMessage)
    fprintf(stderr,"%s\n",ExtraOSUsageMessage);
   
-  exit(1);
 
+}
+
+void OSUsage(const char *ProgName, const char *version, OptStruct *OSArray, const char *format, ...)
+{
+  va_list ap;
+  if(format) 
+    va_start(ap, format);
+  printOSUsage(ProgName, version, OSArray, format, ap);
+  if(format)
+    va_end(ap);
+  exit(1);
+}
+
+void OSUsage(const char *ProgName, OptStruct *OSArray, const char *format, ...)
+{
+  va_list ap;
+  if(format) 
+    va_start(ap, format);
+  printOSUsage(ProgName, NULL, OSArray, format, ap);
+  if(format)
+    va_end(ap);
+  exit(1);
 }
 
 /***************************************************************/

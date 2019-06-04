@@ -36,6 +36,10 @@
 #include <sys/types.h>
 #include <fenv.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <vector>
 
 #include <libhrutil.h>
@@ -225,7 +229,7 @@ int main(int argc, char *argv[])
   ProcessOptions(argc, argv, OSArray);
 
   if (DataFileName==0)
-   OSUsage(argv[0],OSArray,"--DataFile option is mandatory");
+   OSUsage(argv[0], VERSION,OSArray,"--DataFile option is mandatory");
 
   /***************************************************************/
   /* auto-detect special known file types and autoset values of  */
@@ -290,11 +294,11 @@ int main(int argc, char *argv[])
   /* sanity checks ***********************************************/
   /***************************************************************/
   if (NumData==0)
-   OSUsage(argv[0],OSArray,"you must specify at least one --DataColumn");
+   OSUsage(argv[0], VERSION, OSArray,"you must specify at least one --DataColumn");
   if (nDataNames!=0 && nDataNames!=NumData)
-   OSUsage(argv[0],OSArray,"numbers of --DataNames and --DataColumns do not agree");
+   OSUsage(argv[0], VERSION, OSArray,"numbers of --DataNames and --DataColumns do not agree");
   if (nParmNames!=0 && nParmNames!=NumParms)
-   OSUsage(argv[0],OSArray,"numbers of --ParmNames and --ParmColumns do not agree");
+   OSUsage(argv[0], VERSION, OSArray,"numbers of --ParmNames and --ParmColumns do not agree");
 
   if (nDataNames==0)
    for(int nd=0; nd<NumData; nd++)

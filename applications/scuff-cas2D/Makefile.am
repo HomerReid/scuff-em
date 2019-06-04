@@ -27,4 +27,5 @@ AM_CPPFLAGS = \
   -I$(top_srcdir)/libs/libSGJC       \
   -I$(top_srcdir)/libs/libMDInterp   \
   -I$(top_srcdir)/libs/libMatProp    \
-  -I$(top_srcdir)/libs/libhmat
+  -I$(top_srcdir)/libs/libhmat     \
+  -DVERSIONSTRING=\"$(shell git describe always --dirty)\"

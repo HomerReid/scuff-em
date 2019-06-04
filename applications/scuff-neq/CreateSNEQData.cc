@@ -46,7 +46,7 @@ void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName, bool ByRegion=fals
 {
   FILE *f = ByRegion ? vfopen("%s.byRegion","a",FileName) : fopen(FileName,"a");
   fprintf(f,"\n");
-  fprintf(f,"# scuff-neq run on ");
+  fprintf(f,"# scuff-neq " VERSIONSTRING " run on ");
   fprintf(f,"%s (%s)\n",GetHostName(),GetTimeString());
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1 transform tag\n");
@@ -217,7 +217,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   if (SNEQD->NumSRQs>0)
    { FILE *f=vfopen("%s.SRFlux","a",SNEQD->FileBase);
      fprintf(f,"\n");
-     fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
+     fprintf(f,"# scuff-neq " VERSIONSTRING " run on %s (%s)\n",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
      fprintf(f,"# 1 transform tag\n");
      fprintf(f,"# 2 omega \n");

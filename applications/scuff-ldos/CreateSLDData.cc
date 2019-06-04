@@ -37,7 +37,7 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim,
 {
   FILE *f=fopen(FileName,"a");
 
-  fprintf(f,"# scuff-ldos run on %s ",GetHostName());
+  fprintf(f,"# scuff-ldos " VERSIONSTRING " run on %s ",GetHostName());
   fprintf(f,"%s\n",GetTimeString());
   fprintf(f,"# columns: \n");
   

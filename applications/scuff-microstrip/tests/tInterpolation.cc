@@ -26,6 +26,10 @@
 #include <fenv.h>
 #include <unistd.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "libhrutil.h"
 #include "libSGJC.h"
 #include "libSubstrate.h"
@@ -98,9 +102,9 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
   if (GeoFile==0)
-   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray,"--geometry option is mandatory");
   if (EPFile==0)
-   OSUsage(argv[0],OSArray,"--epfile option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray,"--epfile option is mandatory");
 
   RWGGeometry *G = new RWGGeometry(GeoFile);
 

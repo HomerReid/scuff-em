@@ -30,6 +30,10 @@
 #include <math.h>
 #include <time.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libscuff.h>
@@ -166,9 +170,9 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
   if (GeoFile==0)
-   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray,"--geometry option is mandatory");
   if (PortFile==0)
-   OSUsage(argv[0],OSArray,"--PortFileName option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray,"--PortFileName option is mandatory");
   if (!FileBase)
    FileBase=strdup(GetFileBase(GeoFile));
 
@@ -228,13 +232,13 @@ int main(int argc, char *argv[])
   /* sanity check input arguments ********************************/
   /***************************************************************/
   if (PCFile==0 && FreqList->N!=0 && (ZParms==0 && SParms==0) )
-   OSUsage(argv[0],OSArray,"--ZParameters and/or --SParameters must be specified if a frequency specification is present");
+   OSUsage(argv[0], VERSION, OSArray,"--ZParameters and/or --SParameters must be specified if a frequency specification is present");
   if (PCFile!=0 && (ZParms!=0 || SParms!=0) )
-   OSUsage(argv[0],OSArray,"--ZParameters and --SParameters may not be used with --PortCurrentFile");
+   OSUsage(argv[0], VERSION, OSArray,"--ZParameters and --SParameters may not be used with --PortCurrentFile");
   //if (PCFile!=0 && nEPFiles==0 && nFVMeshes==0)
-   //OSUsage(argv[0],OSArray,"--EPFile or --FVMesh must be specified if --PortCurrentFile is specified");
+   //OSUsage(argv[0], VERSION, OSArray,"--EPFile or --FVMesh must be specified if --PortCurrentFile is specified");
   if (PCFile==0 && (nEPFiles!=0 || nFVMeshes!=0) )
-   OSUsage(argv[0],OSArray,"--EPFile and --FVMesh require --PortCurrentFile");
+   OSUsage(argv[0], VERSION, OSArray,"--EPFile and --FVMesh require --PortCurrentFile");
 
   /***************************************************************/
   /* process list of geometric transformations, if any           */

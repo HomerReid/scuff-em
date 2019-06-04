@@ -14,6 +14,7 @@ tBeyn411_LDADD   = libBeyn.la                                      \
                    $(top_builddir)/libs/libhrutil/libhrutil.la
 
 AM_CPPFLAGS = -DSCUFF                                \
+              -DVERSIONSTRING=\"$(shell git describe always --dirty)\"\
               -I$(top_srcdir)/libs/libscuff      \
               -I$(top_srcdir)/libs/libIncField   \
               -I$(top_srcdir)/libs/libMatProp    \
@@ -23,4 +24,4 @@ AM_CPPFLAGS = -DSCUFF                                \
               -I$(top_srcdir)/libs/libSubstrate  \
               -I$(top_srcdir)/libs/libTriInt     \
               -I$(top_srcdir)/libs/libhrutil     \
-              -I$(top_builddir) # for config.h
+              -I$(top_builddir) # for config.h    

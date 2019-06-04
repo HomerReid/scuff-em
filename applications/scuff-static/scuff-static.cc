@@ -29,6 +29,10 @@
 #include <math.h>
 #include <stdarg.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "scuff-static.h"
 
 using namespace scuff;
@@ -155,7 +159,7 @@ int main(int argc, char *argv[])
   ProcessOptions(argc, argv, OSArray);
 
   if (GeoFile==0)
-   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+   OSUsage(argv[0], VERSION, OSArray, "--geometry option is mandatory");
 
   if (nlMax && (CMatrixFile==0 || CMatrixHDF5File) )
    ErrExit("--lMax option can only be used with --CMatrixFile or --CMatrixHDF5File");
@@ -174,7 +178,7 @@ int main(int argc, char *argv[])
                           );
 
   if ( (!HaveType1Outputs) && (!HaveType2Outputs) )
-   OSUsage(argv[0], OSArray, "you have not selected any type of calculation");
+   OSUsage(argv[0], VERSION, OSArray, "you have not selected any type of calculation");
   if (HaveType1Outputs && HaveType2Outputs)
    ErrExit("{--EPFile,--FVMesh{ may not be used with {--polfilebase, --capfilebase}");
   if (HaveType1Outputs && HaveType2Inputs)
