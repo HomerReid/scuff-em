@@ -147,10 +147,34 @@ int main(int argc, char *argv[])
    {
      Log("Computing T matrix at frequency %s...",z2s(Omega));
 
+     Omega=OmegaVector->GetEntry(nOmega);
+     
+     /*----------------------------------------------*/
+     /*  Early check of material properties validity */
+     /*----------------------------------------------*/
+     G->UpdateCachedEpsMuValues(Omega);
+     {
+       int material_invalid = 0;
+
+       for (int regi = 0; regi < G->NumRegions; ++regi)
+         if (    isnan(real(G->EpsTF[regi])) 
+	      || isnan(imag(G->EpsTF[regi])) 
+	      || isnan(real(G->MuTF[regi]))  
+	      || isnan(imag(G->MuTF[regi]))   )
+           ++material_invalid;
+
+       if (material_invalid) {
+	  Log("Some of the regions contain invalid material properties at frequency %s; giving up.", z2s(Omega));
+	  Log(" (Check the frequency ranges in the material data files.)");
+	  fprintf(f, "# %s\tnot computed due to invalid material properties;"
+		     " check the frequency ranges in the material data files.\n", z2s(Omega));
+	  continue;
+       }
+     }
+
      /*--------------------------------------------------------------*/
      /* assemble and factorize the BEM matrix at this frequency      */
      /*--------------------------------------------------------------*/
-     Omega=OmegaVector->GetEntry(nOmega);
      G->AssembleBEMMatrix(Omega, M);
      M->LUFactorize();
 

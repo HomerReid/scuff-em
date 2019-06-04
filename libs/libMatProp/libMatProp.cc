@@ -528,17 +528,25 @@ void MatProp::GetEpsMu(cdouble Omega, cdouble *pEps, cdouble *pMu)
       { 
         if (InterpReal==0)
          ErrExit("no real-frequency data given in material data file %s",Name+5);
-	InterpReal->Evaluate(real(Omega)*FreqUnit, Data);
-	EpsRV=cdouble(Data[0], Data[1]);
-	MuRV=cdouble(Data[2], Data[3]);
+	if(InterpReal->Evaluate(real(Omega)*FreqUnit, Data)) {
+	  EpsRV=cdouble(Data[0], Data[1]);
+	  MuRV=cdouble(Data[2], Data[3]);
+	} else {
+	  EpsRV = MuRV = cdouble(NAN, NAN);
+	  Warn("Setting Eps, Mu to NaN: frequency %s outside the interpolation range in data file %s.", z2s(Omega), Name+5);
+	}
       }
      else if (real(Omega)==0.0)
       {
         if (InterpImag==0)
-         ErrExit("no imaginary-frequency data given in material data file %s",Name+5);
-	InterpImag->Evaluate(imag(Omega)*FreqUnit, Data);
-	EpsRV=cdouble(Data[0], 0.0);
-	MuRV=cdouble(Data[2], 0.0);
+         ErrExit("no imaginary-frequency data given in material data file %s); setting Eps, Mu to NaN.",Name+5);
+	if(InterpImag->Evaluate(imag(Omega)*FreqUnit, Data)) {
+	  EpsRV=cdouble(Data[0], 0.0);
+	  MuRV=cdouble(Data[2], 0.0);
+	} else {
+	  EpsRV = MuRV = cdouble(NAN, NAN);
+	  Warn("Setting Eps, Mu to NaN: frequency %s outside the interpolation range in data file %s.", z2s(Omega), Name+5);
+	}
       }
      else
       ErrExit("interpolated frequencies must lie on the real or imaginary axis");
@@ -546,7 +554,9 @@ void MatProp::GetEpsMu(cdouble Omega, cdouble *pEps, cdouble *pMu)
   else if ( Type==MP_PARSED ) 
    { 
        GetEpsMu_Parsed(Omega, &EpsRV, &MuRV);
-   }; // if (Type==... )
+   } // if (Type==... )
+  else
+    ErrExit("Invalid material property type");
 
   if (pEps) *pEps=EpsRV;
   if (pMu) *pMu=MuRV;
