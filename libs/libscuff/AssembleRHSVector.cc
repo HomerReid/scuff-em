@@ -95,7 +95,10 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch
      /*- sources for IF                                             -*/
      /*--------------------------------------------------------------*/
      if ( IF->GetSourcePoint(X) )
+     {
       IF->RegionIndex = GetRegionIndex(X);
+      IF->RegionLabel = strdupEC(RegionLabels[IF->RegionIndex]);
+     }
      else if ( IF->RegionLabel )
       IF->RegionIndex = GetRegionByLabel(IF->RegionLabel);
      else

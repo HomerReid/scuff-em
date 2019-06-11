@@ -66,7 +66,7 @@ PointSource::PointSource()
   InitPointSource(pX0, pP, pType, 0);
 }
 
-PointSource::PointSource(const PointSource &PS)
+PointSource::PointSource(const PointSource &PS) : IncField(PS)
 { InitPointSource(PS.X0, PS.P, PS.Type, PS.RegionLabel); }
 
 void PointSource::InitPointSource(const double pX0[3], const cdouble pP[3],

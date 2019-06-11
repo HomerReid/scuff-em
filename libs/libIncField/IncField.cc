@@ -57,6 +57,45 @@ IncField::IncField()
 }
 
 /***************************************************************/
+/* base class copy method **************************************/
+/***************************************************************/
+
+IncField::IncField(const IncField &IF)
+{
+  // Copy the Base class attributes
+  Eps=IF.Eps;
+  Mu=IF.Mu;
+
+  Omega=IF.Omega;
+
+  if(IF.LBasis) {
+    SetLattice(IF.LBasis);
+    LVolume=IF.LVolume;
+    RLVolume=IF.RLVolume;
+    SetkBloch(IF.kBloch);
+  } else {
+    LBasis=RLBasis=0;
+    LVolume=RLVolume=0;
+    kBloch[0]=kBloch[1]=kBloch[2]=0.0;
+  }
+  //memcpy(kBloch, IF.kBloch, 3*sizeof(double));
+
+  // field sources lie in the exterior region by default
+  RegionIndex = IF.RegionIndex;
+  // As the method is only called to copy
+  // an object it is safe to nullify RegionLabel
+  // SetRegionLabel checks whether RegionLabel
+  // is already allocated
+  RegionLabel = NULL;
+  if(IF.RegionLabel)
+  {
+    SetRegionLabel(IF.RegionLabel);
+  }
+  Next = IF.Next;
+
+}
+
+/***************************************************************/
 /* base class destructor ***************************************/
 /***************************************************************/
 IncField::~IncField()
@@ -117,8 +156,7 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
 /***************************************************************/
 void IncField::SetLattice(HMatrix *NewLBasis, bool Traverse)
 {
-  if (LBasis==0 || LBasis->NR!=3 || LBasis->NC != NewLBasis->NC)
-   { if (LBasis) delete LBasis;
+  if (LBasis==0 || LBasis->NR!=3 || LBasis->NC != NewLBasis->NC) { if (LBasis) delete LBasis;
      LBasis = new HMatrix(NewLBasis);
    };
   
@@ -135,7 +173,7 @@ void IncField::SetLattice(HMatrix *NewLBasis, bool Traverse)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void IncField::SetkBloch(double *NewkBloch, bool Traverse)
+void IncField::SetkBloch(const double *NewkBloch, bool Traverse)
 { 
   if ( LBasis==0 )
    ErrExit("%s:%i: attempt to set kBloch in a non-periodic IncField");

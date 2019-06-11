@@ -37,7 +37,9 @@
 #ifndef ZVAC
 #define ZVAC 376.73031346177   // impedance of free space
 #endif
-
+  // Omega is initialized to an absurd value to help catch cases
+  // in which GetFields() is called without a prior call to 
+  // SetFrequency()
 /**********************************************************************/
 /* IncField is a general base class from which specific classes       */
 /* for various types of field are derived.                            */
@@ -65,6 +67,7 @@ class IncField
 
    // constructor just initializes the simple fields
    IncField(); 
+   IncField(const IncField &IF);
    virtual ~IncField();
 
    void SetFrequency(cdouble Omega, bool Traverse=true);
@@ -72,7 +75,7 @@ class IncField
    void SetRegionLabel(const char *Label = 0);
 
    void SetLattice(HMatrix *LBasis, bool Traverse=true);
-   void SetkBloch(double *NewkBloch, bool Traverse=true);
+   void SetkBloch(const double *NewkBloch, bool Traverse=true);
 
    // obsolete calling convention retained for backward compatibility
    void SetObjectLabel(const char *Label) { SetRegionLabel(Label); }
