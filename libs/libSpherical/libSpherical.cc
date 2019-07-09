@@ -279,7 +279,7 @@ cdouble GetYlm(int l, int m, double Theta, double Phi)
 
   GetPlm(l, abs(m), cos(Theta), Plm, PlmPrime);
   if (m<0)
-   RetVal = ((m%1) ? -1.0 : 1.0) * Plm[l-abs(m)] * exp(-1.0*II*mPhi);
+   RetVal = ((m%1) ? -1.0 : 1.0) * Plm[l-abs(m)] * exp(II*mPhi);
   else
    RetVal = Plm[l-m]*exp(II*mPhi);
 
