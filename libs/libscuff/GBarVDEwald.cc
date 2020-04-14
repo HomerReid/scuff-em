@@ -338,7 +338,7 @@ cdouble GFullTwiddle1D(double kx, double Rho, cdouble k,
 {
   cdouble kt2 = kx*kx - k*k;
   cdouble kt = sqrt(kt2);
-  cdouble K[2];
+  cdouble K[3];
   AmosBessel('K',kt*Rho,0.0,3,false,K,0);
   double Denom = 4.0*M_PI*M_PI;
 

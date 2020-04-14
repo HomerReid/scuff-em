@@ -90,6 +90,7 @@ test-driver
 *.sql
 *.sqlite
 .gdb_history
+.tag*
 
 # OS generated files #
 ######################

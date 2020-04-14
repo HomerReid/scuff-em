@@ -266,6 +266,8 @@ void PolModel::InitPolModel_BI(char *Atom)
      return;
    };
 
+   // initialize MP, otherwise will be used in PolModel::GetPolarizability w/o assignment
+   MP = 0;
    // initialize the interpolator
    PolInterp = new Interp1D(XiPoints, PolPoints, NumPoints, 1);
 
