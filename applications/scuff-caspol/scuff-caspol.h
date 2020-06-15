@@ -141,5 +141,7 @@ void GetCPIntegrand(void *pSCPD, cdouble Omega,
 void GetXiIntegrand(SCPData *SCP, double Xi, double *U);
 void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
 void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U);
+/***************************************************************/
+void LoadPolarizability(SCPData *SCPD, double Xi);
 
 #endif

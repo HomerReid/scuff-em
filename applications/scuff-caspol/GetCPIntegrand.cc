@@ -156,7 +156,7 @@ void GetCPIntegrand(void *pSCPD, cdouble Omega, double *kBloch, double *U)
             if (nsp>ns)
              G->AssembleBEMMatrixBlock(nsp, ns, Omega, kBloch,
                                        M, 0, ColOffset, RowOffset,
-                                       ABMBCache[nb], true);
+                                       ABMBCache[nb], false);
           };
       };
      Log("LU-factorizing...");
@@ -218,11 +218,9 @@ void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
    Xi=XIMIN;
 
   /***************************************************************/
-  /* look up the polarizability tensor for each atomic species   */
-  /* at this frequency                                           */
+  /* now the polarizability tensor for each atomic species must  */
+  /* have been looked up by LoadPolarizability at this frequency */
   /***************************************************************/
-  for(int na=0; na<NumAtoms; na++)
-   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
 
   /***************************************************************/ 
   /***************************************************************/ 
@@ -295,6 +293,7 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      /***************************************************************/
      /* evaluate the frequency integrand at this matsubara frequency*/
      /***************************************************************/
+     LoadPolarizability(SCPD, Xi);
      GetXiIntegrand(SCPD, Xi, dU);
 
      /***************************************************************/
@@ -380,6 +379,7 @@ int SGJCIntegrand(unsigned ndim, const double *x, void *params,
   double Xi = x[0] / (1.0-x[0]);
 
   SCPData *SCPD = (SCPData *)params;
+  LoadPolarizability(SCPD, Xi);
   GetXiIntegrand(SCPD, Xi, fval);
 
   unsigned nf;
@@ -406,4 +406,17 @@ void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
                 ERROR_INDIVIDUAL, U, Error, "pcubature.log");
 
   delete[] Error;
+}
+
+void LoadPolarizability(SCPData *SCPD, double Xi)
+{
+  if (Xi<=XIMIN)
+   Xi=XIMIN;
+  PolModel **PolModels = SCPD->PolModels;
+  HMatrix **Alphas     = SCPD->Alphas;
+  for(int na=0; na<(SCPD->NumAtoms); na++)
+  {
+   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
+   printf("@Xi=%e, Alphas[%d][0,0] = %e\n", Xi, na, Alphas[na]->GetEntryD(0,0));
+  }
 }

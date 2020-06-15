@@ -91,7 +91,7 @@ ARGS="${ARGS} --DSIPoints      302"
 ##################################################
 ##################################################
 RUNTIME=${GEOM}.Runtime
-TIMECMD=`which time`
+TIMECMD=`which gtime`
 if [ $? -eq 0 ]
 then
   ${TIMECMD} -o ${RUNTIME} ${CODE} ${ARGS}

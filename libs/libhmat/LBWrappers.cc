@@ -210,7 +210,7 @@ int HMatrix::LUSolve(HMatrix *X, char Trans, int nrhs)
   int info;
 
   if ( RealComplex != X->RealComplex )
-   ErrExit("type mismatch in LUSolve");
+   ErrExit("type mismatch in LUSolve");  // problematic type mismatch
   if ( NR!=NC || NR!=X->NR )
    ErrExit("dimension mismatch in LUSolve");
   if ( nrhs > X->NC )
@@ -241,7 +241,7 @@ int HMatrix::LUSolve(HMatrix *X, char Trans)
 int HMatrix::LUSolve(HMatrix *X, int nrhs) 
  { return LUSolve(X,'N',nrhs); }
 
-int HMatrix::LUSolve(HMatrix *X) 
+int HMatrix::LUSolve(HMatrix *X) // problematic call, can hardly traceback where it is called 
  { return LUSolve(X,'N',X->NC); }
 
 /***************************************************************/

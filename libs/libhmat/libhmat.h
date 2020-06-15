@@ -393,6 +393,9 @@ class HMatrix
 
  };
 
+// get the real part matrix
+HMatrix *GetReal(HMatrix *A);
+
 // make an unpacked copy of a symmetric/Hermitian matrix
 HMatrix *CopyHMatrixUnpacked(HMatrix *Mpacked);
 

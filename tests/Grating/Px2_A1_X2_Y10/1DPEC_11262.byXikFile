@@ -1,0 +1,16 @@
+# scuff-caspol running on (null) (05/20/20::16:29:23)
+#
+# command line:
+#
+# scuff-caspol  --geometry  1DPEC_11262.scuffgeo  --Atom  Rb
+#  --EPFile  ../EPFile3  (null)  (null)
+#  (null)  (null) 
+#
+# data columns:
+#1: X (um) 
+#2: Y (um) 
+#3: Z (um) 
+#4: Xi (imaginary frequency) (3e14 rad/sec)
+#5: kx (bloch vector) (microns^{-1})
+#6: polarizability of Rb (a_0^3)
+#7: CP potential integrand for Rb (neV / (k_0 * 3e14 rad/sec))
