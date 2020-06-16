@@ -63,6 +63,14 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   int NBF = TotalBFs;
   int NX  = XMatrix->NR;
   Log("Getting DGFs at %i eval points...",NX);
+  
+  /* Decide whether real RFSource and real RFDest suffice: */
+  /* Condition: for compact geo at imag freq, despite  k=0 */
+  bool RealRF = (!LDim && (real(Omega)==0)); 
+  bool HavekBloch = false;
+  if (kBloch)
+   for(int d=0; d<LDim; d++)
+    if (kBloch[d]!=0.0) HavekBloch=true;  
 
   /*--------------------------------------------------------------*/
   /* allocate storage for RFSource, RFDest matrices. I keep these */
@@ -76,8 +84,8 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
    { 
      if (RFSource) delete RFSource;
      if (RFDest)   delete RFDest;
-     RFSource=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
-     RFDest=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+     RFSource = new HMatrix(NBF, 6*NX, RealRF?LHM_REAL:LHM_COMPLEX);
+     RFDest   = new HMatrix(NBF, 6*NX, RealRF?LHM_REAL:LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/
@@ -103,11 +111,6 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   /*- precompute 'reduced-field' vectors -------------------------*/
   /*--------------------------------------------------------------*/
-  bool HavekBloch = false;
-  if (kBloch)
-   for(int d=0; d<LDim; d++)
-    if (kBloch[d]!=0.0) HavekBloch=true;  
-
   GetRFMatrix(Omega, kBloch, XMatrix, RFDest, true);
   if ( TwoPointDGF || HavekBloch )
    GetRFMatrix(Omega, kBloch, XMatrix, RFSource, false, TwoPointDGF ? 3 : 0);
@@ -118,7 +121,8 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Log(" LUSolving...");
-  M->LUSolve(RFSource);
+  
+  M->LUSolve(RFSource); //Set a break point here  
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -204,16 +208,16 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
 
   double XBuffer[6];
   memcpy(XBuffer+0, XEval,   3*sizeof(double));
-  memcpy(XBuffer+3, XSource, 3*sizeof(double));
-  HMatrix XMatrix(1,6,LHM_COMPLEX,LHM_NORMAL,XBuffer);
-
+  HMatrix *XMatrix = new HMatrix(1,(XEval == XSource)?3:6, LHM_REAL,LHM_NORMAL,XBuffer);
+  if (XEval != XSource) memcpy(XBuffer+3, XSource, 3*sizeof(double));
+  
   if ( (LBasis && !kBloch) || (!LBasis && kBloch) )
    ErrExit("%s:%i: incorrect kBloch specification",__FILE__,__LINE__);
 
   cdouble GBuffer[18];
   HMatrix GMatrix(1,18,LHM_COMPLEX,LHM_NORMAL,GBuffer);
   
-  GetDyadicGFs(Omega, kBloch, &XMatrix, M, &GMatrix);
+  GetDyadicGFs(Omega, kBloch, XMatrix, M, &GMatrix, true);
 
   for(int i=0; i<3; i++)
    for(int j=0; j<3; j++)
@@ -259,6 +263,8 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
      GMTot[1][j] = GMScat[1][j] + EH[4] / MFactor;
      GMTot[2][j] = GMScat[2][j] + EH[5] / MFactor;
    };
+
+   delete XMatrix;
 }
 
 /***************************************************************/

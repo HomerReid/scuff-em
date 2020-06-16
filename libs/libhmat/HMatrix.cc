@@ -389,7 +389,10 @@ void HMatrix::SetEntry(size_t nr, size_t nc, cdouble Entry)
   Index=(StorageType==LHM_NORMAL ? (nr + nc*NR) : (nr + nc*(nc+1)/2 ) );
   
   if (RealComplex==LHM_REAL)
+   {
    DM[Index] = real(Entry);
+   if (imag(Entry) != 0.0) Warn("warning: imaginary part %.2e ignored.", imag(Entry));
+   }
   else if ( StorageType==LHM_HERMITIAN )
    ZM[Index] = ( Flipped==1 ? conj(Entry) : Entry );
   else /* complex symmetric */
@@ -752,6 +755,22 @@ void HMatrix::ExtractBlock(int RowOffset, int ColOffset, HMatrix *B)
   for (int nr=0; nr<B->NR; nr++)
    for (int nc=0; nc<B->NC; nc++)
     B->SetEntry(nr, nc, GetEntry(RowOffset+nr,ColOffset+nc) );
+}
+
+/***************************************************************/
+/* Get the real part of the matrix  ****************************/
+/***************************************************************/
+HMatrix *GetReal(HMatrix *A) {
+  if (A->RealComplex == LHM_REAL) return A;
+  HMatrix *C;
+  if (A->StorageType == LHM_SYMMETRIC || A->StorageType == LHM_HERMITIAN)
+    C = new HMatrix(A->NR, A->NC, LHM_REAL, LHM_SYMMETRIC);
+  else
+    C = new HMatrix(A->NR, A->NC, LHM_REAL, LHM_NORMAL);
+  for (size_t Index=0; Index < A->NumEntries(); Index++){
+    (C->DM)[Index] = real((A->ZM)[Index]);
+  }
+  return C;
 }
 
 /***************************************************************/

@@ -12,6 +12,9 @@ scuff-plotEpsMu
 scuff-rf
 scuff-transmission
 scuff-tmatrix
+scuff-spectrum
+scuff-integrate
+scuff-ldos
 # don't ignore directories, though:
 !scuff-analyze/
 !scuff-caspol/
@@ -112,3 +115,5 @@ interactiveTests/scuff-test-Ewald
 unitTests/unit-test-BEMMatrix
 unitTests/unit-test-PPIs
 unitTests/unit-test-PFT
+tests/CheckSCUFFData
+libs/libhmat/tSMatrix

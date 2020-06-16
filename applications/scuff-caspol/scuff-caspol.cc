@@ -320,14 +320,18 @@ int main(int argc, char *argv[])
         kBloch[0] = XikList->GetEntryD(n,1);
         if (LDim>1)
          kBloch[1] = XikList->GetEntryD(n,2);
-
+        LoadPolarizability(SCPD, Xi);
         GetCPIntegrand((void *)SCPD, cdouble(0.0,Xi), kBloch, U);
       }
    }
-  if (XiList)
+  else if (XiList)
    {
      for(int nXi=0; nXi<XiList->N; nXi++)
-      GetXiIntegrand(SCPD, XiList->GetEntryD(nXi), U);
+     {
+      double Xi = XiList->GetEntryD(nXi);
+      LoadPolarizability(SCPD, Xi);
+      GetXiIntegrand(SCPD, Xi, U);
+     }
    }
   else if ( Temperature != 0.0 )
    { 
